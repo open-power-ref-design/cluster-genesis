@@ -73,8 +73,8 @@ def extract_iso_images(path):
             # If dest dir already exists continue to next file
             if not os.path.isdir(dest_dir):
                 os.mkdir(dest_dir)
-                os.chdir(dest_dir)
-                _bash_cmd('7z x %s' % (path + _file))
+                _bash_cmd('xorriso -osirrox on -indev %s -extract / %s' %
+                          ((path + _file), dest_dir))
                 _bash_cmd('chmod 755 $(find %s -type d)' % dest_dir)
 
             # Do not return paths to "mini" isos
