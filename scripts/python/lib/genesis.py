@@ -35,6 +35,7 @@ GEN_PLAY_PATH = os.path.join(GEN_PATH, 'playbooks', '')
 GEN_PASSIVE_PATH = os.path.join(GEN_PATH, 'passive', '')
 GEN_LOGS_PATH = os.path.join(GEN_PATH, 'logs', '')
 OPSYS = platform.dist()[0]
+DEFAULT_CONTAINER_NAME = 'cluster-genesis'
 CONTAINER_PACKAGE_PATH = '/opt/' + GENESIS_DIR
 CONTAINER_ID_FILE = 'container'
 VENV_DIR = 'gen-venv'
@@ -60,10 +61,11 @@ def load_localhost(filename):
         sys.exit('Could not load file: ' + filename)
 
 
-def container_running():
+def is_container_running():
     cont_running = False
-    lxc_ls_output = subprocess.check_output(['bash', '-c', 'sudo lxc-ls -f'])
-    cont_running = re.search('^%s' % container_name, lxc_ls_output, re.MULTILINE)
+    lxc_ls_output = subprocess.check_output(['bash', '-c', 'lxc-ls -f'])
+    cont_running = re.search('^%s\d+\s+RUNNING' % DEFAULT_CONTAINER_NAME + '-pxe',
+                             lxc_ls_output, re.MULTILINE)
     if cont_running:
         cont_running = True
     return cont_running

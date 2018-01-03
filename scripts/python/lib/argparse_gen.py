@@ -1,6 +1,6 @@
 """Cluster Genesis 'gen' command argument parser"""
 
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -134,6 +134,11 @@ def get_args():
         help='Configure the cluster management switches')
 
     parser_config.add_argument(
+        '--data-switches',
+        action='store_true',
+        help='Configure the cluster data switches')
+
+    parser_config.add_argument(
         '--create-container',
         nargs='?',
         default=ABSENT,
@@ -258,9 +263,9 @@ def _check_setup(args, subparser):
 
 
 def _check_config(args, subparser):
-    if not args.mgmt_switches and args.create_container == ABSENT:
+    if not args.mgmt_switches and not args.data_switches and args.create_container == ABSENT:
         subparser.error(
-            'one of the arguments --mgmt-switches --create-container is'
+            'one of the arguments --mgmt-switches --data-switches --create-container is'
             ' required')
 
 

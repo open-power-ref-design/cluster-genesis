@@ -27,6 +27,7 @@ import getpass
 import enable_deployer_networks
 import validate_cluster_hardware
 import configure_mgmt_switches
+import configure_data_switches
 import download_os_images
 import lxc_conf
 import lib.argparse_gen as argparse_gen
@@ -277,6 +278,26 @@ class Gen(object):
             sys.exit(1)
         print('Success: Client OS installaion initiated')
 
+    def _config_data_switches(self):
+        if gen.is_container_running():
+            from lib.container import Container
+            cont = Container(self.args.add_cobbler_systems)
+            cmd = []
+            cmd.append(gen.get_container_venv_python_exe())
+            cmd.append(os.path.join(
+                gen.get_container_python_path(), 'configure_data_switches.py'))
+            try:
+                cont.run_command(cmd)
+            except UserException as exc:
+                print('Fail:', exc.message, file=sys.stderr)
+            print('Succesfully configured data switches')
+        else:
+            try:
+                configure_data_switches.gather_and_display()
+            except UserException as exc:
+                print('Fail:', exc.message, file=sys.stderr)
+            print('Succesfully configured data switches')
+
     def launch(self):
         """Launch actions"""
 
@@ -323,6 +344,8 @@ class Gen(object):
                 self._create_container()
             if self.args.mgmt_switches:
                 self._config_mgmt_switches()
+            if self.args.data_switches:
+                self._config_data_switches()
 
         if cmd == argparse_gen.Cmd.VALIDATE.value:
             if argparse_gen.is_arg_present(self.args.config_file):

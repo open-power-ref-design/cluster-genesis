@@ -1,4 +1,4 @@
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -28,7 +28,7 @@ _gen()
         return 0
     fi
 
-    opts="-h --help --create-container --mgmt-switches -a --all -f -p"
+    opts="-h --help --create-container --mgmt-switches --data-switches -a --all -f -p"
 
     if [[ ${cur} == -* ]] && [[ ${prev} == config ]]; then
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
