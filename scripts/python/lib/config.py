@@ -53,10 +53,12 @@ class Config(object):
         RACK_EIA = 'rack_eia'
         HOSTNAME_PREFIX = 'hostname_prefix'
         DEVICE = 'device'
+        INTERFACE = 'interface'
         INTERFACE_IPADDR = 'interface_ipaddr'
         CONTAINER_IPADDR = 'container_ipaddr'
         BRIDGE_IPADDR = 'bridge_ipaddr'
         VLAN = 'vlan'
+        VIP = 'vip'
         NETMASK = 'netmask'
         PREFIX = 'prefix'
         TARGET = 'target'
@@ -124,7 +126,11 @@ class Config(object):
                     list_.append(None)
             return list_
         if key in obj_list[index]:
-            return getattr(obj_list[index], key)
+            ret = getattr(obj_list[index], key)
+            if isinstance(ret, list):
+                return ret[:]
+            else:
+                return ret
 
     def get_version(self):
         """Get version
@@ -830,11 +836,11 @@ class Config(object):
         if index > self.get_sw_mgmt_cnt() - 1:
             raise UserException('switch index out of range')
         if index is not None:
-            switch_indeces = [index]
+            switch_indices = [index]
         else:
-            switch_indeces = range(self.get_sw_mgmt_cnt())
+            switch_indices = range(self.get_sw_mgmt_cnt())
         ai_list = []
-        for sw_idx in switch_indeces:
+        for sw_idx in switch_indices:
             ai_tuple = ()
             ai_tuple += (self.get_sw_mgmt_label(index=sw_idx),)
             ai_tuple += (self.get_sw_mgmt_class(index=sw_idx),)
@@ -1088,6 +1094,68 @@ class Config(object):
 
         return len(self.cfg.switches.data)
 
+    def get_sw_data_index_by_label(self, label):
+        """Get switches data index by label
+        Returns:
+            int: Label index
+        """
+
+        for index, data in enumerate(self.cfg.switches.data):
+            if label == data.label:
+                return index
+
+    def get_sw_data_access_info(self, index=None, type_ifc='inband'):
+        """Get data switches class, user_id, password and an ip address. An
+        attempt is made to get the specified 'type' of address, but if that is
+        not available, the other type will be returned.
+        Args:
+            index (int, optional): Switch index
+            type_ifc (str, opt): 'inband' or 'outband'
+
+        Returns:
+            tuple or list of tuples of access info : label (str), class (str),
+            userid (str), password (str), ip address.
+        """
+        if index > self.get_sw_data_cnt() - 1:
+            raise UserException('switch index out of range')
+        if index is not None:
+            switch_indices = [index]
+        else:
+            switch_indices = range(self.get_sw_data_cnt())
+        ai_list = []
+        for sw_idx in switch_indices:
+            ai_tuple = ()
+            ai_tuple += (self.get_sw_data_label(index=sw_idx),)
+            ai_tuple += (self.get_sw_data_class(index=sw_idx),)
+            ipaddr = None
+            for ifc in self.cfg.switches.data[sw_idx].interfaces:
+                if ifc.type == type_ifc:
+                    ipaddr = ifc.ipaddr
+                    break
+                else:
+                    if not ipaddr:
+                        ipaddr = ifc.ipaddr
+            ai_tuple += (ipaddr,)
+
+            ai_tuple += (self.get_sw_data_userid(index=sw_idx),)
+            ai_tuple += (self.get_sw_data_password(index=sw_idx),)
+
+            ai_list.append(ai_tuple)
+        # if index specified, make it a tuple
+        if index:
+            ai_list = ai_list[0]
+        return ai_list
+
+    def yield_sw_data_access_info(self):
+        """Yield dictionary of Mgmt switches class, user_id, password, and
+        inband and outband ip address list(s).
+
+        Returns:
+            iter of list get_sw_mgmt_access_info()
+        """
+        for switch_ai in self.get_sw_data_access_info():
+            yield switch_ai
+
     def get_sw_data_label(self, index=None):
         """Get switches data label
         Args:
@@ -1241,6 +1309,211 @@ class Config(object):
                 yield member
         except AttributeError:
             return
+
+    def get_sw_data_mlag_peer(self, label):
+        """ Returns the mlag peer switch if one exists, otherwise returns None.
+        An mlag peer exists if the specified switch has a link to another
+        'target' switch listed under the switches 'links' value, the target exists
+        in the defined data switches and that link has a vlan defined in the
+        switches 'links' value.
+        Args:
+            label (str):
+        Returns:
+            target_link (str): MLAG peer switch
+        """
+        switch_idx = self.get_sw_data_index_by_label(label)
+        for target_link in self.yield_sw_data_links_target(switch_idx):
+            if self.get_sw_data_index_by_label(target_link) is not None:
+                return target_link
+
+    def get_sw_data_mstr_switch(self, switch_list):
+        """ Return the switch label for the switch which will be used to assign port
+        channels and mlag port channels for bonds. The switch with the highest address
+        on an mlag link (ie a link with a vlan defined) will be used as the numeric
+        source.  This insures port channel numbers are assigned without conflict.
+        Args:
+            switch_list (list of str): List of switches.
+        Returns:
+            switch (str) label of the switch which will be used as the source for
+            channel numbering.  For each port channel, the smallest port number will
+            used for the port channel number.
+        """
+
+        mstr_switch = None
+        ip_max = 0
+        for switch in self.yield_sw_data_label():
+            if switch in switch_list:
+                sw_idx = self.get_sw_data_index_by_label(switch)
+                for link_idx, link_target in enumerate(
+                        self.get_sw_data_links_target(sw_idx)):
+                    if link_target in switch_list:
+                        ipaddr = self.get_sw_data_links_ip(sw_idx, link_idx)
+                        ip = netaddr.IPNetwork(ipaddr)
+                        if ip.value > ip_max:
+                            mstr_switch = switch
+                            ip_max = ip.value
+                    elif mstr_switch is None and switch is not None:
+                        mstr_switch = switch
+
+        return mstr_switch
+
+    def get_sw_data_links_target(self, switch_index, index=None):
+        """Get switches data links target
+        Args:
+            switch_index (int): Data switch index
+            index (int, optional): List index
+
+        Returns:
+            str or list of str: Link Target member or list
+        """
+
+        return self._get_members(
+            self.cfg.switches.data[switch_index].links,
+            self.CfgKey.TARGET, index)
+
+    def yield_sw_data_links_target(self, switch_index):
+        """Yield switches data links targets
+        Args:
+            switch_index (int): Data switch index
+
+        Returns:
+            iter of str: targets
+        """
+        try:
+            for member in self.get_sw_data_links_target(switch_index):
+                yield member
+        except (TypeError, AttributeError):
+            return
+
+    def get_sw_data_links_port(self, switch_index, index=None):
+        """Get switches data links port
+        Args:
+            switch_index (int): Data switch index
+            index (int, optional): List index
+
+        Returns:
+            str or list of str: Port member or list
+        """
+        return self._get_members(
+            self.cfg.switches.data[switch_index].links,
+            self.CfgKey.PORTS, index)
+
+    def get_sw_data_links_ip(self, switch_index, index=None):
+        """Get switches data links ip addr
+        Args:
+            switch_index (int): Data switch index
+            index (int, optional): List index
+
+        Returns:
+            str : ipaddr member
+        """
+        return self._get_members(
+            self.cfg.switches.data[switch_index].links,
+            self.CfgKey.IPADDR, index)
+
+    def get_sw_data_links_prefix(self, switch_index, index=None):
+        """Get data switch links prefix
+        Args:
+            switch_index (int): Data switch index
+            index (int, optional): List index
+
+        Returns:
+            str or iter of str: Netmask
+        """
+
+        if index is None:
+            list_ = []
+            for member in self.cfg.switches.data[switch_index].links:
+                if self.CfgKey.PREFIX in member:
+                    list_.append(member[self.CfgKey.PREFIX])
+                elif self.CfgKey.NETMASK in member:
+                    list_.append(self._netmask_to_prefix(
+                        member[self.CfgKey.NETMASK]))
+                else:
+                    self._netmask_prefix_not_found()
+            return list_
+        else:
+            member = self.cfg.switches.data[switch_index].links[index]
+            if self.CfgKey.PREFIX in member:
+                return member[self.CfgKey.PREFIX]
+            elif self.CfgKey.NETMASK in member:
+                return self._netmask_to_prefix(member[self.CfgKey.NETMASK])
+            else:
+                self._netmask_prefix_not_found()
+
+    def yield_sw_data_links_prefix(self, switch_index):
+        """Yield data switch prefixes
+        Returns:
+            iter of str: prefix
+        """
+
+        for member in self.get_sw_data_links_netmask(switch_index):
+            yield member
+
+    def get_sw_data_links_netmask(self, switch_index, index=None):
+        """Get data switch links netmask
+        Args:
+            switch_index (int): Data switch index
+            index (int, optional): List index
+
+        Returns:
+            str or iter of str: Netmask
+        """
+
+        if index is None:
+            list_ = []
+            for member in self.cfg.switches.data[switch_index].links:
+                if self.CfgKey.NETMASK in member:
+                    list_.append(member[self.CfgKey.NETMASK])
+                elif self.CfgKey.PREFIX in member:
+                    list_.append(self._prefix_to_netmask(
+                        member[self.CfgKey.PREFIX]))
+                else:
+                    self._netmask_prefix_not_found()
+            return list_
+        else:
+            member = self.cfg.switches.data[switch_index].links[index]
+            if self.CfgKey.NETMASK in member:
+                return member[self.CfgKey.NETMASK]
+            elif self.CfgKey.PREFIX in member:
+                return self._prefix_to_netmask(member[self.CfgKey.PREFIX])
+            else:
+                self._netmask_prefix_not_found()
+
+    def yield_sw_data_links_netmask(self, switch_index):
+        """Yield data switch netmasks
+        Returns:
+            iter of str: Netmask
+        """
+
+        for member in self.get_sw_data_links_netmask(switch_index):
+            yield member
+
+    def get_sw_data_links_vlan(self, switch_index, index=None):
+        """Get switches data links vlan
+        Args:
+            switch_index (int): Data switch index
+            index (int, optional): List index
+
+        Returns:
+            str or list of str: vlan member or list
+        """
+        return self._get_members(
+            self.cfg.switches.data[switch_index].links,
+            self.CfgKey.VLAN, index)
+
+    def get_sw_data_links_vip(self, switch_index, index=None):
+        """Get switches data links vip
+        Args:
+            switch_index (int): Data switch index
+            index (int, optional): List index
+
+        Returns:
+            str or list of str: vip member or list
+        """
+        return self._get_members(
+            self.cfg.switches.data[switch_index].links,
+            self.CfgKey.VIP, index)
 
     def get_ntmpl_cnt(self):
         """Get node_templates count
@@ -1464,8 +1737,13 @@ class Config(object):
             str or list of str: Network member or list
         """
 
+        if 'networks' not in self.cfg.node_templates[node_template_index]:
+            return None
+
         if index is None:
-            return self.cfg.node_templates[node_template_index].networks
+            netw = self.cfg.node_templates[node_template_index].networks
+            netw = netw if netw is None else netw[:]
+            return netw
         return self.cfg.node_templates[node_template_index].networks[index]
 
     def yield_ntmpl_netw(self, node_template_index):
@@ -1479,6 +1757,26 @@ class Config(object):
 
         for member in self.get_ntmpl_netw(node_template_index):
             yield member
+
+    def get_ntmpl_ifcs_all(self, node_template_index):
+        """Get node_templates interfaces including those in networks
+        Args:
+            node_template_index (int): Node template index
+
+        Returns:
+            list of str: interfaces list
+        """
+
+        networks = self.get_networks()
+        if networks is None:
+            return []
+        ntmpl_networks = self.get_ntmpl_netw(node_template_index)
+        ntmpl_ifcs = self.get_ntmpl_intf(node_template_index)
+        ntmpl_ifcs = [] if ntmpl_ifcs is None else ntmpl_ifcs
+        for netw in networks:
+            if ntmpl_networks is not None and netw['label'] in ntmpl_networks:
+                ntmpl_ifcs += netw['interfaces']
+        return ntmpl_ifcs
 
     def get_ntmpl_intf_cnt(self, node_template_index):
         """Get node_templates interfaces count
@@ -1501,8 +1799,13 @@ class Config(object):
             str or list of str: Interface member or list
         """
 
+        if 'interfaces' not in self.cfg.node_templates[node_template_index]:
+            return None
+
         if index is None:
-            return self.cfg.node_templates[node_template_index].interfaces
+            intf = self.cfg.node_templates[node_template_index].interfaces
+            intf = intf if intf is None else intf[:]
+            return intf
         return self.cfg.node_templates[node_template_index].interfaces[index]
 
     def yield_ntmpl_intf(self, node_template_index):
@@ -1757,6 +2060,135 @@ class Config(object):
                 node_template_index, pxe_index):
             yield member
 
+    def get_ntmpl_phyintf_data_cnt(self, node_template_index):
+        """
+        Args:
+            node_template_index (int): Node template index
+
+        Returns:
+            int: count of data physical interfaces
+        """
+
+        node_template = self.cfg.node_templates[node_template_index]
+        return len(node_template.physical_interfaces.data)
+
+    def yield_ntmpl_phyintf_data_ind(self, node_template_index):
+        """Yield node_templates physical_interfaces data index
+        Args:
+            node_template_index (int): Node template index
+
+        Returns:
+            int: data physical interfaces index
+        """
+
+        for index in range(0, self.get_ntmpl_phyintf_data_cnt(
+                node_template_index)):
+            yield index
+
+    def get_ntmpl_phyintf_data_switch(
+            self, node_template_index, index=None):
+        """Get node_templates physical_interfaces data switch label(s)
+        Args:
+            node_template_index (int): Node template index
+            index (int, optional): Interface index
+
+        Returns:
+            str or list of str: data switch member or list
+        """
+
+        node_template = self.cfg.node_templates[node_template_index]
+        return self._get_members(
+            node_template.physical_interfaces.data, self.CfgKey.SWITCH, index)
+
+    def yield_ntmpl_phyintf_data_switch(self, node_template_index):
+        """Yield node_templates physical_interfaces data switch label
+        Args:
+            node_template_index (int): Node template index
+
+        Returns:
+            iter of str: data switch
+        """
+
+        for member in self.get_ntmpl_phyintf_data_switch(node_template_index):
+            yield member
+
+    def get_ntmpl_phyintf_data_ifc(
+            self, node_template_index, index=None):
+        """Get node_templates physical_interfaces data interface label
+        Args:
+            node_template_index (int): Node template index
+            index (int, optional): Data interface index
+
+        Returns:
+            str or list of str: data interface member or list
+        """
+
+        node_template = self.cfg.node_templates[node_template_index]
+        return self._get_members(
+            node_template.physical_interfaces.data, self.CfgKey.INTERFACE, index)
+
+    def yield_ntmpl_phyintf_data_ifc(self, node_template_index):
+        """Yield node_templates physical_interfaces pxe dev
+        Args:
+            node_template_index (int): Node template index
+
+        Returns:
+            iter of str: data interface
+        """
+
+        for member in self.get_ntmpl_phyintf_data_dev(node_template_index):
+            yield member
+
+    def get_ntmpl_phyintf_data_ports(
+            self, node_template_index, index=None):
+        """Get node_templates physical_interfaces data switch label(s)
+        Args:
+            node_template_index (int): Node template index
+            index (int, optional): Interface index
+
+        Returns:
+            str or list of str: data switch member or list
+        """
+
+        node_template = self.cfg.node_templates[node_template_index]
+        return self._get_members(
+            node_template.physical_interfaces.data, self.CfgKey.PORTS, index)
+
+    def get_ntmpl(
+            self, node_template_index):
+        """Get node_templates physical_interfaces data switch label(s)
+        Args:
+            node_template_index (int): Node template index
+            index (int, optional): Interface index
+
+        Returns:
+            str or list of str: data switch member or list
+        """
+
+        node_template = self.cfg.node_templates[node_template_index]
+        return node_template
+
+    def yield_ntmpl_phyintf_data_ports(self, node_template_index):
+        """Yield node_templates physical_interfaces data switch label
+        Args:
+            node_template_index (int): Node template index
+
+        Returns:
+            iter of str: data switch
+        """
+
+        for member in self.get_ntmpl_phyintf_data_ports(node_template_index):
+            yield member
+
+    def get_ntmpl_phyintf_data(self, node_template_index):
+        """Get node templates  'physical_interfaces' dictionary
+
+        Returns:
+            dict: Physical Interface definitions
+        """
+
+        return self.cfg.node_templates[node_template_index].physical_interfaces.data
+
     def get_client_switch_ports(self, switch_label, if_type=None):
         """Get physical interface ports associated with switch_label
         Args:
@@ -1801,3 +2233,24 @@ class Config(object):
         """
 
         return self.cfg.interfaces
+
+    def get_interface(self, label):
+        """Get 'interfaces' dictionary by label
+
+        Returns:
+            dict: Interface definition or empty dict
+        """
+
+        for ifc in self.get_interfaces():
+            if ifc['label'] == label:
+                return ifc
+        return {}
+
+    def get_networks(self):
+        """Get top level 'networks' dictionary
+
+        Returns:
+            dict: network definitions
+        """
+
+        return self.cfg.networks

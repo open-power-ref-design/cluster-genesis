@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -24,10 +24,10 @@ import readline
 from shutil import copyfile
 import yaml
 
-from lib.logger import Logger
+# import lib.logger as logger
 from lib.switch import SwitchFactory
 from lib.switch_exception import SwitchException
-from lib.genesis import gen_path
+from lib.genesis import GEN_PATH
 
 
 def rlinput(prompt, prefill=''):
@@ -60,16 +60,17 @@ def print_dict(dict):
 
 
 MAX_INTF = 128
-GEN_PATH = gen_path
 
 
-def main(log):
+def main():
     """Allows for interactive test of switch methods as well as
     interactive display of switch information.  A config file
     is created for each switch class and entered values are
     remembered to allow for rapid rerunning of tests.
     Can be called from the command line with 0 arguments.
     """
+
+    # log = logger.getlogger()
     _class = rlinput('\nEnter switch class: ', '')
     cfg_file_path = GEN_PATH + 'scripts/python/switch-test-cfg-{}.yml'
     try:
@@ -78,7 +79,8 @@ def main(log):
         print('Could not load file: ' + cfg_file_path.format(_class))
         print('Copying from template file')
         try:
-            copyfile(GEN_PATH + 'scripts/python/switch-test-cfg.template', cfg_file_path.format(_class))
+            copyfile(GEN_PATH + 'scripts/python/switch-test-cfg.template',
+                     cfg_file_path.format(_class))
             cfg = yaml.load(open(cfg_file_path.format(_class)))
         except:
             print('Could not load file: ' + cfg_file_path.format(_class))
@@ -104,7 +106,7 @@ def main(log):
         print('Unable to open file {}'.format(__file__))
         print(error)
         sys.exit(0)
-    sw = SwitchFactory.factory(log, _class, host, 'admin', 'admin', mode='active')
+    sw = SwitchFactory.factory(_class, host, 'admin', 'admin', mode='active')
     test = 1
 
     while test != 0:
@@ -115,8 +117,11 @@ def main(log):
             match = re.search(r'if (\d+) == test', line)
             if match:
                 print(match.group(1) + ' - ' + line.splitlines()[0])
-        test = int(rlinput('\nEnter a test to run: ', str(test)))
+        test = int(rlinput('\nEnter a test to run: (0 to exit) ', str(test)))
         cfg['test'] = test
+
+        if 0 == test:
+            sys.exit()
 
         # Test Is switch pingable
         if 1 == test:
@@ -160,7 +165,8 @@ def main(log):
         # Test show in-band interfaces
         if 4 == test:
             print('\nTesting show in-band interfaces')
-            ifc = rlinput('Enter interface or vlan (leave blank to show all): ', '')
+            ifc = rlinput(
+                'Enter interface or vlan (leave blank to show all): ', '')
             format = rlinput('Enter format ("std" or leave blank ): ', 'std')
             if format == '':
                 format = None
@@ -174,7 +180,8 @@ def main(log):
         # Test show mac address table
         if 5 == test:
             print('Test show mac address table: ')
-            format = rlinput('Enter desired return format (std, dict or raw): ', 'std')
+            format = rlinput(
+                'Enter desired return format (std, dict or raw): ', 'std')
             macs = sw.show_mac_address_table(format=format)
             if format == 'raw':
                 print(macs)
@@ -304,12 +311,19 @@ def main(log):
             except SwitchException as exc:
                 print(exc)
 
-        # Test show MLAG interfaces summary
+        # Test set mtu for port
         if 18 == test:
+            print('\nSet port mtu')
+            port = int(rlinput('Enter port #: ', str(port)))
+            mtu = rlinput('Enter mtu (0 for default mtu): ', 0)
+            print(sw.set_mtu_for_port(port, mtu))
+
+        # Test show MLAG interfaces summary
+        if 19 == test:
             print(sw.show_mlag_interfaces())
 
         # Test create MLAG interface (MLAG port channel)
-        if 19 == test:
+        if 20 == test:
             print('\nTest create MLAG interface')
             mlag_ifc = int(rlinput('Enter mlag ifc #: ', str(mlag_ifc)))
             cfg['mlag_ifc'] = mlag_ifc
@@ -320,7 +334,7 @@ def main(log):
                 print(exc)
 
         # Test remove MLAG interface
-        if 20 == test:
+        if 21 == test:
             print('\nTest remove MLAG interface')
             mlag_ifc = int(rlinput('Enter mlag ifc #: ', str(mlag_ifc)))
             cfg['mlag_ifc'] = mlag_ifc
@@ -331,18 +345,18 @@ def main(log):
                 print(exc)
 
         # Test deconfigure MLAG interface
-        if 21 == test:
+        if 22 == test:
             try:
                 sw.deconfigure_mlag()
             except SwitchException as exc:
                 print(exc)
 
         # Test show LAG interfaces summary
-        if 22 == test:
+        if 23 == test:
             print(sw.show_lag_interfaces())
 
         # Test create LAG interface (LAG port channel)
-        if 23 == test:
+        if 24 == test:
             print('\nTest create LAG interface')
             lag_ifc = int(rlinput('Enter lag ifc #: ', str(lag_ifc)))
             cfg['lag_ifc'] = lag_ifc
@@ -353,7 +367,7 @@ def main(log):
                 print(exc)
 
         # Test remove LAG interface
-        if 24 == test:
+        if 25 == test:
             print('\nTest remove LAG interface')
             lag_ifc = int(rlinput('Enter lag ifc #: ', str(lag_ifc)))
             cfg['lag_ifc'] = lag_ifc
@@ -363,16 +377,16 @@ def main(log):
             except SwitchException as exc:
                 print(exc)
 
-        yaml.dump(cfg, open(cfg_file_path.format(_class), 'w'), default_flow_style=False)
-        _ = rlinput('\nPress enter to continue, 0 to exit ', '')
-        if _ == '0':
-            test = 0
+        yaml.dump(cfg, open(cfg_file_path.format(_class), 'w'),
+                  default_flow_style=False)
+        test = rlinput('\nPress enter to continue, or enter a test to run ', '')
+        if test:
+            test = int(test)
 
 
 if __name__ == '__main__':
     """Interactive test for switch methods
     """
 
-    LOG = Logger(__file__)
-    LOG.set_level('INFO')
-    main(LOG)
+    # logger.create()
+    main()
