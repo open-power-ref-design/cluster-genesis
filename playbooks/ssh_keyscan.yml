@@ -1,5 +1,5 @@
 ---
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -21,13 +21,14 @@
     - name: Include localhost variables
       include_vars: host_vars/localhost
 
-    - name: Register list of client node IP addresses
-      shell: grep ipv4-pxe /var/oprc/inventory.yml | awk '{print $2}'
+    - name: Get list of client IP addresses
+      command: "{{ python_executable_local }} \
+                {{ scripts_path_local }}/python/client_ip_list.py"
       register: client_ips
 
     - name: Use ssh-keyscan to add each client hostkey to known_hosts file
       shell: "ssh-keyscan -H {{ item }}  >> {{ known_hosts }}"
-      with_items: "{{ client_ips.stdout_lines }}"
+      with_items: "{{ client_ips.stdout.split(',') }}"
 
     - name: Register generated known_hosts content
       command: "cat {{ known_hosts }}"
