@@ -1214,6 +1214,58 @@ class Config(object):
         for member in self.get_sw_data_ssh_key():
             yield member
 
+    def get_sw_data_access_info(self, index=None, type_ifc='inband'):
+        """Get Data switches class, user_id, password and an ip address. An
+        attempt is made to get the specified 'type' of address, but if that is
+        not available, the other type will be returned.
+        Args:
+            index (int, optional): Switch index
+            type_ifc (str, opt): 'inband' or 'outband'
+
+        Returns:
+            tuple or list of tuples of access info : label (str), class (str),
+            userid (str), password (str), ip address.
+        """
+        if index > self.get_sw_data_cnt() - 1:
+            raise UserException('switch index out of range')
+        if index is not None:
+            switch_indeces = [index]
+        else:
+            switch_indeces = range(self.get_sw_data_cnt())
+        ai_list = []
+        for sw_idx in switch_indeces:
+            ai_tuple = ()
+            ai_tuple += (self.get_sw_data_label(index=sw_idx),)
+            ai_tuple += (self.get_sw_data_class(index=sw_idx),)
+            ipaddr = None
+            for ifc in self.cfg.switches.data[sw_idx].interfaces:
+                if ifc.type == type_ifc:
+                    ipaddr = ifc.ipaddr
+                    break
+                else:
+                    if not ipaddr:
+                        ipaddr = ifc.ipaddr
+            ai_tuple += (ipaddr,)
+
+            ai_tuple += (self.get_sw_data_userid(index=sw_idx),)
+            ai_tuple += (self.get_sw_data_password(index=sw_idx),)
+
+            ai_list.append(ai_tuple)
+        # if index specified, make it a tuple
+        if index:
+            ai_list = ai_list[0]
+        return ai_list
+
+    def yield_sw_data_access_info(self):
+        """Yield dictionary of Data switches class, user_id, password, and
+        inband and outband ip address list(s).
+
+        Returns:
+            iter of list get_sw_data_access_info()
+        """
+        for switch_ai in self.get_sw_data_access_info():
+            yield switch_ai
+
     def get_sw_data_interfaces_ip(self, switch_index, index=None):
         """Get switches mgmt interfaces ipaddr
         Args:
@@ -1764,6 +1816,139 @@ class Config(object):
 
         for member in self.get_ntmpl_phyintf_pxe_ports(
                 node_template_index, pxe_index):
+            yield member
+
+    def get_ntmpl_phyintf_data_cnt(self, node_template_index):
+        """
+        Args:
+            node_template_index (int): Node template index
+
+        Returns:
+            int: Data count
+        """
+
+        node_template = self.cfg.node_templates[node_template_index]
+        return len(node_template.physical_interfaces.data)
+
+    def yield_ntmpl_phyintf_data_ind(self, node_template_index):
+        """Yield node_templates physical_interfaces ipmi index
+        Args:
+            node_template_index (int): Node template index
+
+        Returns:
+            int: Data index
+        """
+
+        for index in range(0, self.get_ntmpl_phyintf_data_cnt(
+                node_template_index)):
+            yield index
+
+    def get_ntmpl_phyintf_data_switch(
+            self, node_template_index, index=None):
+        """Get node_templates physical_interfaces data switch
+        Args:
+            node_template_index (int): Node template index
+            index (int, optional): List index
+
+        Returns:
+            str or list of str: PXE switch member or list
+        """
+
+        node_template = self.cfg.node_templates[node_template_index]
+        return self._get_members(
+            node_template.physical_interfaces.data, self.CfgKey.SWITCH, index)
+
+    def yield_ntmpl_phyintf_data_switch(self, node_template_index):
+        """Yield node_templates physical_interfaces data switch
+        Args:
+            node_template_index (int): Node template index
+
+        Returns:
+            iter of str: PXE switch
+        """
+
+        for member in self.get_ntmpl_phyintf_data_switch(node_template_index):
+            yield member
+
+    def get_ntmpl_phyintf_data_dev(
+            self, node_template_index, index=None):
+        """Get node_templates physical_interfaces data dev
+        Args:
+            node_template_index (int): Node template index
+            index (int, optional): List index
+
+        Returns:
+            str or list of str: PXE dev member or list
+        """
+
+        node_template = self.cfg.node_templates[node_template_index]
+        return self._get_members(
+            node_template.physical_interfaces.data, self.CfgKey.DEVICE, index)
+
+    def yield_ntmpl_phyintf_data_dev(self, node_template_index):
+        """Yield node_templates physical_interfaces data dev
+        Args:
+            node_template_index (int): Node template index
+
+        Returns:
+            iter of str: PXE dev
+        """
+
+        for member in self.get_ntmpl_phyintf_data_dev(node_template_index):
+            yield member
+
+    def get_ntmpl_phyintf_data_pt_cnt(self, node_template_index, data_index):
+        """
+        Args:
+            node_template_index (int): Node template index
+            data_index (int): PXE index
+
+        Returns:
+            int: PXE ports count
+        """
+
+        node_template = self.cfg.node_templates[node_template_index]
+        return len(node_template.physical_interfaces.data[data_index].ports)
+
+    def yield_ntmpl_phyintf_data_pt_ind(self, node_template_index, data_index):
+        """Yield node template physical interface PXE ports count
+        Returns:
+            int: PXE ports index
+        """
+
+        for index in range(0, self.get_ntmpl_phyintf_data_pt_cnt(
+                node_template_index, data_index)):
+            yield index
+
+    def get_ntmpl_phyintf_data_ports(
+            self, node_template_index, data_index, index=None):
+        """Get node_templates physical_interfaces data ports
+        Args:
+            node_template_index (int): Node template index
+            data_index (int): PXE index
+            index (int, optional): List index
+
+        Returns:
+            int or list of int: PXE ports member or list
+        """
+
+        node_template = self.cfg.node_templates[node_template_index]
+        if index is None:
+            return node_template.physical_interfaces.data[data_index].ports
+        return node_template.physical_interfaces.data[data_index].ports[index]
+
+    def yield_ntmpl_phyintf_data_ports(self, node_template_index, data_index):
+        """Yield node_templates physical_interfaces data ports
+        Args:
+            node_template_index (int): Node template index
+            data_index (int): PXE index
+
+        Returns:
+            iter of int: PXE ports
+        """
+
+        for member in self.get_ntmpl_phyintf_data_ports(
+                node_template_index, data_index):
             yield member
 
     def get_client_switch_ports(self, switch_label, if_type=None):

@@ -133,5 +133,31 @@ class InventoryNodes(object):
                 # Set PXE network device
                 self.inv.add_nodes_devices_pxe(cfg.get_ntmpl_phyintf_pxe_dev(
                     index_ntmplt))
+
+                ports_data = []
+                switches_data = []
+                macs_data = []
+                devices_data = []
+                # Iterate over data members
+                for index_data in cfg.yield_ntmpl_phyintf_data_ind(
+                        index_ntmplt):
+                    # Create client system data switch list
+                    switches_data.append(cfg.get_ntmpl_phyintf_data_switch(
+                        index_ntmplt, index_data))
+                    # Create client system data port list
+                    ports_data.append(cfg.get_ntmpl_phyintf_data_ports(
+                        index_ntmplt, index_data, index_port))
+                    # Create client system data mac list
+                    macs_data.append(None)
+                    # Create client data network device list
+                    devices_data.append(None)
+                # Set client system data switches
+                self.inv.add_nodes_switches_data(switches_data)
+                # Set client system data ports
+                self.inv.add_nodes_ports_data(ports_data)
+                # Set client system data macs
+                self.inv.add_nodes_macs_data(macs_data)
+                # Set client system data devices
+                self.inv.add_nodes_devices_data(devices_data)
                 index_host += 1
         self.log.info('Successfully created inventory file')

@@ -112,6 +112,7 @@ class Inventory(object):
         self.nodes[self.InvKey.RACK_ID] = []
         self.nodes[self.InvKey.IPMI] = AttrDict()
         self.nodes[self.InvKey.PXE] = AttrDict()
+        self.nodes[self.InvKey.DATA] = AttrDict()
         self.nodes[self.InvKey.OS] = []
         self.nodes[self.InvKey.ROLES] = []
 
@@ -126,6 +127,10 @@ class Inventory(object):
         self.nodes[self.InvKey.PXE][self.InvKey.IPADDRS] = []
         self.nodes[self.InvKey.PXE][self.InvKey.DEVICES] = []
         self.nodes[self.InvKey.PXE][self.InvKey.SWITCHES] = []
+        self.nodes[self.InvKey.DATA][self.InvKey.SWITCHES] = []
+        self.nodes[self.InvKey.DATA][self.InvKey.PORTS] = []
+        self.nodes[self.InvKey.DATA][self.InvKey.MACS] = []
+        self.nodes[self.InvKey.DATA][self.InvKey.DEVICES] = []
 
     def add_nodes_hostname(self, hostname):
         self.nodes.hostname.append(hostname)
@@ -145,17 +150,26 @@ class Inventory(object):
     def add_nodes_switches_pxe(self, switches):
         self.nodes.pxe.switches.append(switches)
 
+    def add_nodes_switches_data(self, switches):
+        self.nodes.data.switches.append(switches)
+
     def add_nodes_ports_ipmi(self, ports):
         self.nodes.ipmi.ports.append(ports)
 
     def add_nodes_ports_pxe(self, ports):
         self.nodes.pxe.ports.append(ports)
 
+    def add_nodes_ports_data(self, ports):
+        self.nodes.data.ports.append(ports)
+
     def add_nodes_macs_ipmi(self, macs):
         self.nodes.ipmi.macs.append(macs)
 
     def add_nodes_macs_pxe(self, macs):
         self.nodes.pxe.macs.append(macs)
+
+    def add_nodes_macs_data(self, macs):
+        self.nodes.data.macs.append(macs)
 
     def add_nodes_ipaddrs_ipmi(self, ipaddrs):
         self.nodes.ipmi.ipaddrs.append(ipaddrs)
@@ -171,6 +185,9 @@ class Inventory(object):
 
     def add_nodes_devices_pxe(self, dev):
         self.nodes.pxe.devices.append(dev)
+
+    def add_nodes_devices_data(self, dev):
+        self.nodes.data.devices.append(dev)
 
     def add_nodes_roles(self, roles):
         self.nodes.roles.append(roles)
@@ -448,7 +465,8 @@ class Inventory(object):
                     raise UserException(msg)
 
                 if macs[switch][port][0] not in node[type_][self.InvKey.MACS]:
-                    node[type_][self.InvKey.MACS][index] = macs[switch][port][0]
+                    node[type_][self.InvKey.MACS][index] = \
+                        macs[switch][port][0]
 
     def add_macs_ipmi(self, macs):
         """Add MAC addresses
@@ -466,6 +484,15 @@ class Inventory(object):
         """
 
         self._add_macs(macs, self.InvKey.PXE)
+        self.dbase.dump_inventory(self.inv)
+
+    def add_macs_data(self, macs):
+        """Add MAC addresses
+        Args:
+            macs (dict of dict of list of str): Switch{Port}{[MAC]}
+        """
+
+        self._add_macs(macs, self.InvKey.DATA)
         self.dbase.dump_inventory(self.inv)
 
     def _add_ipaddrs(self, ipaddrs, type_):

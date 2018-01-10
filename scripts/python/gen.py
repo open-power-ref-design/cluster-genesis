@@ -277,6 +277,30 @@ class Gen(object):
             sys.exit(1)
         print('Success: Client OS installaion initiated')
 
+    def _gather_mac_addr(self):
+        from lib.container import Container
+
+        cont = Container(self.args.gather_mac_addr)
+        _cmd = (
+            'source ' + gen.get_container_venv_path() + '/bin/activate ' +
+            '&& python ' + os.path.join(gen.get_container_python_path(), 'clear_port_macs.py') + ' ' +
+            '&& ansible-playbook -i ' +
+            gen.get_container_python_path() + '/inventory.py ' +
+            gen.get_container_playbooks_path() + '/activate_client_interfaces.yml ' +
+            '&& sleep 30 ' +
+            '&& python ' + os.path.join(gen.get_container_python_path(), 'set_port_macs.py') + ' ' +
+            '&& ansible-playbook -i ' +
+            gen.get_container_python_path() + '/inventory.py ' +
+            gen.get_container_playbooks_path() + '/restore_client_interfaces.yml ' +
+            '&& deactivate')
+        cmd = ['bash', '-c', _cmd]
+        try:
+            cont.run_command(cmd)
+        except UserException as exc:
+            print('Fail:', exc.message, file=sys.stderr)
+            sys.exit(1)
+        print('Success: Gathered Client MAC addresses')
+
     def launch(self):
         """Launch actions"""
 
@@ -347,6 +371,7 @@ class Gen(object):
                 self.args.add_cobbler_distros = self.args.all
                 self.args.add_cobbler_systems = self.args.all
                 self.args.install_client_os = self.args.all
+                self.args.gather_mac_addr = self.args.all
 
             if argparse_gen.is_arg_present(self.args.create_inventory):
                 self._create_inventory()
@@ -364,6 +389,8 @@ class Gen(object):
                 self._add_cobbler_systems()
             if argparse_gen.is_arg_present(self.args.install_client_os):
                 self._install_client_os()
+            if argparse_gen.is_arg_present(self.args.gather_mac_addr):
+                self._gather_mac_addr()
 
 
 if __name__ == '__main__':

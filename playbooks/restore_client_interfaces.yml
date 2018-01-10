@@ -1,5 +1,5 @@
 ---
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -22,7 +22,7 @@
       command: "ip link set dev  {{ item }} down"
       when:
         - "{{ item != 'lo' }}"
-        - "{{ inventory_hostname != hostvars[inventory_hostname]['ansible_' + \
+        - "{{ ansible_host != hostvars[inventory_hostname]['ansible_' + \
            item.replace('-', '_')].get('ipv4', {}).get('address') }}"
         - ansible_distribution == 'Ubuntu'
       with_items: "{{ ansible_interfaces }}"
@@ -37,7 +37,7 @@
         state: absent
       when:
         - "{{ item != 'lo' }}"
-        - "{{ inventory_hostname != hostvars[inventory_hostname]['ansible_' + \
+        - "{{ ansible_host != hostvars[inventory_hostname]['ansible_' + \
            item.replace('-', '_')].get('ipv4', {}).get('address') }}"
         - (ansible_distribution == 'CentOS') or
           (ansible_distribution == 'RedHat')
@@ -47,7 +47,7 @@
       command: "ip link set dev  {{ item }} up"
       when:
         - "{{ item != 'lo' }}"
-        - "{{ inventory_hostname != hostvars[inventory_hostname]['ansible_' + \
+        - "{{ ansible_host != hostvars[inventory_hostname]['ansible_' + \
            item.replace('-', '_')].get('ipv4', {}).get('address') }}"
         - "{{ hostvars[inventory_hostname]['ansible_' + \
            item.replace('-', '_')]['active'] }}"

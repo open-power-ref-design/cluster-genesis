@@ -1,4 +1,4 @@
-# copyright 2017 IBM Corp.
+# copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -42,9 +42,11 @@ PYTHON_EXE = 'bin/python'
 SCRIPTS_DIR = 'scripts'
 PYTHON_DIR = 'python'
 OS_IMAGES_DIR = 'os-images'
+PLAYBOOKS_DIR = 'playbooks'
 CONFIG_FILE = 'config.yml'
 LXC_CONF_FILE_PATH = 'playbooks/lxc-conf.yml'
 SSH_PRIVATE_KEY_FILE = os.path.expanduser('~/.ssh/gen')
+SSH_PRIVATE_KEY_FILE_CONTAINER = '/root/.ssh/gen'
 SSH_PUBLIC_KEY_FILE = SSH_PRIVATE_KEY_FILE + '.pub'
 CFG_FILE_NAME = 'config.yml'
 CFG_FILE = GEN_PATH + CFG_FILE_NAME
@@ -111,6 +113,10 @@ def get_container_os_images_path():
     return os.path.join(CONTAINER_PACKAGE_PATH, OS_IMAGES_DIR)
 
 
+def get_container_playbooks_path():
+    return os.path.join(CONTAINER_PACKAGE_PATH, PLAYBOOKS_DIR)
+
+
 def get_package_path():
     if is_container():
         return get_container_package_path()
@@ -135,6 +141,12 @@ def get_os_images_path():
     return os.path.join(GEN_PATH, OS_IMAGES_DIR)
 
 
+def get_playbooks_path():
+    if is_container():
+        return get_container_playbooks_path()
+    return os.path.join(GEN_PATH, PLAYBOOKS_DIR)
+
+
 def get_lxc_conf_file_path():
     return os.path.join(GEN_PATH, LXC_CONF_FILE_PATH)
 
@@ -144,6 +156,8 @@ def get_config_file_name():
 
 
 def get_ssh_private_key_file():
+    if is_container():
+        return SSH_PRIVATE_KEY_FILE_CONTAINER
     return SSH_PRIVATE_KEY_FILE
 
 
