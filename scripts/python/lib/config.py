@@ -62,6 +62,9 @@ class Config(object):
         TARGET = 'target'
         SWITCH = 'switch'
         CLASS = 'class'
+        RENAME = 'rename'
+        INTERFACE = 'interface'
+        IFACE = 'iface'
 
     def __init__(self):
         self.log = logger.getlogger()
@@ -1737,32 +1740,22 @@ class Config(object):
         for member in self.get_ntmpl_phyintf_pxe_switch(node_template_index):
             yield member
 
-    def get_ntmpl_phyintf_pxe_dev(
-            self, node_template_index, index=None):
-        """Get node_templates physical_interfaces pxe dev
+    def get_ntmpl_phyintf_pxe_rename(
+            self, node_template_index, index=0):
+        """Get node_templates physical_interfaces pxe rename boolean
         Args:
             node_template_index (int): Node template index
-            index (int, optional): List index
+            index (int, optional): List index (defaults to 0)
 
         Returns:
-            str or list of str: PXE dev member or list
+            bool: if True device will be renamed
         """
 
         node_template = self.cfg.node_templates[node_template_index]
-        return self._get_members(
-            node_template.physical_interfaces.pxe, self.CfgKey.DEVICE, index)
-
-    def yield_ntmpl_phyintf_pxe_dev(self, node_template_index):
-        """Yield node_templates physical_interfaces pxe dev
-        Args:
-            node_template_index (int): Node template index
-
-        Returns:
-            iter of str: PXE dev
-        """
-
-        for member in self.get_ntmpl_phyintf_pxe_dev(node_template_index):
-            yield member
+        if self.CfgKey.RENAME in node_template.physical_interfaces.pxe[index]:
+            return node_template.physical_interfaces.pxe[index].rename
+        else:
+            return True
 
     def get_ntmpl_phyintf_pxe_pt_cnt(self, node_template_index, pxe_index):
         """
@@ -1871,19 +1864,58 @@ class Config(object):
             yield member
 
     def get_ntmpl_phyintf_data_dev(
-            self, node_template_index, index=None):
+            self, node_template_index, index):
         """Get node_templates physical_interfaces data dev
         Args:
             node_template_index (int): Node template index
-            index (int, optional): List index
+            index (int): List index
 
         Returns:
-            str or list of str: Data dev member or list
+            str: Data interface device (iface) value
         """
 
         node_template = self.cfg.node_templates[node_template_index]
-        return self._get_members(
-            node_template.physical_interfaces.data, self.CfgKey.DEVICE, index)
+        if_label = node_template.physical_interfaces.data[index].interface
+        return self.lookup_interface_iface(if_label)
+
+    def get_ntmpl_phyintf_pxe_dev(
+            self, node_template_index, index=0):
+        """Get node_templates physical_interfaces PXE dev
+        Args:
+            node_template_index (int): Node template index
+            index (int, optional): List index (defaults to 0)
+
+        Returns:
+            str: PXE interface device (iface) value
+        """
+
+        node_template = self.cfg.node_templates[node_template_index]
+        if_label = node_template.physical_interfaces.pxe[index].interface
+        return self.lookup_interface_iface(if_label)
+
+    def lookup_interface_iface(self, if_label):
+        """Get node_templates physical_interfaces data dev
+        Args:
+            if_lable (str): Interface label
+
+        Returns:
+            str: Interface iface value
+
+        Raises:
+            UserException: If referenced interface is not defined or
+                           has no 'iface' key
+        """
+
+        for interface in self.cfg.interfaces:
+            if interface.label == if_label:
+                if self.CfgKey.IFACE in interface:
+                    return interface[self.CfgKey.IFACE]
+                else:
+                    raise UserException(
+                        'No \'iface\' key defined in interface with label=%s' %
+                        interface.label)
+        else:
+            raise UserException('No interface defined with label=%s' % if_label)
 
     def yield_ntmpl_phyintf_data_dev(self, node_template_index):
         """Yield node_templates physical_interfaces data dev
@@ -1896,6 +1928,23 @@ class Config(object):
 
         for member in self.get_ntmpl_phyintf_data_dev(node_template_index):
             yield member
+
+    def get_ntmpl_phyintf_data_rename(
+            self, node_template_index, index):
+        """Get node_templates physical_interfaces data rename boolean
+        Args:
+            node_template_index (int): Node template index
+            index (int): List index
+
+        Returns:
+            bool: if True device will be renamed
+        """
+
+        node_template = self.cfg.node_templates[node_template_index]
+        if self.CfgKey.RENAME in node_template.physical_interfaces.data[index]:
+            return node_template.physical_interfaces.data[index].rename
+        else:
+            return True
 
     def get_ntmpl_phyintf_data_pt_cnt(self, node_template_index, data_index):
         """

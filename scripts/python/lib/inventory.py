@@ -84,6 +84,7 @@ class Inventory(object):
         INSTALL_DEVICE = 'install_device'
         KERNEL_OPTIONS = 'kernel_options'
         ROLES = 'roles'
+        RENAME = 'rename'
 
     def __init__(self):
         self.log = logger.getlogger()
@@ -127,10 +128,13 @@ class Inventory(object):
         self.nodes[self.InvKey.PXE][self.InvKey.IPADDRS] = []
         self.nodes[self.InvKey.PXE][self.InvKey.DEVICES] = []
         self.nodes[self.InvKey.PXE][self.InvKey.SWITCHES] = []
+        self.nodes[self.InvKey.PXE][self.InvKey.RENAME] = []
         self.nodes[self.InvKey.DATA][self.InvKey.SWITCHES] = []
         self.nodes[self.InvKey.DATA][self.InvKey.PORTS] = []
         self.nodes[self.InvKey.DATA][self.InvKey.MACS] = []
+        self.nodes[self.InvKey.DATA][self.InvKey.IPADDRS] = []
         self.nodes[self.InvKey.DATA][self.InvKey.DEVICES] = []
+        self.nodes[self.InvKey.DATA][self.InvKey.RENAME] = []
 
     def add_nodes_hostname(self, hostname):
         self.nodes.hostname.append(hostname)
@@ -191,6 +195,12 @@ class Inventory(object):
 
     def add_nodes_roles(self, roles):
         self.nodes.roles.append(roles)
+
+    def add_nodes_rename_data(self, renames):
+        self.nodes.data.rename.append(renames)
+
+    def add_nodes_rename_pxe(self, renames):
+        self.nodes.pxe.rename.append(renames)
 
     def _flatten(self, data):
         def items():

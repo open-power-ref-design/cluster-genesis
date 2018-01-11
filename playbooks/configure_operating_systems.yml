@@ -1,5 +1,5 @@
 ---
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -37,16 +37,12 @@
         minutes: 1
 
 - name: Transfer keys
-  # Note the targeting of controllers and compute groups is deprecated and
-  # these groups will be removed in a future release.
-  hosts: solution_keys:controllers:compute
+  hosts: solution_keys
   tasks:
     - include: tasks/transfer_keys.yml
 
 - name: Transfer inventory file
-  # Note the targeting of controllers group is deprecated and
-  # these groups will be removed in a future release.
-  hosts: solution_inventory:controllers
+  hosts: solution_inventory
   tasks:
     - include: tasks/transfer_inventory.yml
 

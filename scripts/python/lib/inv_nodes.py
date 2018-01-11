@@ -80,6 +80,7 @@ class InventoryNodes(object):
                 ipaddrs_ipmi = []
                 ipaddrs_pxe = []
                 devices_pxe = []
+                rename_pxe = []
                 # Iterate over IPMI members
                 for index_ipmi in cfg.yield_ntmpl_phyintf_ipmi_ind(
                         index_ntmplt):
@@ -105,7 +106,10 @@ class InventoryNodes(object):
                     ipaddrs_pxe.append(None)
                     # Create client PXE network device list
                     devices_pxe.append(cfg.get_ntmpl_phyintf_pxe_dev(
-                        index_ntmplt, index_ipmi))
+                        index_ntmplt))
+                    # Create client PXE device rename list
+                    rename_pxe.append(cfg.get_ntmpl_phyintf_pxe_rename(
+                        index_ntmplt))
                 # Set client system IPMI switches
                 self.inv.add_nodes_switches_ipmi(switches_ipmi)
                 # Set client system PXE switches
@@ -123,6 +127,8 @@ class InventoryNodes(object):
                 self.inv.add_nodes_ipaddrs_ipmi(ipaddrs_ipmi)
                 # Set client system PXE ipaddrs
                 self.inv.add_nodes_ipaddrs_pxe(ipaddrs_pxe)
+                # Set client system PXE rename
+                self.inv.add_nodes_rename_pxe(rename_pxe)
 
                 # Set client system IPMI userids
                 self.inv.add_nodes_userid_ipmi(cfg.get_ntmpl_ipmi_userid(
@@ -131,13 +137,13 @@ class InventoryNodes(object):
                 self.inv.add_nodes_password_ipmi(cfg.get_ntmpl_ipmi_password(
                     index_ntmplt))
                 # Set PXE network device
-                self.inv.add_nodes_devices_pxe(cfg.get_ntmpl_phyintf_pxe_dev(
-                    index_ntmplt))
+                self.inv.add_nodes_devices_pxe(devices_pxe)
 
                 ports_data = []
                 switches_data = []
                 macs_data = []
                 devices_data = []
+                rename_data = []
                 # Iterate over data members
                 for index_data in cfg.yield_ntmpl_phyintf_data_ind(
                         index_ntmplt):
@@ -150,14 +156,23 @@ class InventoryNodes(object):
                     # Create client system data mac list
                     macs_data.append(None)
                     # Create client data network device list
-                    devices_data.append(None)
+                    devices_data.append(cfg.get_ntmpl_phyintf_data_dev(
+                        index_ntmplt, index_data))
+                    # Create client data device rename list
+                    rename_data.append(cfg.get_ntmpl_phyintf_data_rename(
+                        index_ntmplt, index_data))
+
                 # Set client system data switches
                 self.inv.add_nodes_switches_data(switches_data)
                 # Set client system data ports
                 self.inv.add_nodes_ports_data(ports_data)
                 # Set client system data macs
                 self.inv.add_nodes_macs_data(macs_data)
+                # Set client system data ipaddrs
+                self.inv.add_nodes_ipaddrs_data(ipaddrs_data)
                 # Set client system data devices
                 self.inv.add_nodes_devices_data(devices_data)
+                # Set client system data rename
+                self.inv.add_nodes_rename_data(rename_data)
                 index_host += 1
         self.log.info('Successfully created inventory file')
