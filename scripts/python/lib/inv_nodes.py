@@ -18,9 +18,13 @@
 from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
+from netaddr import iter_iprange
+from netaddr import IPAddress
+
 import lib.logger as logger
 from lib.config import Config
 from lib.inventory import Inventory
+from lib.exception import UserException
 
 
 class InventoryNodes(object):
@@ -36,6 +40,7 @@ class InventoryNodes(object):
 
     def create_nodes(self):
         cfg = Config()
+        interface_ip_lists = _gen_interface_ip_lists(cfg)
         # Iterate over node templates
         for index_ntmplt in cfg.yield_ntmpl_ind():
             # Get Label
@@ -168,11 +173,68 @@ class InventoryNodes(object):
                 self.inv.add_nodes_ports_data(ports_data)
                 # Set client system data macs
                 self.inv.add_nodes_macs_data(macs_data)
-                # Set client system data ipaddrs
-                self.inv.add_nodes_ipaddrs_data(ipaddrs_data)
                 # Set client system data devices
                 self.inv.add_nodes_devices_data(devices_data)
                 # Set client system data rename
                 self.inv.add_nodes_rename_data(rename_data)
                 index_host += 1
+
+                interfaces = cfg.get_ntmpl_interfaces(index_ntmplt)
+                interfaces, interface_ip_lists = _assign_interface_ips(
+                    interfaces, interface_ip_lists)
+                self.inv.add_nodes_interfaces(interfaces)
         self.log.info('Successfully created inventory file')
+
+
+def _gen_interface_ip_lists(cfg):
+    interface_ip_lists = {}
+    interfaces = cfg.get_interfaces()
+
+    for interface in interfaces:
+        label = interface.label
+        ip_list_prelim = []
+        ip_list = []
+
+        if 'address_list' in interface.keys():
+            ip_list_prelim = interface.address_list
+        elif 'IPADDR_list' in interface.keys():
+            ip_list_prelim = interface.IPADDR_list
+
+        for ip in ip_list_prelim:
+            if '-' in ip:
+                ip_range = ip.split('-')
+                for _ip in iter_iprange(ip_range[0], ip_range[1]):
+                    ip_list.append(str(_ip))
+            else:
+                ip_list.append(ip)
+
+        if 'address_start' in interface.keys():
+            ip_list = [IPAddress(interface.address_start)]
+        elif 'IPADDR_start' in interface.keys():
+            ip_list = [IPAddress(interface.IPADDR_start)]
+
+        interface_ip_lists[label] = ip_list
+
+    return interface_ip_lists
+
+
+def _assign_interface_ips(interfaces, interface_ip_lists):
+    for interface in interfaces:
+        list_key = ''
+        if 'address' in interface.keys():
+            list_key = 'address'
+        if 'IPADDR' in interface.keys():
+            list_key = 'IPADDR'
+        if list_key:
+            try:
+                ip = interface_ip_lists[interface.label].pop(0)
+            except IndexError:
+                raise UserException("Not enough IP addresses listed for "
+                                    "interface \'%s\'" % interface.label)
+            if isinstance(ip, IPAddress):
+                interface[list_key] = str(ip)
+                interface_ip_lists[interface.label].append(IPAddress(ip + 1))
+            else:
+                interface[list_key] = ip
+
+    return interfaces, interface_ip_lists

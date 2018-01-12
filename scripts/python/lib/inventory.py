@@ -85,6 +85,7 @@ class Inventory(object):
         KERNEL_OPTIONS = 'kernel_options'
         ROLES = 'roles'
         RENAME = 'rename'
+        INTERFACES = 'interfaces'
 
     def __init__(self):
         self.log = logger.getlogger()
@@ -116,6 +117,7 @@ class Inventory(object):
         self.nodes[self.InvKey.DATA] = AttrDict()
         self.nodes[self.InvKey.OS] = []
         self.nodes[self.InvKey.ROLES] = []
+        self.nodes[self.InvKey.INTERFACES] = []
 
         self.nodes[self.InvKey.IPMI][self.InvKey.SWITCHES] = []
         self.nodes[self.InvKey.IPMI][self.InvKey.PORTS] = []
@@ -201,6 +203,9 @@ class Inventory(object):
 
     def add_nodes_rename_pxe(self, renames):
         self.nodes.pxe.rename.append(renames)
+
+    def add_nodes_interfaces(self, interfaces):
+        self.nodes.interfaces.append(interfaces)
 
     def _flatten(self, data):
         def items():

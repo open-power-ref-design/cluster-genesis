@@ -65,6 +65,12 @@ class Config(object):
         RENAME = 'rename'
         INTERFACE = 'interface'
         IFACE = 'iface'
+        INTERFACES = 'interfaces'
+        NETWORKS = 'networks'
+        ADDRESS_LIST = 'address_list'
+        ADDRESS_START = 'address_start'
+        IPADDR_LIST = 'IPADDR_list'
+        IPADDR_START = 'IPADDR_start'
 
     def __init__(self):
         self.log = logger.getlogger()
@@ -1507,6 +1513,67 @@ class Config(object):
         for member in self.get_ntmpl_roles(node_template_index):
             yield member
 
+    def get_ntmpl_interfaces(self, node_template_index):
+        """Get node_templates interfaces
+        Args:
+            node_template_index (int): Node template index
+
+        Returns:
+            list of str: List of interface labels
+
+        Raises:
+            UserException: If referenced interface is not defined
+        """
+
+        node_template = self.cfg.node_templates[node_template_index]
+        interface_defs = self.get_interfaces()
+        network_defs = self.get_networks()
+        if_labels = []
+
+        for interface in self.yield_ntmpl_phyintf_pxe_interface(
+                node_template_index):
+            if_labels.append(interface)
+
+        for interface in self.yield_ntmpl_phyintf_data_interface(
+                node_template_index):
+            if_labels.append(interface)
+
+        if self.CfgKey.INTERFACES in node_template:
+            for interface in node_template[self.CfgKey.INTERFACES]:
+                if interface not in if_labels:
+                    if_labels.append(interface)
+
+        if self.CfgKey.NETWORKS in node_template:
+            for network in node_template[self.CfgKey.NETWORKS]:
+                for network_def in network_defs:
+                    if network == network_def[self.CfgKey.LABEL]:
+                        for interface in network_def[self.CfgKey.INTERFACES]:
+                            if interface not in if_labels:
+                                if_labels.append(interface)
+
+        interfaces = [None] * len(if_labels)
+        for interface in interface_defs:
+            if interface[self.CfgKey.LABEL] in if_labels:
+                index = if_labels.index(interface[self.CfgKey.LABEL])
+                _interface = interface.copy()
+                replace_keys = [self.CfgKey.ADDRESS_LIST,
+                                self.CfgKey.ADDRESS_START,
+                                self.CfgKey.IPADDR_LIST,
+                                self.CfgKey.IPADDR_START]
+                for key in replace_keys:
+                    if key in _interface.keys():
+                        del _interface[key]
+                        new_key = key.split('_')[0]
+                        _interface[new_key] = None
+                interfaces[index] = _interface
+
+        for index, interface in enumerate(interfaces):
+            if interface is None:
+                raise UserException('No interface defined with label=%s' %
+                                    if_labels[index])
+
+        return interfaces
+
     def get_ntmpl_netw_cnt(self, node_template_index):
         """Get node_templates networks count
         Args:
@@ -1701,12 +1768,12 @@ class Config(object):
         return len(node_template.physical_interfaces.pxe)
 
     def yield_ntmpl_phyintf_pxe_ind(self, node_template_index):
-        """Yield node_templates physical_interfaces ipmi index
+        """Yield node_templates physical_interfaces pxe index
         Args:
             node_template_index (int): Node template index
 
         Returns:
-            int: IPMI index
+            int: PXE index
         """
 
         for index in range(0, self.get_ntmpl_phyintf_pxe_cnt(
@@ -1809,6 +1876,62 @@ class Config(object):
 
         for member in self.get_ntmpl_phyintf_pxe_ports(
                 node_template_index, pxe_index):
+            yield member
+
+    def get_ntmpl_phyintf_pxe_interface(
+            self, node_template_index, index=None):
+        """Get node_templates physical_interfaces PXE interface
+        Args:
+            node_template_index (int): Node template index
+            index (int, optional): List index
+
+        Returns:
+            str or list of str: PXE interface member or list
+        """
+
+        node_template = self.cfg.node_templates[node_template_index]
+        return self._get_members(
+            node_template.physical_interfaces.pxe, self.CfgKey.INTERFACE, index)
+
+    def yield_ntmpl_phyintf_pxe_interface(self, node_template_index):
+        """Yield node_templates physical_interfaces PXE interface
+        Args:
+            node_template_index (int): Node template index
+
+        Returns:
+            iter of str: PXE interface
+        """
+
+        for member in self.get_ntmpl_phyintf_pxe_interface(node_template_index):
+            yield member
+
+    def get_ntmpl_phyintf_data_interface(
+            self, node_template_index, index=None):
+        """Get node_templates physical_interfaces data interface
+        Args:
+            node_template_index (int): Node template index
+            index (int, optional): List index
+
+        Returns:
+            str or list of str: Data interface member or list
+        """
+
+        node_template = self.cfg.node_templates[node_template_index]
+        return self._get_members(
+            node_template.physical_interfaces.data, self.CfgKey.INTERFACE,
+            index)
+
+    def yield_ntmpl_phyintf_data_interface(self, node_template_index):
+        """Yield node_templates physical_interfaces data interface
+        Args:
+            node_template_index (int): Node template index
+
+        Returns:
+            iter of str: Data interface
+        """
+
+        for member in self.get_ntmpl_phyintf_data_interface(
+                node_template_index):
             yield member
 
     def get_ntmpl_phyintf_data_cnt(self, node_template_index):
@@ -2044,3 +2167,12 @@ class Config(object):
         """
 
         return self.cfg.interfaces
+
+    def get_networks(self):
+        """Get top level 'networks' dictionary
+
+        Returns:
+            dict: Network definitions
+        """
+
+        return self.cfg.networks
