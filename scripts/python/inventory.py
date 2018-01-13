@@ -20,17 +20,22 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
 import argparse
+import json
+from itertools import chain
+
 from lib.inventory import Inventory
 from lib.config import Config
 import lib.logger as logger
 from lib import genesis
-import json
 
 SSH_USER = 'root'
 SSH_PRIVATE_KEY = genesis.get_ssh_private_key_file()
 INVENTORY_INIT = {
     'all': {
         'vars': {}
+    },
+    'client-nodes': {
+        'children': []
     },
     '_meta': {
         'hostvars': {}
@@ -45,18 +50,26 @@ def generate_dynamic_inventory():
     # Initialize the empty inventory
     dynamic_inventory = INVENTORY_INIT
 
-    all_vars = dynamic_inventory['all']['vars']
     meta_hostvars = dynamic_inventory['_meta']['hostvars']
 
-    # Add 'interfaces' dictionary to 'all': 'vars':
-    all_vars['interfaces'] = cfg.get_interfaces()
+    # Add 'deployer' (container) to inventory
+    meta_hostvars['deployer'] = {}
+    for ip in chain(cfg.yield_depl_netw_mgmt_cont_ip(),
+                    cfg.yield_depl_netw_client_cont_ip()):
+        if ip is not None:
+            meta_hostvars['deployer']['ansible_host'] = ip
+            meta_hostvars['deployer']['ansible_user'] = SSH_USER
+            meta_hostvars['deployer']['ansible_ssh_private_key_file'] = (
+                SSH_PRIVATE_KEY)
+            break
 
-    # Add hosts to inventroy
+    # Add client nodes to inventory
     for index, hostname in enumerate(inv.yield_nodes_hostname()):
-        # Add node to top-level group (node-template label)
+        # Add node to top-level group (node-template label & 'client-nodes')
         label = inv.get_nodes_label(index)
         if label not in dynamic_inventory:
             dynamic_inventory[label] = {'hosts': []}
+            dynamic_inventory['client-nodes']['children'].append(label)
         dynamic_inventory[label]['hosts'].append(hostname)
 
         # Add node hostvars in '_meta' dictionary

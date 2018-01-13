@@ -24,20 +24,33 @@
     mode: "0644"
   notify: Reboot
 
+# Need to add support for Red Hat
 - name: Copy udev links rules
   command: "cp /lib/systemd/network/99-default.link /etc/systemd/network/99-default.link"
-  when: ansible_distribution == 'Ubuntu'
+  when: (ansible_distribution == 'Ubuntu')
 
 - name: Modify udev links rules
   lineinfile:
     path: /etc/systemd/network/99-default.link
     regexp: '^NamePolicy='
     line: 'NamePolicy=onboard slot path'
-  when: ansible_distribution == 'Ubuntu'
+  when: (ansible_distribution == 'Ubuntu')
 
 - name: Update boot ram disk
   command: "update-initramfs -u"
   register: updateinitramfs
-  when: ansible_distribution == 'Ubuntu'
+  when: (ansible_distribution == 'Ubuntu')
+  notify: Reboot
+- debug: var=updateinitramfs.stdout_lines
+
+- name: Generate Ubuntu interfaces file
+  template:
+    src: "{{ playbook_dir }}/templates/interfaces_ubuntu.j2"
+    dest: "/etc/network/interfaces"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+    backup: yes
+  when: (ansible_distribution == 'Ubuntu')
   notify: Reboot
 ...
