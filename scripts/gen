@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -25,43 +25,56 @@ if [[ "$1" == "validate" ]] && [[ "$2" == "--cluster-hardware" ]]; then
     exit
 fi
 
-if [[ "$1" == "deploy" ]]; then
-    if [[ "$2" == "--inv-add-ports-ipmi" ]] || \
-        [[ "$2" == "--inv-add-ports-pxe" ]] || \
-        [[ "$2" == "--create-inventory" ]] || \
-        [[ "$2" == "--install-cobbler" ]] || \
-        [[ "$2" == "--help" ]] || [[ "$2" == "-h" ]]; then
-        gen.py $@
+if [[ "$1" == "deploy" ]] && ([[ "$2" == "-a" ]] || [[ "$2" == "--all" ]] || \
+            [[ "$2" == "-p" ]] || [[ "$2" == "-f" ]] || [ -z "$2" ]); then
+        shift
+
+    if [[ "$1" == "-a" ]] || [[ "$1" == "--all" ]]; then
+        shift
+    fi
+
+    gen.py validate --config-file $@
+    if [ $? -ne 0 ]; then
         exit
     fi
+
+    sudo env "PATH=$PATH" gen.py setup --bridges $@
+    if [ $? -ne 0 ]; then
+        exit
+    fi
+
+    gen.py config --mgmt-switches $@
+    if [ $? -ne 0 ]; then
+        exit
+    fi
+    sudo env "PATH=$PATH" gen.py validate --cluster-hardware network $@
+    if [ $? -ne 0 ]; then
+        exit
+    fi
+
+    gen.py config --create-container $@
+    if [ $? -ne 0 ]; then
+        exit
+    fi
+
+    gen.py deploy --all $@
+    if [ $? -ne 0 ]; then
+        exit
+    fi
+    echo ;
+    echo 'Done'
+    exit
 fi
 
-if [[ "$1" == "deploy" ]]; then
-    gen.py validate --config-file
-    if [ $? -ne 0 ]; then
-        exit
+if [[ "$1" == "post-deploy" ]] && ([[ "$2" == "-a" ]] || [[ "$2" == "--all" ]] || \
+            [[ "$2" == "-p" ]] || [[ "$2" == "-f" ]] || [ -z "$2" ]); then
+        shift
+
+    if [[ "$1" == "-a" ]] || [[ "$1" == "--all" ]]; then
+        shift
     fi
 
-    sudo env "PATH=$PATH" gen.py setup --bridges
-    if [ $? -ne 0 ]; then
-        exit
-    fi
-
-    gen.py config --mgmt-switches
-    if [ $? -ne 0 ]; then
-        exit
-    fi
-    sudo env "PATH=$PATH" gen.py validate --cluster-hardware network
-    if [ $? -ne 0 ]; then
-        exit
-    fi
-
-    gen.py config --create-container
-    if [ $? -ne 0 ]; then
-        exit
-    fi
-
-    gen.py deploy --all
+    gen.py config --data-switches $@
     if [ $? -ne 0 ]; then
         exit
     fi
