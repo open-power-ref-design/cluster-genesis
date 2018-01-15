@@ -1831,7 +1831,7 @@ class Config(object):
         return len(node_template.physical_interfaces.data)
 
     def yield_ntmpl_phyintf_data_ind(self, node_template_index):
-        """Yield node_templates physical_interfaces ipmi index
+        """Yield node_templates physical_interfaces data index
         Args:
             node_template_index (int): Node template index
 
@@ -1851,7 +1851,7 @@ class Config(object):
             index (int, optional): List index
 
         Returns:
-            str or list of str: PXE switch member or list
+            str or list of str: Data switch member or list
         """
 
         node_template = self.cfg.node_templates[node_template_index]
@@ -1864,7 +1864,7 @@ class Config(object):
             node_template_index (int): Node template index
 
         Returns:
-            iter of str: PXE switch
+            iter of str: Data switch
         """
 
         for member in self.get_ntmpl_phyintf_data_switch(node_template_index):
@@ -1878,7 +1878,7 @@ class Config(object):
             index (int, optional): List index
 
         Returns:
-            str or list of str: PXE dev member or list
+            str or list of str: Data dev member or list
         """
 
         node_template = self.cfg.node_templates[node_template_index]
@@ -1891,7 +1891,7 @@ class Config(object):
             node_template_index (int): Node template index
 
         Returns:
-            iter of str: PXE dev
+            iter of str: Data dev
         """
 
         for member in self.get_ntmpl_phyintf_data_dev(node_template_index):
@@ -1901,19 +1901,19 @@ class Config(object):
         """
         Args:
             node_template_index (int): Node template index
-            data_index (int): PXE index
+            data_index (int): Data index
 
         Returns:
-            int: PXE ports count
+            int: Data ports count
         """
 
         node_template = self.cfg.node_templates[node_template_index]
         return len(node_template.physical_interfaces.data[data_index].ports)
 
     def yield_ntmpl_phyintf_data_pt_ind(self, node_template_index, data_index):
-        """Yield node template physical interface PXE ports count
+        """Yield node template physical interface Data ports count
         Returns:
-            int: PXE ports index
+            int: Data ports index
         """
 
         for index in range(0, self.get_ntmpl_phyintf_data_pt_cnt(
@@ -1925,11 +1925,11 @@ class Config(object):
         """Get node_templates physical_interfaces data ports
         Args:
             node_template_index (int): Node template index
-            data_index (int): PXE index
+            data_index (int): Data index
             index (int, optional): List index
 
         Returns:
-            int or list of int: PXE ports member or list
+            int or list of int: Data ports member or list
         """
 
         node_template = self.cfg.node_templates[node_template_index]
@@ -1941,10 +1941,10 @@ class Config(object):
         """Yield node_templates physical_interfaces data ports
         Args:
             node_template_index (int): Node template index
-            data_index (int): PXE index
+            data_index (int): Data index
 
         Returns:
-            iter of int: PXE ports
+            iter of int: Data ports
         """
 
         for member in self.get_ntmpl_phyintf_data_ports(

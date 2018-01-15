@@ -424,8 +424,6 @@ class Container(object):
             for filename in filenames:
                 filepath = os.path.join(dirpath, filename)
                 if os.path.islink(filepath) and not follow_sym_link:
-                    # self.log.debug('********************************', filepath)
-                    # self.log.debug('********************************', readlink(filepath))
                     continue
                 self._copy_sftp(
                     sftp,
