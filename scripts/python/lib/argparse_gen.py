@@ -43,7 +43,7 @@ class Cmd(Enum):
     DEPLOY = DEPLOY_CMD
 
 
-def get_args():
+def get_args(parser_args=False):
     """Get 'gen' command arguments"""
 
     parser = ArgumentParser(
@@ -232,29 +232,10 @@ def get_args():
         metavar='CONTAINER-NAME',
         help='Run all cluster deployment steps')
 
-    # Check arguments
-    args = parser.parse_args()
-    try:
-        if args.setup:
-            _check_setup(args, parser_setup)
-    except AttributeError:
-        pass
-    try:
-        if args.config:
-            _check_config(args, parser_config)
-    except AttributeError:
-        pass
-    try:
-        if args.validate:
-            _check_validate(args, parser_validate)
-    except AttributeError:
-        pass
-    try:
-        if args.deploy:
-            _check_deploy(args, parser_deploy)
-    except AttributeError:
-        pass
-
+    if parser_args:
+        return (
+            parser,
+            parser_setup, parser_config, parser_validate, parser_deploy)
     return parser
 
 
@@ -305,4 +286,30 @@ def is_arg_present(arg):
 def get_parsed_args():
     """Get parsed 'gen' command arguments"""
 
-    return get_args().parse_args()
+    parser, parser_setup, parser_config, parser_validate, parser_deploy = \
+        get_args(parser_args=True)
+    args = parser.parse_args()
+
+    # Check arguments
+    try:
+        if args.setup:
+            _check_setup(args, parser_setup)
+    except AttributeError:
+        pass
+    try:
+        if args.config:
+            _check_config(args, parser_config)
+    except AttributeError:
+        pass
+    try:
+        if args.validate:
+            _check_validate(args, parser_validate)
+    except AttributeError:
+        pass
+    try:
+        if args.deploy:
+            _check_deploy(args, parser_deploy)
+    except AttributeError:
+        pass
+
+    return args
