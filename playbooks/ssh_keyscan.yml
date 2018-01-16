@@ -23,7 +23,7 @@
 
     - name: Get list of client IP addresses
       command: "{{ python_executable_local }} \
-                {{ scripts_path_local }}/python/client_ip_list.py"
+      {{ scripts_path_local }}/python/client_ip_list.py --deployer"
       register: client_ips
 
     - name: Use ssh-keyscan to add each client hostkey to known_hosts file
@@ -43,8 +43,8 @@
         mode: 0600
       with_items: "{{ known_hosts_content.stdout_lines }}"
 
-- name: Copy known_hosts entries to all client nodes
-  hosts: all
+- name: Copy known_hosts entries to deployer and client nodes
+  hosts: deployer:client_nodes
   gather_facts: True
   tasks:
     - name: Append generated known_hosts contect to ~/.ssh/known_hosts

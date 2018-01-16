@@ -23,7 +23,7 @@
       include_vars: host_vars/localhost
 
 - name: Configure interfaces
-  hosts: all
+  hosts: client_nodes
   tasks:
     - include: tasks/create_interfaces.yml
   handlers:

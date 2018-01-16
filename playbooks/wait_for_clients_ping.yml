@@ -18,6 +18,8 @@
 
 - name: wait_for_clients_ping.yml
   hosts: localhost
+  vars:
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
   tasks:
 
     - name: Get list of client IP addresses

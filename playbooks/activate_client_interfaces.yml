@@ -16,7 +16,7 @@
 # limitations under the License.
 
 - name: activate_client_interfaces.yml
-  hosts: all
+  hosts: client_nodes
   gather_facts: no
   tasks:
     - name: Gather facts

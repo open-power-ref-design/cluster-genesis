@@ -22,6 +22,7 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 import sys
 from enum import Enum
 import netaddr
+from itertools import chain
 
 import lib.logger as logger
 from lib.db import Database
@@ -339,6 +340,18 @@ class Config(object):
 
         for member in self.get_depl_netw_mgmt_cont_ip():
             yield member
+
+    def get_depl_netw_cont_ip(self):
+        """Get single deployer networks container_ipaddr
+
+        Returns:
+            str: Container IP address
+        """
+
+        for ip in chain(self.yield_depl_netw_mgmt_cont_ip(),
+                        self.yield_depl_netw_client_cont_ip()):
+            if ip is not None:
+                return ip
 
     def get_depl_netw_mgmt_brg_ip(self, index=None):
         """Get deployer networks mgmt bridge_ipaddr

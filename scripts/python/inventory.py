@@ -32,9 +32,11 @@ SSH_USER = 'root'
 SSH_PRIVATE_KEY = genesis.get_ssh_private_key_file()
 INVENTORY_INIT = {
     'all': {
-        'vars': {}
+        'vars': {},
+        'hosts': ['deployer', 'localhost'],
+        'children': ['client_nodes']
     },
-    'client-nodes': {
+    'client_nodes': {
         'children': []
     },
     '_meta': {
@@ -52,24 +54,23 @@ def generate_dynamic_inventory():
 
     meta_hostvars = dynamic_inventory['_meta']['hostvars']
 
+    # Add 'localhost' to inventory
+    meta_hostvars['localhost'] = {}
+    meta_hostvars['localhost']['ansible_connection'] = 'local'
+
     # Add 'deployer' (container) to inventory
     meta_hostvars['deployer'] = {}
-    for ip in chain(cfg.yield_depl_netw_mgmt_cont_ip(),
-                    cfg.yield_depl_netw_client_cont_ip()):
-        if ip is not None:
-            meta_hostvars['deployer']['ansible_host'] = ip
-            meta_hostvars['deployer']['ansible_user'] = SSH_USER
-            meta_hostvars['deployer']['ansible_ssh_private_key_file'] = (
-                SSH_PRIVATE_KEY)
-            break
+    meta_hostvars['deployer']['ansible_host'] = cfg.get_depl_netw_cont_ip()
+    meta_hostvars['deployer']['ansible_user'] = SSH_USER
+    meta_hostvars['deployer']['ansible_ssh_private_key_file'] = SSH_PRIVATE_KEY
 
     # Add client nodes to inventory
     for index, hostname in enumerate(inv.yield_nodes_hostname()):
         # Add node to top-level group (node-template label & 'client-nodes')
-        label = inv.get_nodes_label(index)
+        label = _sanitize(inv.get_nodes_label(index))
         if label not in dynamic_inventory:
             dynamic_inventory[label] = {'hosts': []}
-            dynamic_inventory['client-nodes']['children'].append(label)
+            dynamic_inventory['client_nodes']['children'].append(label)
         dynamic_inventory[label]['hosts'].append(hostname)
 
         # Add node hostvars in '_meta' dictionary
@@ -84,11 +85,16 @@ def generate_dynamic_inventory():
         roles = inv.get_nodes_roles(index)
         if roles is not None:
             for role in roles:
-                if role not in dynamic_inventory:
-                    dynamic_inventory[role] = {'hosts': []}
-                dynamic_inventory[role]['hosts'].append(hostname)
+                _role = _sanitize(role)
+                if _role not in dynamic_inventory:
+                    dynamic_inventory[_role] = {'hosts': []}
+                dynamic_inventory[_role]['hosts'].append(hostname)
 
     return dynamic_inventory
+
+
+def _sanitize(str):
+    return str.replace('-', '_')
 
 
 if __name__ == '__main__':
