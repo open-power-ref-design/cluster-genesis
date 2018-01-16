@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -25,6 +25,8 @@ from pyroute2 import IPRoute, NetlinkError
 from netaddr import IPNetwork
 from pyghmi.ipmi import command
 from pyghmi.exceptions import IpmiException
+from orderedattrdict import AttrDict
+from tabulate import tabulate
 
 import lib.logger as logger
 from lib.config import Config
@@ -32,6 +34,7 @@ from lib.ssh import SSH_Exception
 from lib.switch_exception import SwitchException
 from lib.switch import SwitchFactory
 from lib.exception import UserException
+from get_dhcp_lease_info import GetDhcpLeases
 
 # offset relative to bridge address
 NAME_SPACE_OFFSET_ADDR = 1
@@ -80,6 +83,7 @@ class NetNameSpace(object):
         self.vlan = bridge.split('-')[-1]
         self.name = name + self.vlan
         self.ip = IPRoute()
+        self._disconnect_container()
         self.log.info('Creating network namespace {}'.format(self.name))
 
         stdout, stderr = _sub_proc_exec('ip netns add {}'.format(self.name))
@@ -159,6 +163,33 @@ class NetNameSpace(object):
         self.ip.close()
         stdout, stderr = _sub_proc_exec('ip netns del {}'.format(self.name))
 
+    def _disconnect_container(self):
+        """ Disconnects any attached containers by bringing down all veth pairs
+        attached to the bridge.
+        """
+        br_idx = self.ip.link_lookup(ifname=self.bridge)
+        for link in self.ip.get_links():
+            if br_idx[0] == link.get_attr('IFLA_MASTER'):
+                link_name = link.get_attr('IFLA_IFNAME')
+                if 'veth' in link_name:
+                    self.log.debug('Bringing down veth pair {} on bridge: {}'
+                                   .format(link_name, self.bridge))
+                    self.ip.link('set', index=link['index'], state='down')
+
+    def _reconnect_container(self):
+        """ Disconnects any attached containers by bringing down all veth pairs
+        attached to the bridge.
+        """
+        br_idx = self.ip.link_lookup(ifname=self.bridge)
+        for link in self.ip.get_links():
+            if br_idx[0] == link.get_attr('IFLA_MASTER'):
+                link_name = link.get_attr('IFLA_IFNAME')
+                if 'veth' in link.get_attr('IFLA_IFNAME'):
+                    self.log.debug('Bringing up veth pair {} on bridge: {}'
+                                   .format(link_name, self.bridge))
+                    self.log.debug('link:' + link.get_attr('IFLA_IFNAME'))
+                    self.ip.link('set', index=link['index'], state='up')
+
 
 class ValidateClusterHardware(object):
     """Discover and validate cluster hardware
@@ -167,15 +198,18 @@ class ValidateClusterHardware(object):
         log (object): Log
     """
 
-    def __init__(self):
+    def __init__(self, dhcp_leases_file='/var/lib/misc/dnsmasq.leases'):
         self.log = logger.getlogger()
         try:
             self.cfg = Config()
         except UserException as exc:
             self.log.critical(exc)
             raise UserException(exc)
-        # initialize ipmi list with access info
+        # initialize ipmi list of access info
         self.ipmi_list_ai = {}
+        self.dhcp_leases_file = dhcp_leases_file
+        self.node_table_ipmi = AttrDict()
+        self.node_table_pxe = AttrDict()
 
     def _add_offset_to_address(self, addr, offset):
         """calculates an address with an offset added.
@@ -256,6 +290,130 @@ class ValidateClusterHardware(object):
             self.log.error('IPMI communication succesful with only {} of {} '
                            'nodes'.format(tot - left, tot))
 
+    def _get_ipmi_ports(self, switch_lbl):
+        """ Get all of the ipmi ports for a given switch
+        Args:
+            switch_lbl (str): switch label
+        Returns:
+            ports (list of str): port name or number
+        """
+        ports = []
+        for node_tmpl_idx in self.cfg.yield_ntmpl_ind():
+            for sw_idx in self.cfg.yield_ntmpl_phyintf_ipmi_ind(node_tmpl_idx):
+                if switch_lbl == self.cfg.get_ntmpl_phyintf_ipmi_switch(
+                        node_tmpl_idx, sw_idx):
+                    ports += self.cfg.get_ntmpl_phyintf_ipmi_ports(
+                        node_tmpl_idx, sw_idx)
+        ports = [str(port) for port in ports]
+        return ports
+
+    def _get_pxe_ports(self, switch_lbl):
+        """ Get all of the pxe ports for a given switch
+        Args:
+            switch_lbl (str): switch label
+        Returns:
+            ports (list of str): port name or number
+        """
+        ports = []
+        for node_tmpl_idx in self.cfg.yield_ntmpl_ind():
+            for sw_idx in self.cfg.yield_ntmpl_phyintf_pxe_ind(node_tmpl_idx):
+                if switch_lbl == self.cfg.get_ntmpl_phyintf_pxe_switch(
+                        node_tmpl_idx, sw_idx):
+                    ports += self.cfg.get_ntmpl_phyintf_pxe_ports(
+                        node_tmpl_idx, sw_idx)
+        ports = [str(port) for port in ports]
+        return ports
+
+    def _get_port_table_ipmi(self, node_list):
+        """ Build table of discovered nodes.  The responding IP addresses are
+        correlated to MAC addresses in the dnsmasq.leases file.  The MAC
+        address is then used to correlate the IP address to a switch port.
+        Args:
+            node_list (list of str): IPV4 addresses
+        Returns:
+            table (AttrDict): switch, switch port, IPV4 address, MAC address
+        """
+        dhcp_leases = GetDhcpLeases(self.dhcp_leases_file)
+        dhcp_mac_ip = dhcp_leases.get_mac_ip()
+
+        dhcp_mac_table = AttrDict()
+        for ip in node_list:
+            for item in dhcp_mac_ip.items():
+                if ip in item:
+                    dhcp_mac_table[item[0]] = item[1]
+        self.log.debug('ipmi mac-ip table')
+        self.log.debug(dhcp_mac_table)
+
+        for sw_ai in self.cfg.yield_sw_mgmt_access_info():
+            sw = SwitchFactory.factory(*sw_ai[1:])
+            label = sw_ai[0]
+            ipmi_ports = self._get_ipmi_ports(label)
+            mgmt_sw_cfg_mac_lists = \
+                sw.show_mac_address_table(format='std')
+
+            # Get switch ipmi port mac address table
+            # Logic below maintains same port order as config.yml
+            sw_ipmi_mac_table = AttrDict()
+            for port in ipmi_ports:
+                if port in mgmt_sw_cfg_mac_lists:
+                    sw_ipmi_mac_table[port] = mgmt_sw_cfg_mac_lists[port]
+            self.log.debug('Switch ipmi port mac table')
+            self.log.debug(sw_ipmi_mac_table)
+
+            if label not in self.node_table_ipmi.keys():
+                self.node_table_ipmi[label] = []
+
+            for port in sw_ipmi_mac_table:
+                for mac in dhcp_mac_table:
+                    if mac in sw_ipmi_mac_table[port]:
+                        if not self._is_port_in_table(self.node_table_ipmi[label], port):
+                            self.node_table_ipmi[label].append([port, mac, dhcp_mac_table[mac]])
+
+    def _get_port_table_pxe(self, node_list):
+        """ Build table of discovered nodes.  The responding IP addresses are
+        correlated to MAC addresses in the dnsmasq.leases file.  The MAC
+        address is then used to correlate the IP address to a switch port.
+        Args:
+            node_list (list of str): IPV4 addresses
+        Returns:
+            table (AttrDict): switch, switch port, IPV4 address, MAC address
+        """
+        dhcp_leases = GetDhcpLeases(self.dhcp_leases_file)
+        dhcp_mac_ip = dhcp_leases.get_mac_ip()
+
+        dhcp_mac_table = AttrDict()
+        for ip in node_list:
+            for item in dhcp_mac_ip.items():
+                if ip in item:
+                    dhcp_mac_table[item[0]] = item[1]
+        self.log.debug('pxe mac-ip table')
+        self.log.debug(dhcp_mac_table)
+
+        for sw_ai in self.cfg.yield_sw_mgmt_access_info():
+            sw = SwitchFactory.factory(*sw_ai[1:])
+            label = sw_ai[0]
+            pxe_ports = self._get_pxe_ports(label)
+            mgmt_sw_cfg_mac_lists = \
+                sw.show_mac_address_table(format='std')
+
+            # Get switch pxe port mac address table
+            # Logic below maintains same port order as config.yml
+            sw_pxe_mac_table = AttrDict()
+            for port in pxe_ports:
+                if port in mgmt_sw_cfg_mac_lists:
+                    sw_pxe_mac_table[port] = mgmt_sw_cfg_mac_lists[port]
+            self.log.debug('Switch pxe port mac table')
+            self.log.debug(sw_pxe_mac_table)
+
+            if label not in self.node_table_pxe.keys():
+                self.node_table_pxe[label] = []
+
+            for port in sw_pxe_mac_table:
+                for mac in dhcp_mac_table:
+                    if mac in sw_pxe_mac_table[port]:
+                        if not self._is_port_in_table(self.node_table_pxe[label], port):
+                            self.node_table_pxe[label].append([port, mac, dhcp_mac_table[mac]])
+
     def _reset_existing_bmcs(self, node_addr_list, cred_list):
         """ Attempts to reset any BMCs which have existing IP addresses since
         we don't have control over their address lease time.
@@ -275,9 +433,10 @@ class ValidateClusterHardware(object):
                         userid=creds[0],
                         password=creds[1])
                 except IpmiException as exc:
-                    if 'Incorrect password' in exc.message or \
-                            'Unauthorized name' in exc.message:
-                        pass
+                    if exc.message is not None:
+                        if 'Incorrect password' in exc.message or \
+                                'Unauthorized name' in exc.message:
+                            pass
                     else:
                         self.log.error(exc.message)
                 else:
@@ -337,7 +496,7 @@ class ValidateClusterHardware(object):
             stdout, stderr = self.ipmi_ns._exec_cmd(cmd)
             print(stderr)
 
-        # Scan up to 10 times. Delay 5 seconds between scans
+        # Scan up to 20 times. Delay 5 seconds between scans
         # Allow infinite number of retries
         print('Scanning ipmi network')
         self.log.info('Pause 5 s between scans for cluster nodes to fetch'
@@ -352,24 +511,26 @@ class ValidateClusterHardware(object):
                 sys.stdout.flush()
                 prog_ind += '.'
                 time.sleep(5)
-                cmd = 'fping -r0 -a -g {} {}'.format(addr_st, addr_end)
+                cmd = 'fping -r0 -a -g {} {}'.format(addr_st, dhcp_end)
                 stdout, stderr = _sub_proc_exec(cmd)
                 node_list = stdout.splitlines()
                 cnt = len(node_list)
                 if cnt >= ipmi_cnt:
                     rc = True
+                    print('\r{} of {} nodes discovered.{} '
+                          .format(cnt, ipmi_cnt, prog_ind), end="")
                     break
-                    if cnt != ipmi_cnt:
-                        self.log.warning('Failed to validate expected number of nodes')
-                # First scan through covers the entire subnet to pick up any
-                # nodes which may have an existing DHCP address.
-                # After first try of the whole range, narrow the search range.
-                if i == 1:
-                    addr_end = dhcp_end
+
+            self._get_port_table_ipmi(node_list)
+            self.log.debug('Table of found IPMI ports: {}'.format(self.node_table_ipmi))
+            for switch in self.node_table_ipmi:
+                print('\n\nSwitch: {}'.format(switch))
+                print(tabulate(self.node_table_ipmi[switch], headers=(
+                    'port', 'MAC address', 'IP address')))
+                print()
+
             if cnt >= ipmi_cnt:
                 break
-            print('\r{} of {} nodes discovered.{} '
-                  .format(cnt, ipmi_cnt, prog_ind), end="")
             print('\n\nPress Enter to continue scanning for cluster nodes.\nOr')
             print("Or enter 'C' to continue cluster deployment with a subset of nodes")
             resp = raw_input("Or Enter 'T' to terminate Cluster Genesis ")
@@ -378,7 +539,7 @@ class ValidateClusterHardware(object):
                 if resp == 'y':
                     self.log.info("'{}' entered. Terminating Genesis at user request"
                                   .format(resp))
-                    self._teardown_ipmi_ns()
+                    self._teardown_ns(self.ipmi_ns)
                     sys.exit(1)
             elif resp == 'C':
                 print('\nNot all nodes have been discovered')
@@ -398,7 +559,7 @@ class ValidateClusterHardware(object):
         t1 = time.time()
         self._power_all(self.ipmi_list_ai, 'off')
 
-        while time.time() < t1 + 10:
+        while time.time() < t1 + 60:
             time.sleep(0.5)
 
         self._power_all(self.ipmi_list_ai, 'on', bootdev='network')
@@ -417,20 +578,23 @@ class ValidateClusterHardware(object):
                 cred_list[idx].append(port_cnt)
         return cred_list
 
-    def _teardown_ipmi_ns(self):
+    def _teardown_ns(self, ns):
         # kill dnsmasq
         dns_list, stderr = _sub_proc_exec('pgrep dnsmasq')
         dns_list = dns_list.splitlines()
 
         for pid in dns_list:
             ns_name, stderr = _sub_proc_exec('ip netns identify ' + pid)
-            if self.ipmi_ns._get_name_sp_name() in ns_name:
+            if ns._get_name_sp_name() in ns_name:
                 self.log.debug('Killing dnsmasq {}'.format(pid))
                 stdout, stderr = _sub_proc_exec('kill -15 ' + pid)
 
+        # reconnect the veth pair to the container
+        ns._reconnect_container()
+
         # Destroy the namespace
         self.log.debug('Destroying ipmi namespace')
-        self.ipmi_ns._destroy_name_sp()
+        ns._destroy_name_sp()
 
     def validate_pxe(self, bootdev='default', persist=True):
         self.log.info("\n________ Checking PXE networks and client PXE"
@@ -469,7 +633,7 @@ class ValidateClusterHardware(object):
             stdout, stderr = pxe_ns._exec_cmd(cmd)
             print(stderr)
 
-        # Scan up to 10 times. Delay 10 seconds between scans
+        # Scan up to 20 times. Delay 10 seconds between scans
         # Allow infinite number of retries
         print('Scanning pxe network')
         self.log.info('Pause 10 s between scans for cluster nodes to fetch'
@@ -490,20 +654,34 @@ class ValidateClusterHardware(object):
                 cnt = len(node_list)
                 if cnt >= pxe_cnt:
                     rc = True
+                    print('\r{} of {} nodes discovered.{} '
+                          .format(cnt, pxe_cnt, prog_ind), end="")
                     break
+
+            self._get_port_table_pxe(node_list)
+            self.log.debug('Table of found PXE ports: {}'.format(self.node_table_pxe))
+            for switch in self.node_table_pxe:
+                print('\n\nSwitch: {}'.format(switch))
+                print(tabulate(self.node_table_pxe[switch], headers=(
+                    'port', 'MAC address', 'IP address')))
+                print()
+
             if cnt >= pxe_cnt:
                 break
-            print('\r{} of {} nodes discovered.{} '
-                  .format(cnt, pxe_cnt, prog_ind), end="")
             print('\n\nPress Enter to continue scanning for cluster nodes.')
             print("Or enter 'C' to continue cluster deployment with a subset of nodes")
-            resp = raw_input("Or Enter 'T' to terminate Cluster Genesis ")
+            print("Or enter 'R' to cycle power to missing nodes")
+            resp = raw_input("Or enter 'T' to terminate Cluster Genesis ")
             if resp == 'T':
                 resp = raw_input("Enter 'y' to confirm ")
                 if resp == 'y':
                     self.log.info("'{}' entered. Terminating Genesis at user"
                                   " request".format(resp))
+                    self._teardown_ns(self.ipmi_ns)
+                    self._teardown_ns(pxe_ns)
                     sys.exit(1)
+            elif resp == 'R':
+                self._reset_unfound_nodes()
             elif resp == 'C':
                 print('\nNot all nodes have been discovered')
                 resp = raw_input("Enter 'y' to confirm continuation of"
@@ -516,15 +694,7 @@ class ValidateClusterHardware(object):
         if cnt < pxe_cnt:
             self.log.warning('Failed to validate expected number of nodes')
 
-        # kill dnsmasq
-        dns_list, stderr = _sub_proc_exec('pgrep dnsmasq')
-        dns_list = dns_list.splitlines()
-
-        for pid in dns_list:
-            ns_name, stderr = _sub_proc_exec('ip netns identify ' + pid)
-            if pxe_ns._get_name_sp_name() in ns_name:
-                self.log.debug('Killing dnsmasq {}'.format(pid))
-                stdout, stderr = _sub_proc_exec('kill -15 ' + pid)
+        self._teardown_ns(pxe_ns)
 
         self.log.debug('\nCycling power to discovered nodes.\n')
 
@@ -533,22 +703,52 @@ class ValidateClusterHardware(object):
             t1 = time.time()
             self._power_all(self.ipmi_list_ai, 'off')
 
-            while time.time() < t1 + 10:
+            while time.time() < t1 + 60:
                 time.sleep(0.5)
 
             self._power_all(self.ipmi_list_ai, 'on', bootdev, persist=False)
 
-        # Destroy the namespaces
-        self.log.debug('Destroying pxe namespace')
-        pxe_ns._destroy_name_sp()
-
-        self._teardown_ipmi_ns()
+        self._teardown_ns(self.ipmi_ns)
 
         self.log.info('Cluster nodes validation complete')
         if not rc:
             raise UserException('Not all node PXE ports validated')
 
-    def _reset_all_bmc(self, ipmi_list_ai):
+    def _reset_unfound_nodes(self):
+        """ Power cycle the nodes who's PXE ports are not responding to pings.
+        """
+        ipmi_missing_list_ai = {}
+        for label in self.cfg.yield_sw_mgmt_label():
+            pxe_ports = self._get_pxe_ports(label)
+            ipmi_ports = self._get_ipmi_ports(label)
+            for node in self.node_table_ipmi[label]:
+                if node[0] in ipmi_ports:
+                    idx = ipmi_ports.index(node[0])
+                    if not self._is_port_in_table(
+                            self.node_table_pxe[label], pxe_ports[idx]):
+                        ipmi_missing_list_ai[node[2]] = self.ipmi_list_ai[node[2]]
+        self.log.debug('Cycling power to missing nodes list: {}'
+                       .format(ipmi_missing_list_ai))
+
+        print('Cycling power to non responding nodes:')
+        for node in ipmi_missing_list_ai:
+            print(node)
+        t1 = time.time()
+        self._power_all(ipmi_missing_list_ai, 'off')
+
+        while time.time() < t1 + 10:
+            time.sleep(0.5)
+
+        self._power_all(ipmi_missing_list_ai, 'on', bootdev='network')
+
+    def _is_port_in_table(self, table, port):
+        for node in table:
+            if port == node[0]:
+                self.log.debug('Table port: {} port: {}'.format(node[0], port))
+                return True
+        return False
+
+    def _reset_bmcs(self, ipmi_list_ai):
         print('Resetting BMCs')
         for node in ipmi_list_ai.keys():
             print(node)
@@ -574,6 +774,7 @@ class ValidateClusterHardware(object):
         Args:
             ipmi_list_ai (list of dict{(ipv4),[list of userid, password]}):
             state (str): 'on' or 'off'
+            bootdev (str): 'network' or 'default'
         """
         if bootdev:
             t1 = time.time()
@@ -596,7 +797,7 @@ class ValidateClusterHardware(object):
                     rc = bmc.ipmi_session.logout()
                     self.log.debug('Logging out rc: {}'.format(rc['success']))
 
-            while time.time() < t1 + 5:
+            while time.time() < t1 + 1:
                 time.sleep(0.5)
 
         for node in sorted(ipmi_list_ai):

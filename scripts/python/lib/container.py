@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Container"""
 
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -66,9 +66,11 @@ class Container(object):
         self.cont_scripts_path = gen.get_container_scripts_path()
         self.cont_python_path = gen.get_container_python_path()
         self.cont_os_images_path = gen.get_container_os_images_path()
+        self.cont_playbooks_path = gen.get_container_playbooks_path()
         self.depl_package_path = gen.get_package_path()
         self.depl_python_path = gen.get_python_path()
         self.depl_os_images_path = gen.get_os_images_path()
+        self.depl_playbooks_path = gen.get_playbooks_path()
         self.config_file = gen.get_config_file_name()
 
         self.cont_ini = os.path.join(self.depl_package_path, 'container.ini')
@@ -369,6 +371,16 @@ class Container(object):
         # Open sftp session to container
         sftp = self.open_sftp(ssh)
 
+        # Copy private ssh key to container
+        self._mkdir_sftp(sftp, self.cont_scripts_path)
+        self._copy_sftp(
+            sftp,
+            self.PRIVATE_SSH_KEY_FILE,
+            '/root/.ssh/gen')
+
+        # Change private key file permissions to 0600
+        self.run_command(['chmod', '600', '/root/.ssh/gen'])
+
         # Copy config file to container
         self._copy_sftp(
             sftp,
@@ -380,9 +392,19 @@ class Container(object):
         self._mkdir_sftp(sftp, self.cont_python_path)
         self.copy_dir_to_container(sftp, self.depl_python_path)
 
+        # Add execute permission to dynamic inventory module
+        self.run_command([
+            'chmod',
+            'a+x',
+            os.path.join(self.cont_python_path, 'inventory.py')])
+
         # Copy os_images directory to container
         self._mkdir_sftp(sftp, self.cont_os_images_path)
         self.copy_dir_to_container(sftp, self.depl_os_images_path)
+
+        # Copy playbooks directory to container
+        self._mkdir_sftp(sftp, self.cont_playbooks_path)
+        self.copy_dir_to_container(sftp, self.depl_playbooks_path)
 
         # Create file to indicate whether project is installed in a container
         self.run_command(['touch', self.cont_id_file])
@@ -390,7 +412,7 @@ class Container(object):
         # Close ssh session to container
         self._close_ssh(ssh)
 
-    def copy_dir_to_container(self, sftp, dir_local_path):
+    def copy_dir_to_container(self, sftp, dir_local_path, follow_sym_link=True):
         for dirpath, dirnames, filenames in os.walk(dir_local_path):
             for dirname in dirnames:
                 self._mkdir_sftp(
@@ -401,11 +423,8 @@ class Container(object):
                         dirname))
             for filename in filenames:
                 filepath = os.path.join(dirpath, filename)
-                if os.path.islink(filepath):
-                    error = "Symbolic links are not supported '{}'".format(
-                        filepath)
-                    self.log.error(error)
-                    raise UserException(error)
+                if os.path.islink(filepath) and not follow_sym_link:
+                    continue
                 self._copy_sftp(
                     sftp,
                     os.path.join(dirpath, filename),

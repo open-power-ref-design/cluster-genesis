@@ -1,19 +1,21 @@
 #jinja2: lstrip_blocks: "true"
-# Copyright 2017 IBM Corp.
-#
-# All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+{#
+  Copyright 2018 IBM Corp.
+
+  All Rights Reserved.
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+#}
 
 # This file describes the network interfaces available on your system
 # and how to activate them. For more information, see interfaces(5).
@@ -22,166 +24,19 @@
 auto lo
 iface lo inet loopback
 
-{# Define bonding first #}
-{% for network in host_networks|sort %}
-    {% if 'bond' in networks[network] %}
-# {{ networks[network]['description'] }}
-#We define bond-master in the necessary interfaces
-#bond-slaves can be none here.
-auto {{ networks[network]['bond'] }}
-iface {{ networks[network]['bond'] }} inet {{ networks[network]['method'] }}
-        {% if 'bond-primary' in networks[network] %}
-    hwaddress {{ name_interfaces[networks[network]['bond-primary']] }}
-        {% else %}
-    hwaddress {{ name_interfaces[networks[network]['bond-interfaces'][0]] }}
-        {% endif %}
-        {% if 'addr' in host_networks[network] %}
-    address {{ host_networks[network]['addr'] }}
-        {% endif %}
-        {% if 'netmask' in networks[network] %}
-    netmask {{ networks[network]['netmask'] }}
-        {% endif %}
-        {% if 'gateway' in networks[network] %}
-    gateway {{ networks[network]['gateway'] }}
-        {% endif %}
-        {% if 'network' in networks[network] %}
-    network {{ networks[network]['network'] }}
-        {% endif %}
-        {% if 'broadcast' in networks[network] %}
-    broadcast {{ networks[network]['broadcast'] }}
-        {% endif %}
-        {% if 'dns-search' in networks[network] %}
-    dns-search {{ networks[network]['dns-search'] }}
-        {% endif %}
-        {% if 'dns-nameservers' in networks[network] %}
-    dns-nameservers {{ networks[network]['dns-nameservers'] }}
-        {% endif %}
-        {% if 'mtu' in networks[network] %}
-    mtu {{ networks[network]['mtu'] }}
-        {% endif %}
-        {% if 'bond-mode' in networks[network] %}
-    bond-mode {{ networks[network]['bond-mode'] }}
-        {% endif %}
-    bond-slaves none
-        {% if 'optional-bond-arguments' in networks[network] %}
-            {% for argument in networks[network]['optional-bond-arguments'] %}
-    {{ argument }} {{ networks[network]['optional-bond-arguments'][argument] }}
-            {% endfor %}
-        {% endif %}
-
+{% for interface in interfaces %}
+    {% if 'description' not in interface %}
+# {{ interface['label'] }}
+    {% else %}
+# {{ interface['description'] }} ({{ interface['label'] }})
     {% endif %}
-{% endfor %}
-{# Interfaces without bridges #}
-{% for network in host_networks|sort %}
-    {% if 'bridge' not in networks[network] and 'bond' not in networks[network] %}
-# {{ networks[network]['description'] }}
-auto {{ networks[network]['eth-port'] }}
-iface {{ networks[network]['eth-port'] }} inet {{ networks[network]['method'] }}
-        {% if 'addr' in host_networks[network] %}
-    address {{ host_networks[network]['addr'] }}
-        {% endif %}
-        {% if 'netmask' in networks[network] %}
-    netmask {{ networks[network]['netmask'] }}
-        {% endif %}
-        {% if 'gateway' in networks[network] %}
-    gateway {{ networks[network]['gateway'] }}
-        {% endif %}
-        {% if 'network' in networks[network] %}
-    network {{ networks[network]['network'] }}
-        {% endif %}
-        {% if 'broadcast' in networks[network] %}
-    broadcast {{ networks[network]['broadcast'] }}
-        {% endif %}
-        {% if 'dns-search' in networks[network] %}
-    dns-search {{ networks[network]['dns-search'] }}
-        {% endif %}
-        {% if 'dns-nameservers' in networks[network] %}
-    dns-nameservers {{ networks[network]['dns-nameservers'] }}
-        {% endif %}
-        {% if 'mtu' in networks[network] %}
-    mtu {{ networks[network]['mtu'] }}
-        {% endif %}
-        {% for bond_net in host_networks %}
-            {% if 'bond-interfaces' in networks[bond_net] %}
-                {% if networks[network]['eth-port'] in networks[bond_net]['bond-interfaces'] %}
-    bond-master {{ networks[bond_net]['bond'] }}
-                {% endif %}
-                {% if 'bond-primary' in networks[bond_net] %}
-                    {% if networks[network]['eth-port'] in networks[bond_net]['bond-primary'] %}
-    bond-primary {{ networks[network]['eth-port'] }}
-                    {% endif %}
-                {% endif %}
-            {% endif %}
-        {% endfor %}
+auto {{ interface['iface'] }}
+iface {{ interface['iface'] }}{% if 'method' in interface %} inet {{ interface['method'] }}{% endif %}
 
-    {% endif %}
-{% endfor %}
-{# General Network Interfaces #}
-{% for network in host_networks|sort %}
-    {% if 'bridge' in networks[network] %}
-# {{ networks[network]['description'] }}
-        {% if 'vlan' in networks[network] %}
-auto {{ networks[network]['eth-port'] }}.{{ networks[network]['vlan'] }}
-iface {{ networks[network]['eth-port'] }}.{{ networks[network]['vlan'] }} inet manual
-    vlan-raw-device {{ networks[network]['eth-port'] }}
-            {% if networks[network]['eth-port'] not in name_interfaces %}
-                {% for bond_net in host_networks %}
-                    {% if 'bond' in networks[bond_net] %}
-                        {% if networks[network]['eth-port'] == networks[bond_net]['bond'] %}
-                            {% if 'bond-primary' in networks[bond_net] %}
-    hw-mac-address {{ name_interfaces[networks[bond_net]['bond-primary']] }}
-                            {% else %}
-    hw-mac-address {{ name_interfaces[networks[bond_net]['bond-interfaces'][0]] }}
-                            {% endif %}
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
-            {% endif %}
-            {% if 'mtu' in networks[network] %}
-    mtu {{ networks[network]['mtu'] }}
-    post-up ip link set dev {{ networks[network]['eth-port'] }} mtu {{ networks[network]['mtu'] }}
-            {% endif %}
+    {% for key, value in interface.iteritems() %}
+        {% if key not in ['label', 'description', 'iface', 'method'] %}
+    {{ key }} {{ value }}
         {% endif %}
-auto {{ networks[network]['bridge'] }}
-iface {{ networks[network]['bridge'] }} inet {{ networks[network]['method'] }}
-    bridge_stp off
-    bridge_waitport 0
-    bridge_fd 0
-        {% if 'bridge-port' not in networks[network] %}
-            {% if 'vlan' in networks[network] %}
-    bridge_ports {{ networks[network]['eth-port'] }}.{{ networks[network]['vlan'] }}
-            {% else %}
-    bridge_ports {{ networks[network]['eth-port'] }}
-            {% endif %}
-        {% endif %}
-    address {{ host_networks[network]['addr'] }}
-        {% if 'netmask' in networks[network] %}
-    netmask {{ networks[network]['netmask'] }}
-        {% endif %}
-        {% if 'mtu' in networks[network] %}
-    mtu {{ networks[network]['mtu'] }}
-        {% endif %}
-        {% if 'tcp_segmentation_offload' in networks[network] %}
-    offload-sg {{ networks[network]['tcp_segmentation_offload'] }}
-        {% endif %}
+    {% endfor %}
 
-        {% if 'bridge-port' in networks[network] %}
-    # Create veth pair, don't bomb if already exists
-    pre-up ip link add {{ networks[network]['bridge'] }}-veth type veth peer name {{ networks[network]['bridge-port'] }} || true
-    # Set both ends UP
-    pre-up ip link set {{ networks[network]['bridge'] }}-veth up
-    pre-up ip link set {{ networks[network]['bridge-port'] }} up
-            {% if 'mtu' in networks[network] %}
-    pre-up ip link set {{ networks[network]['bridge'] }}-veth  mtu {{ networks[network]['mtu'] }}
-    pre-up ip link set {{ networks[network]['bridge-port'] }}  mtu {{ networks[network]['mtu'] }}
-            {% endif %}
-    # Delete veth pair on DOWN
-    post-down ip link del {{ networks[network]['bridge'] }}-veth || true
-            {% if 'vlan' in networks[network] %}
-    bridge_ports {{ networks[network]['eth-port'] }}.{{ networks[network]['vlan'] }} {{ networks[network]['bridge'] }}-veth
-            {% else %}
-    bridge_ports {{ networks[network]['eth-port'] }} {{ networks[network]['bridge'] }}-veth
-            {% endif %}
-        {% endif %}
-    {% endif %}
 {% endfor %}

@@ -45,7 +45,6 @@ class Database(object):
     def __init__(self):
         self.log = logger.getlogger()
         self.cfg_file = os.path.realpath(CFG_FILE)
-        self.inv_file = os.path.realpath(INV_FILE)
         self.cfg = None
         self.inv = None
 
@@ -55,9 +54,17 @@ class Database(object):
             self.log.error(msg)
             raise UserException(msg)
 
+        # If inventory file is broken link remove it
+        if os.path.islink(INV_FILE):
+            if not os.path.exists(os.readlink(INV_FILE)):
+                os.unlink(INV_FILE)
+
+        # Set 'inv_file' attribute after checking link
+        self.inv_file = os.path.realpath(INV_FILE)
+
         # Create inventory file if it does not exist
-        if not os.path.isfile(self.inv_file):
-            os.mknod(self.inv_file, self.FILE_MODE)
+        if not os.path.isfile(INV_FILE):
+            os.mknod(INV_FILE, self.FILE_MODE)
 
     def _load_yaml_file(self, yaml_file):
         """Load from YAML file

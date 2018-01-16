@@ -72,7 +72,6 @@ nodes:
             switches:
             ports:
             devices:
-            ipaddrs:
             macs:
         os:
 
@@ -161,16 +160,13 @@ nodes:
 |       data:          |       data:                   | |   *switches*  - Data switches.                                                                               |          |
 |           switches:  |           switches:           | |   *ports*     - Data ports.                                                                                  |          |
 |           ports:     |           - data_1            | |   *devices*   - Network devices.                                                                             |          |
-|           devices:   |           - data_2            | |   *ipaddrs*   - Interface ipaddrs.                                                                           |          |
-|       ...            |           ports:              | |   *macs*      - Interface MAC addresses.                                                                     |          |
-|                      |           - 1                 |                                                                                                                |          |
-|                      |           - 2                 | List items are correlated by index.                                                                            |          |
+|           devices:   |           - data_2            | |   *macs*      - Interface MAC addresses.                                                                     |          |
+|           macs:      |           ports:              |                                                                                                                |          |
+|       ...            |           - 1                 | List items are correlated by index.                                                                            |          |
+|                      |           - 2                 |                                                                                                                |          |
 |                      |           devices:            |                                                                                                                |          |
 |                      |           - eth26             |                                                                                                                |          |
 |                      |           - eth27             |                                                                                                                |          |
-|                      |           ipaddrs:            |                                                                                                                |          |
-|                      |           - 10.0.2.1          |                                                                                                                |          |
-|                      |           - 10.0.2.2          |                                                                                                                |          |
 |                      |           macs:               |                                                                                                                |          |
 |                      |           - 01:23:45:67:89:AF |                                                                                                                |          |
 |                      |           - 01:23:45:67:89:BA |                                                                                                                |          |

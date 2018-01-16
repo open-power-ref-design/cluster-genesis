@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -23,7 +23,7 @@ if [[ $ID == "ubuntu" ]]; then
     sudo apt-get update
     sudo apt-get -y install python-pip python-dev libffi-dev libssl-dev \
         python-netaddr ipmitool aptitude lxc vim vlan bridge-utils gcc cpp \
-        fping g++ make unzip libncurses5 libncurses5-dev
+        python-tabulate fping g++ make unzip libncurses5 libncurses5-dev
 
     if [[ $VERSION_ID == "14.04" ]]; then
         sudo apt-get -y install lxc-dev liblxc1
@@ -36,7 +36,7 @@ elif [[ $ID == "rhel" ]]; then
         python-netaddr ipmitool lxc lxc-devel lxc-extra lxc-templates libvirt \
         debootstrap gcc vim vlan bridge-utils cpp flex bison unzip cmake \
         fping gcc-c++ patch perl-ExtUtils-MakeMaker perl-Thread-Queue \
-        ncurses-devel
+        python-tabulate ncurses-devel
     sudo systemctl start lxc.service
     sudo systemctl start libvirtd
 

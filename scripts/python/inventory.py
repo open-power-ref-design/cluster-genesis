@@ -20,17 +20,23 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
 import argparse
+import json
+
 from lib.inventory import Inventory
 from lib.config import Config
 import lib.logger as logger
 from lib import genesis
-import json
 
 SSH_USER = 'root'
 SSH_PRIVATE_KEY = genesis.get_ssh_private_key_file()
 INVENTORY_INIT = {
     'all': {
-        'vars': {}
+        'vars': {},
+        'hosts': ['deployer', 'localhost'],
+        'children': ['client_nodes']
+    },
+    'client_nodes': {
+        'children': []
     },
     '_meta': {
         'hostvars': {}
@@ -45,18 +51,25 @@ def generate_dynamic_inventory():
     # Initialize the empty inventory
     dynamic_inventory = INVENTORY_INIT
 
-    all_vars = dynamic_inventory['all']['vars']
     meta_hostvars = dynamic_inventory['_meta']['hostvars']
 
-    # Add 'interfaces' dictionary to 'all': 'vars':
-    all_vars['interfaces'] = cfg.get_interfaces()
+    # Add 'localhost' to inventory
+    meta_hostvars['localhost'] = {}
+    meta_hostvars['localhost']['ansible_connection'] = 'local'
 
-    # Add hosts to inventroy
+    # Add 'deployer' (container) to inventory
+    meta_hostvars['deployer'] = {}
+    meta_hostvars['deployer']['ansible_host'] = cfg.get_depl_netw_cont_ip()
+    meta_hostvars['deployer']['ansible_user'] = SSH_USER
+    meta_hostvars['deployer']['ansible_ssh_private_key_file'] = SSH_PRIVATE_KEY
+
+    # Add client nodes to inventory
     for index, hostname in enumerate(inv.yield_nodes_hostname()):
-        # Add node to top-level group (node-template label)
-        label = inv.get_nodes_label(index)
+        # Add node to top-level group (node-template label & 'client-nodes')
+        label = _sanitize(inv.get_nodes_label(index))
         if label not in dynamic_inventory:
             dynamic_inventory[label] = {'hosts': []}
+            dynamic_inventory['client_nodes']['children'].append(label)
         dynamic_inventory[label]['hosts'].append(hostname)
 
         # Add node hostvars in '_meta' dictionary
@@ -71,11 +84,16 @@ def generate_dynamic_inventory():
         roles = inv.get_nodes_roles(index)
         if roles is not None:
             for role in roles:
-                if role not in dynamic_inventory:
-                    dynamic_inventory[role] = {'hosts': []}
-                dynamic_inventory[role]['hosts'].append(hostname)
+                _role = _sanitize(role)
+                if _role not in dynamic_inventory:
+                    dynamic_inventory[_role] = {'hosts': []}
+                dynamic_inventory[_role]['hosts'].append(hostname)
 
     return dynamic_inventory
+
+
+def _sanitize(str):
+    return str.replace('-', '_')
 
 
 if __name__ == '__main__':

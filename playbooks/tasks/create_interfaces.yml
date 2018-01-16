@@ -1,5 +1,5 @@
 ---
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -14,18 +14,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-- name: Check for interface name collisions
-  debug:
-    msg: "Host already has interface {{ item }} which has the MAC address \
-    {{ hostvars[inventory_hostname]['ansible_' + item]['macaddress'] }}. \
-    Renaming the interface with MAC address {{ name_interfaces.get(item) }} \
-    to {{ item }} will force rename of first interface."
-  when:
-    - name_interfaces is defined
-    - "{{ item in name_interfaces }}"
-    - "{{ name_interfaces.get(item) != hostvars[inventory_hostname]['ansible_' + item]['macaddress'] }}"
-  with_items: "{{ ansible_interfaces }}"
 
 - name: Generate udev persistent net rules
   template:
@@ -64,74 +52,5 @@
     mode: "0644"
     backup: yes
   when: (ansible_distribution == 'Ubuntu')
-  notify: Reboot
-
-- name: Ubuntu requires bonding kernel module if bonds are defined
-  lineinfile:
-    dest: "/etc/modules"
-    line: "bonding"
-  when:
-    - networks[item].bond is defined
-    - (ansible_distribution == 'Ubuntu')
-  with_items: "{{ host_networks.keys() }}"
-  notify: Reboot
-
-- name: Generate RHEL/CentOS interfaces files
-  template:
-    src: "{{ playbook_dir }}/templates/interfaces_rhel.j2"
-    dest: "/etc/sysconfig/network-scripts/ifcfg-{{ networks[item].get('eth-port') }}"
-    owner: "root"
-    group: "root"
-    mode: "0644"
-    backup: yes
-  when:
-    - networks[item].bridge is not defined
-    - networks[item].bond is not defined
-    - (ansible_distribution == 'CentOS') or (ansible_distribution == 'RedHat')
-  with_items: "{{ host_networks.keys() }}"
-  notify: Reboot
-
-- name: Generate RHEL/CentOS vlan files
-  template:
-    src: "{{ playbook_dir }}/templates/vlan_rhel.j2"
-    dest: "/etc/sysconfig/network-scripts/ifcfg-{{ networks[item].get('eth-port') }}.{{ networks[item].get('vlan') }}"
-    owner: "root"
-    group: "root"
-    mode: "0644"
-    backup: yes
-  when:
-    - networks[item].vlan is defined
-    - (ansible_distribution == 'CentOS') or (ansible_distribution == 'RedHat')
-  with_items: "{{ host_networks.keys() }}"
-  notify: Reboot
-
-- name: Generate RHEL/CentOS bridge files
-  template:
-    src: "{{ playbook_dir }}/templates/bridges_rhel.j2"
-    dest: "/etc/sysconfig/network-scripts/ifcfg-{{ networks[item].get('bridge') }}"
-    owner: "root"
-    group: "root"
-    mode: "0644"
-    backup: yes
-  when:
-    - networks[item] is defined
-    - networks[item].bridge is defined
-    - (ansible_distribution == 'CentOS') or (ansible_distribution == 'RedHat')
-  with_items: "{{ host_networks.keys() }}"
-  notify: Reboot
-
-- name: Generate RHEL/CentOS bond files
-  template:
-    src: "{{ playbook_dir }}/templates/bond_rhel.j2"
-    dest: "/etc/sysconfig/network-scripts/ifcfg-{{ networks[item].get('bond') }}"
-    owner: "root"
-    group: "root"
-    mode: "0644"
-    backup: yes
-  when:
-    - networks[item] is defined
-    - networks[item].bond is defined
-    - (ansible_distribution == 'CentOS') or (ansible_distribution == 'RedHat')
-  with_items: "{{ host_networks.keys() }}"
   notify: Reboot
 ...

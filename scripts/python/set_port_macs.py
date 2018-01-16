@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -18,52 +18,35 @@
 from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
-import sys
-
+import lib.logger as logger
+from lib.config import Config
 from lib.inventory import Inventory
-from lib.logger import Logger
 from lib.switch import SwitchFactory
 
 
-def main(log, inv_file):
+def main():
+    log = logger.getlogger()
+    cfg = Config()
+    inv = Inventory()
 
-    inv = Inventory(log, inv_file)
-    userid = inv.get_userid_data_switch()
-    password = inv.get_password_data_switch()
-    switch_name = inv.get_data_switch_name()
-    index = 0
-    for ipv4 in inv.yield_data_switch_ip():
+    macs = {}
+    for sw_info in cfg.yield_sw_data_access_info():
         switch = SwitchFactory.factory(
-            log,
-            switch_name,
-            ipv4,
-            userid,
-            password,
+            sw_info[1],
+            sw_info[2],
+            sw_info[3],
+            sw_info[4],
             mode='active')
-        switch_ip_to_port_to_macs = switch.show_mac_address_table(format='std')
-        log.debug('switch_ip_to_port_to_macs')
-        log.debug(switch_ip_to_port_to_macs)
-        success = inv.add_data_switch_port_macs(ipv4, switch_ip_to_port_to_macs, index)
-        if not success:
-            sys.exit('Failed adding mac address table to inventory')
-        index += 1
+        port_to_macs = switch.show_mac_address_table(format='std')
+        log.debug(
+            (
+                "Data switch port to MAC mapping - "
+                "Switch: '{}', Class: '{}' - IP: '{}' - {}").format(
+                    sw_info[0], sw_info[1], sw_info[2], port_to_macs))
+        macs.update({sw_info[0]: port_to_macs})
+    inv.add_macs_data(macs)
 
 
 if __name__ == '__main__':
-    """
-    Arg1: inventory file
-    Arg2: log level
-    """
-    LOG = Logger(__file__)
-
-    if len(sys.argv) != 3:
-        try:
-            raise Exception()
-        except:
-            LOG.error('Invalid argument count')
-            sys.exit(1)
-
-    INV_FILE = sys.argv[1]
-    LOG.set_level(sys.argv[2])
-
-    main(LOG, INV_FILE)
+    logger.create()
+    main()

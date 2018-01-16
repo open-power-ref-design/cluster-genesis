@@ -22,6 +22,7 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 import sys
 from enum import Enum
 import netaddr
+from itertools import chain
 
 import lib.logger as logger
 from lib.db import Database
@@ -64,6 +65,15 @@ class Config(object):
         TARGET = 'target'
         SWITCH = 'switch'
         CLASS = 'class'
+        RENAME = 'rename'
+        INTERFACE = 'interface'
+        IFACE = 'iface'
+        INTERFACES = 'interfaces'
+        NETWORKS = 'networks'
+        ADDRESS_LIST = 'address_list'
+        ADDRESS_START = 'address_start'
+        IPADDR_LIST = 'IPADDR_list'
+        IPADDR_START = 'IPADDR_start'
 
     def __init__(self):
         self.log = logger.getlogger()
@@ -336,6 +346,18 @@ class Config(object):
 
         for member in self.get_depl_netw_mgmt_cont_ip():
             yield member
+
+    def get_depl_netw_cont_ip(self):
+        """Get single deployer networks container_ipaddr
+
+        Returns:
+            str: Container IP address
+        """
+
+        for ip in chain(self.yield_depl_netw_mgmt_cont_ip(),
+                        self.yield_depl_netw_client_cont_ip()):
+            if ip is not None:
+                return ip
 
     def get_depl_netw_mgmt_brg_ip(self, index=None):
         """Get deployer networks mgmt bridge_ipaddr
@@ -1282,6 +1304,58 @@ class Config(object):
         for member in self.get_sw_data_ssh_key():
             yield member
 
+    def get_sw_data_access_info(self, index=None, type_ifc='inband'):
+        """Get Data switches class, user_id, password and an ip address. An
+        attempt is made to get the specified 'type' of address, but if that is
+        not available, the other type will be returned.
+        Args:
+            index (int, optional): Switch index
+            type_ifc (str, opt): 'inband' or 'outband'
+
+        Returns:
+            tuple or list of tuples of access info : label (str), class (str),
+            userid (str), password (str), ip address.
+        """
+        if index > self.get_sw_data_cnt() - 1:
+            raise UserException('switch index out of range')
+        if index is not None:
+            switch_indeces = [index]
+        else:
+            switch_indeces = range(self.get_sw_data_cnt())
+        ai_list = []
+        for sw_idx in switch_indeces:
+            ai_tuple = ()
+            ai_tuple += (self.get_sw_data_label(index=sw_idx),)
+            ai_tuple += (self.get_sw_data_class(index=sw_idx),)
+            ipaddr = None
+            for ifc in self.cfg.switches.data[sw_idx].interfaces:
+                if ifc.type == type_ifc:
+                    ipaddr = ifc.ipaddr
+                    break
+                else:
+                    if not ipaddr:
+                        ipaddr = ifc.ipaddr
+            ai_tuple += (ipaddr,)
+
+            ai_tuple += (self.get_sw_data_userid(index=sw_idx),)
+            ai_tuple += (self.get_sw_data_password(index=sw_idx),)
+
+            ai_list.append(ai_tuple)
+        # if index specified, make it a tuple
+        if index:
+            ai_list = ai_list[0]
+        return ai_list
+
+    def yield_sw_data_access_info(self):
+        """Yield dictionary of Data switches class, user_id, password, and
+        inband and outband ip address list(s).
+
+        Returns:
+            iter of list get_sw_data_access_info()
+        """
+        for switch_ai in self.get_sw_data_access_info():
+            yield switch_ai
+
     def get_sw_data_interfaces_ip(self, switch_index, index=None):
         """Get switches mgmt interfaces ipaddr
         Args:
@@ -1688,7 +1762,10 @@ class Config(object):
             int: Role count
         """
 
-        return len(self.cfg.node_templates[node_template_index].roles)
+        try:
+            return len(self.cfg.node_templates[node_template_index].roles)
+        except AttributeError:
+            return 0
 
     def get_ntmpl_roles(self, node_template_index, index=None):
         """Get node_templates roles
@@ -1701,8 +1778,14 @@ class Config(object):
         """
 
         if index is None:
-            return self.cfg.node_templates[node_template_index].roles
-        return self.cfg.node_templates[node_template_index].roles[index]
+            try:
+                return self.cfg.node_templates[node_template_index].roles
+            except AttributeError:
+                return None
+        try:
+            return self.cfg.node_templates[node_template_index].roles[index]
+        except AttributeError:
+            return ''
 
     def yield_ntmpl_roles(self, node_template_index):
         """Yield node_templates roles
@@ -1715,6 +1798,67 @@ class Config(object):
 
         for member in self.get_ntmpl_roles(node_template_index):
             yield member
+
+    def get_ntmpl_interfaces(self, node_template_index):
+        """Get node_templates interfaces
+        Args:
+            node_template_index (int): Node template index
+
+        Returns:
+            list of str: List of interface dictionaries
+
+        Raises:
+            UserException: If referenced interface is not defined
+        """
+
+        node_template = self.cfg.node_templates[node_template_index]
+        interface_defs = self.get_interfaces()
+        network_defs = self.get_networks()
+        if_labels = []
+
+        for interface in self.yield_ntmpl_phyintf_pxe_interface(
+                node_template_index):
+            if_labels.append(interface)
+
+        for interface in self.yield_ntmpl_phyintf_data_interface(
+                node_template_index):
+            if_labels.append(interface)
+
+        if self.CfgKey.INTERFACES in node_template:
+            for interface in node_template[self.CfgKey.INTERFACES]:
+                if interface not in if_labels:
+                    if_labels.append(interface)
+
+        if self.CfgKey.NETWORKS in node_template:
+            for network in node_template[self.CfgKey.NETWORKS]:
+                for network_def in network_defs:
+                    if network == network_def[self.CfgKey.LABEL]:
+                        for interface in network_def[self.CfgKey.INTERFACES]:
+                            if interface not in if_labels:
+                                if_labels.append(interface)
+
+        interfaces = [None] * len(if_labels)
+        for interface in interface_defs:
+            if interface[self.CfgKey.LABEL] in if_labels:
+                index = if_labels.index(interface[self.CfgKey.LABEL])
+                _interface = interface.copy()
+                replace_keys = [self.CfgKey.ADDRESS_LIST,
+                                self.CfgKey.ADDRESS_START,
+                                self.CfgKey.IPADDR_LIST,
+                                self.CfgKey.IPADDR_START]
+                for key in replace_keys:
+                    if key in _interface.keys():
+                        del _interface[key]
+                        new_key = key.split('_')[0]
+                        _interface[new_key] = None
+                interfaces[index] = _interface
+
+        for index, interface in enumerate(interfaces):
+            if interface is None:
+                raise UserException('No interface defined with label=%s' %
+                                    if_labels[index])
+
+        return interfaces
 
     def get_ntmpl_netw_cnt(self, node_template_index):
         """Get node_templates networks count
@@ -1940,12 +2084,12 @@ class Config(object):
         return len(node_template.physical_interfaces.pxe)
 
     def yield_ntmpl_phyintf_pxe_ind(self, node_template_index):
-        """Yield node_templates physical_interfaces ipmi index
+        """Yield node_templates physical_interfaces pxe index
         Args:
             node_template_index (int): Node template index
 
         Returns:
-            int: IPMI index
+            int: PXE index
         """
 
         for index in range(0, self.get_ntmpl_phyintf_pxe_cnt(
@@ -1979,32 +2123,22 @@ class Config(object):
         for member in self.get_ntmpl_phyintf_pxe_switch(node_template_index):
             yield member
 
-    def get_ntmpl_phyintf_pxe_dev(
-            self, node_template_index, index=None):
-        """Get node_templates physical_interfaces pxe dev
+    def get_ntmpl_phyintf_pxe_rename(
+            self, node_template_index, index=0):
+        """Get node_templates physical_interfaces pxe rename boolean
         Args:
             node_template_index (int): Node template index
-            index (int, optional): List index
+            index (int, optional): List index (defaults to 0)
 
         Returns:
-            str or list of str: PXE dev member or list
+            bool: if True device will be renamed
         """
 
         node_template = self.cfg.node_templates[node_template_index]
-        return self._get_members(
-            node_template.physical_interfaces.pxe, self.CfgKey.DEVICE, index)
-
-    def yield_ntmpl_phyintf_pxe_dev(self, node_template_index):
-        """Yield node_templates physical_interfaces pxe dev
-        Args:
-            node_template_index (int): Node template index
-
-        Returns:
-            iter of str: PXE dev
-        """
-
-        for member in self.get_ntmpl_phyintf_pxe_dev(node_template_index):
-            yield member
+        if self.CfgKey.RENAME in node_template.physical_interfaces.pxe[index]:
+            return node_template.physical_interfaces.pxe[index].rename
+        else:
+            return True
 
     def get_ntmpl_phyintf_pxe_pt_cnt(self, node_template_index, pxe_index):
         """
@@ -2060,6 +2194,62 @@ class Config(object):
                 node_template_index, pxe_index):
             yield member
 
+    def get_ntmpl_phyintf_pxe_interface(
+            self, node_template_index, index=None):
+        """Get node_templates physical_interfaces PXE interface
+        Args:
+            node_template_index (int): Node template index
+            index (int, optional): List index
+
+        Returns:
+            str or list of str: PXE interface member or list
+        """
+
+        node_template = self.cfg.node_templates[node_template_index]
+        return self._get_members(
+            node_template.physical_interfaces.pxe, self.CfgKey.INTERFACE, index)
+
+    def yield_ntmpl_phyintf_pxe_interface(self, node_template_index):
+        """Yield node_templates physical_interfaces PXE interface
+        Args:
+            node_template_index (int): Node template index
+
+        Returns:
+            iter of str: PXE interface
+        """
+
+        for member in self.get_ntmpl_phyintf_pxe_interface(node_template_index):
+            yield member
+
+    def get_ntmpl_phyintf_data_interface(
+            self, node_template_index, index=None):
+        """Get node_templates physical_interfaces data interface
+        Args:
+            node_template_index (int): Node template index
+            index (int, optional): List index
+
+        Returns:
+            str or list of str: Data interface member or list
+        """
+
+        node_template = self.cfg.node_templates[node_template_index]
+        return self._get_members(
+            node_template.physical_interfaces.data, self.CfgKey.INTERFACE,
+            index)
+
+    def yield_ntmpl_phyintf_data_interface(self, node_template_index):
+        """Yield node_templates physical_interfaces data interface
+        Args:
+            node_template_index (int): Node template index
+
+        Returns:
+            iter of str: Data interface
+        """
+
+        for member in self.get_ntmpl_phyintf_data_interface(
+                node_template_index):
+            yield member
+
     def get_ntmpl_phyintf_data_cnt(self, node_template_index):
         """
         Args:
@@ -2093,7 +2283,7 @@ class Config(object):
             index (int, optional): Interface index
 
         Returns:
-            str or list of str: data switch member or list
+            str or list of str: Data switch member or list
         """
 
         node_template = self.cfg.node_templates[node_template_index]
@@ -2106,7 +2296,7 @@ class Config(object):
             node_template_index (int): Node template index
 
         Returns:
-            iter of str: data switch
+            iter of str: Data switch labels
         """
 
         for member in self.get_ntmpl_phyintf_data_switch(node_template_index):
@@ -2136,6 +2326,72 @@ class Config(object):
             iter of str: data interface
         """
 
+        for member in self.get_ntmpl_phyintf_data_ifc(node_template_index):
+            yield member
+
+    def get_ntmpl_phyintf_data_dev(
+            self, node_template_index, index):
+        """Get node_templates physical_interfaces data dev
+        Args:
+            node_template_index (int): Node template index
+            index (int): List index
+
+        Returns:
+            str: Data interface device (iface) value
+        """
+
+        node_template = self.cfg.node_templates[node_template_index]
+        if_label = node_template.physical_interfaces.data[index].interface
+        return self.lookup_interface_iface(if_label)
+
+    def get_ntmpl_phyintf_pxe_dev(
+            self, node_template_index, index=0):
+        """Get node_templates physical_interfaces PXE dev
+        Args:
+            node_template_index (int): Node template index
+            index (int, optional): List index (defaults to 0)
+
+        Returns:
+            str: PXE interface device (iface) value
+        """
+
+        node_template = self.cfg.node_templates[node_template_index]
+        if_label = node_template.physical_interfaces.pxe[index].interface
+        return self.lookup_interface_iface(if_label)
+
+    def lookup_interface_iface(self, if_label):
+        """Get interface template data device
+        Args:
+            if_lable (str): Interface label
+
+        Returns:
+            str: Interface iface value
+
+        Raises:
+            UserException: If referenced interface is not defined or
+                           has no 'iface' key
+        """
+
+        for interface in self.cfg.interfaces:
+            if interface.label == if_label:
+                if self.CfgKey.IFACE in interface:
+                    return interface[self.CfgKey.IFACE]
+                else:
+                    raise UserException(
+                        'No \'iface\' key defined in interface with label=%s' %
+                        interface.label)
+        else:
+            raise UserException('No interface defined with label=%s' % if_label)
+
+    def yield_ntmpl_phyintf_data_dev(self, node_template_index):
+        """Yield node_templates physical_interfaces data dev
+        Args:
+            node_template_index (int): Node template index
+
+        Returns:
+            iter of str: Data dev
+        """
+
         for member in self.get_ntmpl_phyintf_data_dev(node_template_index):
             yield member
 
@@ -2154,15 +2410,14 @@ class Config(object):
         return self._get_members(
             node_template.physical_interfaces.data, self.CfgKey.PORTS, index)
 
-    def get_ntmpl(
-            self, node_template_index):
-        """Get node_templates physical_interfaces data switch label(s)
+    def get_ntmpl(self, node_template_index):
+        """Get node_template
         Args:
             node_template_index (int): Node template index
             index (int, optional): Interface index
 
         Returns:
-            str or list of str: data switch member or list
+            dict : Node template dict
         """
 
         node_template = self.cfg.node_templates[node_template_index]
@@ -2188,6 +2443,77 @@ class Config(object):
         """
 
         return self.cfg.node_templates[node_template_index].physical_interfaces.data
+
+    def get_ntmpl_phyintf_data_rename(
+            self, node_template_index, index):
+        """Get node_templates physical_interfaces data rename boolean
+        Args:
+            node_template_index (int): Node template index
+            index (int): List index
+
+        Returns:
+            bool: if True device will be renamed
+        """
+
+        node_template = self.cfg.node_templates[node_template_index]
+        if self.CfgKey.RENAME in node_template.physical_interfaces.data[index]:
+            return node_template.physical_interfaces.data[index].rename
+        else:
+            return True
+
+    def get_ntmpl_phyintf_data_pt_cnt(self, node_template_index, data_index):
+        """
+        Args:
+            node_template_index (int): Node template index
+            data_index (int): Data index
+
+        Returns:
+            int: Data ports count
+        """
+
+        node_template = self.cfg.node_templates[node_template_index]
+        return len(node_template.physical_interfaces.data[data_index].ports)
+
+    def yield_ntmpl_phyintf_data_pt_ind(self, node_template_index, data_index):
+        """Yield node template physical interface Data ports count
+        Returns:
+            int: Data ports index
+        """
+
+        for index in range(0, self.get_ntmpl_phyintf_data_pt_cnt(
+                node_template_index, data_index)):
+            yield index
+
+    def get_ntmpl_phyintf_data_ports(
+            self, node_template_index, data_index, index=None):
+        """Get node_templates physical_interfaces data ports
+        Args:
+            node_template_index (int): Node template index
+            data_index (int): Data index
+            index (int, optional): List index
+
+        Returns:
+            int or list of int: Data ports member or list
+        """
+
+        node_template = self.cfg.node_templates[node_template_index]
+        if index is None:
+            return node_template.physical_interfaces.data[data_index].ports
+        return node_template.physical_interfaces.data[data_index].ports[index]
+
+    def yield_ntmpl_phyintf_data_ports(self, node_template_index, data_index):
+        """Yield node_templates physical_interfaces data ports
+        Args:
+            node_template_index (int): Node template index
+            data_index (int): Data index
+
+        Returns:
+            iter of int: Data ports
+        """
+
+        for member in self.get_ntmpl_phyintf_data_ports(
+                node_template_index, data_index):
+            yield member
 
     def get_client_switch_ports(self, switch_label, if_type=None):
         """Get physical interface ports associated with switch_label
@@ -2250,7 +2576,7 @@ class Config(object):
         """Get top level 'networks' dictionary
 
         Returns:
-            dict: network definitions
+            dict: Network definitions
         """
 
         return self.cfg.networks
