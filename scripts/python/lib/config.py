@@ -1532,7 +1532,7 @@ class Config(object):
             node_template_index (int): Node template index
 
         Returns:
-            list of str: List of interface labels
+            list of str: List of interface dictionaries
 
         Raises:
             UserException: If referenced interface is not defined
@@ -2030,7 +2030,7 @@ class Config(object):
         return self.lookup_interface_iface(if_label)
 
     def lookup_interface_iface(self, if_label):
-        """Get node_templates physical_interfaces data dev
+        """Get interface template data device
         Args:
             if_lable (str): Interface label
 
