@@ -21,7 +21,6 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 
 import argparse
 import json
-from itertools import chain
 
 from lib.inventory import Inventory
 from lib.config import Config
