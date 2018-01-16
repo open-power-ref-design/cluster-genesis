@@ -1,4 +1,4 @@
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -87,7 +87,7 @@ class Mellanox(SwitchCommon):
     INTERFACE_VLAN = 'interface vlan {}'
     IP_CIDR = 'ip address {}'
     PEER_ADDR = 'peer-address {}'
-    MLAG_VIP = 'mlag-vip my-mlag-vip-domain ip %s force'
+    MLAG_VIP = 'mlag-vip mlag-vip-domain ip %s force'
     NO_MLAG_VIP = 'no mlag-vip'
     ENABLE_MLAG = 'no mlag shutdown'
     DISABLE_MLAG = 'mlag shutdown'
@@ -98,6 +98,7 @@ class Mellanox(SwitchCommon):
     STP_BPDUFILTER_ENABLE = 'spanning-tree bpdufilter enable'
     MLAG_ACTIVE = 'mlag-channel-group {} mode active'
     NO_CHANNEL_GROUP = 'no channel-group'
+    NO_MLAG_CHANNEL_GROUP = 'no mlag-channel-group'
     MAC_RE = re.compile('([\da-fA-F]{2}:){5}([\da-fA-F]{2})')
     CLEAR_MAC_ADDRESS_TABLE = 'clear mac-address-table dynamic'
     SHOW_INTERFACE = 'show interface vlan {}'
@@ -307,6 +308,13 @@ class Mellanox(SwitchCommon):
             self.INTERFACE_CONFIG.format(port) +
             ' ' +
             self.NO_CHANNEL_GROUP)
+
+    def remove_mlag_channel_group(self, port):
+        # Remove channel-group from interface
+        self.send_cmd(
+            self.INTERFACE_CONFIG.format(port) +
+            ' ' +
+            self.NO_MLAG_CHANNEL_GROUP)
 
     def add_vlans_to_lag_port_channel(self, port, vlans):
         # Enable hybrid mode for port
@@ -538,8 +546,10 @@ class Mellanox(SwitchCommon):
             self.PEER_ADDR.format(ipaddr_mlag_ipl_peer))
 
         # Set MLAG VIP
-        self.send_cmd(
-            self.MLAG_VIP % ipaddr_mlag_vip)
+        if ipaddr_mlag_vip:
+            self.send_cmd(self.MLAG_VIP % ipaddr_mlag_vip)
+        else:
+            self.send_cmd(self.MLAG_VIP.split(' ip')[0])
 
     def create_mlag_interface(self, mlag_ifc):
         # Create MLAG interface
