@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -25,10 +25,11 @@ from ipmi_power_off import ipmi_power_off
 from ipmi_set_bootdev import ipmi_set_bootdev
 from ipmi_power_on import ipmi_power_on
 import lib.logger as logger
+import lib.genesis as gen
 
-POWER_TIME_OUT = 60
-POWER_WAIT = 5
-SLEEP_TIME = 2 * 60
+POWER_TIME_OUT = gen.get_power_time_out()
+POWER_WAIT = gen.get_power_wait()
+SLEEP_TIME = gen.get_power_sleep_time()
 
 
 def install_client_os():

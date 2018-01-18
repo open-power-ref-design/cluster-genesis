@@ -219,11 +219,25 @@ def get_args(parser_args=False):
         help='Initiate client OS installation(s)')
 
     parser_deploy.add_argument(
+        '--ssh-keyscan',
+        nargs='?',
+        default=ABSENT,
+        metavar='CONTAINER-NAME',
+        help='Collect client node and container SSH host keys')
+
+    parser_deploy.add_argument(
         '--gather-mac-addr',
         nargs='?',
         default=ABSENT,
         metavar='CONTAINER-NAME',
         help='Gather MAC addresses')
+
+    parser_deploy.add_argument(
+        '--config-client-os',
+        nargs='?',
+        default=ABSENT,
+        metavar='CONTAINER-NAME',
+        help='Configure client node operating systems')
 
     parser_deploy.add_argument(
         '-a', '--all',
@@ -268,13 +282,16 @@ def _check_deploy(args, subparser):
             args.add_cobbler_distros == ABSENT and
             args.add_cobbler_systems == ABSENT and
             args.install_client_os == ABSENT and
+            args.ssh_keyscan == ABSENT and
             args.gather_mac_addr == ABSENT and
+            args.config_client_os == ABSENT and
             args.all == ABSENT):
         subparser.error(
             'one of the arguments --create-inventory --install-cobbler'
             ' --inv-add-ports-pxe --inv-add-ports-ipmi --download-os-images'
             ' --add-cobbler-distros --add-cobbler-systems --install-client-os'
-            ' --gather-mac-addr -a/--all is required')
+            ' --ssh-keyscan --gather-mac-addr --config-client-os -a/--all is'
+            ' required')
 
 
 def is_arg_present(arg):
