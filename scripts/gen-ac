@@ -20,7 +20,9 @@ _gen()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    prevprev="${COMP_WORDS[COMP_CWORD-2]}"
+    prev_2="${COMP_WORDS[COMP_CWORD-2]}"
+    prev_3="${COMP_WORDS[COMP_CWORD-3]}"
+
     opts="-h --help --bridges --gateway -a --all -f -p"
 
     if [[ ${cur} == -* ]] && [[ ${prev} == setup ]]; then
@@ -42,20 +44,39 @@ _gen()
         return 0
     fi
 
-    opts="-h --help --create-inventory --inv-add-ports-ipmi --inv-add-ports-pxe \
-         -a --all -f -p"
+    opts="-h --help --create-inventory --install-cobbler --download-os-images "
+    opts+="--inv-add-ports-ipmi --inv-add-ports-pxe --add-cobbler-distros "
+    opts+="--add-cobbler-systems --install-client-os --gather-mac-addr "
+    opts+="-a --all -f -p"
 
-    if [[ ${cur} == -* ]] && [[ ${prev} == deploy ]]; then
+    if [[ ${cur} == * ]] && [[ ${prev} == deploy ]]; then
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         return 0
     fi
 
     opts="setup config validate deploy"
 
-    if [[ ${cur} == * ]] && [[ ${prevprev} != gen ]]; then
+    if [[ ${cur} == * ]] && [[ ${prev} == gen ]]; then
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         return 0
     fi
+
+    opts="nolog debug info warning error critical"
+
+    if [[ ${cur} == * ]] && ([[ ${prev} == -p ]] || [[ ${prev} == -f ]] || \
+        [[ ${prev} == --log-level-file ]] || \
+        [[ ${prev} == --log-level-print ]]); then
+        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+        return 0
+    fi
+
+    opts="-h --help -p --log-level-print -f --log-level-file"
+
+    if [[ ${cur} == * ]] && [[ ${prev_3} == gen ]]; then
+        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+        return 0
+    fi
+
 }
 
 complete -F _gen gen
