@@ -15,14 +15,14 @@
    limitations under the License.
 #}
 {% for rename in pxe.rename %}
-{% if rename %}
+{% if rename and pxe.macs[loop.index - 1] is not none %}
 
 # Rule "{{ pxe.devices[loop.index - 1] }}"
 SUBSYSTEM=="net", ACTION=="add", DRIVERS=="?*", ATTR{address}=="{{ pxe.macs[loop.index - 1]|lower }}", ATTR{dev_id}=="0x0", ATTR{type}=="1", KERNEL=="[ep]*", NAME="{{ pxe.devices[loop.index - 1] }}"
 {% endif %}
 {% endfor %}
 {% for rename in data.rename %}
-{% if rename %}
+{% if rename and data.macs[loop.index - 1] is not none %}
 
 # Rule "{{ data.devices[loop.index - 1] }}"
 SUBSYSTEM=="net", ACTION=="add", DRIVERS=="?*", ATTR{address}=="{{ data.macs[loop.index - 1]|lower }}", ATTR{dev_id}=="0x0", ATTR{type}=="1", KERNEL=="[ep]*", NAME="{{ data.devices[loop.index - 1] }}"
