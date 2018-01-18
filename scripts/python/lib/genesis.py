@@ -66,7 +66,7 @@ def load_localhost(filename):
 def is_container_running():
     cont_running = False
     lxc_ls_output = subprocess.check_output(['bash', '-c', 'lxc-ls -f'])
-    cont_running = re.search('^%s\d+\s+RUNNING' % DEFAULT_CONTAINER_NAME + '-pxe',
+    cont_running = re.search('^%s\d+\s+RUNNING' % (DEFAULT_CONTAINER_NAME + '-pxe'),
                              lxc_ls_output, re.MULTILINE)
     if cont_running:
         cont_running = True

@@ -135,7 +135,9 @@ def get_args(parser_args=False):
 
     parser_config.add_argument(
         '--data-switches',
-        action='store_true',
+        nargs='?',
+        default=ABSENT,
+        metavar='CONTAINER-NAME',
         help='Configure the cluster data switches')
 
     parser_config.add_argument(
@@ -251,10 +253,11 @@ def _check_setup(args, subparser):
 
 
 def _check_config(args, subparser):
-    if not args.mgmt_switches and not args.data_switches and args.create_container == ABSENT:
+    if not args.mgmt_switches and args.data_switches == ABSENT and \
+            args.create_container == ABSENT:
         subparser.error(
-            'one of the arguments --mgmt-switches --data-switches --create-container is'
-            ' required')
+            'one of the arguments --mgmt-switches --data-switches'
+            ' --create-container is required')
 
 
 def _check_validate(args, subparser):

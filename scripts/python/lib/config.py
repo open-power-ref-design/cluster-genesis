@@ -89,8 +89,10 @@ class Config(object):
         Returns:
             int: Prefix
         """
-
-        return netaddr.IPAddress(netmask).netmask_bits()
+        if netaddr.IPAddress(netmask).is_netmask():
+            return (netaddr.IPAddress(netmask).bits()).count('1')
+        else:
+            return 32
 
     @staticmethod
     def _prefix_to_netmask(prefix):
@@ -1125,58 +1127,6 @@ class Config(object):
         for index, data in enumerate(self.cfg.switches.data):
             if label == data.label:
                 return index
-
-    def get_sw_data_access_info(self, index=None, type_ifc='inband'):
-        """Get data switches class, user_id, password and an ip address. An
-        attempt is made to get the specified 'type' of address, but if that is
-        not available, the other type will be returned.
-        Args:
-            index (int, optional): Switch index
-            type_ifc (str, opt): 'inband' or 'outband'
-
-        Returns:
-            tuple or list of tuples of access info : label (str), class (str),
-            userid (str), password (str), ip address.
-        """
-        if index > self.get_sw_data_cnt() - 1:
-            raise UserException('switch index out of range')
-        if index is not None:
-            switch_indices = [index]
-        else:
-            switch_indices = range(self.get_sw_data_cnt())
-        ai_list = []
-        for sw_idx in switch_indices:
-            ai_tuple = ()
-            ai_tuple += (self.get_sw_data_label(index=sw_idx),)
-            ai_tuple += (self.get_sw_data_class(index=sw_idx),)
-            ipaddr = None
-            for ifc in self.cfg.switches.data[sw_idx].interfaces:
-                if ifc.type == type_ifc:
-                    ipaddr = ifc.ipaddr
-                    break
-                else:
-                    if not ipaddr:
-                        ipaddr = ifc.ipaddr
-            ai_tuple += (ipaddr,)
-
-            ai_tuple += (self.get_sw_data_userid(index=sw_idx),)
-            ai_tuple += (self.get_sw_data_password(index=sw_idx),)
-
-            ai_list.append(ai_tuple)
-        # if index specified, make it a tuple
-        if index:
-            ai_list = ai_list[0]
-        return ai_list
-
-    def yield_sw_data_access_info(self):
-        """Yield dictionary of Mgmt switches class, user_id, password, and
-        inband and outband ip address list(s).
-
-        Returns:
-            iter of list get_sw_mgmt_access_info()
-        """
-        for switch_ai in self.get_sw_data_access_info():
-            yield switch_ai
 
     def get_sw_data_label(self, index=None):
         """Get switches data label
@@ -2395,21 +2345,6 @@ class Config(object):
         for member in self.get_ntmpl_phyintf_data_dev(node_template_index):
             yield member
 
-    def get_ntmpl_phyintf_data_ports(
-            self, node_template_index, index=None):
-        """Get node_templates physical_interfaces data switch label(s)
-        Args:
-            node_template_index (int): Node template index
-            index (int, optional): Interface index
-
-        Returns:
-            str or list of str: data switch member or list
-        """
-
-        node_template = self.cfg.node_templates[node_template_index]
-        return self._get_members(
-            node_template.physical_interfaces.data, self.CfgKey.PORTS, index)
-
     def get_ntmpl(self, node_template_index):
         """Get node_template
         Args:
@@ -2422,18 +2357,6 @@ class Config(object):
 
         node_template = self.cfg.node_templates[node_template_index]
         return node_template
-
-    def yield_ntmpl_phyintf_data_ports(self, node_template_index):
-        """Yield node_templates physical_interfaces data switch label
-        Args:
-            node_template_index (int): Node template index
-
-        Returns:
-            iter of str: data switch
-        """
-
-        for member in self.get_ntmpl_phyintf_data_ports(node_template_index):
-            yield member
 
     def get_ntmpl_phyintf_data(self, node_template_index):
         """Get node templates  'physical_interfaces' dictionary

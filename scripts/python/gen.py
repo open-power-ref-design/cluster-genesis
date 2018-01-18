@@ -281,7 +281,7 @@ class Gen(object):
     def _config_data_switches(self):
         if gen.is_container_running():
             from lib.container import Container
-            cont = Container(self.args.add_cobbler_systems)
+            cont = Container(self.args.data_switches)
             cmd = []
             cmd.append(gen.get_container_venv_python_exe())
             cmd.append(os.path.join(
@@ -293,7 +293,7 @@ class Gen(object):
             print('Succesfully configured data switches')
         else:
             try:
-                configure_data_switches.gather_and_display()
+                configure_data_switches.configure_data_switch()
             except UserException as exc:
                 print('Fail:', exc.message, file=sys.stderr)
             print('Succesfully configured data switches')
@@ -368,7 +368,7 @@ class Gen(object):
                 self._create_container()
             if self.args.mgmt_switches:
                 self._config_mgmt_switches()
-            if self.args.data_switches:
+            if argparse_gen.is_arg_present(self.args.data_switches):
                 self._config_data_switches()
 
         if cmd == argparse_gen.Cmd.VALIDATE.value:
@@ -395,6 +395,7 @@ class Gen(object):
                 self.args.add_cobbler_systems = self.args.all
                 self.args.install_client_os = self.args.all
                 self.args.gather_mac_addr = self.args.all
+                self.args.data_switches = self.args.all
 
             if argparse_gen.is_arg_present(self.args.create_inventory):
                 self._create_inventory()
@@ -412,8 +413,17 @@ class Gen(object):
                 self._add_cobbler_systems()
             if argparse_gen.is_arg_present(self.args.install_client_os):
                 self._install_client_os()
+            if argparse_gen.is_arg_present(self.args.all):
+                print("\n\nPress enter to continue with node configuration ")
+                print("and data switch setup, or 'T' to terminate ")
+                print("Cluster Genesis.  (To restart, type: 'gen post-deploy')")
+                resp = raw_input("\nEnter or 'T': ")
+                if resp == 'T':
+                    sys.exit('Cluster Genesis terminated at user request')
             if argparse_gen.is_arg_present(self.args.gather_mac_addr):
                 self._gather_mac_addr()
+            if argparse_gen.is_arg_present(self.args.all):
+                self._config_data_switches()
 
 
 if __name__ == '__main__':

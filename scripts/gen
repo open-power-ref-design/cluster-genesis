@@ -74,6 +74,11 @@ if [[ "$1" == "post-deploy" ]] && ([[ "$2" == "-a" ]] || [[ "$2" == "--all" ]] |
         shift
     fi
 
+    gen.py deploy --gather_mac_addr $@
+    if [ $? -ne 0 ]; then
+        exit
+    fi
+
     gen.py config --data-switches $@
     if [ $? -ne 0 ]; then
         exit
