@@ -39,6 +39,7 @@ DEFAULT_CONTAINER_NAME = 'cluster-genesis'
 CONTAINER_PACKAGE_PATH = '/opt/' + GENESIS_DIR
 CONTAINER_ID_FILE = 'container'
 VENV_DIR = 'gen-venv'
+DEPLOYER_VENV_DIR = 'deployenv'
 PYTHON_EXE = 'bin/python'
 SCRIPTS_DIR = 'scripts'
 PYTHON_DIR = 'python'
@@ -54,6 +55,10 @@ CFG_FILE = GEN_PATH + CFG_FILE_NAME
 INV_FILE_NAME = 'inventory.yml'
 INV_FILE = GEN_PATH + INV_FILE_NAME
 LXC_DIR = os.path.expanduser('~/.local/share/lxc/')
+ANSIBLE_PLAYBOOK = 'ansible-playbook'
+POWER_TIME_OUT = 60
+POWER_WAIT = 5
+POWER_SLEEP_TIME = 2 * 60
 
 
 def load_localhost(filename):
@@ -137,6 +142,10 @@ def get_python_path():
     return os.path.join(GEN_PATH, SCRIPTS_DIR, PYTHON_DIR)
 
 
+def get_ansible_playbook_path():
+    return os.path.join(get_venv_path(), 'bin', ANSIBLE_PLAYBOOK)
+
+
 def get_os_images_path():
     if is_container():
         return get_container_os_images_path()
@@ -165,6 +174,24 @@ def get_ssh_private_key_file():
 
 def get_ssh_public_key_file():
     return SSH_PUBLIC_KEY_FILE
+
+
+def get_venv_path():
+    if is_container():
+        return get_container_venv_path()
+    return os.path.join(GEN_PATH, DEPLOYER_VENV_DIR)
+
+
+def get_power_time_out():
+    return POWER_TIME_OUT
+
+
+def get_power_wait():
+    return POWER_WAIT
+
+
+def get_power_sleep_time():
+    return POWER_SLEEP_TIME
 
 
 if os.path.isfile(GEN_PATH + "playbooks/host_vars/localhost"):

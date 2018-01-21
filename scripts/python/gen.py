@@ -23,6 +23,7 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 import os
 import sys
 import getpass
+import subprocess
 
 import enable_deployer_networks
 import validate_cluster_hardware
@@ -35,6 +36,9 @@ import lib.logger as logger
 import lib.genesis as gen
 from lib.db import Database
 from lib.exception import UserException
+from ipmi_power_off import ipmi_power_off
+from ipmi_set_bootdev import ipmi_set_bootdev
+from ipmi_power_on import ipmi_power_on
 
 
 class Gen(object):
@@ -231,6 +235,12 @@ class Gen(object):
         print('Success: Cobbler distros and profiles added')
 
     def _inv_add_ports_pxe(self):
+        power_time_out = gen.get_power_time_out()
+        power_wait = gen.get_power_wait()
+        ipmi_power_off(power_time_out, power_wait)
+        ipmi_set_bootdev('network', False)
+        ipmi_power_on(power_time_out, power_wait)
+
         dhcp_lease_file = '/var/lib/misc/dnsmasq.leases'
         from lib.container import Container
 
@@ -276,7 +286,14 @@ class Gen(object):
         except UserException as exc:
             print('Fail:', exc.message, file=sys.stderr)
             sys.exit(1)
-        print('Success: Client OS installaion initiated')
+
+        _run_playbook("wait_for_clients_ping.yml")
+
+        print('Success: Client OS installaion complete')
+
+    def _ssh_keyscan(self):
+        _run_playbook("ssh_keyscan.yml")
+        print('Success: SSH host key scan complete')
 
     def _config_data_switches(self):
         if gen.is_container_running():
@@ -302,25 +319,34 @@ class Gen(object):
         from lib.container import Container
 
         cont = Container(self.args.gather_mac_addr)
-        _cmd = (
-            'source ' + gen.get_container_venv_path() + '/bin/activate ' +
-            '&& python ' + os.path.join(gen.get_container_python_path(), 'clear_port_macs.py') + ' ' +
-            '&& ansible-playbook -i ' +
-            gen.get_container_python_path() + '/inventory.py ' +
-            gen.get_container_playbooks_path() + '/activate_client_interfaces.yml ' +
-            '&& sleep 30 ' +
-            '&& python ' + os.path.join(gen.get_container_python_path(), 'set_port_macs.py') + ' ' +
-            '&& ansible-playbook -i ' +
-            gen.get_container_python_path() + '/inventory.py ' +
-            gen.get_container_playbooks_path() + '/restore_client_interfaces.yml ' +
-            '&& deactivate')
-        cmd = ['bash', '-c', _cmd]
+        cmd = []
+        cmd.append(gen.get_container_venv_python_exe())
+        cmd.append(os.path.join(
+            gen.get_container_python_path(), 'clear_port_macs.py'))
         try:
             cont.run_command(cmd)
         except UserException as exc:
             print('Fail:', exc.message, file=sys.stderr)
             sys.exit(1)
+
+        _run_playbook("activate_client_interfaces.yml")
+
+        del cmd[-1]
+        cmd.append(os.path.join(
+            gen.get_container_python_path(), 'set_port_macs.py'))
+        try:
+            cont.run_command(cmd)
+        except UserException as exc:
+            print('Fail:', exc.message, file=sys.stderr)
+            sys.exit(1)
+
+        _run_playbook("restore_client_interfaces.yml")
+
         print('Success: Gathered Client MAC addresses')
+
+    def _config_client_os(self):
+        _run_playbook("configure_operating_systems.yml")
+        print('Success: Client operating systems are configured')
 
     def launch(self):
         """Launch actions"""
@@ -394,8 +420,10 @@ class Gen(object):
                 self.args.add_cobbler_distros = self.args.all
                 self.args.add_cobbler_systems = self.args.all
                 self.args.install_client_os = self.args.all
+                self.args.ssh_keyscan = self.args.all
                 self.args.gather_mac_addr = self.args.all
                 self.args.data_switches = self.args.all
+                self.args.config_client_os = self.args.all
 
             if argparse_gen.is_arg_present(self.args.create_inventory):
                 self._create_inventory()
@@ -420,10 +448,27 @@ class Gen(object):
                 resp = raw_input("\nEnter or 'T': ")
                 if resp == 'T':
                     sys.exit('Cluster Genesis terminated at user request')
+            if argparse_gen.is_arg_present(self.args.ssh_keyscan):
+                self._ssh_keyscan()
             if argparse_gen.is_arg_present(self.args.gather_mac_addr):
                 self._gather_mac_addr()
+            if argparse_gen.is_arg_present(self.args.config_client_os):
+                self._config_client_os()
             if argparse_gen.is_arg_present(self.args.all):
                 self._config_data_switches()
+
+
+def _run_playbook(playbook):
+    log = logger.getlogger()
+    ansible_playbook = gen.get_ansible_playbook_path()
+    inventory = ' -i ' + gen.get_python_path() + '/inventory.py'
+    playbook = ' ' + playbook
+    cmd = ansible_playbook + inventory + playbook
+
+    command = ['bash', '-c', cmd]
+    log.debug('Run subprocess: %s' % ' '.join(command))
+    process = subprocess.Popen(command, cwd=gen.get_playbooks_path())
+    process.wait()
 
 
 if __name__ == '__main__':
