@@ -344,6 +344,15 @@ class Gen(object):
 
         print('Success: Gathered Client MAC addresses')
 
+    def _lookup_interface_names(self):
+        try:
+            _run_playbook("lookup_interface_names.yml")
+        except UserException as exc:
+            print('Fail:', exc.message, file=sys.stderr)
+            sys.exit(1)
+
+        print('Success: Interface names collected')
+
     def _config_client_os(self):
         _run_playbook("configure_operating_systems.yml")
         print('Success: Client operating systems are configured')
@@ -423,6 +432,7 @@ class Gen(object):
                 self.args.ssh_keyscan = self.args.all
                 self.args.gather_mac_addr = self.args.all
                 self.args.data_switches = self.args.all
+                self.args.lookup_interface_names = self.args.all
                 self.args.config_client_os = self.args.all
 
             if argparse_gen.is_arg_present(self.args.create_inventory):
@@ -452,6 +462,8 @@ class Gen(object):
                 self._ssh_keyscan()
             if argparse_gen.is_arg_present(self.args.gather_mac_addr):
                 self._gather_mac_addr()
+            if argparse_gen.is_arg_present(self.args.lookup_interface_names):
+                self._lookup_interface_names()
             if argparse_gen.is_arg_present(self.args.config_client_os):
                 self._config_client_os()
             if argparse_gen.is_arg_present(self.args.all):

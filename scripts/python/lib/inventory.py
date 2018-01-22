@@ -86,6 +86,8 @@ class Inventory(object):
         ROLES = 'roles'
         RENAME = 'rename'
         INTERFACES = 'interfaces'
+        IFACE = 'iface'
+        DEVICE = 'DEVICE'
 
     def __init__(self):
         self.log = logger.getlogger()
@@ -557,3 +559,53 @@ class Inventory(object):
         """
 
         return self._get_members(self.inv.nodes, self.InvKey.ROLES, index)
+
+    def set_interface_name(self, set_mac, set_name):
+        """Set physical interface name
+
+        Args:
+            macs (str): Interface MAC address
+            name (str): Device name
+        """
+        old_name = ''
+
+        for index, node in enumerate(self.inv.nodes):
+            for if_index, mac in enumerate(node.pxe.macs):
+                if set_mac == mac:
+                    old_name = node.pxe.devices[if_index]
+                    self.log.debug("Renaming node \'%s\' PXE physical "
+                                   "interface \'%s\' to \'%s\' (MAC:%s)" %
+                                   (node.hostname, old_name, set_name, mac))
+                    node.pxe.devices[if_index] = set_name
+                    break
+            else:
+                for if_index, mac in enumerate(node.data.macs):
+                    if set_mac == mac:
+                        old_name = node.data.devices[if_index]
+                        self.log.debug("Renaming node \'%s\' data physical "
+                                       "interface \'%s\' to \'%s\' (MAC:%s)" %
+                                       (node.hostname, old_name, set_name, mac))
+                        node.data.devices[if_index] = set_name
+                        break
+            if old_name != '':
+                node_index = index
+                break
+        else:
+            raise UserException("No physical interface found in inventory with "
+                                "MAC: %s" % set_mac)
+
+        for interface in self.inv.nodes[node_index][self.InvKey.INTERFACES]:
+            key = ''
+            if self.InvKey.IFACE in interface:
+                key = self.InvKey.IFACE
+            elif self.InvKey.DEVICE in interface:
+                key = self.InvKey.DEVICE
+            if key != '':
+                value = interface[key]
+                if old_name == value or old_name in value.split('.'):
+                    self.log.debug("Renaming node \'%s\' interface %s "
+                                   "\'%s\' to \'%s\'" %
+                                   (self.inv.nodes[node_index].hostname,
+                                    key, old_name, set_name))
+                    interface[key] = interface[key].replace(old_name, set_name)
+        self.dbase.dump_inventory(self.inv)
