@@ -24,10 +24,12 @@ SETUP_CMD = 'setup'
 CONFIG_CMD = 'config'
 VALIDATE_CMD = 'validate'
 DEPLOY_CMD = 'deploy'
+POST_DEPLOY_CMD = 'post-deploy'
 SETUP_DESC = 'Setup deployment environment (requires root privileges)'
 CONFIG_DESC = 'Configure deployment environment'
 VALIDATE_DESC = 'Validate deployment environment'
 DEPLOY_DESC = 'Deploy cluster'
+POST_DEPLOY_DESC = 'Configure cluster nodes and data switches'
 GITHUB = 'https://github.com/open-power-ref-design-toolkit/cluster-genesis'
 EPILOG = 'home page:\n  %s' % GITHUB
 ABSENT = '\u009fabsent\u009c'
@@ -101,6 +103,14 @@ def get_args(parser_args=False):
         DEPLOY_CMD,
         description='%s - %s' % (PROJECT, DEPLOY_DESC),
         help=DEPLOY_DESC,
+        epilog=EPILOG,
+        parents=[common_parser],
+        formatter_class=RawTextHelpFormatter)
+
+    parser_post_deploy = subparsers.add_parser(
+        POST_DEPLOY_CMD,
+        description='%s - %s' % (PROJECT, POST_DEPLOY_DESC),
+        help=POST_DEPLOY_DESC,
         epilog=EPILOG,
         parents=[common_parser],
         formatter_class=RawTextHelpFormatter)
@@ -252,6 +262,10 @@ def get_args(parser_args=False):
         default=ABSENT,
         metavar='CONTAINER-NAME',
         help='Run all cluster deployment steps')
+
+    # 'post-deploy' subcommand arguments
+    parser_post_deploy.set_defaults(
+        setup=True)
 
     if parser_args:
         return (

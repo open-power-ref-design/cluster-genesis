@@ -25,21 +25,22 @@ _gen()
 
     opts="-h --help --bridges --gateway -a --all -f -p"
 
-    if [[ ${cur} == -* ]] && [[ ${prev} == setup ]]; then
+    if [[ ${cur} == * ]] && [[ ${prev} == setup ]]; then
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         return 0
     fi
 
-    opts="-h --help --create-container --mgmt-switches --data-switches -a --all -f -p"
+    opts="-h --help --create-container --mgmt-switches --data-switches "
+    opts+="-a --all -f -p"
 
-    if [[ ${cur} == -* ]] && [[ ${prev} == config ]]; then
+    if [[ ${cur} == * ]] && [[ ${prev} == config ]]; then
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         return 0
     fi
 
     opts="-h --help --config-file --cluster-hardware -a --all -f -p"
 
-    if [[ ${cur} == -* ]] && [[ ${prev} == validate ]]; then
+    if [[ ${cur} == * ]] && [[ ${prev} == validate ]]; then
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         return 0
     fi
@@ -54,7 +55,7 @@ _gen()
         return 0
     fi
 
-    opts="setup config validate deploy"
+    opts="setup config validate deploy post-deploy"
 
     if [[ ${cur} == * ]] && [[ ${prev} == gen ]]; then
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
@@ -72,7 +73,8 @@ _gen()
 
     opts="-h --help -p --log-level-print -f --log-level-file"
 
-    if [[ ${cur} == * ]] && [[ ${prev_3} == gen ]]; then
+    if [[ ${cur} == * ]] && ([[ ${prev_3} == gen ]] || \
+        [[ ${prev} == post-deploy ]]); then
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         return 0
     fi

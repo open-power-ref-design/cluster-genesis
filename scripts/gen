@@ -74,7 +74,17 @@ if [[ "$1" == "post-deploy" ]] && ([[ "$2" == "-a" ]] || [[ "$2" == "--all" ]] |
         shift
     fi
 
-    gen.py deploy --gather_mac_addr $@
+    gen.py deploy --ssh-keyscan $@
+    if [ $? -ne 0 ]; then
+        exit
+    fi
+
+    gen.py deploy --gather-mac-addr $@
+    if [ $? -ne 0 ]; then
+        exit
+    fi
+
+    gen.py deploy --config-client-os $@
     if [ $? -ne 0 ]; then
         exit
     fi
