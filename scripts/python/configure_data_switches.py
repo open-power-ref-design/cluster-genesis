@@ -328,10 +328,14 @@ def configure_data_switch():
 
     # Program switch vlans
     for switch in port_vlans:
+        vlans = []
         for port in port_vlans[switch]:
-            if not _is_port_in_a_port_channel(switch, port, chan_ports):
-                sw_dict[switch].set_switchport_mode('trunk', port)
-                log.debug('port: {} setting trunk mode'.format(port))
+            for vlan in port_vlans[switch][port]:
+                if vlan not in vlans:
+                    vlans.append(vlan)
+                    sw_dict[switch].create_vlan(vlan)
+                    log.debug('Creating vlan {} on switch {}'.format(vlan, switch))
+            sw_dict[switch].set_switchport_mode('trunk', port)
             sw_dict[switch].add_vlans_to_port(port, port_vlans[switch][port])
             log.debug('port: {} vlans: {}'.format(port, port_vlans[switch][port]))
 
@@ -458,7 +462,7 @@ def deconfigure_data_switch():
             if not _is_port_in_a_port_channel(switch, port, chan_ports):
                 sw_dict[switch].set_switchport_mode('access', port)
                 log.debug('setting port: {} to access mode'.format(port))
-            sw_dict[switch].remove_vlans_to_port(port, port_vlans[switch][port])
+            sw_dict[switch].remove_vlans_from_port(port, port_vlans[switch][port])
             log.debug('port: {} removing vlans: {}'.format(
                 port, port_vlans[switch][port]))
 
