@@ -595,17 +595,16 @@ class Inventory(object):
                                 "MAC: %s" % set_mac)
 
         for interface in self.inv.nodes[node_index][self.InvKey.INTERFACES]:
-            key = ''
-            if self.InvKey.IFACE in interface:
-                key = self.InvKey.IFACE
-            elif self.InvKey.DEVICE in interface:
-                key = self.InvKey.DEVICE
-            if key != '':
-                value = interface[key]
-                if old_name == value or old_name in value.split('.'):
-                    self.log.debug("Renaming node \'%s\' interface %s "
-                                   "\'%s\' to \'%s\'" %
-                                   (self.inv.nodes[node_index].hostname,
-                                    key, old_name, set_name))
-                    interface[key] = interface[key].replace(old_name, set_name)
+            for key, value in interface.iteritems():
+                value_split = []
+                for _value in value.split():
+                    if old_name == _value or old_name in _value.split('.'):
+                        _value = _value.replace(old_name, set_name)
+                    value_split.append(_value)
+                new_value = " ".join(value_split)
+                self.log.debug("Renaming node \'%s\' interface key \'%s\' from "
+                               "\'%s\' to \'%s\'" %
+                               (self.inv.nodes[node_index].hostname, key, value,
+                                new_value))
+                interface[key] = new_value
         self.dbase.dump_inventory(self.inv)
