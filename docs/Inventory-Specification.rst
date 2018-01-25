@@ -68,12 +68,15 @@ nodes:
             devices:
             ipaddrs:
             macs:
+            rename:
         data:
             switches:
             ports:
             devices:
             macs:
+            rename:
         os:
+        interfaces:
 
 +----------------------+-------------------------------+----------------------------------------------------------------------------------------------------------------+----------+
 | Element              | Example(s)                    | Description                                                                                                    | Required |
@@ -139,10 +142,10 @@ nodes:
 |           switches:  |           switches:           | |   *ports*     - Management ports.                                                                            |          |
 |           ports:     |           - mgmt_1            | |   *devices*   - Network devices.                                                                             |          |
 |           devices:   |           - mgmt_2            | |   *ipaddrs*   - Interface ipaddrs.                                                                           |          |
-|       ...            |           ports:              | |   *macs*      - Interface MAC addresses.                                                                     |          |
-|                      |           - 2                 |                                                                                                                |          |
-|                      |           - 12                | List items are correlated by index.                                                                            |          |
-|                      |           devices:            |                                                                                                                |          |
+|           ipaddrs:   |           ports:              | |   *macs*      - Interface MAC addresses.                                                                     |          |
+|           macs:      |           - 2                 | |   *rename*    - Interface rename flags.                                                                      |          |
+|           rename:    |           - 12                |                                                                                                                |          |
+|       ...            |           devices:            | List items are correlated by index.                                                                            |          |
 |                      |           - eth16             |                                                                                                                |          |
 |                      |           - eth17             |                                                                                                                |          |
 |                      |           ipaddrs:            |                                                                                                                |          |
@@ -151,6 +154,9 @@ nodes:
 |                      |           macs:               |                                                                                                                |          |
 |                      |           - 01:23:45:67:89:AD |                                                                                                                |          |
 |                      |           - 01:23:45:67:89:AE |                                                                                                                |          |
+|                      |           rename:             |                                                                                                                |          |
+|                      |           - true              |                                                                                                                |          |
+|                      |           - true              |                                                                                                                |          |
 |                      |                               |                                                                                                                |          |
 +----------------------+-------------------------------+----------------------------------------------------------------------------------------------------------------+----------+
 |                      |                               |                                                                                                                |          |
@@ -161,15 +167,18 @@ nodes:
 |           switches:  |           switches:           | |   *ports*     - Data ports.                                                                                  |          |
 |           ports:     |           - data_1            | |   *devices*   - Network devices.                                                                             |          |
 |           devices:   |           - data_2            | |   *macs*      - Interface MAC addresses.                                                                     |          |
-|           macs:      |           ports:              |                                                                                                                |          |
-|       ...            |           - 1                 | List items are correlated by index.                                                                            |          |
-|                      |           - 2                 |                                                                                                                |          |
+|           macs:      |           ports:              | |   *rename*    - Interface rename flags.                                                                      |          |
+|           rename:    |           - 1                 |                                                                                                                |          |
+|       ...            |           - 2                 | List items are correlated by index.                                                                            |          |
 |                      |           devices:            |                                                                                                                |          |
 |                      |           - eth26             |                                                                                                                |          |
 |                      |           - eth27             |                                                                                                                |          |
 |                      |           macs:               |                                                                                                                |          |
 |                      |           - 01:23:45:67:89:AF |                                                                                                                |          |
 |                      |           - 01:23:45:67:89:BA |                                                                                                                |          |
+|                      |           rename:             |                                                                                                                |          |
+|                      |           - true              |                                                                                                                |          |
+|                      |           - true              |                                                                                                                |          |
 |                      |                               |                                                                                                                |          |
 +----------------------+-------------------------------+----------------------------------------------------------------------------------------------------------------+----------+
 |                      |                               |                                                                                                                |          |
@@ -178,5 +187,31 @@ nodes:
 |   nodes:             |                               | See :ref:`Config Specification - Node Templates OS Section <Config-Specification:_node_templates_os:>`.        |          |
 |       os:            |                               |                                                                                                                |          |
 |       ...            |                               |                                                                                                                |          |
+|                      |                               |                                                                                                                |          |
++----------------------+-------------------------------+----------------------------------------------------------------------------------------------------------------+----------+
+|                      |                               |                                                                                                                |          |
+| ::                   |                               | Interface definitions.                                                                                         | **yes**  |
+|                      |                               |                                                                                                                |          |
+|   nodes:             |                               | | Interfaces assigned to a node in                                                                             |          |
+|       interfaces:    |                               |   :ref:`Config Specification - Node Templates interfaces <Config-Specification:_node_templates_interfaces:>`   |          |
+|       ...            |                               |   or                                                                                                           |          |
+|                      |                               |   :ref:`Config Specification - Node Templates networks <Config-Specification:_node_templates_networks:>` are   |          |
+|                      |                               |   included in this list. Interfaces are copied from                                                            |          |
+|                      |                               |   :ref:`Config Specification - Interfaces section <Config-Specification:interfaces:>` and modified in the      |          |
+|                      |                               |   following ways:                                                                                              |          |
+|                      |                               | |                                                                                                              |          |
+|                      |                               | |   * *address_list* and *address_start* keys are replaced with *address* and each value is replaced with a    |          |
+|                      |                               | |   single unique IP address.                                                                                  |          |
+|                      |                               | |                                                                                                              |          |
+|                      |                               | |   * *IPADDR_list* and *IPADDR_start* keys are replaced with *IPADDR* and each value is replaced with a       |          |
+|                      |                               | |   single unique IP address.                                                                                  |          |
+|                      |                               | |                                                                                                              |          |
+|                      |                               | |   * If 'rename: false' in                                                                                    |          |
+|                      |                               |     :ref:`Config Specification - Node Templates <Config-Specification:_physical_ints_os:>` then *iface*,       |          |
+|                      |                               |     *DEVICE*, and any interface value referencing them will be modified to match the OS given interface name.  |          |
+|                      |                               |     See                                                                                                        |          |
+|                      |                               |     :ref:`Config Specification - interfaces: (Ubuntu) <Config-Specification:_interfaces_ubuntu_rename_notes:>` |          |
+|                      |                               |     and :ref:`Config Specification - interfaces: (RHEL) <Config-Specification:_interfaces_rhel_rename_notes:>` |          |
+|                      |                               |     for details.                                                                                               |          |
 |                      |                               |                                                                                                                |          |
 +----------------------+-------------------------------+----------------------------------------------------------------------------------------------------------------+----------+
