@@ -526,9 +526,9 @@ interfaces:
 |                           |                                                   | |                                                                                          |          |
 |                           |   - label: bridge1                                | |   If 'rename: false' in                                                                  |          |
 |                           |     description: bridge interface 1               |     `node_templates: physical_interfaces: pxe/data <physical_ints_os_>`_ then the *iface*  |          |
-|                           |     iface: br1                                    |     value will be replaced by the interface name assigned by the OS. If the *iface* value  |          |
-|                           |     method: static                                |     is referenced in **any** other interface definition it will also be replaced.          |          |
-|                           |     address_start: 10.0.0.100                     |                                                                                            |          |
+|                           |     iface: br1                                    |     value will be ignored and the interface name assigned by the OS will be used.          |          |
+|                           |     method: static                                |     If the iface value is referenced in any other interface definition it will also be     |          |
+|                           |     address_start: 10.0.0.100                     |     replaced.                                                                              |          |
 |                           |     netmask: 255.255.255.0                        |                                                                                            |          |
 |                           |     bridge_ports: eth0                            |                                                                                            |          |
 |                           |     bridge_fd: 9                                  |                                                                                            |          |
@@ -894,22 +894,22 @@ node_templates:
 |       - ...                        |     physical_interfaces:                      | |   *switch* - Reference to switch *label* defined in the `switches: mgmt:       |          |
 |         physical_interfaces:       |         pxe:                                  |                <switches_mgmt_>`_ or `switches: data: <switches_data_>`_         |          |
 |             ...                    |             - switch: mgmt_1                  |                elements.                                                         |          |
-|             pxe:                   |               interface: eth15                | |   *interface* - Reference to interface label defined in the `interfaces:`_     |          |
+|             pxe:                   |               interface: dhcp1                | |   *interface* - Reference to interface label defined in the `interfaces:`_     |          |
 |                 - switch:          |               rename: true                    |                elements.                                                         |          |
 |                   interface:       |               ports:                          | |   *rename* - Value (true/false) to control whether client node interfaces will |          |
-|                   rename:          |                   - 10                        |                be renamed to match the inerface iface or DEVICE value.           |          |
-|                   ports:           |                   - 11                        | |   *ports*  - List of port number/identifiers mapping to client node OS         |          |
-|             data:                  |                   - 12                        |                interfaces.                                                       |          |
-|                 - siwtch:          |         data:                                 |                                                                                  |          |
-|                   interface:       |             - switch: data_1                  | | Note: For additional information on using *rename* see notes in                |          |
-|                   rename:          |               interface: eth10                |   `interfaces: (Ubuntu) <interfaces_ubuntu_rename_notes_>`_ and                  |          |
-|                   ports            |               rename: true                    |   `interfaces: (RHEL) <interfaces_rhel_rename_notes_>`_.                         |          |
-|                                    |               ports:                          |                                                                                  |          |
+|                   rename:          |                   - 10                        |                be renamed to match the interface iface (Ubuntu) or DEVICE (RHEL) |          |
+|                   ports:           |                   - 11                        |                value.                                                            |          |
+|             data:                  |                   - 12                        | |   *ports*  - List of port number/identifiers mapping to client node OS         |          |
+|                 - switch:          |         data:                                 |                interfaces.                                                       |          |
+|                   interface:       |             - switch: data_1                  |                                                                                  |          |
+|                   rename:          |               interface: manual1              | | Note: For additional information on using *rename* see notes in                |          |
+|                   ports            |               rename: true                    |   `interfaces: (Ubuntu) <interfaces_ubuntu_rename_notes_>`_ and                  |          |
+|                                    |               ports:                          |   `interfaces: (RHEL) <interfaces_rhel_rename_notes_>`_.                         |          |
 |                                    |                   - 7                         |                                                                                  |          |
 |                                    |                   - 8                         |                                                                                  |          |
 |                                    |                   - 9                         |                                                                                  |          |
 |                                    |             - switch: data_1                  |                                                                                  |          |
-|                                    |               interface: eth11                |                                                                                  |          |
+|                                    |               interface: manual2              |                                                                                  |          |
 |                                    |               rename: false                   |                                                                                  |          |
 |                                    |               ports:                          |                                                                                  |          |
 |                                    |                   - 10                        |                                                                                  |          |

@@ -243,7 +243,8 @@ def get_args(parser_args=False):
         nargs='?',
         default=ABSENT,
         metavar='CONTAINER-NAME',
-        help='Lookup client node network interface names')
+        help=('Lookup OS assigned name of all interfaces configured with '
+              '\'rename: false\' and update inventory'))
 
     parser_deploy.add_argument(
         '--config-client-os',
