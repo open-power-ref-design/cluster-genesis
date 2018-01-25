@@ -35,7 +35,9 @@
       with_together:
         - "{{ vars['pxe']['macs'] }}"
         - "{{ vars['pxe']['rename'] }}"
-      when: not item.1
+      when:
+        - item.0 is not none
+        - not item.1
 
     - name: Create list of data MACs with rename=false in inventory
       set_fact:
@@ -43,7 +45,9 @@
       with_together:
         - "{{ vars['data']['macs'] }}"
         - "{{ vars['data']['rename'] }}"
-      when: not item.1
+      when:
+        - item.0 is not none
+        - not item.1
 
 - name: Modify interface device names in inventory
   hosts: deployer
