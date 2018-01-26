@@ -118,6 +118,22 @@ class ValidateConfigLogic(object):
                         found.append(item)
                 return dupes
 
+            def validate_switch_defined(switch):
+                global exc
+                if switch not in sw_lbls:
+                    msg = ('\nSwitch "{}" in node template "{}" is not defined.'
+                           '\nValid defined switches are: {}\n').format(
+                        switch, ntmpl_lbl, sw_lbls)
+                    exc += msg
+
+            def validate_interface_defined(phy_ifc_lbl):
+                global exc
+                if phy_ifc_lbl not in ifc_lbls:
+                    msg = ('\nPhysical interface "{}" in node template "{}" '
+                           '\nreferences an undefined interface.')
+                    exc += msg.format(phy_ifc_lbl, ntmpl_lbl)
+                    exc += '\nValid labels are: {}\n'.format(ifc_lbls)
+
             def _add_ports_to_ports_list(switch, ports):
                 if switch in ports_list:
                     ports_list[switch] += ports
@@ -129,18 +145,16 @@ class ValidateConfigLogic(object):
             for ifc in ifcs:
                 ifc_lbls.append(ifc['label'])
 
+            sw_lbls = CFG.get_sw_mgmt_label()
+            sw_lbls += CFG.get_sw_data_label()
+
             ports_list = {}
             for ntmpl_ind in CFG.yield_ntmpl_ind():
                 ntmpl_lbl = CFG.get_ntmpl_label(ntmpl_ind)
                 for phyintf_idx in CFG.yield_ntmpl_phyintf_data_ind(ntmpl_ind):
                     phy_ifc_lbl = CFG.get_ntmpl_phyintf_data_ifc(
                         ntmpl_ind, phyintf_idx)
-                    # phy_ifc_lbl = 'bad-label'
-                    if phy_ifc_lbl not in ifc_lbls:
-                        msg = ('\nPhysical interface "{}" in node template "{}" '
-                               '\nreferences an undefined interface.')
-                        exc += msg.format(phy_ifc_lbl, ntmpl_lbl)
-                        exc += '\nValid labels are: {}\n'.format(ifc_lbls)
+                    validate_interface_defined(phy_ifc_lbl)
                     rename = CFG.get_ntmpl_phyintf_data_rename(ntmpl_ind, phyintf_idx)
                     if rename is not True and rename is not False:
                         msg = ('\nInvalid value for "rename:" ({}) in node template '
@@ -150,20 +164,15 @@ class ValidateConfigLogic(object):
                         exc += msg
                     switch = CFG.get_ntmpl_phyintf_data_switch(
                         ntmpl_ind, phyintf_idx)
+                    validate_switch_defined(switch)
                     ports = CFG.get_ntmpl_phyintf_data_ports(
                         ntmpl_ind, phyintf_idx)
                     _add_ports_to_ports_list(switch, ports)
-                    # _add_ports_to_ports_list(switch, ports)
 
                 for phyintf_idx in CFG.yield_ntmpl_phyintf_pxe_ind(ntmpl_ind):
                     phy_ifc_lbl = CFG.get_ntmpl_phyintf_pxe_interface(
                         ntmpl_ind, phyintf_idx)
-                    # phy_ifc_lbl += 'stuff'
-                    if phy_ifc_lbl not in ifc_lbls:
-                        msg = ('\nPhysical interface "{}" in node template "{}" '
-                               '\nreferences an undefined interface.')
-                        exc += msg.format(phy_ifc_lbl, ntmpl_lbl)
-                        exc += '\nValid labels are: {}\n'.format(ifc_lbls)
+                    validate_interface_defined(phy_ifc_lbl)
                     rename = CFG.get_ntmpl_phyintf_data_rename(ntmpl_ind, phyintf_idx)
                     if rename is not True and rename is not False:
                         msg = ('\nInvalid value for "rename:" ({}) in node template '
@@ -173,6 +182,7 @@ class ValidateConfigLogic(object):
                         exc += msg
                     switch = CFG.get_ntmpl_phyintf_pxe_switch(
                         ntmpl_ind, phyintf_idx)
+                    validate_switch_defined(switch)
                     ports = CFG.get_ntmpl_phyintf_pxe_ports(
                         ntmpl_ind, phyintf_idx)
                     _add_ports_to_ports_list(switch, ports)
@@ -180,6 +190,7 @@ class ValidateConfigLogic(object):
                 for phyintf_idx in CFG.yield_ntmpl_phyintf_ipmi_ind(ntmpl_ind):
                     switch = CFG.get_ntmpl_phyintf_ipmi_switch(
                         ntmpl_ind, phyintf_idx)
+                    validate_switch_defined(switch)
                     ports = CFG.get_ntmpl_phyintf_ipmi_ports(
                         ntmpl_ind, phyintf_idx)
                     _add_ports_to_ports_list(switch, ports)
