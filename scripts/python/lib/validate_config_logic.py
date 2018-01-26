@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Config logic validation"""
 
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -87,6 +87,112 @@ class ValidateConfigLogic(object):
     def validate_config_logic(self):
         """Config logic validation"""
 
+        from lib.config import Config
+
         self._validate_version()
         self._validate_netmask_prefix()
-        self.log.info('Config logic validation completed successfully')
+
+        CFG = Config(self.config)
+
+        def _validate_physical_interfaces():
+            """ Validate that;
+            - no data switch ports are specified more than once
+            - All physical interfaces reference valid interface definitions
+            - All rename values are either 'true' or 'false'
+            Exception:
+                UserException if any of the above criteria fail
+                in config.yml
+            """
+
+            log = logger.getlogger()
+            global exc
+            exc = ''
+
+            def get_dupes(_list):
+                found = []
+                dupes = []
+                for item in _list:
+                    if item in found:
+                        dupes.append(item)
+                    else:
+                        found.append(item)
+                return dupes
+
+            def _add_ports_to_ports_list(switch, ports):
+                if switch in ports_list:
+                    ports_list[switch] += ports
+                else:
+                    ports_list[switch] = ports
+
+            ifcs = CFG.get_interfaces()
+            ifc_lbls = []
+            for ifc in ifcs:
+                ifc_lbls.append(ifc['label'])
+
+            ports_list = {}
+            for ntmpl_ind in CFG.yield_ntmpl_ind():
+                ntmpl_lbl = CFG.get_ntmpl_label(ntmpl_ind)
+                for phyintf_idx in CFG.yield_ntmpl_phyintf_data_ind(ntmpl_ind):
+                    phy_ifc_lbl = CFG.get_ntmpl_phyintf_data_ifc(
+                        ntmpl_ind, phyintf_idx)
+                    # phy_ifc_lbl = 'bad-label'
+                    if phy_ifc_lbl not in ifc_lbls:
+                        msg = ('\nPhysical interface "{}" in node template "{}" '
+                               '\nreferences an undefined interface.')
+                        exc += msg.format(phy_ifc_lbl, ntmpl_lbl)
+                        exc += '\nValid labels are: {}\n'.format(ifc_lbls)
+                    rename = CFG.get_ntmpl_phyintf_data_rename(ntmpl_ind, phyintf_idx)
+                    if rename is not True and rename is not False:
+                        msg = ('\nInvalid value for "rename:" ({}) in node template '
+                               '"{}", \nphysical interface "{}"').format(
+                            rename, ntmpl_lbl, phy_ifc_lbl)
+                        msg += '\nValid values are "true" or "false"\n'
+                        exc += msg
+                    switch = CFG.get_ntmpl_phyintf_data_switch(
+                        ntmpl_ind, phyintf_idx)
+                    ports = CFG.get_ntmpl_phyintf_data_ports(
+                        ntmpl_ind, phyintf_idx)
+                    _add_ports_to_ports_list(switch, ports)
+                    # _add_ports_to_ports_list(switch, ports)
+
+                for phyintf_idx in CFG.yield_ntmpl_phyintf_pxe_ind(ntmpl_ind):
+                    phy_ifc_lbl = CFG.get_ntmpl_phyintf_pxe_interface(
+                        ntmpl_ind, phyintf_idx)
+                    # phy_ifc_lbl += 'stuff'
+                    if phy_ifc_lbl not in ifc_lbls:
+                        msg = ('\nPhysical interface "{}" in node template "{}" '
+                               '\nreferences an undefined interface.')
+                        exc += msg.format(phy_ifc_lbl, ntmpl_lbl)
+                        exc += '\nValid labels are: {}\n'.format(ifc_lbls)
+                    rename = CFG.get_ntmpl_phyintf_data_rename(ntmpl_ind, phyintf_idx)
+                    if rename is not True and rename is not False:
+                        msg = ('\nInvalid value for "rename:" ({}) in node template '
+                               '"{}", \nphysical interface "{}"').format(
+                            rename, ntmpl_lbl, phy_ifc_lbl)
+                        msg += '\nValid values are "true" or "false"\n'
+                        exc += msg
+                    switch = CFG.get_ntmpl_phyintf_pxe_switch(
+                        ntmpl_ind, phyintf_idx)
+                    ports = CFG.get_ntmpl_phyintf_pxe_ports(
+                        ntmpl_ind, phyintf_idx)
+                    _add_ports_to_ports_list(switch, ports)
+
+                for phyintf_idx in CFG.yield_ntmpl_phyintf_ipmi_ind(ntmpl_ind):
+                    switch = CFG.get_ntmpl_phyintf_ipmi_switch(
+                        ntmpl_ind, phyintf_idx)
+                    ports = CFG.get_ntmpl_phyintf_ipmi_ports(
+                        ntmpl_ind, phyintf_idx)
+                    _add_ports_to_ports_list(switch, ports)
+
+            for switch in ports_list:
+                dupes = get_dupes(ports_list[switch])
+                if dupes:
+                    msg = ('\nDuplicate port(s) defined on switch "{}"'
+                           '\nDuplicate ports: {}\n'.format(switch, dupes))
+                    exc += msg
+
+            if exc:
+                log.error('Config logic validation failed')
+                raise UserException(exc)
+
+        _validate_physical_interfaces()

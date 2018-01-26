@@ -106,10 +106,11 @@ class Gen(object):
         dbase = Database()
         try:
             dbase.validate_config(self.args.config_file)
+            print('Success: Config file validation passed')
         except UserException as exc:
-            print('Fail:', exc.message, file=sys.stderr)
+            print(exc.message, file=sys.stderr)
+            print('Failure: Config file validation.')
             sys.exit(1)
-        print('Success: Config file validation passed')
 
     def _cluster_hardware(self):
         print('\nDiscovering and validating cluster hardware')
