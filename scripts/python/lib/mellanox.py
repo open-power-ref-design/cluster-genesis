@@ -67,6 +67,10 @@ class Mellanox(SwitchCommon):
     SHOW_PORT = 'show interfaces switchport'
     SET_SWITCHPORT_MODE_TRUNK = ('interface ethernet 1/{} switchport mode hybrid')
     SET_SWITCHPORT_MODE_ACCESS = ('interface ethernet 1/{} switchport mode access')
+    SET_MLAG_PORT_CHANNEL_MODE_TRUNK = \
+        'interface mlag-port-channel {} switchport mode hybrid'
+    SET_LAG_PORT_CHANNEL_MODE_TRUNK = \
+        'interface port-channel {} switchport mode hybrid'
     SWITCHPORT_HYBRID_ALLOWED_VLAN = \
         'switchport hybrid allowed-vlan add %d'
     ADD_VLANS_TO_PORT = \
@@ -318,9 +322,7 @@ class Mellanox(SwitchCommon):
 
     def add_vlans_to_lag_port_channel(self, port, vlans):
         # Enable hybrid mode for port
-        self.send_cmd(
-            self.LAG_PORT_CHANNEL.format(port) +
-            self.SWITCHPORT_MODE_HYBRID)
+        self.send_cmd(self.PORT_CHANNEL_MODE_TRUNK.format(port))
 
         # Add VLANs to port
         for vlan in vlans:
@@ -330,9 +332,7 @@ class Mellanox(SwitchCommon):
 
     def add_vlans_to_mlag_port_channel(self, port, vlans):
         # Enable hybrid mode for port
-        self.send_cmd(
-            self.MLAG_PORT_CHANNEL.format(port) +
-            self.SWITCHPORT_MODE_HYBRID)
+        self.send_cmd(self.SET_MLAG_PORT_CHANNEL_MODE_TRUNK.format(port))
 
         # Add VLANs to port
         for vlan in vlans:
