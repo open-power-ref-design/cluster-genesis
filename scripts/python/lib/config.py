@@ -2421,7 +2421,7 @@ class Config(object):
 
         node_template = self.cfg.node_templates[node_template_index]
         if index is None:
-            return node_template.physical_interfaces.data[data_index].ports
+            return node_template.physical_interfaces.data[data_index].ports[:]
         return node_template.physical_interfaces.data[data_index].ports[index]
 
     def yield_ntmpl_phyintf_data_ports(self, node_template_index, data_index):

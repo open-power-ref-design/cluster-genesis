@@ -59,7 +59,7 @@ def _get_port_chan_list():
     for ifc in ifcs:
         if 'bond_mode' in ifc:
             for _ifc in ifcs:
-                if 'bond_master' in _ifc and _ifc['bond_master'] == ifc['label']:
+                if 'bond_master' in _ifc and _ifc['bond_master'] == ifc['iface']:
                     if ifc['label'] in bond_ifcs:
                         bond_ifcs[ifc['label']].append(_ifc['label'])
                     else:
@@ -73,9 +73,10 @@ def _get_port_chan_list():
 
     # Gather bond node template, switch and port information
     bonds = Tree()
-    for ntmpl_ind, ntmpl_label in enumerate(CFG.yield_ntmpl_label()):
-        ntmpl_ifcs = CFG.get_ntmpl_ifcs_all(ntmpl_ind)
-        for bond in bond_ifcs:
+
+    for bond in bond_ifcs:
+        for ntmpl_ind, ntmpl_label in enumerate(CFG.yield_ntmpl_label()):
+            ntmpl_ifcs = CFG.get_ntmpl_ifcs_all(ntmpl_ind)
             if bond in ntmpl_ifcs:
                 for phyintf_idx in CFG.yield_ntmpl_phyintf_data_ind(ntmpl_ind):
                     phyintf = CFG.get_ntmpl_phyintf_data_ifc(
@@ -86,44 +87,47 @@ def _get_port_chan_list():
                         ports = CFG.get_ntmpl_phyintf_data_ports(
                             ntmpl_ind, phyintf_idx)
                         bonds[bond][ntmpl_label][phyintf][switch] = ports
-
     # print(' Bonds')
     pretty_str = PP.pformat(bonds)
     log.debug('Bonds:')
     log.debug('\n' + pretty_str)
     # print(pretty_str)
 
-    # Aggregate ports across node templates and group into port channel groups
+    # For each bond, aggregate ports across node templates and group into port
+    # channel groups
     ports_list = Tree()
     for bond in bonds:
         for ntmpl in bonds[bond]:
+            bond_ports_list = Tree()
             for ifc in bonds[bond][ntmpl]:
                 for switch in bonds[bond][ntmpl][ifc]:
                     ports = bonds[bond][ntmpl][ifc][switch]
-                    if ntmpl not in ports_list or switch not in ports_list[ntmpl]:
-                        ports_list[ntmpl][switch] = [ports]
+                    if switch not in bond_ports_list:
+                        bond_ports_list[switch] = [ports]
                     else:
-                        ports_list[ntmpl][switch].append(ports)
-            for switch in ports_list[ntmpl]:
+                        bond_ports_list[switch].append(ports)
+            for switch in bond_ports_list:
                 # group the ports into channel groups
-                ports_list[ntmpl][switch] = zip(*ports_list[ntmpl][switch])
+                if switch not in ports_list[bond][ntmpl]:
+                    ports_list[bond][ntmpl][switch] = zip(*bond_ports_list[switch])
+                else:
+                    ports_list[bond][ntmpl][switch] += zip(*bond_ports_list[switch])
+
+    pretty_str = PP.pformat(ports_list)
+    log.debug('ports_list:')
+    log.debug('\n' + pretty_str)
 
     chan_ports = Tree()
     # Aggregate port groups across switches or mlag switch pairs.
-    # Final data structure is a dictionary organized by switch / switch pair.
-    # The top level keys are the 'master' switch if mlag is specified
-    # or simply the switch if mlag is not specified.
-    for ntmpl in ports_list:
-        for switch in ports_list[ntmpl]:
-            peer_switch = CFG.get_sw_data_mlag_peer(switch)
-            mstr_switch = CFG.get_sw_data_mstr_switch([switch, peer_switch])
-            if switch == mstr_switch or \
-                    switch == CFG.get_sw_data_mlag_peer(mstr_switch):
-                if switch not in chan_ports[mstr_switch]:
-                    chan_ports[mstr_switch][switch] = \
-                        ports_list[ntmpl][switch]
-                else:
-                    chan_ports[mstr_switch][switch] += ports_list[ntmpl][switch]
+    # Final data structure is a dictionary organized by bond, node template,
+    # switch / switch pair.
+    for bond in ports_list:
+        for ntmpl in ports_list[bond]:
+            for switch in ports_list[bond][ntmpl]:
+                peer_switch = CFG.get_sw_data_mlag_peer(switch)
+                mstr_switch = CFG.get_sw_data_mstr_switch([switch, peer_switch])
+                chan_ports[bond][ntmpl][mstr_switch][switch] = \
+                    ports_list[bond][ntmpl][switch]
 
     # print()
     # print('Port channel ports')
@@ -148,8 +152,8 @@ def _get_vlan_list():
         ntmpl_ifcs = CFG.get_ntmpl_ifcs_all(ntmpl_ind)
         for phyintf_idx in CFG.yield_ntmpl_phyintf_data_ind(ntmpl_ind):
             phy_ifc_lbl = CFG.get_ntmpl_phyintf_data_ifc(ntmpl_ind, phyintf_idx)
+            ifc = CFG.get_interface(phy_ifc_lbl)
             if phy_ifc_lbl in ntmpl_ifcs:
-                ifc = CFG.get_interface(phy_ifc_lbl)
                 if 'bond_master' in ifc:
                     bond_label = ifc['bond_master']
                     for _ifc in ifcs:
@@ -167,7 +171,7 @@ def _get_vlan_list():
             else:
                 for _ifc in ifcs:
                     if _ifc['label'] in ntmpl_ifcs and 'vlan_raw_device' in _ifc \
-                            and _ifc['vlan_raw_device'] == phy_ifc_lbl:
+                            and _ifc['vlan_raw_device'] == ifc['iface']:
                         switch = CFG.get_ntmpl_phyintf_data_switch(
                             ntmpl_ind, phyintf_idx)
                         vlan_num = int(_ifc['iface'].rpartition('.')[2])
@@ -328,12 +332,17 @@ def configure_data_switch():
 
     # Program switch vlans
     for switch in port_vlans:
+        vlans = []
         for port in port_vlans[switch]:
-            if not _is_port_in_a_port_channel(switch, port, chan_ports):
-                sw_dict[switch].set_switchport_mode('trunk', port)
-                log.debug('port: {} setting trunk mode'.format(port))
+            for vlan in port_vlans[switch][port]:
+                if vlan not in vlans:
+                    vlans.append(vlan)
+                    sw_dict[switch].create_vlan(vlan)
+                    log.debug('Creating vlan {} on switch {}'.format(vlan, switch))
+            sw_dict[switch].set_switchport_mode('trunk', port)
             sw_dict[switch].add_vlans_to_port(port, port_vlans[switch][port])
-            log.debug('port: {} vlans: {}'.format(port, port_vlans[switch][port]))
+            log.debug('switch: {} port: {} vlans: {}'.format(
+                switch, port, port_vlans[switch][port]))
 
     # Program switch mtu
     for switch in mtu_list:
@@ -357,55 +366,67 @@ def configure_data_switch():
         for sw in mlag_list[mstr_sw]:
             sw_dict[sw].enable_mlag()
 
-    for mstr_sw in chan_ports:
-        if len(chan_ports[mstr_sw]) == 2:
-            # MLAG
-            for sw in chan_ports[mstr_sw]:
-                for idx, port_grp in enumerate(chan_ports[mstr_sw][sw]):
-                    chan_num = min(chan_ports[mstr_sw][mstr_sw][idx])
-                    sw_dict[sw].remove_mlag_channel_group(chan_num)
-                    sw_dict[sw].create_mlag_interface(chan_num)
-                    log.debug('create mlag interface: {} on switch: {}'.format(
-                        chan_num, sw))
-                    vlans = _get_port_vlans(sw, chan_num, port_vlans)
-                    mtu = _get_port_mtu(sw, chan_num, mtu_list)
-                    if vlans:
-                        log.debug('add_vlans_to_mlag_port_channel: {}'.format(vlans))
-                        sw_dict[sw].add_vlans_to_mlag_port_channel(chan_num, vlans)
-                    if mtu:
-                        log.debug('set_mtu_for_mlag_port_channel: {}'.format(mtu))
-                        sw_dict[sw].set_mtu_for_lag_port_channel(chan_num, mtu)
-                    for port in port_grp:
-                        log.debug('Adding port {} to mlag chan num: {}'.format(
-                            port, chan_num))
-                        sw_dict[sw].bind_port_to_mlag_interface(port, chan_num)
-        else:
-            # Configure LAG
-            # NOT COMPLETE
-            for port_grp in chan_ports[mstr_sw][mstr_sw]:
-                chan_num = min(port_grp)
-                log.debug('Lag channel group: {} on switch: {}'.format(
-                    chan_num, mstr_sw))
-                sw_dict[sw].remove_channel_group(chan_num)
-                sw_dict[sw].create_lag_interface(chan_num)
-                vlans = _get_port_vlans(mstr_sw, chan_num, port_vlans)
-                mtu = _get_port_mtu(mstr_sw, chan_num, mtu_list)
-                if vlans:
-                    log.debug('add_vlans_to_lag_port_channel: {}'.format(vlans))
-                    sw_dict[sw].add_vlans_to_lag_port_channel(chan_num, vlans)
-                if mtu:
-                    log.debug('set_mtu_for_lag_port_channel: {}'.format(mtu))
-                    sw_dict[sw].set_mtu_for_lag_port_channel(chan_num, mtu)
-                for port in port_grp:
-                    log.debug('Adding port {} to mlag chan num: {}'.format(
-                        port, chan_num))
-                    sw_dict[sw].bind_port_to_lag_interface(port, chan_num)
-            sw_dict[sw].activate_lag_interface(chan_num)
+    # Configure port channels and MLAG port channels
+    for bond in chan_ports:
+        for ntmpl in chan_ports[bond]:
+            for mstr_sw in chan_ports[bond][ntmpl]:
+                if len(chan_ports[bond][ntmpl][mstr_sw]) == 2:
+                    # MLAG
+                    for sw in chan_ports[bond][ntmpl][mstr_sw]:
+                        for idx, port_grp in enumerate(
+                                chan_ports[bond][ntmpl][mstr_sw][sw]):
+                            chan_num = min(chan_ports[bond][ntmpl][mstr_sw]
+                                           [mstr_sw][idx])
+                            sw_dict[sw].remove_mlag_channel_group(chan_num)
+                            sw_dict[sw].create_mlag_interface(chan_num)
+                            log.debug('create mlag interface {} on switch {}'.
+                                      format(chan_num, sw))
+                            vlans = _get_port_vlans(sw, chan_num, port_vlans)
+                            mtu = _get_port_mtu(sw, chan_num, mtu_list)
+                            if vlans:
+                                log.debug('add_vlans_to_mlag_port_channel: {}'.
+                                          format(vlans))
+                                sw_dict[sw].add_vlans_to_mlag_port_channel(
+                                    chan_num, vlans)
+                            if mtu:
+                                log.debug('set_mtu_for_mlag_port_channel: {}'.
+                                          format(mtu))
+                                sw_dict[sw].set_mtu_for_lag_port_channel(
+                                    chan_num, mtu)
+                            for port in port_grp:
+                                log.debug('Adding port {} to mlag chan num: {}'.
+                                          format(port, chan_num))
+                                sw_dict[sw].bind_port_to_mlag_interface(
+                                    port, chan_num)
+                else:
+                    # Configure LAG
+                    for port_grp in chan_ports[bond][ntmpl][mstr_sw][mstr_sw]:
+                        chan_num = min(port_grp)
+                        log.debug('Lag channel group: {} on switch: {}'.format(
+                            chan_num, mstr_sw))
+                        sw_dict[sw].remove_channel_group(chan_num)
+                        sw_dict[sw].create_lag_interface(chan_num)
+                        vlans = _get_port_vlans(mstr_sw, chan_num, port_vlans)
+                        mtu = _get_port_mtu(mstr_sw, chan_num, mtu_list)
+                        if vlans:
+                            log.debug('add_vlans_to_lag_port_channel: {}'.
+                                      format(vlans))
+                            sw_dict[sw].add_vlans_to_lag_port_channel(
+                                chan_num, vlans)
+                        if mtu:
+                            log.debug('set_mtu_for_lag_port_channel: {}'.format(mtu))
+                            sw_dict[sw].set_mtu_for_lag_port_channel(chan_num, mtu)
+                        for port in port_grp:
+                            log.debug('Adding port {} to mlag chan num: {}'.format(
+                                port, chan_num))
+                            sw_dict[sw].bind_port_to_lag_interface(port, chan_num)
+                        sw_dict[sw].activate_lag_interface(chan_num)
 
 
 def deconfigure_data_switch():
     """ Deconfigures data (access) switches.  Deconfiguration is driven by the
-    config.yml file.
+    config.yml file. Generally deconfiguration is done in reverse order of
+    configuration.
     Args:
 
     Returns:
@@ -423,23 +444,27 @@ def deconfigure_data_switch():
         label = sw_ai[0]
         sw_dict[label] = SwitchFactory.factory(*sw_ai[1:])
 
-    # Deconfigure channel ports
-    for mstr_sw in chan_ports:
-        if len(chan_ports[mstr_sw]) == 2:
-            # Deconfigure mlag channel ports
-            for sw in chan_ports[mstr_sw]:
-                for idx, port_grp in enumerate(chan_ports[mstr_sw][sw]):
-                    chan_num = min(chan_ports[mstr_sw][mstr_sw][idx])
-                    log.debug('Delete mlag interface: {} on switch: {}'.format(
-                        chan_num, sw))
-                    sw_dict[sw].remove_mlag_interface(chan_num)
-        else:
-            # deconfigure LAG channel ports
-            for port_grp in chan_ports[mstr_sw][mstr_sw]:
-                chan_num = min(port_grp)
-                log.debug('Deleting Lag interface {} on switch: {}'.format(
-                          chan_num, mstr_sw))
-                sw_dict[sw].remove_lag_interface(chan_num)
+    # Deconfigure channel ports and MLAG channel ports
+    for bond in chan_ports:
+        for ntmpl in chan_ports[bond]:
+            for mstr_sw in chan_ports[bond][ntmpl]:
+                if len(chan_ports[bond][ntmpl][mstr_sw]) == 2:
+                    # Deconfigure mlag channel ports
+                    for sw in chan_ports[bond][ntmpl][mstr_sw]:
+                        for idx, port_grp in enumerate(chan_ports[bond][ntmpl]
+                                                       [mstr_sw][sw]):
+                            chan_num = min(chan_ports[bond][ntmpl][mstr_sw]
+                                           [mstr_sw][idx])
+                            log.debug('Delete mlag interface: {} on switch: {}'.
+                                      format(chan_num, sw))
+                            sw_dict[sw].remove_mlag_interface(chan_num)
+                else:
+                    # deconfigure LAG channel ports
+                    for port_grp in chan_ports[bond][ntmpl][mstr_sw][mstr_sw]:
+                        chan_num = min(port_grp)
+                        log.debug('Deleting Lag interface {} on switch: {}'.format(
+                                  chan_num, mstr_sw))
+                        sw_dict[sw].remove_lag_interface(chan_num)
 
     # Deconfigure MLAG
     for mstr_sw in mlag_list:
@@ -452,15 +477,24 @@ def deconfigure_data_switch():
                 log.debug('Deconfiguring MLAG on switch: {}'.format(sw))
                 sw_dict[sw].deconfigure_mlag()
 
-    # Deconfigure switch vlans
+    # Deconfigure switch vlans - first remove from ports
     for switch in port_vlans:
         for port in port_vlans[switch]:
-            if not _is_port_in_a_port_channel(switch, port, chan_ports):
-                sw_dict[switch].set_switchport_mode('access', port)
+            for vlan in port_vlans[switch][port]:
+                log.debug('port: {} removing vlans: {}'.format(
+                          port, port_vlans[switch][port]))
+                sw_dict[switch].remove_vlans_from_port(port, vlan)
                 log.debug('setting port: {} to access mode'.format(port))
-            sw_dict[switch].remove_vlans_to_port(port, port_vlans[switch][port])
-            log.debug('port: {} removing vlans: {}'.format(
-                port, port_vlans[switch][port]))
+                sw_dict[switch].set_switchport_mode('access', port)
+    # Delete the vlans
+    for switch in port_vlans:
+        vlans = []
+        for port in port_vlans[switch]:
+            for vlan in port_vlans[switch][port]:
+                if vlan not in vlans:
+                    vlans.append(vlan)
+                    sw_dict[switch].delete_vlan(vlan)
+                    log.debug('Deleting vlan {} on switch {}'.format(vlan, switch))
 
     # Deconfigure switch mtu
     for switch in mtu_list:
@@ -472,17 +506,18 @@ def deconfigure_data_switch():
 
 def gather_and_display():
     port_vlans = _get_vlan_list()
+    mtu_list = _get_mtu_list()
+    chan_ports = _get_port_chan_list()
+    mlag_list = _get_mlag_info()
+
     print('\n\nport_vlans:')
     PP.pprint(port_vlans)
-    mtu_list = _get_mtu_list()
     print('\nmtu_list:')
     PP.pprint(mtu_list)
-    chan_ports = _get_port_chan_list()
-    print('\nchan_ports:')
-    PP.pprint(chan_ports)
-    mlag_list = _get_mlag_info()
     print('\nmlag_list:')
     PP.pprint(mlag_list)
+    print('\nchan_ports:')
+    PP.pprint(chan_ports)
 
 #        if self.cfg.is_write_switch_memory():
 #            switch = WriteSwitchMemory(LOG, INV_FILE)
