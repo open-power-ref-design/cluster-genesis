@@ -287,12 +287,20 @@ class Gen(object):
             print('Fail:', exc.message, file=sys.stderr)
             sys.exit(1)
 
-        _run_playbook("wait_for_clients_ping.yml")
+        try:
+            _run_playbook("wait_for_clients_ping.yml")
+        except UserException as exc:
+            print('Fail:', exc.message, file=sys.stderr)
+            sys.exit(1)
 
         print('Success: Client OS installaion complete')
 
     def _ssh_keyscan(self):
-        _run_playbook("ssh_keyscan.yml")
+        try:
+            _run_playbook("ssh_keyscan.yml")
+        except UserException as exc:
+            print('Fail:', exc.message, file=sys.stderr)
+            sys.exit(1)
         print('Success: SSH host key scan complete')
 
     def _config_data_switches(self):
@@ -329,7 +337,11 @@ class Gen(object):
             print('Fail:', exc.message, file=sys.stderr)
             sys.exit(1)
 
-        _run_playbook("activate_client_interfaces.yml")
+        try:
+            _run_playbook("activate_client_interfaces.yml")
+        except UserException as exc:
+            print('Fail:', exc.message, file=sys.stderr)
+            sys.exit(1)
 
         del cmd[-1]
         cmd.append(os.path.join(
@@ -340,7 +352,11 @@ class Gen(object):
             print('Fail:', exc.message, file=sys.stderr)
             sys.exit(1)
 
-        _run_playbook("restore_client_interfaces.yml")
+        try:
+            _run_playbook("restore_client_interfaces.yml")
+        except UserException as exc:
+            print('Fail:', exc.message, file=sys.stderr)
+            sys.exit(1)
 
         print('Success: Gathered Client MAC addresses')
 
@@ -354,7 +370,11 @@ class Gen(object):
         print('Success: Interface names collected')
 
     def _config_client_os(self):
-        _run_playbook("configure_operating_systems.yml")
+        try:
+            _run_playbook("configure_operating_systems.yml")
+        except UserException as exc:
+            print('Fail:', exc.message, file=sys.stderr)
+            sys.exit(1)
         print('Success: Client operating systems are configured')
 
     def launch(self):
@@ -474,13 +494,16 @@ def _run_playbook(playbook):
     log = logger.getlogger()
     ansible_playbook = gen.get_ansible_playbook_path()
     inventory = ' -i ' + gen.get_python_path() + '/inventory.py'
-    playbook = ' ' + playbook
-    cmd = ansible_playbook + inventory + playbook
+    cmd = ansible_playbook + inventory + ' ' + playbook
 
     command = ['bash', '-c', cmd]
     log.debug('Run subprocess: %s' % ' '.join(command))
     process = subprocess.Popen(command, cwd=gen.get_playbooks_path())
     process.wait()
+    if process.returncode != 0:
+        raise UserException(
+            "Playbook '%s' reported non-zero return code (%s)" %
+            (playbook, process.returncode))
 
 
 if __name__ == '__main__':
