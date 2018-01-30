@@ -818,9 +818,9 @@ node_templates:
 |             profile:               |         install_device: /dev/sda              |                                                                                  |          |
 |             install_device:        |         users:                                | |   *profile*         - Cobbler profile to use for OS installation. This name    |          |
 |             users:                 |             - name: root                      |                         usually should match the name of the installation image  |          |
-|                 - name:            |               password: passw0rd              |                         (without the'.iso' extension).                           |          |
+|                 - name:            |               password: <crypted password>    |                         (without the'.iso' extension).                           |          |
 |                   password:        |             - name: user1                     | |   *install_device*  - Path to installation disk device.                        |          |
-|             groups:                |               password: abc123                |                                                                                  |          |
+|             groups:                |               password: <crypted password>    |                                                                                  |          |
 |                 - name:            |               groups: sudo,testgroup1         | | Optional keys:                                                                 |          |
 |             kernel_options:        |         groups:                               | |   *hostname_prefix* - Prefix used to assign hostnames to client nodes          |          |
 |                                    |             - name: testgroup1                |                         belonging to this node template. A "-" and enumeration   |          |
@@ -832,7 +832,7 @@ node_templates:
 |                                    |                                               |                         supported.                                               |          |
 |                                    |                                               | |   *groups*          - OS groups to create. All parameters in the `Ansible      |          |
 |                                    |                                               |                         group module <ansible_group_module_>`_ are supported.    |          |
-|                                    |                                               | |   *groups*          - Kernel options                                           |          |
+|                                    |                                               | |   *kernel_options*  - Kernel options                                           |          |
 |                                    |                                               |                                                                                  |          |
 +------------------------------------+-----------------------------------------------+----------------------------------------------------------------------------------+----------+
 | .. _node_templates_physical_ints:  |                                               |                                                                                  |          |

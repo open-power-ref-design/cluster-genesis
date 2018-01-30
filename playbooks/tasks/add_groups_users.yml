@@ -1,5 +1,5 @@
 ---
-# Copyright 2016 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -17,17 +17,16 @@
 
 - name: "Add Groups"
   group:
-    name: "{{ item.name }}"
     gid: "{{ item.gid | default(omit) }}"
+    name: "{{ item.name }}"
     state: "{{ item.state | default(omit) }}"
     system: "{{ item.system | default(omit) }}"
   with_items:
-    - "{{ node_templates[template]['groups'] | default([]) }}"
-  when: node_templates[template]['groups'] is defined
+    - "{{ os['groups'] | default([]) }}"
+  when: os['groups'] is defined
 
 - name: "Add Users"
   user:
-    name: "{{ item.name }}"
     append: "{{ item.append | default(omit) }}"
     comment: "{{ item.comment | default(omit) }}"
     createhome: "{{ item.createhome | default(omit) }}"
@@ -37,8 +36,10 @@
     group: "{{ item.group | default(omit) }}"
     groups: "{{ item.groups | default(omit) }}"
     home: "{{ item.home | default(omit) }}"
+    local: "{{ item.local | default(omit) }}"
     login_class: "{{ item.login_class | default(omit) }}"
     move_home: "{{ item.move_home | default(omit) }}"
+    name: "{{ item.name }}"
     non_unique: "{{ item.non_unique | default(omit) }}"
     password: "{{ item.password | default(omit) }}"
     remove: "{{ item.remove | default(omit) }}"
@@ -55,7 +56,7 @@
     uid: "{{ item.uid | default(omit) }}"
     update_password: "{{ item.update_password | default(omit) }}"
   with_items:
-    - "{{ node_templates[template]['users'] | default([]) }}"
-  when: node_templates[template]['users'] is defined
+    - "{{ os['users'] | default([]) }}"
+  when: os['users'] is defined
 
 ...

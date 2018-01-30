@@ -40,8 +40,7 @@ d-i clock-setup/ntp boolean true
 d-i clock-setup/ntp-server string $http_server
 ## Partitioning
 $SNIPPET('partitioning')
-d-i passwd/user-fullname string Default User
-d-i passwd/username string defaultuser
+$SNIPPET('defaultuser')
 $SNIPPET('password')
 d-i user-setup/allow-password-weak boolean true
 d-i user-setup/encrypt-home boolean false
@@ -56,13 +55,5 @@ in-target mkdir /root/.ssh; \
 in-target /bin/chmod 700 /root/.ssh; \
 in-target /usr/bin/wget http://$http_server/authorized_keys -O /root/.ssh/authorized_keys; \
 in-target /bin/chmod 600 /root/.ssh/authorized_keys; \
-in-target mkdir /home/defaultuser/.ssh; \
-in-target /bin/chown defaultuser:defaultuser /home/defaultuser/.ssh; \
-in-target /bin/chmod 700 /home/defaultuser/.ssh; \
-in-target /usr/bin/wget http://$http_server/authorized_keys -O /home/defaultuser/.ssh/authorized_keys; \
-in-target /bin/chown defaultuser:defaultuser /home/defaultuser/.ssh/authorized_keys; \
-in-target /bin/chmod 600 /home/defaultuser/.ssh/authorized_keys; \
-echo -e 'defaultuser\tALL=NOPASSWD: ALL' > /target/etc/sudoers.d/defaultuser; \
-in-target chmod 440 /etc/sudoers.d/defaultuser; \
 $SNIPPET('kickstart_done')
 d-i finish-install/reboot_in_progress note

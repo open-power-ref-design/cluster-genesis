@@ -82,6 +82,7 @@ class Inventory(object):
         OS = 'os'
         PROFILE = 'profile'
         INSTALL_DEVICE = 'install_device'
+        USERS = 'users'
         KERNEL_OPTIONS = 'kernel_options'
         ROLES = 'roles'
         RENAME = 'rename'
@@ -420,6 +421,23 @@ class Inventory(object):
                 self.inv.nodes,
                 self.InvKey.OS,
                 index)[self.InvKey.INSTALL_DEVICE]
+        except KeyError:
+            pass
+
+    def get_nodes_os_users(self, index=None):
+        """Get nodes OS users
+        Args:
+            index (int, optional): List index
+
+        Returns:
+            list: OS user definition dicts
+        """
+
+        try:
+            return self._get_members(
+                self.inv.nodes,
+                self.InvKey.OS,
+                index)[self.InvKey.USERS]
         except KeyError:
             pass
 

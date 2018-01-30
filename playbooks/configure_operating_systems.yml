@@ -22,6 +22,11 @@
     - name: Include localhost variables
       include_vars: host_vars/localhost
 
+- name: Add groups and users
+  hosts: client_nodes
+  tasks:
+    - include: tasks/add_groups_users.yml
+
 - name: Configure interfaces
   hosts: client_nodes
   tasks:
@@ -47,7 +52,7 @@
     - include: tasks/transfer_inventory.yml
 
 - name: Cluster Software Bootstrap
-  hosts: all
+  hosts: client_nodes
   environment: "{{ deployment_environment }}"
   tasks:
     - include: tasks/cmd_bootstrap.yml
