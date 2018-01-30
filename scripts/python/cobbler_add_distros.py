@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -160,7 +160,10 @@ def cobbler_add_distro(path, name):
             "netcfg/dhcp_timeout=1024 "
             "netcfg/choose_interface=auto "
             "ipv6.disable=1")
-        kickstart = "/var/lib/cobbler/kickstarts/%s.seed" % name
+        if os.path.isfile('%s%s.seed' % (KICKSTARTS_DIR, name)):
+            kickstart = '%s%s.seed' % (KICKSTARTS_DIR, name)
+        else:
+            kickstart = '%subuntu-default.seed' % KICKSTARTS_DIR
 
     elif ('centos' in name_list) or ('rhel' in name_list):
         breed = 'redhat'
@@ -176,7 +179,10 @@ def cobbler_add_distro(path, name):
             elif item.startswith('7'):
                 os_version = 'rhel7'
         kernel_options = "text"
-        kickstart = "/var/lib/cobbler/kickstarts/%s.ks" % name
+        if os.path.isfile('%s%s.ks' % (KICKSTARTS_DIR, name)):
+            kickstart = '%s%s.ks' % (KICKSTARTS_DIR, name)
+        else:
+            kickstart = '%sRHEL-7-default.ks' % KICKSTARTS_DIR
 
     elif 'introspection' in name_list:
         breed = 'redhat'  # use default since there is no "buildroot" breed

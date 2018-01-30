@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -61,6 +61,7 @@ def cobbler_add_systems():
         ipv4_pxe = inv.get_nodes_pxe_ipaddr(0, index)
         mac_pxe = inv.get_nodes_pxe_mac(0, index)
         cobbler_profile = inv.get_nodes_os_profile(index)
+        raid1_enabled = False
 
         new_system_create = cobbler_server.new_system(token)
 
@@ -116,6 +117,7 @@ def cobbler_add_systems():
                 ks_meta += (
                     'install_disk=%s install_disk_2=%s ' %
                     (disks[0], disks[1]))
+                raid1_enabled = True
             else:
                 LOG.error(
                     'Invalid install_device value: %s'
@@ -127,6 +129,8 @@ def cobbler_add_systems():
         if INV_PASSWORD_DEFAULT_CRYPTED in inv.inv:
             passwd = inv.inv[INV_PASSWORD_DEFAULT_CRYPTED]
             ks_meta += 'passwd=%s passwdcrypted=true ' % passwd
+        if raid1_enabled:
+            ks_meta += 'raid1_enabled=true ' % passwd
         if ks_meta != "":
             cobbler_server.modify_system(
                 new_system_create,
