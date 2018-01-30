@@ -587,7 +587,7 @@ class Mellanox(SwitchCommon):
         if mlag_ifc is None:
             mlag_ifc = port
         self.send_cmd(
-            self.INTERFACE_CONFIG.format(port) + self.MLAG_ACTIVE.format(port))
+            self.INTERFACE_CONFIG.format(port) + self.MLAG_ACTIVE.format(mlag_ifc))
 
         self.send_cmd(
             self.MLAG_PORT_CHANNEL.format(mlag_ifc) + self.NO_SHUTDOWN)
