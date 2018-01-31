@@ -120,18 +120,23 @@ def cobbler_add_systems():
                 raid1_enabled = True
             else:
                 LOG.error(
-                    'Invalid install_device value: %s'
+                    '%s: Invalid install_device value: %s '
                     'Must be string or two item list.' %
-                    disks)
-        default_user = inv.get_nodes_os_users(index)[0]
-        if INV_OS_NAME in default_user:
-            username = default_user[INV_OS_NAME]
-            ks_meta += 'default_user=%s ' % username
-        if INV_OS_PASSWORD in default_user:
-            passwd = default_user[INV_OS_PASSWORD]
-            ks_meta += 'passwd=%s passwdcrypted=true ' % passwd
+                    (hostname, disks))
         if raid1_enabled:
-            ks_meta += 'raid1_enabled=true ' % passwd
+            ks_meta += 'raid1_enabled=true '
+        users = inv.get_nodes_os_users(index)
+        for user in users:
+            if INV_OS_NAME in user and user[INV_OS_NAME] != 'root':
+                ks_meta += 'default_user=%s ' % user[INV_OS_NAME]
+                LOG.debug("%s: Using \'%s\' as default user" %
+                          (hostname, user[INV_OS_NAME]))
+                if INV_OS_PASSWORD in user:
+                    ks_meta += ('passwd=%s passwdcrypted=true ' %
+                                user[INV_OS_PASSWORD])
+                break
+        else:
+            LOG.debug("%s: No default user found" % hostname)
         if ks_meta != "":
             cobbler_server.modify_system(
                 new_system_create,
