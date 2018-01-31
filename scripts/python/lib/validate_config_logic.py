@@ -198,13 +198,8 @@ class ValidateConfigLogic(object):
             log.error('Config logic validation failed')
             raise UserException(exc)
 
-
-
     def validate_config_logic(self):
         """Config logic validation"""
-
-        #from lib.config import Config
-        #self.cfg = Config(self.config)
 
         self._validate_version()
         self._validate_netmask_prefix()
