@@ -1349,8 +1349,10 @@ class Config(object):
             target_link (str): MLAG peer switch
         """
         switch_idx = self.get_sw_data_index_by_label(label)
-        for target_link in self.yield_sw_data_links_target(switch_idx):
-            if self.get_sw_data_index_by_label(target_link) is not None:
+        for link_idx, target_link in enumerate(
+                self.yield_sw_data_links_target(switch_idx)):
+            if link_idx is not None and self.get_sw_data_links_vlan(
+                    switch_idx, link_idx) is not None:
                 return target_link
 
     def get_sw_data_mstr_switch(self, switch_list):
