@@ -1,6 +1,6 @@
 """Cluster Genesis 'gen' command argument parser"""
 
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -25,7 +25,7 @@ DEPLOYER_DESC = 'Teardown {} deployer elements'.format(PROJECT)
 SWITCHES_DESC = 'Deconfigure switches'
 DEPLOYER_NETWORKS_HELP = ('Deletes {} created interfaces and bridges. \nRemoves {} '
                           'added addresses from external interfaces.'.format(
-                          PROJECT, PROJECT))
+                              PROJECT, PROJECT))
 GITHUB = 'https://github.com/open-power-ref-design-toolkit/cluster-genesis'
 EPILOG = 'home page:\n  %s' % GITHUB
 LOG_LEVEL_CHOICES = ['nolog', 'debug', 'info', 'warning', 'error', 'critical']
@@ -164,4 +164,3 @@ def get_parsed_args():
         pass
 
     return args
-    #return get_args().parse_args()
