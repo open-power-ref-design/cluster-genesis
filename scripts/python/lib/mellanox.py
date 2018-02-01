@@ -419,7 +419,17 @@ class Mellanox(SwitchCommon):
     def show_lag_interfaces(self):
         return self.send_cmd(self.SHOW_IFC_LAG_PORT_CHANNEL)
 
+    def is_mlag_configured(self):
+        mlag_info = self.send_cmd('show mlag')
+        match = re.search(r'\w+Unrecognized command', mlag_info)
+        if match:
+            return False
+        return True
+
     def deconfigure_mlag(self):
+        if not self.is_mlag_configured():
+            self.log.info('MLAG is not configured on switch {}'.format(self.host))
+            return
         # Get MLAG info.  Note that Mellanox supports only 1 IPL port channel
         mlag_info = self.send_cmd('show mlag')
         match = re.search(r'\d+\s+Po(\d+)\s+(\d+)', mlag_info)

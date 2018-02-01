@@ -355,16 +355,21 @@ def configure_data_switch():
     for mstr_sw in mlag_list:
         log.debug('Configuring MLAG.  mlag switch mstr: ' + mstr_sw)
         for sw in mlag_list[mstr_sw]:
-            log.debug('Configuring MLAG on switch {}'.format(sw))
-            sw_dict[sw].configure_mlag(
-                mlag_list[mstr_sw][sw]['vlan'],
-                min(mlag_list[mstr_sw][mstr_sw]['ports']),
-                mlag_list[mstr_sw][sw]['cidr'],
-                mlag_list[mstr_sw][sw]['peer_ip'],
-                mlag_list[mstr_sw][sw]['vip'],
-                mlag_list[mstr_sw][sw]['ports'])
+            if not sw_dict[sw].is_mlag_configured():
+                log.debug('Configuring MLAG on switch {}'.format(sw))
+                sw_dict[sw].configure_mlag(
+                    mlag_list[mstr_sw][sw]['vlan'],
+                    min(mlag_list[mstr_sw][mstr_sw]['ports']),
+                    mlag_list[mstr_sw][sw]['cidr'],
+                    mlag_list[mstr_sw][sw]['peer_ip'],
+                    mlag_list[mstr_sw][sw]['vip'],
+                    mlag_list[mstr_sw][sw]['ports'])
+            else:
+                log.info('MLAG already configured. Skipping'
+                         ' MLAG configuration on switch {}.'.format(sw))
         for sw in mlag_list[mstr_sw]:
-            sw_dict[sw].enable_mlag()
+            if sw_dict[sw].is_mlag_configured():
+                sw_dict[sw].enable_mlag()
 
     # Configure port channels and MLAG port channels
     for bond in chan_ports:
@@ -455,13 +460,14 @@ def deconfigure_data_switch():
                 if len(chan_ports[bond][ntmpl][mstr_sw]) == 2:
                     # Deconfigure mlag channel ports
                     for sw in chan_ports[bond][ntmpl][mstr_sw]:
-                        for idx, port_grp in enumerate(chan_ports[bond][ntmpl]
-                                                       [mstr_sw][sw]):
-                            chan_num = min(chan_ports[bond][ntmpl][mstr_sw]
-                                           [mstr_sw][idx])
-                            log.debug('Delete mlag interface: {} on switch: {}'.
-                                      format(chan_num, sw))
-                            sw_dict[sw].remove_mlag_interface(chan_num)
+                        if sw_dict[sw].is_mlag_configured():
+                            for idx, port_grp in enumerate(chan_ports[bond][ntmpl]
+                                                           [mstr_sw][sw]):
+                                chan_num = min(chan_ports[bond][ntmpl][mstr_sw]
+                                               [mstr_sw][idx])
+                                log.info('Deleting mlag interface: {} on'
+                                         ' switch: {}'.format(chan_num, sw))
+                                sw_dict[sw].remove_mlag_interface(chan_num)
                 else:
                     # deconfigure LAG channel ports
                     for port_grp in chan_ports[bond][ntmpl][mstr_sw][mstr_sw]:
@@ -471,14 +477,17 @@ def deconfigure_data_switch():
                         sw_dict[sw].remove_lag_interface(chan_num)
     # Deconfigure MLAG
     for mstr_sw in mlag_list:
-        log.debug('Deconfiguring MLAG. mlag switch mstr: ' + mstr_sw)
         for sw in mlag_list[mstr_sw]:
-            mlag_ifcs = sw_dict[sw].show_mlag_interfaces()
-            if "Unrecognized command" in mlag_ifcs:
-                log.debug('\nMLAG not configured on switch: {}'.format(sw))
+            if sw_dict[sw].is_mlag_configured():
+                print('\n\nAbout to deconfigure MLAG on switch {}'.format(sw))
+                print('This will stop all MLAG communication on all switch ports')
+                print('OK to deconfigure MLAG?')
+                resp = raw_input("Enter (Y/yes/n): ")
+                if resp in ['Y', 'yes']:
+                    log.debug('Deconfiguring MLAG on switch: {}'.format(sw))
+                    sw_dict[sw].deconfigure_mlag()
             else:
-                log.debug('Deconfiguring MLAG on switch: {}'.format(sw))
-                sw_dict[sw].deconfigure_mlag()
+                log.debug('\nMLAG not configured on switch: {}'.format(sw))
 
     # Deconfigure switch vlans - first remove from ports
     for switch in port_vlans:
