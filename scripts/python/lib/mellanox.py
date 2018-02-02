@@ -325,7 +325,7 @@ class Mellanox(SwitchCommon):
 
     def add_vlans_to_lag_port_channel(self, port, vlans):
         # Enable hybrid mode for port
-        self.send_cmd(self.LAG_PORT_CHANNEL_MODE_TRUNK.format(port))
+        self.send_cmd(self.SET_LAG_PORT_CHANNEL_MODE_TRUNK.format(port))
 
         # Add VLANs to port
         for vlan in vlans:
@@ -341,7 +341,6 @@ class Mellanox(SwitchCommon):
         for vlan in vlans:
             self.send_cmd(
                 self.MLAG_PORT_CHANNEL.format(port) +
-                ' ' +
                 self.SWITCHPORT_HYBRID_ALLOWED_VLAN % vlan)
 
     def set_mtu_for_port(self, port, mtu):
