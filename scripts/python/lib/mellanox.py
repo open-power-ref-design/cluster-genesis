@@ -421,7 +421,7 @@ class Mellanox(SwitchCommon):
 
     def is_mlag_configured(self):
         mlag_info = self.send_cmd('show mlag')
-        match = re.search(r'\w+Unrecognized command', mlag_info)
+        match = re.search(r'\w*Unrecognized command', mlag_info)
         if match:
             return False
         return True
