@@ -23,47 +23,49 @@ _gen()
     prev_2="${COMP_WORDS[COMP_CWORD-2]}"
     prev_3="${COMP_WORDS[COMP_CWORD-3]}"
 
-    opts="-h --help --bridges --gateway -a --all -f -p"
+    comm_opts=" --help --all --log-level-file --log-level-print"
+
+    opts="--networks --gateway"
 
     if [[ ${cur} == * ]] && [[ ${prev} == setup ]]; then
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         return 0
     fi
 
-    opts="-h --help --create-container --mgmt-switches --data-switches "
-    opts+="-a --all -f -p"
+    opts="--create-container --mgmt-switches --data-switches "
 
     if [[ ${cur} == * ]] && [[ ${prev} == config ]]; then
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         return 0
     fi
 
-    opts="-h --help --config-file --cluster-hardware -a --all -f -p"
+    opts="--config-file --cluster-hardware"
 
     if [[ ${cur} == * ]] && [[ ${prev} == validate ]]; then
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         return 0
     fi
 
-    opts="-h --help --create-inventory --install-cobbler --download-os-images "
+    opts="--create-inventory --install-cobbler --download-os-images "
     opts+="--inv-add-ports-ipmi --inv-add-ports-pxe --add-cobbler-distros "
     opts+="--add-cobbler-systems --install-client-os "
-    opts+="-a --all -f -p"
+    opts="$opts""$comm_opts"
 
     if [[ ${cur} == * ]] && [[ ${prev} == deploy ]]; then
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         return 0
     fi
 
-    opts="-h --help --ssh-keyscan --gather-mac-addr --config-client-os "
-    opts+="--lookup-interface-names -a --all -f -p"
+    opts="--ssh-keyscan --gather-mac-addr --config-client-os "
+    opts+="--lookup-interface-names"
+    opts="$opts""$comm_opts"
 
     if [[ ${cur} == * ]] && [[ ${prev} == post-deploy ]]; then
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         return 0
     fi
 
-    opts="setup config validate deploy post-deploy"
+    opts="setup config validate deploy post-deploy --help"
 
     if [[ ${cur} == * ]] && [[ ${prev} == gen ]]; then
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
@@ -79,7 +81,7 @@ _gen()
         return 0
     fi
 
-    opts="-h --help -p --log-level-print -f --log-level-file"
+    opts="$comm_opts"
 
     if [[ ${cur} == * ]] && [[ ${prev_3} == gen ]]; then
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )

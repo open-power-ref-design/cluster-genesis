@@ -35,7 +35,7 @@ import lib.argparse_gen as argparse_gen
 import lib.logger as logger
 import lib.genesis as gen
 from lib.db import Database
-from lib.exception import UserException
+from lib.exception import UserException, UserCriticalException
 from ipmi_power_off import ipmi_power_off
 from ipmi_set_bootdev import ipmi_set_bootdev
 from ipmi_power_on import ipmi_power_on
@@ -49,6 +49,8 @@ class Gen(object):
     """
 
     ROOTUSER = 'root'
+    global COL
+    COL = gen.Color
 
     def __init__(self, args):
         self.args = args
@@ -70,17 +72,40 @@ class Gen(object):
             sys.exit(1)
 
     def _config_mgmt_switches(self):
+        print(COL.scroll_ten, COL.up_ten)
+        print('{}Configuring management switches{}\n'.
+              format(COL.header1, COL.endc))
+        print('This may take a few minutes depending on the size'
+              ' of the cluster')
         try:
             configure_mgmt_switches.configure_mgmt_switches()
-        except UserException as exc:
-            print('Error occured while configuring managment switches: \n' +
-                  exc)
+        except UserCriticalException as exc:
+            print('{}A critical error occured while configuring managment '
+                  'switches: \n{}{}'.format(COL.red, exc, COL.endc))
             sys.exit(1)
+        else:
+            print('\nSuccessfully completed management switch configuration\n')
 
-    def _create_bridges(self):
-        enable_deployer_networks.enable_deployer_network()
+    def _create_deployer_networks(self):
+        print(COL.scroll_ten, COL.up_ten)
+        print('{}Setting up deployer interfaces and networks{}\n'.
+              format(COL.header1, COL.endc))
+        try:
+            enable_deployer_networks.enable_deployer_network()
+        except UserCriticalException as exc:
+            print('{}Critical error occured while setting up deployer networks:'
+                  '\n{}{}'.format(COL.red, exc, COL.endc))
+            sys.exit(1)
+        except UserException as exc:
+            print('{}Error occured while setting up deployer networks: \n{}{}'.
+                  format(COL.yellow, exc, COL.endc))
+        else:
+            print('Successfully completed deployer network setup\n')
 
     def _create_container(self):
+        print(COL.scroll_ten, COL.up_ten)
+        print('{}Creating container for running the Cluster '
+              'Genesis software{}\n'.format(COL.header1, COL.endc))
         from lib.container import Container
 
         cont = Container(self.args.create_container)
@@ -103,44 +128,65 @@ class Gen(object):
         print('Success: Created container')
 
     def _config_file(self):
+        print(COL.scroll_ten, COL.up_ten)
+        print('{}Validating cluster configuration file{}\n'.
+              format(COL.header1, COL.endc))
         dbase = Database()
         try:
             dbase.validate_config(self.args.config_file)
-            print('Success: Config file validation passed')
         except UserException as exc:
             print(exc.message, file=sys.stderr)
-            print('Failure: Config file validation.')
+            print('{}Failure: Config file validation.\n{}{}'.
+                  format(COL.red, exc, COL.endc))
             sys.exit(1)
+        else:
+            print('Successfully completed config file validation.\n')
 
     def _cluster_hardware(self):
-        print('\nDiscovering and validating cluster hardware')
+        print(COL.scroll_ten, COL.up_ten)
+        print('{}Discovering and validating cluster hardware{}\n'.
+              format(COL.header1, COL.endc))
+        err = False
         val = validate_cluster_hardware.ValidateClusterHardware()
         try:
             val.validate_mgmt_switches()
-        except UserException as exc:
-            print(exc)
+        except UserCriticalException as exc:
+            print(exc.message, file=sys.stderr)
+            print('{}Failure: Management switch validation.\n{}{}'.
+                  format(COL.red, exc.message, COL.endc))
             sys.exit(1)
 
         try:
             val.validate_data_switches()
         except UserException as exc:
-            print(exc)
+            print('{}Failure: Data switch validation\n{}{}'.
+                  format(COL.yellow, exc.message, COL.endc))
             print('Warning. Cluster Genesis can continue with deployment, but')
-            print('network configuration will not succeed until issues are resolved')
+            print('data network configuration will not succeed until issues ')
+            print('are resolved')
 
         try:
             val.validate_ipmi()
         except UserException as exc:
-            print(exc)
+            err = True
+            print('{}Failure: Node IPMI validation error\n{}{}'.
+                  format(COL.yellow, exc.message, COL.endc))
             print('Warning. Cluster Genesis can continue with deployment, but')
             print('Not all nodes will be deployed at this time')
 
         try:
             val.validate_pxe(self.args.cluster_hardware)
         except UserException as exc:
-            print(exc)
+            err = True
+            print('{}Failure: Node PXE validation error\n{}{}'.
+                  format(COL.yellow, exc.message, COL.endc))
             print('Warning. Cluster Genesis can continue with deployment, but')
             print('Not all nodes will be deployed at this time')
+
+        if err:
+            print('Cluster hardware validation complete.')
+        else:
+            print('Successfully validated cluster hardware.\n')
 
     def _create_inventory(self):
         from lib.container import Container
@@ -297,6 +343,11 @@ class Gen(object):
         print('Success: SSH host key scan complete')
 
     def _config_data_switches(self):
+        print(COL.scroll_ten, COL.up_ten)
+        print('{}Configuring data switches{}\n'.
+              format(COL.header1, COL.endc))
+        print('This may take a few minutes depending on the size'
+              ' of the cluster')
         if gen.is_container_running():
             from lib.container import Container
             cont = Container(self.args.data_switches)
@@ -396,8 +447,8 @@ class Gen(object):
                     'Fail: Invalid subcommand in container', file=sys.stderr)
                 sys.exit(1)
             self._check_root_user(cmd)
-            if self.args.bridges:
-                self._create_bridges()
+            if self.args.networks:
+                self._create_deployer_networks()
 
         if cmd == argparse_gen.Cmd.CONFIG.value:
             if gen.is_container():

@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [[ "$1" == "setup" ]] && [[ "$2" == "--bridges" ]]; then
+if [[ "$1" == "setup" ]] && [[ "$2" == "--networks" ]]; then
     sudo env "PATH=$PATH" gen.py $@
     exit
 fi
@@ -38,7 +38,7 @@ if [[ "$1" == "deploy" ]] && ([[ "$2" == "-a" ]] || [[ "$2" == "--all" ]] || \
         exit
     fi
 
-    sudo env "PATH=$PATH" gen.py setup --bridges $@
+    sudo env "PATH=$PATH" gen.py setup --networks $@
     if [ $? -ne 0 ]; then
         exit
     fi
@@ -47,6 +47,7 @@ if [[ "$1" == "deploy" ]] && ([[ "$2" == "-a" ]] || [[ "$2" == "--all" ]] || \
     if [ $? -ne 0 ]; then
         exit
     fi
+
     sudo env "PATH=$PATH" gen.py validate --cluster-hardware network $@
     if [ $? -ne 0 ]; then
         exit

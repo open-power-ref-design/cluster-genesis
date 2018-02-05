@@ -121,9 +121,9 @@ def get_args(parser_args=False):
         setup=True)
 
     parser_setup.add_argument(
-        '--bridges',
+        '--networks',
         action='store_true',
-        help='Create deployer bridges')
+        help='Create deployer interfaces, vlans and bridges')
 
     parser_setup.add_argument(
         '--gateway',
@@ -291,7 +291,7 @@ def get_args(parser_args=False):
 def _check_setup(args, subparser):
     if not args.bridges and not args.gateway and not args.all:
         subparser.error(
-            'one of the arguments --bridges --gateway -a/--all is required')
+            'one of the arguments --networks --gateway -a/--all is required')
 
 
 def _check_config(args, subparser):

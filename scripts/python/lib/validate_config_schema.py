@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Config schema validation"""
 
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -262,4 +262,3 @@ class ValidateConfigSchema(object):
                     error.cause, error.message)
             self.log.error(exc)
             raise UserException(exc)
-        self.log.info('Config schema validation completed successfully')

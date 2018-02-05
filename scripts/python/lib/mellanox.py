@@ -151,13 +151,13 @@ class Mellanox(SwitchCommon):
             raise SwitchException(
                 'Failed setting port {} to {} mode'.format(port, mode))
         if ports[port]['mode'] == 'hybrid' and mode == 'trunk':
-            self.log.info(
+            self.log.debug(
                 'Set port {} to {} mode'.format(port, mode))
         elif ports[port]['mode'] == 'access' and mode == 'access':
-            self.log.info(
+            self.log.debug(
                 'Set port {} to {} mode'.format(port, mode))
         elif mode == 'trunk':
-            self.log.info(
+            self.log.debug(
                 'Set port {} to {} mode'.format(port, mode))
         else:
             raise SwitchException(

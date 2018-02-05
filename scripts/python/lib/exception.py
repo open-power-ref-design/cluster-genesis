@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """User Exception"""
 
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -22,4 +22,8 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 
 
 class UserException(Exception):
+    pass
+
+
+class UserCriticalException(Exception):
     pass
