@@ -59,6 +59,10 @@ ANSIBLE_PLAYBOOK = 'ansible-playbook'
 POWER_TIME_OUT = 60
 POWER_WAIT = 5
 POWER_SLEEP_TIME = 2 * 60
+COBBLER_INSTALL_DIR = '/opt/cobbler'
+COBBLER_USER = 'cobbler'
+COBBLER_PASS = 'cobbler'
+DHCP_POOL_START = 21
 
 
 def load_localhost(filename):
@@ -192,6 +196,22 @@ def get_power_wait():
 
 def get_power_sleep_time():
     return POWER_SLEEP_TIME
+
+
+def get_cobbler_install_dir():
+    return COBBLER_INSTALL_DIR
+
+
+def get_cobbler_user():
+    return COBBLER_USER
+
+
+def get_cobbler_pass():
+    return COBBLER_PASS
+
+
+def get_dhcp_pool_start():
+    return DHCP_POOL_START
 
 
 if os.path.isfile(GEN_PATH + "playbooks/host_vars/localhost"):

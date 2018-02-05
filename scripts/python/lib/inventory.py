@@ -367,6 +367,30 @@ class Inventory(object):
             self.inv.nodes, self.InvKey.IPMI,
             index)[self.InvKey.IPADDRS][if_index]
 
+    def set_nodes_ipmi_ipaddr(self, if_index, index, ipaddr):
+        """Set nodes IPMI interface ipaddr
+        Args:
+            if_index (int): Interface index
+            index (int): List index
+        """
+
+        self.inv.nodes[index].ipmi.ipaddrs[if_index] = ipaddr
+        self.dbase.dump_inventory(self.inv)
+
+    def get_nodes_ipmi_mac(self, if_index, index=None):
+        """Get nodes IPMI interface MAC address
+        Args:
+            if_index (int): Interface index
+            index (int, optional): List index
+
+        Returns:
+            str: nodes IPMI MAC
+        """
+
+        return self._get_members(
+            self.inv.nodes, self.InvKey.IPMI,
+            index)[self.InvKey.MACS][if_index]
+
     def get_nodes_pxe_ipaddr(self, if_index, index=None):
         """Get nodes PXE interface ipaddr
         Args:
@@ -380,6 +404,16 @@ class Inventory(object):
         return self._get_members(
             self.inv.nodes, self.InvKey.PXE,
             index)[self.InvKey.IPADDRS][if_index]
+
+    def set_nodes_pxe_ipaddr(self, if_index, index, ipaddr):
+        """Set nodes PXE interface ipaddr
+        Args:
+            if_index (int): Interface index
+            index (int): List index
+        """
+
+        self.inv.nodes[index].pxe.ipaddrs[if_index] = ipaddr
+        self.dbase.dump_inventory(self.inv)
 
     def get_nodes_pxe_mac(self, if_index, index=None):
         """Get nodes PXE interface MAC address

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -21,9 +21,10 @@ import sys
 import xmlrpclib
 
 import lib.logger as logger
+import lib.genesis as gen
 
-COBBLER_USER = 'cobbler'
-COBBLER_PASS = 'cobbler'
+COBBLER_USER = gen.get_cobbler_user()
+COBBLER_PASS = gen.get_cobbler_pass()
 
 
 def cobbler_set_netboot_enabled(netboot_enabled_value):

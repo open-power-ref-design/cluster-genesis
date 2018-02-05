@@ -259,6 +259,21 @@ class Gen(object):
             sys.exit(1)
         print('PXE ports added to inventory')
 
+    def _reserve_ipmi_pxe_ips(self):
+        from lib.container import Container
+
+        cont = Container(self.args.reserve_ipmi_pxe_ips)
+        cmd = []
+        cmd.append(gen.get_container_venv_python_exe())
+        cmd.append(os.path.join(
+            gen.get_container_python_path(), 'inv_reserve_ipmi_pxe_ips.py'))
+        try:
+            cont.run_command(cmd)
+        except UserException as exc:
+            print('Fail:', exc.message, file=sys.stderr)
+            sys.exit(1)
+        print('Success: IPMI and PXE IP Addresses Reserved')
+
     def _add_cobbler_systems(self):
         from lib.container import Container
 
@@ -432,6 +447,7 @@ class Gen(object):
                 self.args.download_os_images = self.args.all
                 self.args.inv_add_ports_ipmi = self.args.all
                 self.args.inv_add_ports_pxe = self.args.all
+                self.args.reserve_ipmi_pxe_ips = self.args.all
                 self.args.add_cobbler_distros = self.args.all
                 self.args.add_cobbler_systems = self.args.all
                 self.args.install_client_os = self.args.all
@@ -446,6 +462,8 @@ class Gen(object):
                 self._inv_add_ports_ipmi()
             if argparse_gen.is_arg_present(self.args.inv_add_ports_pxe):
                 self._inv_add_ports_pxe()
+            if argparse_gen.is_arg_present(self.args.reserve_ipmi_pxe_ips):
+                self._reserve_ipmi_pxe_ips()
             if argparse_gen.is_arg_present(self.args.add_cobbler_distros):
                 self._add_cobbler_distros()
             if argparse_gen.is_arg_present(self.args.add_cobbler_systems):
