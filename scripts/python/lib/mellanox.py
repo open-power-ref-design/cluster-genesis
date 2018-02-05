@@ -67,6 +67,10 @@ class Mellanox(SwitchCommon):
     SHOW_PORT = 'show interfaces switchport'
     SET_SWITCHPORT_MODE_TRUNK = ('interface ethernet 1/{} switchport mode hybrid')
     SET_SWITCHPORT_MODE_ACCESS = ('interface ethernet 1/{} switchport mode access')
+    SET_MLAG_PORT_CHANNEL_MODE_TRUNK = \
+        'interface mlag-port-channel {} switchport mode hybrid'
+    SET_LAG_PORT_CHANNEL_MODE_TRUNK = \
+        'interface port-channel {} switchport mode hybrid'
     SWITCHPORT_HYBRID_ALLOWED_VLAN = \
         'switchport hybrid allowed-vlan add %d'
     ADD_VLANS_TO_PORT = \
@@ -143,6 +147,9 @@ class Mellanox(SwitchCommon):
             return
         ports = self.show_ports('std')
         port = str(port)
+        if port not in ports:
+            raise SwitchException(
+                'Failed setting port {} to {} mode'.format(port, mode))
         if ports[port]['mode'] == 'hybrid' and mode == 'trunk':
             self.log.info(
                 'Set port {} to {} mode'.format(port, mode))
@@ -318,9 +325,7 @@ class Mellanox(SwitchCommon):
 
     def add_vlans_to_lag_port_channel(self, port, vlans):
         # Enable hybrid mode for port
-        self.send_cmd(
-            self.LAG_PORT_CHANNEL.format(port) +
-            self.SWITCHPORT_MODE_HYBRID)
+        self.send_cmd(self.LAG_PORT_CHANNEL_MODE_TRUNK.format(port))
 
         # Add VLANs to port
         for vlan in vlans:
@@ -330,9 +335,7 @@ class Mellanox(SwitchCommon):
 
     def add_vlans_to_mlag_port_channel(self, port, vlans):
         # Enable hybrid mode for port
-        self.send_cmd(
-            self.MLAG_PORT_CHANNEL.format(port) +
-            self.SWITCHPORT_MODE_HYBRID)
+        self.send_cmd(self.SET_MLAG_PORT_CHANNEL_MODE_TRUNK.format(port))
 
         # Add VLANs to port
         for vlan in vlans:
@@ -416,7 +419,17 @@ class Mellanox(SwitchCommon):
     def show_lag_interfaces(self):
         return self.send_cmd(self.SHOW_IFC_LAG_PORT_CHANNEL)
 
+    def is_mlag_configured(self):
+        mlag_info = self.send_cmd('show mlag')
+        match = re.search(r'\w+Unrecognized command', mlag_info)
+        if match:
+            return False
+        return True
+
     def deconfigure_mlag(self):
+        if not self.is_mlag_configured():
+            self.log.info('MLAG is not configured on switch {}'.format(self.host))
+            return
         # Get MLAG info.  Note that Mellanox supports only 1 IPL port channel
         mlag_info = self.send_cmd('show mlag')
         match = re.search(r'\d+\s+Po(\d+)\s+(\d+)', mlag_info)
@@ -584,7 +597,7 @@ class Mellanox(SwitchCommon):
         if mlag_ifc is None:
             mlag_ifc = port
         self.send_cmd(
-            self.INTERFACE_CONFIG.format(port) + self.MLAG_ACTIVE.format(port))
+            self.INTERFACE_CONFIG.format(port) + self.MLAG_ACTIVE.format(mlag_ifc))
 
         self.send_cmd(
             self.MLAG_PORT_CHANNEL.format(mlag_ifc) + self.NO_SHUTDOWN)

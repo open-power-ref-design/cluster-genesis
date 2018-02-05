@@ -318,12 +318,16 @@ def main():
             mtu = rlinput('Enter mtu (0 for default mtu): ', 0)
             print(sw.set_mtu_for_port(port, mtu))
 
-        # Test show MLAG interfaces summary
+        # Test is MLAG configured
         if 19 == test:
+            print(sw.is_mlag_configured())
+
+        # Test show MLAG interfaces summary
+        if 20 == test:
             print(sw.show_mlag_interfaces())
 
         # Test create MLAG interface (MLAG port channel)
-        if 20 == test:
+        if 21 == test:
             print('\nTest create MLAG interface')
             mlag_ifc = int(rlinput('Enter mlag ifc #: ', str(mlag_ifc)))
             cfg['mlag_ifc'] = mlag_ifc
@@ -334,7 +338,7 @@ def main():
                 print(exc)
 
         # Test remove MLAG interface
-        if 21 == test:
+        if 22 == test:
             print('\nTest remove MLAG interface')
             mlag_ifc = int(rlinput('Enter mlag ifc #: ', str(mlag_ifc)))
             cfg['mlag_ifc'] = mlag_ifc
@@ -345,18 +349,18 @@ def main():
                 print(exc)
 
         # Test deconfigure MLAG interface
-        if 22 == test:
+        if 23 == test:
             try:
                 sw.deconfigure_mlag()
             except SwitchException as exc:
                 print(exc)
 
         # Test show LAG interfaces summary
-        if 23 == test:
+        if 24 == test:
             print(sw.show_lag_interfaces())
 
         # Test create LAG interface (LAG port channel)
-        if 24 == test:
+        if 25 == test:
             print('\nTest create LAG interface')
             lag_ifc = int(rlinput('Enter lag ifc #: ', str(lag_ifc)))
             cfg['lag_ifc'] = lag_ifc
@@ -367,7 +371,7 @@ def main():
                 print(exc)
 
         # Test remove LAG interface
-        if 25 == test:
+        if 26 == test:
             print('\nTest remove LAG interface')
             lag_ifc = int(rlinput('Enter lag ifc #: ', str(lag_ifc)))
             cfg['lag_ifc'] = lag_ifc

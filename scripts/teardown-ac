@@ -1,4 +1,4 @@
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -20,17 +20,33 @@ _teardown()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    prevprev="${COMP_WORDS[COMP_CWORD-2]}"
+    prev_2="${COMP_WORDS[COMP_CWORD-2]}"
+    prev_3="${COMP_WORDS[COMP_CWORD-3]}"
+
     opts="-h --help --networks --container -a --all -f -p"
 
-    if [[ ${cur} == -* ]] && [[ ${prev} == deployer ]]; then
+    if [[ ${cur} == * ]] && [[ ${prev} == deployer ]]; then
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         return 0
     fi
 
-    opts="deployer"
+    opts="-h --help --data --mgmt -a --all -f -p"
 
-    if [[ ${cur} == * ]] && [[ ${prevprev} != gen ]]; then
+    if [[ ${cur} == * ]] && [[ ${prev} == switches ]]; then
+        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+        return 0
+    fi
+
+    opts="deployer switches"
+
+    if [[ ${cur} == * ]] && [[ ${prev} = teardown ]]; then
+        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+        return 0
+    fi
+
+    opts="-h --help -p --log-level-print -f --log-level-file"
+
+    if [[ ${cur} == * ]] && [[ ${prev_3} == teardown ]]; then
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         return 0
     fi

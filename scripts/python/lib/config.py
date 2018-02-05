@@ -75,10 +75,13 @@ class Config(object):
         IPADDR_LIST = 'IPADDR_list'
         IPADDR_START = 'IPADDR_start'
 
-    def __init__(self):
+    def __init__(self, cfg=None):
         self.log = logger.getlogger()
-        dbase = Database()
-        self.cfg = dbase.load_config()
+        if cfg:
+            self.cfg = cfg
+        else:
+            dbase = Database()
+            self.cfg = dbase.load_config()
 
     @staticmethod
     def _netmask_to_prefix(netmask):
@@ -2382,7 +2385,7 @@ class Config(object):
         if self.CfgKey.RENAME in node_template.physical_interfaces.data[index]:
             return node_template.physical_interfaces.data[index].rename
         else:
-            return True
+            return False
 
     def get_ntmpl_phyintf_data_pt_cnt(self, node_template_index, data_index):
         """
@@ -2421,7 +2424,7 @@ class Config(object):
 
         node_template = self.cfg.node_templates[node_template_index]
         if index is None:
-            return node_template.physical_interfaces.data[data_index].ports
+            return node_template.physical_interfaces.data[data_index].ports[:]
         return node_template.physical_interfaces.data[data_index].ports[index]
 
     def yield_ntmpl_phyintf_data_ports(self, node_template_index, data_index):
@@ -2502,4 +2505,7 @@ class Config(object):
             dict: Network definitions
         """
 
-        return self.cfg.networks
+        if self.CfgKey.NETWORKS in self.cfg:
+            return self.cfg.networks
+        else:
+            return []

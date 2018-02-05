@@ -1,6 +1,6 @@
 """Cluster Genesis 'gen' command argument parser"""
 
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -20,10 +20,12 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 
 PROJECT = 'Cluster Genesis'
 DEPLOYER_CMD = 'deployer'
-
+SWITCHES_CMD = 'switches'
 DEPLOYER_DESC = 'Teardown {} deployer elements'.format(PROJECT)
+SWITCHES_DESC = 'Deconfigure switches'
 DEPLOYER_NETWORKS_HELP = ('Deletes {} created interfaces and bridges. \nRemoves {} '
-                          'added addresses from external interfaces.'.format(PROJECT, PROJECT))
+                          'added addresses from external interfaces.'.format(
+                              PROJECT, PROJECT))
 GITHUB = 'https://github.com/open-power-ref-design-toolkit/cluster-genesis'
 EPILOG = 'home page:\n  %s' % GITHUB
 LOG_LEVEL_CHOICES = ['nolog', 'debug', 'info', 'warning', 'error', 'critical']
@@ -31,7 +33,7 @@ LOG_LEVEL_FILE = ['info']
 LOG_LEVEL_PRINT = ['info']
 
 
-def get_args():
+def get_args(parser_args=False):
     """Get 'teardown' command arguments"""
 
     parser = ArgumentParser(
@@ -69,6 +71,14 @@ def get_args():
         parents=[common_parser],
         formatter_class=RawTextHelpFormatter)
 
+    parser_switches = subparsers.add_parser(
+        SWITCHES_CMD,
+        description='%s - %s' % (PROJECT, SWITCHES_DESC),
+        help=SWITCHES_DESC,
+        epilog=EPILOG,
+        parents=[common_parser],
+        formatter_class=RawTextHelpFormatter)
+
     # 'deployer' subcommand arguments
     parser_deployer.set_defaults(
         deployer=True)
@@ -93,14 +103,29 @@ def get_args():
         action='store_true',
         help='Apply all actions')
 
-    # Check arguments
-    args = parser.parse_args()
-    try:
-        if args.deployer:
-            _check_deployer(args, parser_deployer)
-    except AttributeError:
-        pass
+    # 'switches' subcommand arguments
+    parser_switches.set_defaults(
+        switches=True)
 
+    parser_switches.add_argument(
+        '--data',
+        action='store_true',
+        help='Deconfigure data switches.  Deconfiguration is driven by the '
+        'config.yml file.')
+
+    parser_switches.add_argument(
+        '--mgmt',
+        action='store_true',
+        help='Deconfigure Mgmt switches.  Deconfiguration is driven by the '
+        'config.yml file.')
+
+    parser_switches.add_argument(
+        '-a', '--all',
+        action='store_true',
+        help='Deconfigure all switches.')
+
+    if parser_args:
+        return (parser, parser_deployer, parser_switches)
     return parser
 
 
@@ -112,7 +137,30 @@ def _check_deployer(args, subparser):
             ' --gateway -a/--all is required')
 
 
+def _check_switches(args, subparser):
+    if not args.data and not args.mgmt and not args.all:
+        subparser.error(
+            'one of the arguments --data --mgmt'
+            ' -a/--all is required')
+
+
 def get_parsed_args():
     """Get parsed 'gen' command arguments"""
 
-    return get_args().parse_args()
+    parser, parser_deployer, parser_switches = get_args(parser_args=True)
+    args = parser.parse_args()
+
+    # Check arguments
+    try:
+        if args.deployer:
+            _check_deployer(args, parser_deployer)
+    except AttributeError:
+        pass
+
+    try:
+        if args.switches:
+            _check_switches(args, parser_switches)
+    except AttributeError:
+        pass
+
+    return args
