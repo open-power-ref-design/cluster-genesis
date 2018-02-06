@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -34,7 +34,7 @@ import lib.logger as logger
 
 INSTALL_DIR = '/opt/cobbler'
 URL = 'https://github.com/cobbler/cobbler.git'
-BRANCH = 'release26'
+BRANCH = 'release28'
 
 DHCP_POOL_START = 150
 DHCP_POOL_SIZE = 50
