@@ -33,12 +33,17 @@ def bash_cmd(cmd):
 
     Args:
         cmd (str): Command to run
+
+    Returns:
+        output (str): stdout from command
     """
     log = logger.getlogger()
     command = ['bash', '-c', cmd]
     log.debug('Run subprocess: %s' % ' '.join(command))
     output = subprocess.check_output(command, universal_newlines=True)
     log.debug(output)
+
+    return output
 
 
 def backup_file(path):

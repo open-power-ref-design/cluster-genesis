@@ -41,8 +41,8 @@ POWER_WAIT = gen.get_power_wait()
 SLEEP_TIME = gen.get_power_sleep_time()
 
 
-class IPGenerator(object):
-    """Generate sequential IP addresses in a given network
+class IPManager(object):
+    """Manage IP address assignments from a given network
 
     Args:
         network (IPNetwork): netaddr IPNetwork object
@@ -99,19 +99,17 @@ def inv_set_ipmi_pxe_ip():
     # All nodes should be powered off before starting
     ipmi_power_off(POWER_TIME_OUT, POWER_WAIT)
 
-    # Create IPGenerator object for IPMI and/or PXE networks
+    # Create IPManager object for IPMI and/or PXE networks
     start_offset = gen.get_dhcp_pool_start()
     for index, netw_type in enumerate(cfg.yield_depl_netw_client_type()):
         ip = cfg.get_depl_netw_client_cont_ip(index)
         netmask = cfg.get_depl_netw_client_netmask(index)
         if netw_type == 'ipmi':
-            ipmiNetwork = IPGenerator(IPNetwork(ip + '/' + netmask),
-                                      start_offset)
+            ipmiNetwork = IPManager(IPNetwork(ip + '/' + netmask), start_offset)
         elif netw_type == 'pxe':
-            pxeNetwork = IPGenerator(IPNetwork(ip + '/' + netmask),
-                                     start_offset)
+            pxeNetwork = IPManager(IPNetwork(ip + '/' + netmask), start_offset)
 
-    # If only one network is defined use the same IPGenerator for both
+    # If only one network is defined use the same IPManager for both
     if ipmiNetwork is None and pxeNetwork is not None:
         ipmiNetwork = pxeNetwork
     elif ipmiNetwork is not None and pxeNetwork is None:
