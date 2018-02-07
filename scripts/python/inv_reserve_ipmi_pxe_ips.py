@@ -173,7 +173,8 @@ def inv_set_ipmi_pxe_ip():
     # Check connections for set amount of time
     end_time = time() + WAIT_TIME
     while time() < end_time and len(nodes_list) > 0:
-        for list_index, node in enumerate(nodes_list[:]):
+        success_list = []
+        for list_index, node in enumerate(nodes_list):
             hostname = node['hostname']
             index = node['index']
             ipmi_userid = node['ipmi_userid']
@@ -203,7 +204,11 @@ def inv_set_ipmi_pxe_ip():
                          'Original IP: %s New IP: %s' %
                          (hostname, ipmi_mac, ipmi_ipaddr, ipmi_new_ipaddr))
                 inv.set_nodes_ipmi_ipaddr(0, index, ipmi_new_ipaddr)
-                del nodes_list[list_index]
+                success_list.append(list_index)
+
+        # Remove nodes that connected successfully
+        for remove_index in success_list:
+            del nodes_list[remove_index]
 
     for node in nodes_list:
         log.error('Unable to connect to BMC at new IPMI IP address- Node: %s '

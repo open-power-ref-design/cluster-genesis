@@ -109,13 +109,13 @@ def cobbler_add_systems():
         users = inv.get_nodes_os_users(index)
         if users is not None:
             for user in users:
-                if INV_OS_NAME in user and user[INV_OS_NAME] != 'root':
-                    ks_meta += 'default_user=%s ' % user[INV_OS_NAME]
+                if 'name' in user and user['name'] != 'root':
+                    ks_meta += 'default_user=%s ' % user['name']
                     LOG.debug("%s: Using \'%s\' as default user" %
-                              (hostname, user[INV_OS_NAME]))
-                    if INV_OS_PASSWORD in user:
+                              (hostname, user['name']))
+                    if 'password' in user:
                         ks_meta += ('passwd=%s passwdcrypted=true ' %
-                                    user[INV_OS_PASSWORD])
+                                    user['password'])
                     break
             else:
                 LOG.debug("%s: No default user found" % hostname)
