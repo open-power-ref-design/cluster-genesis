@@ -107,17 +107,20 @@ def cobbler_add_systems():
         if raid1_enabled:
             ks_meta += 'raid1_enabled=true '
         users = inv.get_nodes_os_users(index)
-        for user in users:
-            if 'name' in user and user['name'] != 'root':
-                ks_meta += 'default_user=%s ' % user['name']
-                LOG.debug("%s: Using \'%s\' as default user" %
-                          (hostname, user['name']))
-                if 'password' in user:
-                    ks_meta += ('passwd=%s passwdcrypted=true ' %
-                                user['password'])
-                break
+        if users is not None:
+            for user in users:
+                if INV_OS_NAME in user and user[INV_OS_NAME] != 'root':
+                    ks_meta += 'default_user=%s ' % user[INV_OS_NAME]
+                    LOG.debug("%s: Using \'%s\' as default user" %
+                              (hostname, user[INV_OS_NAME]))
+                    if INV_OS_PASSWORD in user:
+                        ks_meta += ('passwd=%s passwdcrypted=true ' %
+                                    user[INV_OS_PASSWORD])
+                    break
+            else:
+                LOG.debug("%s: No default user found" % hostname)
         else:
-            LOG.debug("%s: No default user found" % hostname)
+            LOG.debug("%s: No users defined" % hostname)
         if ks_meta != "":
             cobbler_server.modify_system(
                 new_system_create,
