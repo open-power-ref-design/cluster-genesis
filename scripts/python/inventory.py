@@ -31,7 +31,9 @@ SSH_USER = 'root'
 SSH_PRIVATE_KEY = genesis.get_ssh_private_key_file()
 INVENTORY_INIT = {
     'all': {
-        'vars': {},
+        'vars': {
+            'env_variables': {}
+        },
         'hosts': ['deployer', 'localhost'],
         'children': ['client_nodes']
     },
@@ -57,6 +59,10 @@ def generate_dynamic_inventory():
 
     meta_hostvars = dynamic_inventory['_meta']['hostvars']
 
+    # Add 'env_variables' to 'all' 'vars'
+    dynamic_inventory['all']['vars']['env_variables'] = (
+        cfg.get_globals_env_variables())
+
     # Add 'localhost' to inventory
     meta_hostvars['localhost'] = {}
     meta_hostvars['localhost']['ansible_connection'] = 'local'
@@ -66,6 +72,12 @@ def generate_dynamic_inventory():
     meta_hostvars['deployer']['ansible_host'] = cfg.get_depl_netw_cont_ip()
     meta_hostvars['deployer']['ansible_user'] = SSH_USER
     meta_hostvars['deployer']['ansible_ssh_private_key_file'] = SSH_PRIVATE_KEY
+
+    # Add 'software_bootstrap' list to 'client_nodes' 'vars' if not empty
+    software_bootstrap = cfg.get_software_bootstrap()
+    if len(software_bootstrap) > 0:
+        dynamic_inventory['client_nodes']['vars']['software_bootstrap'] = (
+            software_bootstrap)
 
     # Add client nodes to inventory
     for index, hostname in enumerate(inv.yield_nodes_hostname()):

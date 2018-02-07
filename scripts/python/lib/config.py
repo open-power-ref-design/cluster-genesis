@@ -74,6 +74,7 @@ class Config(object):
         ADDRESS_START = 'address_start'
         IPADDR_LIST = 'IPADDR_list'
         IPADDR_START = 'IPADDR_start'
+        SOFTWARE_BOOTSTRAP = 'software_bootstrap'
 
     def __init__(self, cfg=None):
         self.log = logger.getlogger()
@@ -164,7 +165,7 @@ class Config(object):
         try:
             return self.cfg.globals.env_variables
         except AttributeError:
-            pass
+            return {}
 
     def is_passive_mgmt_switches(self):
         """Get management switch mode
@@ -2509,5 +2510,17 @@ class Config(object):
 
         if self.CfgKey.NETWORKS in self.cfg:
             return self.cfg.networks
+        else:
+            return []
+
+    def get_software_bootstrap(self):
+        """Get top level 'software_bootstrap' dictionary
+
+        Returns:
+            list: Software bootstrap list
+        """
+
+        if self.CfgKey.SOFTWARE_BOOTSTRAP in self.cfg:
+            return self.cfg[self.CfgKey.SOFTWARE_BOOTSTRAP]
         else:
             return []

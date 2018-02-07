@@ -1,5 +1,5 @@
 ---
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -16,9 +16,12 @@
 # limitations under the License.
 
 - name: Run Bootstrap Command
-  shell: "{{ software_bootstrap[item] }}"
-  when: "groups.{{ item }} is defined and inventory_hostname in groups.{{ item }}"
-  with_items: "{{ software_bootstrap.keys() }}"
+  shell: "{{ item.command }}"
+  args:
+    "{{ item.executable | default('/bin/sh') }}"
+  when: ((item.hosts in groups and hostname in groups[item.hosts]) or
+         item.hosts == hostname)
+  with_items: "{{ software_bootstrap }}"
   register: command_result
 
 - name: Print stdout
