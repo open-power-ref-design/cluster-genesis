@@ -149,7 +149,8 @@ class Mellanox(SwitchCommon):
         port = str(port)
         if port not in ports:
             raise SwitchException(
-                'Failed setting port {} to {} mode'.format(port, mode))
+                'Port inaccessible (may already be in port channel).'
+                '\nFailed setting port {} to {} mode'.format(port, mode))
         if ports[port]['mode'] == 'hybrid' and mode == 'trunk':
             self.log.debug(
                 'Set port {} to {} mode'.format(port, mode))
@@ -324,6 +325,12 @@ class Mellanox(SwitchCommon):
             self.NO_MLAG_CHANNEL_GROUP)
 
     def add_vlans_to_lag_port_channel(self, port, vlans):
+        ports = self.show_ports('std')
+        port = str(port)
+        if port not in ports:
+            raise SwitchException(
+                'Port inaccessible (may already be in port channel).'
+                '\nFailed adding vlans {} to port {}'.format(vlans, port))
         # Enable hybrid mode for port
         self.send_cmd(self.SET_LAG_PORT_CHANNEL_MODE_TRUNK.format(port))
 
@@ -334,6 +341,12 @@ class Mellanox(SwitchCommon):
                 self.SWITCHPORT_HYBRID_ALLOWED_VLAN % vlan)
 
     def add_vlans_to_mlag_port_channel(self, port, vlans):
+        ports = self.show_ports('std')
+        port = str(port)
+        if port not in ports:
+            raise SwitchException(
+                'Port inaccessible (may already be in MLAG port channel).'
+                '\nFailed adding vlans {} to port {}'.format(vlans, port))
         # Enable hybrid mode for port
         self.send_cmd(self.SET_MLAG_PORT_CHANNEL_MODE_TRUNK.format(port))
 

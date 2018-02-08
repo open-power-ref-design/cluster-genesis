@@ -25,6 +25,7 @@ import pprint
 import lib.logger as logger
 from lib.config import Config
 from lib.switch import SwitchFactory
+from lib.switch_exception import SwitchException
 # from write_switch_memory import WriteSwitchMemory
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -341,8 +342,17 @@ def configure_data_switch():
                     vlans.append(vlan)
                     sw_dict[switch].create_vlan(vlan)
                     log.debug('Creating vlan {} on switch {}'.format(vlan, switch))
-            sw_dict[switch].set_switchport_mode('trunk', port)
-            sw_dict[switch].add_vlans_to_port(port, port_vlans[switch][port])
+            try:
+                sw_dict[switch].set_switchport_mode('trunk', port)
+            except SwitchException as exc:
+                log.warning('Switch: {}. Failed setting port {} to trunk mode'.
+                            format(switch, port))
+            try:
+                sw_dict[switch].add_vlans_to_port(port, port_vlans[switch][port])
+            except SwitchException as exc:
+                log.warning('Switch: {}. Failed adding vlans {} to port {}'.
+                            format(switch, port_vlans[switch][port], port))
+                log.warning(exc.message)
             log.debug('switch: {} port: {} vlans: {}'.format(
                 switch, port, port_vlans[switch][port]))
 
@@ -411,8 +421,9 @@ def configure_data_switch():
                             for port in port_grp:
                                 print('.', end="")
                                 sys.stdout.flush()
-                                log.debug('Switch {}, adding port {} to mlag chan '
-                                          'num: {}'.format(sw, port, chan_num))
+                                log.debug('Switch {}, adding port {} to mlag port'
+                                          ' channel: {}'.format(sw, port_grp,
+                                                                chan_num))
                                 sw_dict[sw].bind_port_to_mlag_interface(
                                     port, chan_num)
                 else:
@@ -434,15 +445,15 @@ def configure_data_switch():
                                 sw_dict[sw].add_vlans_to_lag_port_channel(
                                     chan_num, vlans)
                             if mtu:
-                                log.debug('set mtu for lag port channel: {}'.format(mtu))
-                                sw_dict[sw].set_mtu_for_lag_port_channel(chan_num, mtu)
-                            for port in port_grp:
-                                print('.', end="")
-                                sys.stdout.flush()
-                                log.debug('Adding port {} to lag chan num: {}'.format(
-                                    port, chan_num))
-                                sw_dict[sw].bind_port_to_lag_interface(port, chan_num)
-                            sw_dict[sw].bind_ports_to_lag_interface(port_grp, chan_num)
+                                log.debug('set mtu for lag port channel: {}'.
+                                          format(mtu))
+                                sw_dict[sw].set_mtu_for_lag_port_channel(
+                                    chan_num, mtu)
+
+                            log.debug('Switch: {}, adding port(s) {} to lag chan'
+                                      ' num: {}'.format(sw, port, chan_num))
+                            sw_dict[sw].bind_ports_to_lag_interface(port_grp,
+                                                                    chan_num)
 
 
 def deconfigure_data_switch():

@@ -173,7 +173,8 @@ class SwitchCommon(object):
         vlan = str(vlan)
         port = str(port)
         ports = self.show_ports('std')
-        return vlan in ports[port]['avlans']
+        if port in ports:
+            return vlan in ports[port]['avlans']
 
     def create_vlan(self, vlan):
         self.send_cmd(self.CREATE_VLAN.format(vlan))

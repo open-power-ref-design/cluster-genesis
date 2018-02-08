@@ -36,6 +36,7 @@ import lib.logger as logger
 import lib.genesis as gen
 from lib.db import Database
 from lib.exception import UserException, UserCriticalException
+from lib.switch_exception import SwitchException
 from ipmi_power_off import ipmi_power_off
 from ipmi_set_bootdev import ipmi_set_bootdev
 from ipmi_power_on import ipmi_power_on
@@ -358,14 +359,21 @@ class Gen(object):
             try:
                 cont.run_command(cmd)
             except UserException as exc:
-                print('Fail:', exc.message, file=sys.stderr)
-            print('Succesfully configured data switches')
+                print('\n{}Fail: {}{}'.format(COL.red, exc.message, COL.endc),
+                      file=sys.stderr)
+            else:
+                print('\nSuccesfully configured data switches')
         else:
             try:
                 configure_data_switches.configure_data_switch()
             except UserException as exc:
-                print('Fail:', exc.message, file=sys.stderr)
-            print('Succesfully configured data switches')
+                print('\n{}Fail: {}{}'.format(COL.red, exc.message, COL.endc),
+                      file=sys.stderr)
+            except SwitchException as exc:
+                print('\n{}Fail (switch error): {}{}'.format(
+                      COL.red, exc.message, COL.endc), file=sys.stderr)
+            else:
+                print('\nSuccesfully configured data switches')
 
     def _gather_mac_addr(self):
         from lib.container import Container
