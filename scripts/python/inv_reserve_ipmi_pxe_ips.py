@@ -207,7 +207,7 @@ def inv_set_ipmi_pxe_ip():
                 success_list.append(list_index)
 
         # Remove nodes that connected successfully
-        for remove_index in success_list:
+        for remove_index in sorted(success_list, reverse=True):
             del nodes_list[remove_index]
 
     for node in nodes_list:
