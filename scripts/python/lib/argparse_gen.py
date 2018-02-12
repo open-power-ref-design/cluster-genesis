@@ -121,9 +121,9 @@ def get_args(parser_args=False):
         setup=True)
 
     parser_setup.add_argument(
-        '--bridges',
+        '--networks',
         action='store_true',
-        help='Create deployer bridges')
+        help='Create deployer interfaces, vlans and bridges')
 
     parser_setup.add_argument(
         '--gateway',
@@ -216,6 +216,13 @@ def get_args(parser_args=False):
         help='Discover and add PXE ports to inventory')
 
     parser_deploy.add_argument(
+        '--reserve-ipmi-pxe-ips',
+        nargs='?',
+        default=ABSENT,
+        metavar='CONTAINER-NAME',
+        help='Configure DHCP IP reservations for IPMI and PXE interfaces')
+
+    parser_deploy.add_argument(
         '--add-cobbler-distros',
         nargs='?',
         default=ABSENT,
@@ -291,7 +298,7 @@ def get_args(parser_args=False):
 def _check_setup(args, subparser):
     if not args.bridges and not args.gateway and not args.all:
         subparser.error(
-            'one of the arguments --bridges --gateway -a/--all is required')
+            'one of the arguments --networks --gateway -a/--all is required')
 
 
 def _check_config(args, subparser):
@@ -315,6 +322,7 @@ def _check_deploy(args, subparser):
             args.download_os_images == ABSENT and
             args.inv_add_ports_ipmi == ABSENT and
             args.inv_add_ports_pxe == ABSENT and
+            args.reserve_ipmi_pxe_ips == ABSENT and
             args.add_cobbler_distros == ABSENT and
             args.add_cobbler_systems == ABSENT and
             args.install_client_os == ABSENT and
@@ -325,8 +333,8 @@ def _check_deploy(args, subparser):
         subparser.error(
             'one of the arguments --create-inventory --install-cobbler'
             ' --inv-add-ports-pxe --inv-add-ports-ipmi --download-os-images'
-            ' --add-cobbler-distros --add-cobbler-systems --install-client-os'
-            ' -a/--all is required')
+            ' --reserve-ipmi-pxe-ips --add-cobbler-distros'
+            ' --add-cobbler-systems --install-client-os -a/--all is required')
 
 
 def _check_post_deploy(args, subparser):

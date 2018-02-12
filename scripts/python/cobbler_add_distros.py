@@ -18,36 +18,21 @@
 from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
-import subprocess
 import os
-from shutil import copy2
 import xmlrpclib
 
 import lib.logger as logger
-from lib.genesis import get_container_os_images_path
+import lib.utilities as util
+import lib.genesis as gen
 
-OS_IMAGES_DIR = get_container_os_images_path() + '/'
+OS_IMAGES_DIR = gen.get_container_os_images_path() + '/'
 OS_CONFIG_DIR = OS_IMAGES_DIR + 'config/'
 
 HTML_DIR = '/var/www/html/'
 KICKSTARTS_DIR = '/var/lib/cobbler/kickstarts/'
 SNIPPETS_DIR = '/var/lib/cobbler/snippets/'
-COBBLER_USER = 'cobbler'
-COBBLER_PASS = 'cobbler'
-
-
-def _bash_cmd(cmd):
-    log = logger.getlogger()
-    command = ['bash', '-c', cmd]
-    log.debug('Run subprocess: %s' % ' '.join(command))
-    output = subprocess.check_output(command, universal_newlines=True)
-    log.debug(output)
-
-
-def _copy_file(source, dest):
-    log = logger.getlogger()
-    log.debug('Copy file, source:%s dest:%s' % (source, dest))
-    copy2(source, dest)
+COBBLER_USER = gen.get_cobbler_user()
+COBBLER_PASS = gen.get_cobbler_pass()
 
 
 def extract_iso_images(path):
@@ -73,9 +58,9 @@ def extract_iso_images(path):
             # If dest dir already exists continue to next file
             if not os.path.isdir(dest_dir):
                 os.mkdir(dest_dir)
-                _bash_cmd('xorriso -osirrox on -indev %s -extract / %s' %
-                          ((path + _file), dest_dir))
-                _bash_cmd('chmod 755 $(find %s -type d)' % dest_dir)
+                util.bash_cmd('xorriso -osirrox on -indev %s -extract / %s' %
+                              ((path + _file), dest_dir))
+                util.bash_cmd('chmod 755 $(find %s -type d)' % dest_dir)
 
             # Do not return paths to "mini" isos
             if not _file.endswith('mini.iso'):
@@ -91,7 +76,7 @@ def extract_iso_images(path):
             if not os.path.isdir(dest_dir):
                 os.makedirs(dest_dir)
             for netboot_file in os.listdir(src_dir):
-                _copy_file(src_dir + netboot_file, dest_dir)
+                util.copy_file(src_dir + netboot_file, dest_dir)
 
     return return_list
 
@@ -110,17 +95,17 @@ def setup_image_config_files(path):
     # Copy preseed & kickstart files to cobbler kickstart directory
     for _file in os.listdir(path):
         if _file.endswith('.ks') or _file.endswith('.seed'):
-            _copy_file(path + _file, KICKSTARTS_DIR)
+            util.copy_file(path + _file, KICKSTARTS_DIR)
 
     # Copy custom snippets to cobbler snippets directory
     snippets_src_dir = path + 'snippets/'
     for _file in os.listdir(snippets_src_dir):
-        _copy_file(snippets_src_dir + _file, SNIPPETS_DIR)
+        util.copy_file(snippets_src_dir + _file, SNIPPETS_DIR)
 
     # Copy apt source lists to web repo directory
     for _file in os.listdir(path):
         if _file.endswith('.list') and os.path.isdir(HTML_DIR + _file[:-13]):
-            _copy_file(path + _file, HTML_DIR)
+            util.copy_file(path + _file, HTML_DIR)
 
 
 def cobbler_add_distro(path, name):

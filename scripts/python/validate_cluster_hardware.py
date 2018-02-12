@@ -33,7 +33,7 @@ from lib.config import Config
 from lib.ssh import SSH_Exception
 from lib.switch_exception import SwitchException
 from lib.switch import SwitchFactory
-from lib.exception import UserException
+from lib.exception import UserException, UserCriticalException
 from get_dhcp_lease_info import GetDhcpLeases
 
 # offset relative to bridge address
@@ -84,7 +84,7 @@ class NetNameSpace(object):
         self.name = name + self.vlan
         self.ip = IPRoute()
         self._disconnect_container()
-        self.log.info('Creating network namespace {}'.format(self.name))
+        self.log.debug('Creating network namespace {}'.format(self.name))
 
         stdout, stderr = _sub_proc_exec('ip netns add {}'.format(self.name))
         if stderr:
@@ -248,7 +248,7 @@ class ValidateClusterHardware(object):
         tot = sum(tot)
         left = tot
         print()
-        self.log.info("Validating IPMI communication and resetting cluster node's")
+        self.log.info("Validating IPMI communication")
         print()
         for node in node_addr_list:
             # resort list each time to maximize the probability of using the
@@ -289,6 +289,7 @@ class ValidateClusterHardware(object):
         if left != 0:
             self.log.error('IPMI communication succesful with only {} of {} '
                            'nodes'.format(tot - left, tot))
+        print()
 
     def _get_ipmi_ports(self, switch_lbl):
         """ Get all of the ipmi ports for a given switch
@@ -366,8 +367,10 @@ class ValidateClusterHardware(object):
             for port in sw_ipmi_mac_table:
                 for mac in dhcp_mac_table:
                     if mac in sw_ipmi_mac_table[port]:
-                        if not self._is_port_in_table(self.node_table_ipmi[label], port):
-                            self.node_table_ipmi[label].append([port, mac, dhcp_mac_table[mac]])
+                        if not self._is_port_in_table(
+                                self.node_table_ipmi[label], port):
+                            self.node_table_ipmi[label].append(
+                                [port, mac, dhcp_mac_table[mac]])
 
     def _get_port_table_pxe(self, node_list):
         """ Build table of discovered nodes.  The responding IP addresses are
@@ -411,8 +414,10 @@ class ValidateClusterHardware(object):
             for port in sw_pxe_mac_table:
                 for mac in dhcp_mac_table:
                     if mac in sw_pxe_mac_table[port]:
-                        if not self._is_port_in_table(self.node_table_pxe[label], port):
-                            self.node_table_pxe[label].append([port, mac, dhcp_mac_table[mac]])
+                        if not self._is_port_in_table(
+                                self.node_table_pxe[label], port):
+                            self.node_table_pxe[label].append(
+                                [port, mac, dhcp_mac_table[mac]])
 
     def _reset_existing_bmcs(self, node_addr_list, cred_list):
         """ Attempts to reset any BMCs which have existing IP addresses since
@@ -452,7 +457,7 @@ class ValidateClusterHardware(object):
                 self.log.warning('Unable to reset BMC: {}'.format(node))
 
     def validate_ipmi(self):
-        self.log.info("\n________ Checking IPMI networks and client BMC's ________\n")
+        self.log.info("Discover and validate cluster nodes")
         ipmi_cnt, pxe_cnt = self._get_port_cnts()
         ipmi_addr, bridge_addr, ipmi_prefix, ipmi_vlan = self._get_network('ipmi')
         ipmi_network = ipmi_addr + '/' + str(ipmi_prefix)
@@ -468,7 +473,7 @@ class ValidateClusterHardware(object):
 
         # setup DHCP, unless already running in namesapce
         # save start and end addr raw numeric values
-        self.log.info('Installing DHCP server in network namespace')
+        self.log.debug('Installing DHCP server in network namespace')
         addr_st = self._add_offset_to_address(ipmi_network, 30)
         addr_end = self._add_offset_to_address(ipmi_network, ipmi_size - 2)
         dhcp_end = self._add_offset_to_address(ipmi_network, 30 + ipmi_cnt + 2)
@@ -490,7 +495,7 @@ class ValidateClusterHardware(object):
         for pid in dns_list:
             ns_name, stderr = _sub_proc_exec('ip netns identify {}'.format(pid))
             if self.ipmi_ns._get_name_sp_name() in ns_name:
-                print('DHCP already running in {}'.format(ns_name))
+                self.log.debug('DHCP already running in {}'.format(ns_name))
                 break
         else:
             stdout, stderr = self.ipmi_ns._exec_cmd(cmd)
@@ -498,9 +503,7 @@ class ValidateClusterHardware(object):
 
         # Scan up to 20 times. Delay 5 seconds between scans
         # Allow infinite number of retries
-        print('Scanning ipmi network')
-        self.log.info('Pause 5 s between scans for cluster nodes to fetch'
-                      ' DHCP addresses')
+        self.log.info('Scanning ipmi network on 5 s intervals')
         cnt = 0
         while cnt < ipmi_cnt:
             print()
@@ -556,6 +559,8 @@ class ValidateClusterHardware(object):
         if len(node_list) > 0 and len(cred_list) > 0:
             self._verify_ipmi(node_list, cred_list)
 
+        self.log.info('Cycling power to all cluster nodes. Pausing 1 minute')
+
         t1 = time.time()
         self._power_all(self.ipmi_list_ai, 'off')
 
@@ -564,7 +569,7 @@ class ValidateClusterHardware(object):
 
         self._power_all(self.ipmi_list_ai, 'on', bootdev='network')
 
-        self.log.info('Cluster nodes IPMI validation complete')
+        self.log.debug('Cluster nodes IPMI validation complete')
         if not rc:
             raise UserException('Not all node IPMI ports validated')
 
@@ -597,8 +602,8 @@ class ValidateClusterHardware(object):
         ns._destroy_name_sp()
 
     def validate_pxe(self, bootdev='default', persist=True):
-        self.log.info("\n________ Checking PXE networks and client PXE"
-                      " ports ________\n")
+        self.log.debug("Checking PXE networks and client PXE"
+                       " ports ________\n")
         self.log.debug('Boot device: {}'.format(bootdev))
         ipmi_cnt, pxe_cnt = self._get_port_cnts()
         pxe_addr, bridge_addr, pxe_prefix, pxe_vlan = self._get_network('pxe')
@@ -613,7 +618,7 @@ class ValidateClusterHardware(object):
 
         # setup DHCP, unless already running in namespace
         # save start and end addr raw numeric values
-        self.log.info('Installing DHCP server in network namespace')
+        self.log.debug('Installing DHCP server in network namespace')
         addr_st = self._add_offset_to_address(pxe_network, 30)
         addr_end = self._add_offset_to_address(pxe_network, 30 + pxe_cnt + 2)
 
@@ -635,9 +640,7 @@ class ValidateClusterHardware(object):
 
         # Scan up to 20 times. Delay 10 seconds between scans
         # Allow infinite number of retries
-        print('Scanning pxe network')
-        self.log.info('Pause 10 s between scans for cluster nodes to fetch'
-                      ' DHCP addresses')
+        self.log.info('Scanning pxe network on 10 s interval')
         cnt = 0
         while cnt < pxe_cnt:
             print()
@@ -869,15 +872,16 @@ class ValidateClusterHardware(object):
         return network_addr, bridge_ipaddr[idx], netprefix[idx], vlan[idx]
 
     def validate_data_switches(self):
-        self.log.info('\n_______________ Verifying data switches _________________\n')
+        self.log.info('Verifying data switches')
         cfg = Config()
 
         sw_cnt = cfg.get_sw_data_cnt()
-        self.log.info('Number of data switches defined in config file: {}'.
-                      format(sw_cnt))
+        self.log.debug('Number of data switches defined in config file: {}'.
+                       format(sw_cnt))
 
         for index, switch_label in enumerate(cfg.yield_sw_data_label()):
-
+            print('.', end="")
+            sys.stdout.flush()
             label = cfg.get_sw_data_label(index)
             self.log.debug('switch_label: {}'.format(switch_label))
 
@@ -908,8 +912,8 @@ class ValidateClusterHardware(object):
                     return False
             # Verify communication on each defined interface
             for ip in cfg.yield_sw_data_interfaces_ip(index):
-                self.log.info('Verifying switch communication on ip'
-                              ' address: {}'.format(ip))
+                self.log.debug('Verifying switch communication on ip'
+                               ' address: {}'.format(ip))
                 sw = SwitchFactory.factory(
                     switch_class,
                     ip,
@@ -939,21 +943,23 @@ class ValidateClusterHardware(object):
                     self.log.error('Failed communicating with data switch'
                                    ' at address {}'.format(ip))
                     rc = False
+        print()
         if rc:
-            self.log.info(' OK - All data switches verified')
+            self.log.debug(' OK - All data switches verified')
         else:
             raise UserException('Failed verification of data switches')
 
     def validate_mgmt_switches(self):
-        self.log.info('\n_____________ Verifying management switches _____________\n')
+        self.log.info('Verifying management switches')
         cfg = Config()
 
         sw_cnt = cfg.get_sw_mgmt_cnt()
-        self.log.info('Number of management switches defined in config file: {}'.
-                      format(sw_cnt))
+        self.log.debug('Number of management switches defined in config file: {}'.
+                       format(sw_cnt))
 
         for index, switch_label in enumerate(cfg.yield_sw_mgmt_label()):
-
+            print('.', end="")
+            sys.stdout.flush()
             label = cfg.get_sw_mgmt_label(index)
             self.log.debug('switch_label: {}'.format(switch_label))
 
@@ -968,7 +974,7 @@ class ValidateClusterHardware(object):
             try:
                 userid = cfg.get_sw_mgmt_userid(index)
             except AttributeError:
-                self.log.info('Passive switch mode specified')
+                self.log.debug('Passive switch mode specified')
                 return rc
 
             try:
@@ -984,8 +990,8 @@ class ValidateClusterHardware(object):
                     rc = False
             # Verify communication on each defined interface
             for ip in cfg.yield_sw_mgmt_interfaces_ip(index):
-                self.log.info('Verifying switch communication on ip address:'
-                              ' {}'.format(ip))
+                self.log.debug('Verifying switch communication on ip address:'
+                               ' {}'.format(ip))
                 sw = SwitchFactory.factory(
                     switch_class,
                     ip,
@@ -1017,10 +1023,11 @@ class ValidateClusterHardware(object):
                         'Failed to communicate with data switch \"%s\"'
                         'at %s' % (label, ip))
                     rc = False
+        print()
         if rc:
-            self.log.info(' OK - All management switches verified')
+            self.log.debug(' OK - All management switches verified')
         else:
-            raise UserException('Failed verification of management switches')
+            raise UserCriticalException('Failed verification of management switches')
 
 
 if __name__ == '__main__':

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -24,6 +24,7 @@ import lib.logger as logger
 from lib.config import Config
 from lib.switch import SwitchFactory
 from lib.switch_exception import SwitchException
+from lib.exception import UserCriticalException
 # from write_switch_memory import WriteSwitchMemory
 
 ACTIVE = 'active'
@@ -40,12 +41,12 @@ def configure_mgmt_switches():
         mode = ACTIVE
 
         label = cfg.get_sw_mgmt_label(index)
-        LOG.debug('switch_label: {}'.format(switch_label))
+        LOG.info('Configuring switch: {}'.format(switch_label))
 
         switch_class = cfg.get_sw_mgmt_class(index)
         if not switch_class:
-            LOG.error('No switch class found')
-            sys.exit(1)
+            LOG.error('Unrecognized switch class')
+            raise UserCriticalException('Unrecognized switch class')
         userid = None
         password = None
         switch_ip = None
@@ -68,7 +69,8 @@ def configure_mgmt_switches():
             else:
                 LOG.error(
                     'Switch authentication via ssh keys not yet supported')
-                sys.exit(1)
+                raise UserCriticalException(
+                    'Switch authentication via ssh keys not yet supported')
 
         if mode == PASSIVE:
                 sw = SwitchFactory.factory(
@@ -85,19 +87,21 @@ def configure_mgmt_switches():
                     password)
 
                 if sw.is_pingable():
-                    LOG.info(
+                    LOG.debug(
                         'Sucessfully pinged management switch \"%s\" at %s' %
                         (label, ip))
                     switch_ip = ip
                     break
 
-                LOG.info(
+                LOG.debug(
                     'Failed to ping management switch \"%s\" at %s' %
                     (label, ip))
 
             else:
                 LOG.error('Management switch is not responding to pings')
-                sys.exit(1)
+                raise UserCriticalException(
+                    'Management switch at address {} is not responding to '
+                    'pings'.format(ip))
 
         LOG.debug(
             '%d: \"%s\" (%s) %s %s/%s' %
@@ -111,6 +115,8 @@ def configure_mgmt_switches():
 
         for vlan in vlan_mgmt + vlan_client:
             if vlan:
+                print('.', end="")
+                sys.stdout.flush()
                 sw.create_vlan(vlan)
 
         for intf_i, ip in enumerate(cfg.yield_sw_mgmt_interfaces_ip(index)):
@@ -121,23 +127,24 @@ def configure_mgmt_switches():
                 netmask = cfg.get_sw_mgmt_interfaces_netmask(index, intf_i)
 
                 try:
-                    LOG.info(
+                    LOG.debug(
                         "Configuring mgmt switch \"%s\" inband interface. "
                         "(ip=%s netmask=%s vlan=%s)" %
                         (label, ip, netmask, vlan))
                     # sw.configure_interface(ip, netmask, vlan, port)
                     sw.configure_interface(ip, netmask, vlan)
                 except SwitchException as exc:
-                    LOG.error(exc)
+                    LOG.warning(exc)
 
         for target_i, target in (
                 enumerate(cfg.yield_sw_mgmt_links_target(index))):
             port = cfg.get_sw_mgmt_links_port(index, target_i)
             if target.lower() == 'deployer':
                 try:
+                    print('.', end="")
+                    sys.stdout.flush()
                     vlans = vlan_mgmt + vlan_client
-                    # LOG.info('Adding vlans %s to port %d' % (vlans, port))
-                    LOG.info('Adding vlans {} to port {}'.format(vlans, port))
+                    LOG.debug('Adding vlans {} to port {}'.format(vlans, port))
                     sw.add_vlans_to_port(port, vlans)
                 except SwitchException as exc:
                     LOG.error(exc)
@@ -161,13 +168,16 @@ def configure_mgmt_switches():
                     LOG.debug('Port %s is already in access mode' % (port))
                 else:
                     LOG.error('Port %s is not in access mode' % (port))
-                    sys.exit('Port %s is not in access mode' % (port))
+                    raise UserCriticalException('Port %s is not in access mode'
+                                                % (port))
 
                 if vlan == sw.show_native_vlan(port):
                     LOG.debug(
                         'Management VLAN %s is already added to access port %s'
                         % (vlan, port))
                 else:
+                    print('.', end="")
+                    sys.stdout.flush()
                     sw.set_switchport_native_vlan(vlan, port)
 
         # write switch memory?

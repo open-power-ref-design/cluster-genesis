@@ -53,7 +53,7 @@
 
 - name: Cluster Software Bootstrap
   hosts: client_nodes
-  environment: "{{ deployment_environment }}"
+  environment: "{{ env_variables }}"
   tasks:
     - include: tasks/cmd_bootstrap.yml
       when: software_bootstrap is defined

@@ -21,36 +21,17 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 import xmlrpclib
 
 from lib.inventory import Inventory
+import lib.genesis as gen
 import lib.logger as logger
-
-COBBLER_USER = 'cobbler'
-COBBLER_PASS = 'cobbler'
-
-INV_IPV4_IPMI = 'ipv4-ipmi'
-INV_USERID_IPMI = 'userid-ipmi'
-INV_PASSWORD_IPMI = 'password-ipmi'
-INV_OS_NAME = 'name'
-INV_OS_PASSWORD = 'password'
-INV_IPV4_PXE = 'ipv4-pxe'
-INV_MAC_PXE = 'mac-pxe'
-INV_CHASSIS_PART_NUMBER = 'chassis-part-number'
-INV_CHASSIS_SERIAL_NUMBER = 'chassis-serial-number'
-INV_MODEL = 'model'
-INV_SERIAL_NUMBER = 'serial-number'
-INV_TEMPLATE = 'template'
-
-INV_NODES_TEMPLATES = 'node-templates'
-INV_COBBLER_PROFILE = 'cobbler-profile'
-INV_OS_DISK = 'os-disk'
-INV_ARCH = 'architecture'
-INV_KOPTS = 'kernel-options'
 
 
 def cobbler_add_systems():
     LOG = logger.getlogger()
 
+    cobbler_user = gen.get_cobbler_user()
+    cobbler_pass = gen.get_cobbler_pass()
     cobbler_server = xmlrpclib.Server("http://127.0.0.1/cobbler_api")
-    token = cobbler_server.login(COBBLER_USER, COBBLER_PASS)
+    token = cobbler_server.login(cobbler_user, cobbler_pass)
 
     inv = Inventory()
 
@@ -128,13 +109,13 @@ def cobbler_add_systems():
         users = inv.get_nodes_os_users(index)
         if users is not None:
             for user in users:
-                if INV_OS_NAME in user and user[INV_OS_NAME] != 'root':
-                    ks_meta += 'default_user=%s ' % user[INV_OS_NAME]
+                if 'name' in user and user['name'] != 'root':
+                    ks_meta += 'default_user=%s ' % user['name']
                     LOG.debug("%s: Using \'%s\' as default user" %
-                              (hostname, user[INV_OS_NAME]))
-                    if INV_OS_PASSWORD in user:
+                              (hostname, user['name']))
+                    if 'password' in user:
                         ks_meta += ('passwd=%s passwdcrypted=true ' %
-                                    user[INV_OS_PASSWORD])
+                                    user['password'])
                     break
             else:
                 LOG.debug("%s: No default user found" % hostname)

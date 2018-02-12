@@ -1,4 +1,4 @@
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -81,7 +81,7 @@ class SwitchCommon(object):
         elif ports[str(port)]['mode'] == 'trunk':
             self.send_cmd(self.SET_NATIVE_VLAN_TRUNK.format(port, vlan, vlan))
         if self.mode == 'passive' or vlan == self.show_native_vlan(port):
-            self.log.info(
+            self.log.debug(
                 'Set native VLAN to {} for access port {}'.format(vlan, port))
         else:
             raise SwitchException(
@@ -143,7 +143,7 @@ class SwitchCommon(object):
                 self.ADD_VLANS_TO_PORT.format(vlan))
             if (self.mode == 'passive' or
                     self.is_vlan_allowed_for_port(vlan, port)):
-                self.log.info(
+                self.log.debug(
                     'VLAN {} is allowed for port {}'.format(vlan, port))
             else:
                 raise SwitchException(
@@ -173,16 +173,15 @@ class SwitchCommon(object):
         vlan = str(vlan)
         port = str(port)
         ports = self.show_ports('std')
-        return vlan in ports[port]['avlans']
+        if port in ports:
+            return vlan in ports[port]['avlans']
 
     def create_vlan(self, vlan):
         self.send_cmd(self.CREATE_VLAN.format(vlan))
         if self.mode == 'passive' or self.is_vlan_created(vlan):
-            self.log.info(
-                'Created VLAN {}'.format(vlan))
+            self.log.debug('Created VLAN {}'.format(vlan))
         else:
-            raise SwitchException(
-                'Failed creating VLAN {}'.format(vlan))
+            raise SwitchException('Failed creating VLAN {}'.format(vlan))
 
     def delete_vlan(self, vlan):
         self.send_cmd(self.DELETE_VLAN.format(vlan))

@@ -1,4 +1,4 @@
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -123,7 +123,7 @@ def create(log_level_file=None, log_level_print=None):
         stream_handler = logging.StreamHandler()
         stream_handler.setLevel(getattr(logging, level_print.upper()))
         if level_print == LogLevel.DEBUG.value:
-            stream_handler.setFormatter(logging.Formatter(FORMAT_DEBUG))
+            stream_handler.setFormatter(logging.Formatter(FORMAT_STREAM))
         else:
             stream_handler.setFormatter(logging.Formatter(FORMAT_STREAM))
         logger.addHandler(stream_handler)

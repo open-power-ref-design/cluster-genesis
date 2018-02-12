@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Create lxc-conf.yml"""
 
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -106,8 +106,7 @@ class LxcConf(object):
             self.log.error('Failed to create: %s' % self.LXC_CONF)
             sys.exit(1)
 
-        self.log.info('Successfully created: %s' % self.LXC_CONF)
-        print('Successfully created: %s' % self.LXC_CONF)
+        self.log.debug('Successfully created: %s' % self.LXC_CONF)
 
         if not os.path.exists(os.path.join(HOME, '.config')):
             os.mkdir(os.path.join(HOME, '.config'))

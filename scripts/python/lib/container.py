@@ -21,6 +21,7 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
 import os.path
+import sys
 import re
 import platform
 import ConfigParser
@@ -91,6 +92,8 @@ class Container(object):
         else:
             self.name = name
         self.cont = lxc.Container(self.name)
+        # Get a file descriptor for stdout
+        self.fd = open(os.path.join(gen.GEN_PATH, self.name + '.stdout'), 'w')
 
     def open_ssh(self):
         cont_ipaddr = self.cont.get_ips(
@@ -203,22 +206,34 @@ class Container(object):
             raise UserException(msg)
 
         # Success
-        self.log.info(
+        self.log.debug(
             "Unprivileged/non-root container bridge support found in '%s'" %
             self.LXC_USERNET)
 
-    def run_command(self, cmd):
-        if self.cont.attach_wait(
+    def run_command(self, cmd, stdout=None):
+        if stdout:
+            print('.', end="")
+            sys.stdout.flush()
+            rc = self.cont.attach_wait(
+                lxc.attach_run_command,
+                cmd,
+                stdout=stdout,
+                extra_env_vars=[
+                    logger.get_log_level_env_var_file(),
+                    logger.get_log_level_env_var_print()])
+        else:
+            rc = self.cont.attach_wait(
                 lxc.attach_run_command,
                 cmd,
                 extra_env_vars=[
                     logger.get_log_level_env_var_file(),
-                    logger.get_log_level_env_var_print()]):
+                    logger.get_log_level_env_var_print()])
+        if rc:
             error = "Failed running '{}' in the container '{}'".format(
                 ' '.join(cmd), self.name)
             self.log.error(error)
             raise UserException(error)
-        self.log.info(
+        self.log.debug(
             "Successfully ran '{}' in the container '{}'".format(
                 ' '.join(cmd), self.name))
 
@@ -234,14 +249,14 @@ class Container(object):
             msg = "Failed to create container '%s'" % self.name
             self.log.error(msg)
             raise UserException(msg)
-        self.log.info("Created container '%s'" % self.name)
+        self.log.debug("Created container '%s'" % self.name)
 
         # Start container
         if not self.cont.start():
             msg = "Failed to start container '%s'" % self.name
             self.log.error(msg)
             raise UserException(msg)
-        self.log.info("Started container '%s'" % self.name)
+        self.log.debug("Started container '%s'" % self.name)
 
         # Get nameservers from /etc/resolv.conf outside container
         nameservers = []
@@ -255,32 +270,37 @@ class Container(object):
             self.log.error(msg)
             raise UserException(msg)
 
+        self.log.info('Configuring container')
+
         # Update '/etc/resolv.conf' in container by updating
         # '/etc/resolvconf/resolv.conf.d/base'
         for line in nameservers:
             entry = 'a|%s' % line
             self.run_command(
-                ['ex', '-sc', entry, '-cx', self.RESOLV_CONF_BASE])
+                ['ex', '-sc', entry, '-cx', self.RESOLV_CONF_BASE],
+                stdout=self.fd)
 
         # Sleep to allow /etc/resolv.conf to update
         # Future enhancement is to poll for change
-        self.run_command(["sleep", "5"])
+        self.run_command(["sleep", "5"], stdout=self.fd)
 
         # Create user
         self.run_command(
-            ['adduser', '--disabled-password', '--gecos', 'GECOS', 'deployer'])
+            ['adduser', '--disabled-password', '--gecos', 'GECOS', 'deployer'],
+            stdout=self.fd)
 
         # Create '/root/.ssh' directory
-        self.run_command(['mkdir', '/root/.ssh'])
+        self.run_command(['mkdir', '/root/.ssh'], stdout=self.fd)
 
         # Create '/root/.ssh/authorized_keys' file
-        self.run_command(['touch', '/root/.ssh/authorized_keys'])
+        self.run_command(['touch', '/root/.ssh/authorized_keys'], stdout=self.fd)
 
         # Change '/root/.ssh' permissions to 0700
-        self.run_command(['chmod', '700', '/root/.ssh'])
+        self.run_command(['chmod', '700', '/root/.ssh'], stdout=self.fd)
 
         # Change '/root/.ssh/authorized_keys' permissions to 0600
-        self.run_command(['chmod', '600', '/root/.ssh/authorized_keys'])
+        self.run_command(['chmod', '600', '/root/.ssh/authorized_keys'],
+                         stdout=self.fd)
 
         key = RSA.generate(self.RSA_BIT_LENGTH)
         # Create private ssh key
@@ -296,11 +316,14 @@ class Container(object):
         self.run_command([
             'ex',
             '-sc', 'a|%s' % public_key,
-            '-cx', '/root/.ssh/authorized_keys'])
+            '-cx', '/root/.ssh/authorized_keys'], stdout=self.fd)
+
+        self.log.info('\nInstalling software packages in container')
+        self.log.info('This may take several minutes depending on network speed')
 
         # Update/Upgrade container distro packages
-        self.run_command(["apt-get", "update"])
-        self.run_command(["apt-get", "dist-upgrade", "-y"])
+        self.run_command(["apt-get", "update"], stdout=self.fd)
+        self.run_command(["apt-get", "dist-upgrade", "-y"], stdout=self.fd)
 
         # Read INI file
         ini = ConfigParser.SafeConfigParser(allow_no_value=True)
@@ -316,7 +339,7 @@ class Container(object):
             cmd = ['apt-get', 'install', '-y']
             for pkg in ini.options(self.Packages.DISTRO.value):
                 cmd.append(pkg)
-            self.run_command(cmd)
+            self.run_command(cmd, stdout=self.fd)
 
         # Install x86_64 arch specific packages
         if (self.rootfs.arch == 'amd64' and
@@ -324,7 +347,7 @@ class Container(object):
             cmd = ['apt-get', 'install', '-y']
             for pkg in ini.options(self.Packages.DISTRO_AMD64.value):
                 cmd.append(pkg)
-            self.run_command(cmd)
+            self.run_command(cmd, stdout=self.fd)
 
         # Install ppc64el arch specific packages
         if (self.rootfs.arch == 'ppc64el' and
@@ -332,41 +355,46 @@ class Container(object):
             cmd = ['apt-get', 'install', '-y']
             for pkg in ini.options(self.Packages.DISTRO_PPC64EL.value):
                 cmd.append(pkg)
-            self.run_command(cmd)
+            self.run_command(cmd, stdout=self.fd)
 
         # Install pip container packages
         if ini.has_section(self.Packages.PIP.value):
             cmd = ['pip', 'install']
             for pkg in ini.options(self.Packages.PIP.value):
                 cmd.append(pkg)
-            self.run_command(cmd)
+                print('.', end="")
+                sys.stdout.flush()
+            self.run_command(cmd, stdout=self.fd)
 
         # Create project
-        self.run_command(['mkdir', self.cont_package_path])
+        self.run_command(['mkdir', self.cont_package_path], stdout=self.fd)
 
         # Create virtual environment
         self.run_command([
             'virtualenv',
             '--no-wheel',
             '--system-site-packages',
-            self.cont_venv_path])
-
+            self.cont_venv_path], stdout=self.fd)
         # Open SSH to container
         ssh = self.open_ssh()
 
         # Install pip venv container packages
         if ini.has_section(self.Packages.VENV.value):
-            cmd = [
-                'source', self.cont_venv_path + '/bin/activate',
-                '&&', 'pip', 'install']
             for pkg, ver in ini.items(self.Packages.VENV.value):
+                cmd = [
+                    'source', self.cont_venv_path + '/bin/activate',
+                    '&&', 'pip', 'install']
                 cmd.append('{}=={}'.format(pkg, ver))
-            cmd.extend(['&&', 'deactivate'])
-            status, stdout_, stderr_ = ssh.send_cmd(' '.join(cmd))
-            if status:
-                error = 'Failed venv pip install'
-                self.log.error(error)
-                raise UserException(error)
+                cmd.extend(['&&', 'deactivate'])
+                status, stdout_, stderr_ = ssh.send_cmd(' '.join(cmd))
+                if status:
+                    error = 'Failed venv pip install'
+                    self.log.error(error)
+                    self.log.error(' '.join(cmd))
+                    self.log.error(stderr_)
+                    raise UserException(error)
+                print('.', end="")
+                sys.stdout.flush()
 
         # Open sftp session to container
         sftp = self.open_sftp(ssh)
@@ -377,40 +405,53 @@ class Container(object):
             sftp,
             self.PRIVATE_SSH_KEY_FILE,
             '/root/.ssh/gen')
+        print('.', end="")
+        sys.stdout.flush()
 
         # Change private key file permissions to 0600
-        self.run_command(['chmod', '600', '/root/.ssh/gen'])
+        self.run_command(['chmod', '600', '/root/.ssh/gen'], stdout=self.fd)
 
         # Copy config file to container
         self._copy_sftp(
             sftp,
             os.path.join(self.depl_package_path, self.config_file),
             os.path.join(self.cont_package_path, self.config_file))
+        print('.', end="")
+        sys.stdout.flush()
 
         # Copy scripts/python directory to container
         self._mkdir_sftp(sftp, self.cont_scripts_path)
         self._mkdir_sftp(sftp, self.cont_python_path)
         self.copy_dir_to_container(sftp, self.depl_python_path)
+        print('.', end="")
+        sys.stdout.flush()
 
         # Add execute permission to dynamic inventory module
         self.run_command([
             'chmod',
             'a+x',
-            os.path.join(self.cont_python_path, 'inventory.py')])
+            os.path.join(self.cont_python_path, 'inventory.py')],
+            stdout=self.fd)
 
         # Copy os_images directory to container
         self._mkdir_sftp(sftp, self.cont_os_images_path)
         self.copy_dir_to_container(sftp, self.depl_os_images_path)
+        print('.', end="")
+        sys.stdout.flush()
 
         # Copy playbooks directory to container
         self._mkdir_sftp(sftp, self.cont_playbooks_path)
         self.copy_dir_to_container(sftp, self.depl_playbooks_path)
+        print('.', end="")
+        sys.stdout.flush()
 
         # Create file to indicate whether project is installed in a container
-        self.run_command(['touch', self.cont_id_file])
+        self.run_command(['touch', self.cont_id_file], stdout=self.fd)
+        print()
 
         # Close ssh session to container
         self._close_ssh(ssh)
+        self.fd.close()
 
     def copy_dir_to_container(self, sftp, dir_local_path, follow_sym_link=True):
         for dirpath, dirnames, filenames in os.walk(dir_local_path):

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -18,7 +18,6 @@
 from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
-import sys
 import os
 import re
 import subprocess
@@ -30,6 +29,7 @@ from pyroute2 import IPRoute
 import lib.logger as logger
 from lib.config import Config
 from lib.genesis import GEN_PATH
+from lib.exception import UserCriticalException
 
 IPR = IPRoute()
 
@@ -53,7 +53,7 @@ def enable_deployer_network():
     #     self.LOG.info('Passive Management Switch(es) specified')
     # return
 
-    LOG.info('Configuring deployer management networks')
+    LOG.debug('=== Configuring deployer management networks ===')
     dev_label = cfg.get_depl_netw_mgmt_device()
     interface_ipaddr = cfg.get_depl_netw_mgmt_intf_ip()
     container_ipaddr = cfg.get_depl_netw_mgmt_cont_ip()
@@ -69,7 +69,7 @@ def enable_deployer_network():
                         bridge_ipaddr=bridge_ipaddr[i],
                         vlan=vlan[i])
 
-    LOG.info('Configuring deployer client networks')
+    LOG.debug('=== Configuring deployer client networks ===')
     type_ = cfg.get_depl_netw_client_type()
     dev_label = cfg.get_depl_netw_client_device()
     interface_ipaddr = cfg.get_depl_netw_client_intf_ip()
@@ -101,21 +101,23 @@ def _create_network(
 
     if not IPR.link_lookup(ifname=dev_label):
         LOG.error('External interface {} not found'.format(dev_label))
-        sys.exit('\n              Error. External interface {} not found.\n'
-                 .format(dev_label))
+        raise UserCriticalException('External interface {} not found.'
+                                    .format(dev_label))
 
     if not bridge_ipaddr:
         # if a bridge_ipaddr is not specied, then a bridge will not be created.
         # if address not already on device, then add it.
         if not interface_ipaddr + '/' + str(netprefix) in ifc_addresses[dev_label]:
-            LOG.info('Adding address {} to link {}'.format(interface_ipaddr, dev_label))
+            LOG.debug('Adding address {} to link {}'.
+                      format(interface_ipaddr, dev_label))
             index = IPR.link_lookup(ifname=dev_label)
             IPR.addr('add', index=index, address=interface_ipaddr, mask=netprefix)
         else:
-            LOG.info('Address {} already exists on link {}'.format(interface_ipaddr, dev_label))
+            LOG.debug('Address {} already exists on link {}'.
+                      format(interface_ipaddr, dev_label))
 
-        # Check to see if the device and address is configured in any interface definition
-        # file. If not, then write a definition file.
+        # Check to see if the device and address is configured in any interface
+        # definition file. If not, then write a definition file.
         ifc_file_list = _get_ifcs_file_list()
 
         ifc_cfgd = False
@@ -126,14 +128,15 @@ def _create_network(
             f.close()
             if re.findall(r'^ *auto\s+' + dev_label + '\s', interfaces, re.MULTILINE):
                 ifc_cfgd = True
-                LOG.info('Device {} already configured in network configuration file {}'.
-                         format(dev_label, filename))
+                LOG.debug('Device {} already configured in network configuration file {}'.
+                          format(dev_label, filename))
             interfaces = interfaces.split('iface')
             for line in interfaces:
                 if dev_label in line:
                     if re.findall(r'^ *address\s+' + interface_ipaddr, line, re.MULTILINE):
                         addr_cfgd = True
-                        LOG.info('Address {} configured in {}'.format(interface_ipaddr, filename))
+                        LOG.debug('Address {} configured in {}'.
+                                  format(interface_ipaddr, filename))
 
         broadcast = None
         netmask = str(IPNetwork('255.255.255.255/' + str(netprefix)).netmask)
@@ -162,7 +165,7 @@ def _create_network(
                 addr.get_attr('IFA_ADDRESS') + '/' + str(addr['prefixlen']))
             existing_network_addr = str(existing_network.network)
             if existing_network_addr == network_addr:
-                LOG.info(
+                LOG.debug(
                     'Removing address {}/{} from interface {}'
                     .format(adr, pfx, dev_label))
                 IPR.addr(
@@ -194,7 +197,8 @@ def _create_network(
                 vlan_id=vlan)
         IPR.link("set", index=IPR.link_lookup(ifname=link)[0], state="up")
         if not _wait_for_ifc_up(link):
-            sys.exit('Failed to bring up interface {} '.format(link))
+            raise UserCriticalException('Failed to bring up interface {} '.
+                                        format(link))
 
         # set bridge file write mode to 'w' (write) or 'a' (add)
         if type_ == 'mgmt':
@@ -220,7 +224,7 @@ def _write_ifc_cfg_file(ifc, ip=None, mask=None, broadcast=None, ifc_cfgd=False)
         broadcast (str) interface broadcast address
     """
     file_name = GEN_PATH + ifc + '-genesis-generated'
-    LOG.info('Writing {} config file'.format(file_name))
+    LOG.debug('Writing {} config file'.format(file_name))
     f = open(file_name, 'w')
     f.write('# Cluster genesis generated\n')
     if not ifc_cfgd:
@@ -258,14 +262,15 @@ def _write_br_cfg_file(bridge, ip=None, prefix=None, ifc=None, mode='w'):
     LOG.debug('OS: ' + opsys)
     if opsys not in ('Ubuntu', 'redhat'):
         LOG.error('Unsupported Operating System')
-        sys.exit('Unsupported Operating System')
+        raise UserCriticalException('Unsupported Operating System')
     network = IPNetwork(ip + '/' + str(prefix))
     network_addr = str(network.network)
     broadcast = str(network.broadcast)
     netmask = str(network.netmask)
     if opsys == 'Ubuntu':
         if mode == 'a' and os.path.exists('/etc/network/interfaces.d/' + bridge):
-            LOG.info('Appending to bridge config file {} IP addr {}'.format(bridge, ip))
+            LOG.debug('Appending to bridge config file {} IP addr {}'.
+                      format(bridge, ip))
             os.system(
                 'cp /etc/network/interfaces.d/{} {}{} '
                 .format(bridge, GEN_PATH, bridge))
@@ -298,7 +303,8 @@ def _write_br_cfg_file(bridge, ip=None, prefix=None, ifc=None, mode='w'):
             os.system('rm ' + GEN_PATH + bridge)
 
         else:
-            LOG.info('Wrting bridge configuration file: {} IP addr: {}'.format(bridge, ip))
+            LOG.debug('Wrting bridge configuration file: {} IP addr: {}'.
+                      format(bridge, ip))
             f = open(GEN_PATH + bridge, 'w')
             f.write("# This file should not be edited manually\n")
             f.write('auto {}\n'.format(ifc))
@@ -337,7 +343,7 @@ def _write_br_cfg_file(bridge, ip=None, prefix=None, ifc=None, mode='w'):
             os.system('sudo cp ' + GEN_PATH + 'lxc-usernet /etc/lxc/lxc-usernet')
         return
     LOG.error('Support for Red Hat not yet implemented')
-    sys.exit('Support for Red Hat not yet implemented')
+    raise UserCriticalException('Support for Red Hat not yet implemented')
 
 
 def _get_ifc_addresses():
@@ -378,9 +384,8 @@ def _setup_bridge(bridge, ip=None, prefix=None, ifc=None):
         prefix (int or str) Network mask length (ie 24)
         ifc (str) An interface name
     """
-    LOG.info(
-        'Setting up bridge {} with ifc {} and address {}'
-        .format(bridge, ifc, ip))
+    LOG.debug('Setting up bridge {} with ifc {} and address {}'
+              .format(bridge, ifc, ip))
     if not IPR.link_lookup(ifname=bridge):
         IPR.link("add", ifname=bridge, kind="bridge")
     IPR.link("set", ifname=bridge, state="up")
@@ -397,10 +402,10 @@ def _setup_bridge(bridge, ip=None, prefix=None, ifc=None):
             master=IPR.link_lookup(ifname=bridge)[0])
     if not _wait_for_ifc_up(ifc):
         LOG.error('Failed to bring up interface {}'.format(ifc))
-        sys.exit('Failed to bring up interface {}'.format(ifc))
+        raise UserCriticalException('Failed to bring up interface {}'.format(ifc))
     if not _wait_for_ifc_up(bridge):
         LOG.error('Failed to bring up bridge {}'.format(bridge))
-        sys.exit('Failed to bring up bridge {}'.format(bridge))
+        raise UserCriticalException('Failed to bring up bridge {}'.format(bridge))
 
 
 def _is_addr_on_link(ip, link):
@@ -474,7 +479,7 @@ def _wait_for_ifc_up(ifname, timespan=10):
         if _ == 4:
             print('Waiting for interface {} to come up. '.format(ifname))
         if _is_ifc_up(ifname):
-            LOG.info('Interface {} is up'.format(ifname))
+            LOG.debug('Interface {} is up'.format(ifname))
             return True
         time.sleep(0.5)
     LOG.info('Timeout waiting for interface {} to come up'.format(ifname))

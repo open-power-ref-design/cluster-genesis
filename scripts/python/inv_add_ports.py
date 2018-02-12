@@ -261,7 +261,7 @@ class InventoryAddPorts(object):
 def get_port_status(dhcp_leases_file, port_type):
     log = logger.getlogger()
     found_all = False
-    max_cnt = 4
+    max_cnt = 30
     yellow = '\033[93m'
     endc = '\033[0m'
 
@@ -271,7 +271,7 @@ def get_port_status(dhcp_leases_file, port_type):
         for cnt in range(max_cnt):
             print(' Gathering port info - ', cnt, '\r', end="")
             sys.stdout.flush()
-            time.sleep(2)
+            time.sleep(5)
             INV_PORTS.get_ports()
             status = INV_PORTS.get_status()
             if status[0] == status[1]:
