@@ -461,6 +461,11 @@ interfaces:
           description:
           DEVICE:
           BOOTPROTO:
+          ONBOOT
+          ONPARENT
+          MASTER
+          SLAVE
+          BONDING_MASTER
           IPADDR_list:
           NETMASK:
           BROADCAST:
@@ -616,68 +621,99 @@ interfaces:
 |   interfaces:             |   - label: manual2                                | | Required keys:                                                                           |          |
 |       - label:            |     description: manual network 2                 | |   *label* - Unique label of interface configuration to be referenced within              |          |
 |         description:      |     DEVICE: eth0                                  |               `networks:`_ `node_templates: interfaces: <node_templates_interfaces_>`_.    |          |
-|         DEVICE:           |     BOOTPROTO: none                               |                                                                                            |          |
-|         BOOTPROTO:        |                                                   | | Optional keys:                                                                           |          |
-|         IPADDR_list:      |   - label: dhcp2                                  | |   *description*  - Short description of interface configuration to be included as a      |          |
-|         NETMASK:          |     description: dhcp interface 2                 |                      comment in OS config files.                                           |          |
-|         BROADCAST:        |     DEVICE: eth0                                  | |   *IPADDR_list*  - List of IP address to assign client interfaces referencing this       |          |
-|         GATEWAY:          |     BOOTPROTO: dhcp                               |                      configuration. Each list element may either be a single IP address    |          |
-|         SEARCH:           |                                                   |                      or a range (formatted as *<start_address>*-<*end_address*>).          |          |
-|         DNS1:             |   - label: static2                                | |   *IPADDR_start* - Starting IP address to assign client interfaces referencing this      |          |
-|         DNS2:             |     description: static interface 2               |                      configuration. Addresses will be assigned to each client interface    |          |
-|         MTU:              |     DEVICE: eth0                                  |                      incrementally.                                                        |          |
-|         VLAN:             |     BOOTPROTO: none                               |                                                                                            |          |
-|                           |     IPADDR_list:                                  | | Optional "drop-in" keys:                                                                 |          |
-|                           |         - 9.3.89.14                               | |   The following key names are derived directly from RHEL's *ifcfg* configuration files.  |          |
-|                           |         - 9.3.89.18-9.3.89.22                     |     Values will be copied directly into the *ifcfg-<name>* files.  Refer to the            |          |
-|                           |         - 9.3.89.111-9.3.89.112                   |     `RHEL IP NETWORKING <rhel_ifcfg_doc_>`_ for usage.                                     |          |
-|                           |         - 9.3.89.120                              | |                                                                                          |          |
-|                           |     NETMASK: 255.255.255.0                        | |   *DEVICE*                                                                               |          |
-|                           |     BROADCAST: 9.3.89.255                         | |   *BOOTPROTO*                                                                            |          |
-|                           |     GATEWAY: 9.3.89.1                             | |   *NETMASK*                                                                              |          |
-|                           |     SEARCH: your.dns.com                          | |   *BROADCAST*                                                                            |          |
-|                           |     DNS1: 9.3.1.200                               | |   *GATEWAY*                                                                              |          |
-|                           |     DNS2: 9.3.1.201                               | |   *SEARCH*                                                                               |          |
-|                           |     MTU: 9000                                     | |   *DNS1*                                                                                 |          |
-|                           |                                                   | |   *DNS2*                                                                                 |          |
-|                           |   - label: vlan3                                  | |   *MTU*                                                                                  |          |
-|                           |     description: vlan interface 3                 | |   *VLAN*                                                                                 |          |
+|         DEVICE:           |     TYPE: Ethernet                                |                                                                                            |          |
+|         TYPE:             |     BOOTPROTO: none                               | | Optional keys:                                                                           |          |
+|         BOOTPROTO:        |     ONBOOT: yes                                   | |   *description*  - Short description of interface configuration to be included as a      |          |
+|         ONBOOT            |     NM_CONTROLLED: no                             |                      comment in OS config files.                                           |          |
+|         ONPARENT:         |                                                   | |   *IPADDR_list*  - List of IP address to assign client interfaces referencing this       |          |
+|         MASTER:           |   - label: dhcp2                                  |                      configuration. Each list element may either be a single IP address    |          |
+|         SLAVE:            |     description: dhcp interface 2                 |                      or a range (formatted as *<start_address>*-<*end_address*>).          |          |
+|         BONDING_MASTER:   |     DEVICE: eth0                                  | |   *IPADDR_start* - Starting IP address to assign client interfaces referencing this      |          |
+|         IPADDR_list:      |     TYPE: Ethernet                                |                      configuration. Addresses will be assigned to each client interface    |          |
+|         NETMASK:          |     BOOTPROTO: dhcp                               |                      incrementally.                                                        |          |
+|         BROADCAST:        |     ONBOOT: yes                                   |                                                                                            |          |
+|         GATEWAY:          |     NM_CONTROLLED: no                             | | Optional "drop-in" keys:                                                                 |          |
+|         SEARCH:           |                                                   | |   The following key names are derived directly from RHEL's *ifcfg* configuration files.  |          |
+|         DNS1:             |   - label: static2                                |     Values will be copied directly into the *ifcfg-<name>* files.  Refer to the            |          |
+|         DNS2:             |     description: static interface 2               |     `RHEL IP NETWORKING <rhel_ifcfg_doc_>`_ for usage.                                     |          |
+|         MTU:              |     DEVICE: eth0                                  | |                                                                                          |          |
+|         VLAN:             |     TYPE: Ethernet                                | |   *DEVICE*                                                                               |          |
+|         NM_CONTROLLED:    |     BOOTPROTO: none                               | |   *TYPE*                                                                                 |          |
+|                           |     ONBOOT: yes                                   | |   *BOOTPROTO*                                                                            |          |
+|                           |     IPADDR_list:                                  | |   *ONBOOT*                                                                               |          |
+|                           |         - 9.3.89.14                               | |   *ONPARENT*                                                                             |          |
+|                           |         - 9.3.89.18-9.3.89.22                     | |   *MASTER*                                                                               |          |
+|                           |         - 9.3.89.111-9.3.89.112                   | |   *SLAVE*                                                                                |          |
+|                           |         - 9.3.89.120                              | |   *BONDING_MASTER*                                                                       |          |
+|                           |     NETMASK: 255.255.255.0                        | |   *NETMASK*                                                                              |          |
+|                           |     BROADCAST: 9.3.89.255                         | |   *BROADCAST*                                                                            |          |
+|                           |     GATEWAY: 9.3.89.1                             | |   *GATEWAY*                                                                              |          |
+|                           |     SEARCH: your.dns.com                          | |   *SEARCH*                                                                               |          |
+|                           |     DNS1: 9.3.1.200                               | |   *DNS1*                                                                                 |          |
+|                           |     DNS2: 9.3.1.201                               | |   *DNS2*                                                                                 |          |
+|                           |     MTU: 9000                                     | |   *MTU*                                                                                  |          |
+|                           |     NM_CONTROLLED: no                             | |   *VLAN*                                                                                 |          |
+|                           |                                                   | |   *NM_CONTROLLED*                                                                        |          |
+|                           |   - label: vlan3                                  |                                                                                            |          |
+|                           |     description: vlan interface 3                 | .. _interfaces_rhel_rename_notes:                                                          |          |
 |                           |     DEVICE: eth0.10                               |                                                                                            |          |
-|                           |     BOOTPROTO: none                               | .. _interfaces_rhel_rename_notes:                                                          |          |
-|                           |     VLAN: yes                                     |                                                                                            |          |
-|                           |                                                   | | Notes:                                                                                   |          |
-|                           |   - label: bridge2                                | |   If 'rename: true' in                                                                   |          |
-|                           |     description: bridge interface 2               |     `node_templates: physical_interfaces: pxe/data <physical_ints_os_>`_ then the *DEVICE* |          |
-|                           |     DEVICE: br2                                   |     value will be used to rename the interface.                                            |          |
-|                           |     BOOTPROTO: static                             | |                                                                                          |          |
-|                           |     IPADDR_start: 10.0.0.100                      | |   If 'rename: false' in                                                                  |          |
-|                           |     NETMASK: 255.255.255.0                        |     `node_templates: physical_interfaces: pxe/data <physical_ints_os_>`_ then the *DEVICE* |          |
-|                           |     STP: off                                      |     value will be replaced by the interface name assigned by the OS. If the *DEVICE* value |          |
-|                           |                                                   |     is referenced in **any** other interface definition it will also be replaced.          |          |
+|                           |     BOOTPROTO: none                               | | Notes:                                                                                   |          |
+|                           |     ONBOOT: yes                                   | |   If 'rename: true' in                                                                   |          |
+|                           |     ONPARENT: yes                                 |     `node_templates: physical_interfaces: pxe/data <physical_ints_os_>`_ then the *DEVICE* |          |
+|                           |     VLAN: yes                                     |     value will be used to rename the interface.                                            |          |
+|                           |     NM_CONTROLLED: no                             | |                                                                                          |          |
+|                           |                                                   | |   If 'rename: false' in                                                                  |          |
+|                           |   - label: bridge2                                |     `node_templates: physical_interfaces: pxe/data <physical_ints_os_>`_ then the *DEVICE* |          |
+|                           |     description: bridge interface 2               |     value will be replaced by the interface name assigned by the OS. If the *DEVICE* value |          |
+|                           |     DEVICE: br2                                   |     is referenced in **any** other interface definition it will also be replaced.          |          |
+|                           |     TYPE: Bridge                                  |                                                                                            |          |
+|                           |     BOOTPROTO: static                             |                                                                                            |          |
+|                           |     ONBOOT: yes                                   |                                                                                            |          |
+|                           |     IPADDR_start: 10.0.0.100                      |                                                                                            |          |
+|                           |     NETMASK: 255.255.255.0                        |                                                                                            |          |
+|                           |     STP: off                                      |                                                                                            |          |
+|                           |     NM_CONTROLLED: no                             |                                                                                            |          |
+|                           |                                                   |                                                                                            |          |
 |                           |   - label: bridge2_port                           |                                                                                            |          |
 |                           |     description: port for bridge if 2             |                                                                                            |          |
-|                           |     DEVICE: eth0                                  |                                                                                            |          |
+|                           |     DEVICE: tap_br2                               |                                                                                            |          |
+|                           |     TYPE: Ethernet                                |                                                                                            |          |
 |                           |     BOOTPROTO: none                               |                                                                                            |          |
+|                           |     ONBOOT: yes                                   |                                                                                            |          |
 |                           |     BRIDGE: br2                                   |                                                                                            |          |
+|                           |     NM_CONTROLLED: no                             |                                                                                            |          |
 |                           |                                                   |                                                                                            |          |
 |                           |   - label: bond2_interface0                       |                                                                                            |          |
 |                           |     description: primary interface for bond 2     |                                                                                            |          |
 |                           |     DEVICE: eth0                                  |                                                                                            |          |
+|                           |     TYPE: Ethernet                                |                                                                                            |          |
 |                           |     BOOTPROTO: manual                             |                                                                                            |          |
+|                           |     ONBOOT: yes                                   |                                                                                            |          |
 |                           |     MASTER: bond2                                 |                                                                                            |          |
+|                           |     SLAVE: yes                                    |                                                                                            |          |
+|                           |     NM_CONTROLLED: no                             |                                                                                            |          |
 |                           |                                                   |                                                                                            |          |
 |                           |   - label: bond2_interface1                       |                                                                                            |          |
 |                           |     description: secondary interface for bond 2   |                                                                                            |          |
 |                           |     DEVICE: eth1                                  |                                                                                            |          |
+|                           |     TYPE: Ethernet                                |                                                                                            |          |
 |                           |     BOOTPROTO: manual                             |                                                                                            |          |
+|                           |     ONBOOT: yes                                   |                                                                                            |          |
 |                           |     MASTER: bond2                                 |                                                                                            |          |
+|                           |     SLAVE: yes                                    |                                                                                            |          |
+|                           |     NM_CONTROLLED: no                             |                                                                                            |          |
 |                           |                                                   |                                                                                            |          |
 |                           |   - label: bond2                                  |                                                                                            |          |
 |                           |     description: bond interface 2                 |                                                                                            |          |
 |                           |     DEVICE: bond2                                 |                                                                                            |          |
+|                           |     TYPE: Bond                                    |                                                                                            |          |
+|                           |     BONDING_MASTER: yes                           |                                                                                            |          |
 |                           |     IPADDR_start: 192.168.1.10                    |                                                                                            |          |
 |                           |     NETMASK: 255.255.255.0                        |                                                                                            |          |
+|                           |     ONBOOT: yes                                   |                                                                                            |          |
+|                           |     BOOTPROTO: none                               |                                                                                            |          |
 |                           |     BONDING_OPTS: "mode=active-backup miimon=100" |                                                                                            |          |
+|                           |     NM_CONTROLLED: no                             |                                                                                            |          |
 |                           |                                                   |                                                                                            |          |
 +---------------------------+---------------------------------------------------+--------------------------------------------------------------------------------------------+----------+
 

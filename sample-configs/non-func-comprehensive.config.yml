@@ -1,5 +1,5 @@
 ---
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -106,7 +106,6 @@ switches:
           external_links:
               - target: mgmt_1
                 ipaddr: 192.168.5.31
-                vip: 192.168.5.254
                 port: mgmt0
               - target: data_1_2
                 ipaddr: 10.0.0.1
@@ -124,18 +123,23 @@ switches:
           rack_eia: 35
           external_links:
               - target: mgmt_1
-                ipaddr: 192.168.5.31
-                vip: 192.168.5.254
+                ipaddr: 192.168.5.33
                 port: mgmt0
               - target: data_1_1
                 ipaddr: 10.0.0.2
                 network: 255.255.255.0
                 vlan: 4000
+                vip: 192.168.5.254
                 port:
                     - 7
                     - 8
 
 interfaces:
+    - label: pxe-ifc
+      description: pxe interface
+      iface: eth15
+      method: dhcp
+
     - label: manual1
       description: manual network 1
       iface: eth0
@@ -392,14 +396,14 @@ node_templates:
                     - 3
           pxe:
               - switch: mgmt_1_1
-                dev: eth15
+                interface: pxe-ifc
                 rename: false
                 ports:
                     - 4
                     - 5
                     - 6
               - switch: mgmt_1_2
-                dev: eth16
+                interface: eth16
                 rename: false
                 ports:
                     - 4
@@ -407,14 +411,14 @@ node_templates:
                     - 6
           data:
               - switch: data_1_1
-                dev: eth10
+                interface: eth10
                 rename: true
                 ports:
                     - 1
                     - 2
                     - 3
               - switch: data_1_2
-                dev: eth11
+                interface: eth11
                 rename: myrenamedport
                 ports:
                     - 4
@@ -458,20 +462,21 @@ node_templates:
                     - 9
           pxe:
               - switch: mgmt_2
-                dev: eth15
+                interface: pxe-ifc
+                rename: true
                 ports:
                     - 10
                     - 11
                     - 12
           data:
               - switch: data_2
-                dev: eth10
+                interface: eth10
                 ports:
                     - 7
                     - 8
                     - 9
               - switch: data_2
-                dev: eth11
+                interface: eth11
                 ports:
                     - 10
                     - 11

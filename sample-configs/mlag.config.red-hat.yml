@@ -1,5 +1,5 @@
 ---
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -17,14 +17,18 @@
 
 version: v2.0
 
+location:
+    time_zone: UTC
+    data_center: dataeast
+    racks:
+        - label: rack_1
+          room: room33
+          row: row1
+          cell: 42
+
 globals:
     introspection: False
     switch_mode_mgmt: active
-
-location:
-    time_zone: America/Chicago
-    racks:
-        - label: rack1
 
 deployer:
     networks:
@@ -35,10 +39,10 @@ deployer:
         client:
             - device: enP1p10s0f0
               type: pxe
-              container_ipaddr: 192.168.10.2
-              bridge_ipaddr: 192.168.10.3
-              netmask: 255.255.255.0
-              vlan: 10
+              container_ipaddr: 192.168.11.2
+              bridge_ipaddr: 192.168.11.3
+              prefix: 24
+              vlan: 11
             - device: enP1p10s0f0
               type: ipmi
               container_ipaddr: 192.168.12.2
@@ -48,64 +52,63 @@ deployer:
 
 switches:
     mgmt:
-        - label: mgmt1
+        - label: mgmt_1_1
           class: lenovo
+          hostname: mymgmt_1_1
           userid: admin
-          password: passw0rd
-          rack_id: rack1
+          password: admin
+          ssh_key: <path1>
+          rack_id: rack_1
+          rack_eia: 33
           interfaces:
               - type: outband
-                ipaddr: 192.168.5.10
-                port: mgmt0
+                ipaddr: 192.168.32.20
           links:
               - target: deployer
-                ports:
-                    - 1
-              - target: data1_1
-                ports:
-                    - 2
-              - target: data1_2
-                ports:
-                    - 3
+                ports: 18
+              - target: data_1_1
+                ports: 45
+              - target: data_1_2
+                ports: 47
 
     data:
-        - label: data1_1
+        - label: data_1_1
           class: mellanox
           userid: admin
-          password: passw0rd
-          rack_id: rack1
+          password: admin
+          rack_id: rack_1
           interfaces:
               - type: outband
                 ipaddr: 192.168.32.25
                 port: mgmt0
           links:
-              - target: mgmt1
-                ipaddr: 192.168.5.11
-                vip: 192.168.5.254
+              - target: mgmt_1
+                ipaddr: 192.168.5.31
                 ports:
                     - mgmt0
-              - target: data1_2
+              - target: data_1_2
                 ipaddr: 10.0.0.1
                 prefix: 24
                 vlan: 4000
+                vip: 192.168.32.254
                 ports:
                     - 1
                     - 2
-        - label: data1_2
+        - label: data_1_2
           class: mellanox
           userid: admin
-          password: passw0rd
-          rack_id: rack1
+          password: admin
+          rack_id: rack_1
           interfaces:
               - type: outband
                 ipaddr: 192.168.32.30
                 port: mgmt0
           links:
-              - target: mgmt_1
-                ipaddr: 192.168.5.12
-                vip: 192.168.5.254
-                ports: mgmt0
-              - target: data1_1
+              - target: mgmt_1_1
+                ipaddr: 192.168.5.31
+                ports:
+                    - mgmt0
+              - target: data_1_1
                 ipaddr: 10.0.0.2
                 netmask: 255.255.255.0
                 vlan: 4000
@@ -114,80 +117,119 @@ switches:
                     - 2
 
 interfaces:
-    - label: eth15
+    - label: pxe-ifc
       description: pxe interface
-      iface: eth2
-      method: dhcp
+      DEVICE: eth15
+      TYPE: Ethernet
+      BOOTPROTO: dhcp
+      ONBOOT: yes
+      NM_CONTROLLED: no
 
-    - label: bond1_interface1
-      description: primary interface for bond1
-      iface: eth0
-      method: manual
-      bond_master: bond1
-      bond_primary: eth0
+    - label: bond1_slave1
+      description: bond1 slave ifc 1
+      DEVICE: eth1
+      TYPE: Ethernet
+      BOOTPROTO: none
+      ONBOOT: yes
+      MASTER: bond1
+      SLAVE: yes
+      NM_CONTROLLED: no
 
-    - label: bond1_interface2
-      description: secondary interface for bond1
-      iface: eth1
-      method: manual
-      bond_master: bond1
+    - label: bond1_slave2
+      description: bond1 slave ifc 2
+      DEVICE: eth2
+      TYPE: Ethernet
+      BOOTPROTO: none
+      ONBOOT: yes
+      MASTER: bond1
+      SLAVE: yes
+      NM_CONTROLLED: no
 
-    - label: bond1
-      description: bond interface 1
-      iface: bond1
-      bond_mode: active-backup
-      bond_miimon: 100
-      bond_slaves: none
+    - label: bond1_mstr
+      description: bond1 interface mstr
+      DEVICE: bond1
+      TYPE: Bond
+      BONDING_MASTER: yes
+      ONBOOT: yes
+      BOOTPROTO: none
+      BONDING_OPTS: "mode=802.3ad miimon=100"
+      NM_CONTROLLED: no
 
     - label: bond1_vlan10
       description: vlan10 interface off bond1
-      iface: bond1.10
-      method: manual
+      DEVICE: bond1.10
+      BOOTPROTO: none
+      ONBOOT: yes
+      ONPARENT: yes
+      VLAN: yes
+      NM_CONTROLLED: no
 
     - label: bond1_br10
       description: bridge interface off bond1 vlan10
-      iface: br10
-      method: static
-      address_start: 172.16.10.1
-      netmask: 255.255.255.0
-      bridge_ports: bond1.10
-      bridge_stp: off
+      DEVICE: br10
+      BOOTPROTO: static
+      IPADDR_start: 176.16.10.1
+      NETMASK: 255.255.255.0
+      STP: off
+      NM_CONTROLLED: no
+
+    - label: bridge10_port
+      description: port for bridge br10
+      DEVICE: eth10
+      BOOTPROTO: none
+      ONBOOT: yes
+      BRIDGE: br10
+      NM_CONTROLLED: no
 
     - label: bond1_vlan20
       description: vlan20 interface off bond1
-      iface: bond1.20
-      method: manual
+      DEVICE: bond1.20
+      BOOTPROTO: none
+      ONPARENT: yes
+      IPADDR_start: 176.16.10.1
+      NETMASK: 255.255.255.0
+      GATEWAY: 192.168.1.254
+      VLAN: yes
+      NM_CONTROLLED: no
 
     - label: bond1_br20
       description: bridge interface off bond1 vlan20
-      iface: br20
-      method: static
-      address_start: 172.16.20.1
-      netmask: 255.255.255.0
-      bridge_ports: bond1.20
-      bridge_stp: off
+      DEVICE: br20
+      BOOTPROTO: static
+      IPADDR_start: 176.16.20.1
+      NETMASK: 255.255.255.0
+      STP: off
+      NM_CONTROLLED: no
+
+    - label: bridge20_port
+      description: port for bridge br20
+      DEVICE: eth20
+      BOOTPROTO: none
+      ONBOOT: yes
+      BRIDGE: br20
+      NM_CONTROLLED: no
 
 networks:
     - label: bond1_br10
       interfaces:
-          - bond1_interface1
-          - bond1_interface2
-          - bond1
+          - bond1_slave1
+          - bond1_slave2
+          - bond1_mstr
           - bond1_vlan10
           - bond1_br10
 
     - label: bond1_br20
       interfaces:
-          - bond1_interface1
-          - bond1_interface2
-          - bond1
+          - bond1_slave1
+          - bond1_slave2
+          - bond1_mstr
           - bond1_vlan20
           - bond1_br20
 
     - label: bond1_br10_br20
       interfaces:
-          - bond1_interface1
-          - bond1_interface2
+          - bond1_slave1
+          - bond1_slave2
           - bond1
           - bond1_vlan10
           - bond1_br10
@@ -195,12 +237,13 @@ networks:
           - bond1_br20
 
 node_templates:
+
     - label: controllers
       ipmi:
           userid: ADMIN
           password: admin
       os:
-          profile: ubuntu-16.04-server-ppc64el
+          profile: RHEL-7.3-20161019.0-Server-ppc64le-dvd1.iso
           users:
               - name: user1
                 password: passw0rd
@@ -208,32 +251,32 @@ node_templates:
           install_device: /dev/sdj
       physical_interfaces:
           ipmi:
-              - switch: mgmt1
+              - switch: mgmt_1_1
                 ports:
                     - 10
                     - 12
           pxe:
-              - switch: mgmt1
-                interface: eth15
+              - switch: mgmt_1_1
+                interface: pxe-ifc
                 rename: true
                 ports:
                     - 11
                     - 13
           data:
               - switch: data_1_1
-                interface: bond1_interface1
+                interface: bond1_slave1
                 rename: true
                 ports:
                     - 18
                     - 19
               - switch: data_1_2
-                interface: bond1_interface2
+                interface: bond1_slave2
                 rename: true
                 ports:
                     - 18
                     - 19
       interfaces:
-          - eth15
+
       networks:
           - bond1_br10_br20
 
@@ -242,7 +285,7 @@ node_templates:
           userid: ADMIN
           password: admin
       os:
-          profile: ubuntu-16.04-server-ppc64el
+          profile: RHEL-7.3-20161019.0-Server-ppc64le-dvd1.iso
           users:
               - name: user1
                 password: passw0rd
@@ -250,32 +293,32 @@ node_templates:
           install_device: /dev/sdj
       physical_interfaces:
           ipmi:
-              - switch: mgmt1
+              - switch: mgmt_1_1
                 ports:
                     - 14
                     - 16
           pxe:
-              - switch: mgmt1
-                interface: eth15
+              - switch: mgmt_1_1
+                interface: pxe-ifc
                 rename: true
                 ports:
                     - 15
                     - 17
           data:
               - switch: data_1_1
-                interface: bond1_interface1
+                interface: bond1_slave1
                 rename: true
                 ports:
                     - 20
                     - 21
               - switch: data_1_2
-                interface: bond1_interface2
+                interface: bond1_slave2
                 rename: true
                 ports:
                     - 20
                     - 21
       interfaces:
-          - eth15
+
       networks:
           - bond1_br10
 
@@ -292,31 +335,31 @@ node_templates:
           install_device: /dev/sdj
       physical_interfaces:
           ipmi:
-              - switch: mgmt1
+              - switch: mgmt_1_1
                 ports:
                     - 18
                     - 20
           pxe:
-              - switch: mgmt1
-                interface: eth15
+              - switch: mgmt_1_1
+                interface: pxe-ifc
                 rename: true
                 ports:
                     - 19
                     - 21
           data:
               - switch: data_1_1
-                interface: bond1_interface1
+                interface: bond1_slave1
                 rename: true
                 ports:
                     - 22
                     - 23
               - switch: data_1_2
-                interface: bond1_interface2
+                interface: bond1_slave2
                 rename: true
                 ports:
                     - 22
                     - 23
       interfaces:
-          - eth15
+
       networks:
           - bond1_br20

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Config schema validation"""
 
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -167,9 +167,12 @@ class Interfaces(jsl.Document):
     bond_miimon = jsl.fields.IntField()
     bond_slaves = jsl.fields.StringField()
     DEVICE = jsl.fields.StringField()
+    TYPE = jsl.fields.StringField()
     IPADDR_start = jsl.fields.IPv4Field()
     IPADDR_list = jsl.fields.ArrayField()
     BOOTPROTO = jsl.fields.StringField()
+    ONBOOT = jsl.fields.BooleanField()
+    ONPARENT = jsl.fields.BooleanField()
     SEARCH = jsl.fields.StringField()
     DNS1 = jsl.fields.IPv4Field()
     DNS2 = jsl.fields.IPv4Field()
@@ -180,8 +183,11 @@ class Interfaces(jsl.Document):
     MTU = jsl.fields.IntField()
     STP = jsl.fields.BooleanField()
     MASTER = jsl.fields.StringField()
+    SLAVE = jsl.fields.BooleanField()
     BRIDGE = jsl.fields.StringField()
     BONDING_OPTS = jsl.fields.StringField()
+    BONDING_MASTER = jsl.fields.BooleanField()
+    NM_CONTROLLED = jsl.fields.BooleanField()
 
 
 class Networks(jsl.Document):
