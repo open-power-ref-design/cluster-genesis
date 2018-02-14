@@ -68,7 +68,7 @@ class Config(object):
         RENAME = 'rename'
         INTERFACE = 'interface'
         IFACE = 'iface'
-        DEVICE = 'DEVICE'
+        INTERFACE_DEVICE = 'DEVICE'
         INTERFACES = 'interfaces'
         NETWORKS = 'networks'
         ADDRESS_LIST = 'address_list'
@@ -2333,8 +2333,8 @@ class Config(object):
             if interface.label == if_label:
                 if self.CfgKey.IFACE in interface:
                     return interface[self.CfgKey.IFACE]
-                elif self.CfgKey.DEVICE in interface:
-                    return interface[self.CfgKey.DEVICE]
+                elif self.CfgKey.INTERFACE_DEVICE in interface:
+                    return interface[self.CfgKey.INTERFACE_DEVICE]
                 else:
                     raise UserException(
                         'No \'iface\' or \'DEVICE\' key defined in interface '
