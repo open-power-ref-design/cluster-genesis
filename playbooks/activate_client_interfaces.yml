@@ -21,6 +21,7 @@
   tasks:
     - name: Gather facts
       setup:
+
     - name: Bring down all interfaces except ansible communication interface
       command: "ip link set dev {{ item }} down"
       when:
@@ -32,44 +33,10 @@
            item.replace('-', '_')]['active'] }}"
       with_items: "{{ ansible_interfaces }}"
 
-    # A one time copy is made of the network interfaces files after initial
-    # OS install. This is now attempted at the end of install in wait_for_
-    # client_ping.yml, but is re-attempted here for previous installs done
-    # with prior versions of Genesis.
+    - pause:
+        seconds: 5
 
-    - block:
-        - name: Check if deploy t0 interfaces file exists
-          stat: path=/etc/network/interfaces.gen-deploy-t0
-          register: st
-
-        - name: One time copy t0 interfaces file
-          command: "cp /etc/network/interfaces /etc/network/interfaces.gen-deploy-t0"
-          when: not st.stat.exists
-
-        - name: Backup interfaces file
-          command: "cp /etc/network/interfaces /etc/network/interfaces.bak"
-
-        - name: Write interfaces file for ipv6 auto on all interfaces if Ubuntu
-          template:
-            src: "{{ playbook_dir }}/templates/ipv6Interface_ubuntu.j2"
-            dest: /etc/network/interfaces
-            owner: "root"
-            group: "root"
-            mode: "0644"
-      when: ansible_distribution == 'Ubuntu'
-
-    - name: Write ifcfg files for ipv6 on all interfaces if RHEL/CentOS
-      template:
-        src: "{{ playbook_dir }}/templates/ipv6Interface_rhel.j2"
-        dest: "/etc/sysconfig/network-scripts/ifcfg-{{ item }}"
-        owner: "root"
-        group: "root"
-        mode: "0644"
-      when: (ansible_distribution == 'CentOS') or
-            (ansible_distribution == 'RedHat')
-      with_items: "{{ ansible_interfaces }}"
-
-    - name: Bring up all interfaces
+    - name: Insure all interfaces are up
       command: "ip link set dev {{ item }} up"
       when:
         - "{{ item != 'lo' }}"
@@ -77,3 +44,67 @@
            item.replace('-', '_')].get('ipv4', {}).get('address') }}"
       with_items: "{{ ansible_interfaces }}"
       ignore_errors: yes
+
+    - pause:
+        seconds: 5
+
+
+    # Update switch mac address tables by adding temporary link local
+    # ipv4 address.  This also forces an ipv6 link local setup which
+    # drives traffic to the switch.
+    - name: Update switch mac address tables
+      command: "sudo ip addr add 169.254.0.2/24 dev {{ item }}"
+      when:
+        - "{{ item != 'lo' }}"
+        - "{{ ansible_host != hostvars[inventory_hostname]['ansible_' + \
+           item.replace('-', '_')].get('ipv4', {}).get('address') }}"
+      with_items: "{{ ansible_interfaces }}"
+      ignore_errors: yes
+
+    - pause:
+        seconds: 5
+
+    - name: clear the temporary addresses
+      command: "sudo ip addr del 169.254.0.2/24 dev {{ item }}"
+      when:
+        - "{{ item != 'lo' }}"
+        - "{{ ansible_host != hostvars[inventory_hostname]['ansible_' + \
+           item.replace('-', '_')].get('ipv4', {}).get('address') }}"
+      with_items: "{{ ansible_interfaces }}"
+      ignore_errors: yes
+
+    # A one time copy is made of the network interfaces files after initial
+    # OS install. This is now attempted at the end of install in wait_for_
+    # client_ping.yml, but is re-attempted here for previous installs done
+    # with prior versions of Genesis.
+    - block:
+        - name: Find interfaces files
+          find: paths="/etc/sysconfig/network-scripts" patterns="ifcfg-*"
+          register: files_to_copy
+
+        - name: create backup directory
+          file: path=/etc/sysconfig/network-scripts/gen-t0-bkup state=directory
+
+        - name: One time t0 backup of initial interface files
+          copy:
+            src: "{{ item.path }}"
+            dest: "/etc/sysconfig/network-scripts/gen-t0-bkup/"
+            remote_src: yes
+            force: no
+            owner: root
+          with_items: "{{ files_to_copy.files }}"
+      when: (ansible_distribution == 'RedHat') or
+            (ansible_distribution == 'CentOS')
+
+    - block:
+        - name: create backup directory
+          file: path=/etc/network/gen-t0-bkup state=directory
+
+        - name: One time t0 backup of initial interface file
+          copy:
+            src: "/etc/network/interfaces"
+            dest: "/etc/network/gen-t0-bkup/"
+            remote_src: yes
+            force: no
+            owner: root
+      when: ansible_distribution == 'Ubuntu'

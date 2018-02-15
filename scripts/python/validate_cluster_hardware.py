@@ -35,6 +35,7 @@ from lib.switch_exception import SwitchException
 from lib.switch import SwitchFactory
 from lib.exception import UserException, UserCriticalException
 from get_dhcp_lease_info import GetDhcpLeases
+from lib.genesis import get_dhcp_pool_start
 
 # offset relative to bridge address
 NAME_SPACE_OFFSET_ADDR = 1
@@ -468,15 +469,15 @@ class ValidateClusterHardware(object):
         addr = str(addr)
         cred_list = self._get_cred_list()
         rc = True
-
+        dhcp_st = get_dhcp_pool_start()
         self.ipmi_ns = NetNameSpace('ipmi-ns-', 'br-ipmi-' + str(ipmi_vlan), addr)
 
         # setup DHCP, unless already running in namesapce
         # save start and end addr raw numeric values
         self.log.debug('Installing DHCP server in network namespace')
-        addr_st = self._add_offset_to_address(ipmi_network, 30)
+        addr_st = self._add_offset_to_address(ipmi_network, dhcp_st)
         addr_end = self._add_offset_to_address(ipmi_network, ipmi_size - 2)
-        dhcp_end = self._add_offset_to_address(ipmi_network, 30 + ipmi_cnt + 2)
+        dhcp_end = self._add_offset_to_address(ipmi_network, dhcp_st + ipmi_cnt + 2)
 
         # scan ipmi network for nodes with pre-existing ip addresses
         cmd = 'fping -r0 -a -g {} {}'.format(addr_st, addr_end)
@@ -613,14 +614,14 @@ class ValidateClusterHardware(object):
         addr.value += NAME_SPACE_OFFSET_ADDR
         addr = str(addr)
         rc = False
-
+        dhcp_st = get_dhcp_pool_start()
         pxe_ns = NetNameSpace('pxe-ns-', 'br-pxe-' + str(pxe_vlan), addr)
 
         # setup DHCP, unless already running in namespace
         # save start and end addr raw numeric values
         self.log.debug('Installing DHCP server in network namespace')
-        addr_st = self._add_offset_to_address(pxe_network, 30)
-        addr_end = self._add_offset_to_address(pxe_network, 30 + pxe_cnt + 2)
+        addr_st = self._add_offset_to_address(pxe_network, dhcp_st)
+        addr_end = self._add_offset_to_address(pxe_network, dhcp_st + pxe_cnt + 2)
 
         cmd = 'dnsmasq --interface={} --dhcp-range={},{},{},3600' \
             .format(pxe_ns._get_name_sp_ifc_name(),

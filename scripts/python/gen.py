@@ -414,10 +414,8 @@ class Gen(object):
         except UserException as exc:
             print('Fail:', exc.message, file=sys.stderr)
             sys.exit(1)
-
-        _run_playbook("restore_client_interfaces.yml")
-
-        print('Success: Gathered Client MAC addresses')
+        else:
+            print('Success: Gathered Client MAC addresses')
 
     def _lookup_interface_names(self):
         try:
@@ -532,11 +530,10 @@ class Gen(object):
             if argparse_gen.is_arg_present(self.args.all):
                 print("\n\nPress enter to continue with node configuration ")
                 print("and data switch setup, or 'T' to terminate ")
-                print("Cluster Genesis.  (To restart, type: 'gen post-deploy "
-                      "--all')")
+                print("Cluster Genesis. (To restart, type: 'gen post-deploy)")
                 resp = raw_input("\nEnter or 'T': ")
                 if resp == 'T':
-                    sys.exit('Cluster Genesis terminated at user request')
+                    sys.exit('Cluster Genesis stopped at user request')
                 cmd = argparse_gen.Cmd.POST_DEPLOY.value
 
         if cmd == argparse_gen.Cmd.POST_DEPLOY.value:
