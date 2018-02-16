@@ -1,0 +1,134 @@
+---
+# Copyright 2018 IBM Corp.
+#
+# All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+version: v2.0
+
+globals:
+    introspection: False
+    switch_mode_mgmt: active
+
+location:
+    racks:
+        - label: rack1
+
+deployer:
+    networks:
+        mgmt:
+            - device: enP10p1s0f0
+              interface_ipaddr: 192.168.5.2
+              netmask: 255.255.255.0
+              vlan: 5
+        client:
+            - device: enP10p1s0f0
+              type: ipmi
+              container_ipaddr: 192.168.30.2
+              bridge_ipaddr: 192.168.30.3
+              netmask: 255.255.255.0
+              vlan: 30
+            - device: enP10p1s0f0
+              type: pxe
+              container_ipaddr: 192.168.40.2
+              bridge_ipaddr: 192.168.40.3
+              netmask: 255.255.255.0
+              vlan: 40
+
+switches:
+    mgmt:
+        - label: mgmt1
+          class: lenovo
+          userid: admin
+          password: passw0rd
+          interfaces:
+              - type: outband
+                ipaddr: 192.168.5.10
+                port: 1
+          links:
+              - target: deployer
+                ports: 2
+    # Note that there must be a data switch defined in the config file. In this
+    # case the data and mgmt switch are the same physical switch
+    data:
+        - label: data1
+          class: lenovo
+          userid: admin
+          password: passw0rd
+          interfaces:
+              - type: outband
+                ipaddr: 192.168.5.10
+                port: 1
+          links:
+              - target: deployer
+                ports: 2
+
+interfaces:
+    - label: pxe-ifc
+      description: pxe interface
+      iface: eth0
+      method: dhcp
+
+    - label: static_1
+      description: static network 1
+      iface: eth1
+      method: static
+      address_list:
+          - 192.168.1.2
+          - 192.168.1.3
+          - 192.168.1.4
+      netmask: 255.255.255.0
+      broadcast: 192.168.1.255
+      gateway: 192.168.1.1
+
+networks:
+    - label: static-ifc1
+      interfaces:
+          - static_1
+
+node_templates:
+    - label: ubuntu1604-node
+      ipmi:
+          userid: ADMIN
+          password: admin
+      os:
+          profile: ubuntu-16.04-server-ppc64el
+          users:
+              - name: user1
+                password: passw0rd
+                groups: sudo
+          install_device: /dev/sdj
+      physical_interfaces:
+          ipmi:
+              - switch: mgmt1
+                ports:
+                    - 10
+                    - 12
+                    - 14
+          pxe:
+              - switch: mgmt1
+                interface: pxe-ifc
+                rename: true
+                ports:
+                    - 11
+                    - 13
+                    - 15
+          data:
+              - switch: data1
+                interface: static_1
+                rename: true
+                ports:
+                    - 23
+                    - 25
+                    - 27

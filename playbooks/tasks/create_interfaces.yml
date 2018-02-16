@@ -27,19 +27,19 @@
 # Need to add support for Red Hat
 - name: Copy udev links rules
   command: "cp /lib/systemd/network/99-default.link /etc/systemd/network/99-default.link"
-  when: (ansible_distribution == 'Ubuntu')
+  when: ansible_distribution == 'Ubuntu'
 
 - name: Modify udev links rules
   lineinfile:
     path: /etc/systemd/network/99-default.link
     regexp: '^NamePolicy='
     line: 'NamePolicy=onboard slot path'
-  when: (ansible_distribution == 'Ubuntu')
+  when: ansible_distribution == 'Ubuntu'
 
 - name: Update boot ram disk
   command: "update-initramfs -u"
   register: updateinitramfs
-  when: (ansible_distribution == 'Ubuntu')
+  when: ansible_distribution == 'Ubuntu'
   notify: Reboot
 - debug: var=updateinitramfs.stdout_lines
 
@@ -51,6 +51,19 @@
     group: "root"
     mode: "0644"
     backup: yes
-  when: (ansible_distribution == 'Ubuntu')
+  when: ansible_distribution == 'Ubuntu'
   notify: Reboot
+
+- name: Generate RHEL/CentOS interfaces files
+  template:
+    src: "{{ playbook_dir }}/templates/interfaces_rhel.j2"
+    dest: "/etc/sysconfig/network-scripts/ifcfg-{{ item['DEVICE'] }}"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+    backup: no
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+  with_items: "{{ interfaces }}"
+  notify: Reboot
+
 ...

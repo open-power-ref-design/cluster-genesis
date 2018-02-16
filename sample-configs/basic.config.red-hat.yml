@@ -1,5 +1,5 @@
 ---
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -60,63 +60,55 @@ switches:
               - target: deployer
                 ports: 2
 
-interfaces:
-    - label: eth15
-      description: pxe interface
-      iface: eth0
-      method: dhcp
+    # Note that there must be a data switch defined in the config file. In this
+    # case the data and mgmt switch are the same physical switch
+    data:
+        - label: data1
+          class: lenovo
+          userid: admin
+          password: passw0rd
+          interfaces:
+              - type: outband
+                ipaddr: 192.168.5.10
+                port: 1
+          links:
+              - target: deployer
+                ports: 2
 
-    - label: manual1
-      description: manual network 1
-      iface: eth1
-      method: manual
+interfaces:
+    - label: pxe-ifc
+      description: pxe interface
+      DEVICE: eth0
+      TYPE: Ethernet
+      BOOTPROTO: dhcp
+      ONBOOT: yes
+      NM_CONTROLLED: no
+
+    - label: static_1
+      description: static interface 1
+      DEVICE: eth1
+      TYPE: Ethernet
+      BOOTPROTO: none
+      ONBOOT: yes
+      IPADDR_list:
+          - 192.168.1.10-192.168.1.12  # address range
+      NETMASK: 255.255.255.0
+      BROADCAST: 192.168.1.255
+      GATEWAY: 192.168.1.1
+      NM_CONTROLLED: no
 
 networks:
-    - label: manual_1
+    - label: static-ifc1
       interfaces:
-          - manual1
+          - static_1
 
 node_templates:
-    - label: ubuntu1604
+    - label: rhel72-node
       ipmi:
           userid: ADMIN
           password: admin
       os:
-          profile: ubuntu-16.04-server-ppc64el
-          users:
-              - name: user1
-                password: passw0rd
-                groups: sudo
-          install_device: /dev/sdj
-      physical_interfaces:
-          ipmi:
-              - switch: mgmt1
-                ports:
-                    - 10
-                    - 12
-                    - 14
-          pxe:
-              - switch: mgmt1
-                interface: eth15
-                rename: true
-                ports:
-                    - 11
-                    - 13
-                    - 15
-          data:
-              - switch: mgmt1
-                interface: manual1
-                rename: true
-                ports:
-                    - 23
-                    - 25
-                    - 27
-
-    - label: rhel72
-      ipmi:
-          userid: ADMIN
-          password: admin
-      os:
+          profile: RHEL-7.3-20161019.0-Server-ppc64le-dvd1.iso
           hostname_prefix: rhel72
           users:
               - name: user1
@@ -126,17 +118,23 @@ node_templates:
       physical_interfaces:
           ipmi:
               - switch: mgmt1
-                interface: eth15
-                rename: true
                 ports:
                     - 16
                     - 18
                     - 20
           pxe:
               - switch: mgmt1
-                interface: eth15
+                interface: pxe-ifc
                 rename: true
                 ports:
                     - 17
                     - 19
                     - 21
+          data:
+              - switch: mgmt1
+                interface: static_1
+                rename: true
+                ports:
+                    - 24
+                    - 26
+                    - 28

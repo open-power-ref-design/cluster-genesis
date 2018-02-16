@@ -65,12 +65,17 @@ def _get_port_chan_list():
                         bond_ifcs[ifc['label']].append(_ifc['label'])
                     else:
                         bond_ifcs[ifc['label']] = [_ifc['label']]
+        elif 'BONDING_MASTER' in ifc:
+            for _ifc in ifcs:
+                if 'MASTER' in _ifc and _ifc['MASTER'] == ifc['DEVICE']:
+                    if ifc['label'] in bond_ifcs:
+                        bond_ifcs[ifc['label']].append(_ifc['label'])
+                    else:
+                        bond_ifcs[ifc['label']] = [_ifc['label']]
 
-    # print('bond_ifcs')
     pretty_str = PP.pformat(bond_ifcs)
     log.debug('bond_ifcs')
     log.debug('\n' + pretty_str)
-    # print(pretty_str)
 
     # Gather bond node template, switch and port information
     bonds = Tree()
@@ -88,11 +93,9 @@ def _get_port_chan_list():
                         ports = CFG.get_ntmpl_phyintf_data_ports(
                             ntmpl_ind, phyintf_idx)
                         bonds[bond][ntmpl_label][phyintf][switch] = ports
-    # print(' Bonds')
     pretty_str = PP.pformat(bonds)
     log.debug('Bonds:')
     log.debug('\n' + pretty_str)
-    # print(pretty_str)
 
     # For each bond, aggregate ports across node templates and group into port
     # channel groups
@@ -129,14 +132,40 @@ def _get_port_chan_list():
                 mstr_switch = CFG.get_sw_data_mstr_switch([switch, peer_switch])
                 chan_ports[bond][ntmpl][mstr_switch][switch] = \
                     ports_list[bond][ntmpl][switch]
-
-    # print()
-    # print('Port channel ports')
     pretty_str = PP.pformat(chan_ports)
     log.debug('Port channel ports:')
     log.debug('\n' + pretty_str)
-    # print(pretty_str)
     return chan_ports
+
+
+def _get_vlan_info(ifc):
+    ifcs = CFG.get_interfaces()
+    vlan_num = None
+    vlan_ifc_name = ''
+
+    for _ifc in ifcs:
+        if _ifc['label'] == ifc:
+            if 'vlan_raw_device' in _ifc:
+                vlan_num = int(_ifc['iface'].rpartition('.')[2])
+                vlan_ifc_name = _ifc['vlan_raw_device']
+                break
+            elif 'VLAN' in _ifc:
+                vlan_num = int(_ifc['DEVICE'].rpartition('.')[2])
+                vlan_ifc_name = _ifc['DEVICE'].rpartition('.')[0]
+                break
+    return vlan_num, vlan_ifc_name
+
+
+def _get_vlan_slaves(vlan_ifc_name):
+    ifcs = CFG.get_interfaces()
+    vlan_slaves = []
+
+    for _ifc in ifcs:
+        if 'bond_master' in _ifc and _ifc['bond_master'] == vlan_ifc_name:
+            vlan_slaves.append(_ifc['label'])
+        elif 'MASTER' in _ifc and _ifc['MASTER'] == vlan_ifc_name:
+            vlan_slaves.append(_ifc['label'])
+    return vlan_slaves
 
 
 def _get_vlan_list():
@@ -146,49 +175,29 @@ def _get_vlan_list():
         Tree of switches and vlan information by port
     """
     log = logger.getlogger()
-    ifcs = CFG.get_interfaces()
 
     vlan_list = Tree()
     for ntmpl_ind in CFG.yield_ntmpl_ind():
         ntmpl_ifcs = CFG.get_ntmpl_ifcs_all(ntmpl_ind)
-        for phyintf_idx in CFG.yield_ntmpl_phyintf_data_ind(ntmpl_ind):
-            phy_ifc_lbl = CFG.get_ntmpl_phyintf_data_ifc(ntmpl_ind, phyintf_idx)
-            ifc = CFG.get_interface(phy_ifc_lbl)
-            if phy_ifc_lbl in ntmpl_ifcs:
-                if 'bond_master' in ifc:
-                    bond_label = ifc['bond_master']
-                    for _ifc in ifcs:
-                        if 'vlan_raw_device' in _ifc and \
-                                _ifc['vlan_raw_device'] == bond_label:
-                            switch = CFG.get_ntmpl_phyintf_data_switch(
-                                ntmpl_ind, phyintf_idx)
-                            vlan_num = int(_ifc['iface'].rpartition('.')[2])
-                            vlan_ports = CFG.get_ntmpl_phyintf_data_ports(
-                                ntmpl_ind, phyintf_idx)
-                            if vlan_num in vlan_list[switch]:
-                                vlan_list[switch][vlan_num] += vlan_ports
-                            else:
-                                vlan_list[switch][vlan_num] = vlan_ports
-            else:
-                for _ifc in ifcs:
-                    if _ifc['label'] in ntmpl_ifcs and 'vlan_raw_device' in _ifc \
-                            and _ifc['vlan_raw_device'] == ifc['iface']:
-                        switch = CFG.get_ntmpl_phyintf_data_switch(
-                            ntmpl_ind, phyintf_idx)
-                        vlan_num = int(_ifc['iface'].rpartition('.')[2])
+        for ifc in ntmpl_ifcs:
+            vlan_num, vlan_ifc_name = _get_vlan_info(ifc)
+            if vlan_num:
+                vlan_slaves = _get_vlan_slaves(vlan_ifc_name)
+                for phyintf_idx in CFG.yield_ntmpl_phyintf_data_ind(ntmpl_ind):
+                    phy_ifc_lbl = CFG.get_ntmpl_phyintf_data_ifc(ntmpl_ind, phyintf_idx)
+                    if phy_ifc_lbl in vlan_slaves:
                         vlan_ports = CFG.get_ntmpl_phyintf_data_ports(
+                            ntmpl_ind, phyintf_idx)
+                        switch = CFG.get_ntmpl_phyintf_data_switch(
                             ntmpl_ind, phyintf_idx)
                         if vlan_num in vlan_list[switch]:
                             vlan_list[switch][vlan_num] += vlan_ports
                         else:
                             vlan_list[switch][vlan_num] = vlan_ports
 
-    # print()
-    # print('vlan list')
     pretty_str = PP.pformat(vlan_list)
     log.debug('vlan list')
     log.debug('\n' + pretty_str)
-    # PP.pprint(vlan_list)
 
     # Aggregate by switch and port number
     port_vlans = Tree()
@@ -200,11 +209,10 @@ def _get_vlan_list():
                 else:
                     port_vlans[switch][port] = [vlan]
 
-    # print('port_vlans')
     pretty_str = PP.pformat(port_vlans)
     log.debug('port_vlans')
     log.debug('\n' + pretty_str)
-    # print(pretty_str)
+
     return port_vlans
 
 
@@ -217,21 +225,24 @@ def _get_mtu_list():
     mtu_list = Tree()
     for ntmpl_ind in CFG.yield_ntmpl_ind():
         for phyintf_idx in CFG.yield_ntmpl_phyintf_data_ind(ntmpl_ind):
+            mtu = ''
             phy_ifc = CFG.get_ntmpl_phyintf_data_ifc(ntmpl_ind, phyintf_idx)
             ifc = CFG.get_interface(phy_ifc)
             if 'mtu' in ifc:
                 mtu = ifc['mtu']
+            elif 'MTU' in ifc:
+                mtu = ifc['MTU']
+            if mtu:
                 switch = CFG.get_ntmpl_phyintf_data_switch(ntmpl_ind, phyintf_idx)
                 ports = CFG.get_ntmpl_phyintf_data_ports(ntmpl_ind, phyintf_idx)
                 if switch in mtu_list and mtu in mtu_list[switch]:
                     mtu_list[switch][mtu] += ports
                 else:
                     mtu_list[switch][mtu] = ports
-    # print('mtu_list')
     pretty_str = PP.pformat(mtu_list)
     log.debug('mtu_list')
     log.debug('\n' + pretty_str)
-    # print(pretty_str)
+
     return mtu_list
 
 
@@ -275,11 +286,9 @@ def _get_mlag_info():
                         mlag_list[mstr_sw][keys[1]]['peer_ip'] = \
                             str(mlag_list[mstr_sw][keys[0]]['cidr']).split(' /')[0]
                     break
-    # print('mlag_list')
     pretty_str = PP.pformat(mlag_list)
     log.debug('mlag_list')
     log.debug('\n' + pretty_str)
-    # print(pretty_str)
 
     return mlag_list
 
