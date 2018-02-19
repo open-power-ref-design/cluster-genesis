@@ -1781,12 +1781,14 @@ class Config(object):
                 node_template_index):
             if_labels.append(interface)
 
-        if self.CfgKey.INTERFACES in node_template:
+        if (self.CfgKey.INTERFACES in node_template and
+                node_template[self.CfgKey.INTERFACES] is not None):
             for interface in node_template[self.CfgKey.INTERFACES]:
                 if interface not in if_labels:
                     if_labels.append(interface)
 
-        if self.CfgKey.NETWORKS in node_template:
+        if (self.CfgKey.NETWORKS in node_template and
+                node_template[self.CfgKey.NETWORKS] is not None):
             for network in node_template[self.CfgKey.NETWORKS]:
                 for network_def in network_defs:
                     if network == network_def[self.CfgKey.LABEL]:
