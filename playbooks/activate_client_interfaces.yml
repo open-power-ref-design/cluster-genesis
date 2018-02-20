@@ -47,7 +47,7 @@
       ignore_errors: yes
 
     - name: Pause for networks to come up
-    - pause:
+      pause:
         seconds: 5
 
 
