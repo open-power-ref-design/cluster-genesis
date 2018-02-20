@@ -33,7 +33,8 @@
            item.replace('-', '_')]['active'] }}"
       with_items: "{{ ansible_interfaces }}"
 
-    - pause:
+    - name: Pause for networks to go down
+      pause:
         seconds: 5
 
     - name: Insure all interfaces are up
@@ -45,6 +46,7 @@
       with_items: "{{ ansible_interfaces }}"
       ignore_errors: yes
 
+    - name: Pause for networks to come up
     - pause:
         seconds: 5
 
@@ -53,7 +55,8 @@
     # ipv4 address.  This also forces an ipv6 link local setup which
     # drives traffic to the switch.
     - name: Update switch mac address tables
-      command: "sudo ip addr add 169.254.0.2/24 dev {{ item }}"
+      command: "ip addr add 169.254.0.2/24 dev {{ item }}"
+      become: true
       when:
         - "{{ item != 'lo' }}"
         - "{{ ansible_host != hostvars[inventory_hostname]['ansible_' + \
@@ -61,11 +64,13 @@
       with_items: "{{ ansible_interfaces }}"
       ignore_errors: yes
 
-    - pause:
+    - name: Pause for ipv6 link local
+      pause:
         seconds: 5
 
     - name: clear the temporary addresses
-      command: "sudo ip addr del 169.254.0.2/24 dev {{ item }}"
+      command: "ip addr del 169.254.0.2/24 dev {{ item }}"
+      become: true
       when:
         - "{{ item != 'lo' }}"
         - "{{ ansible_host != hostvars[inventory_hostname]['ansible_' + \
