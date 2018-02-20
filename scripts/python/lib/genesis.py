@@ -81,6 +81,7 @@ class Color:
     clr_to_bot = '\033[J'
     scroll_five = '\n\n\n\n\n'
     scroll_ten = '\n\n\n\n\n\n\n\n\n\n'
+    up_one = '\033[1A'
     up_five = '\033[5A'
     up_ten = '\033[10A'
     header1 = '          ' + bold + underline

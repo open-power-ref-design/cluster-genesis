@@ -21,7 +21,6 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 
 from enum import Enum
 from orderedattrdict import AttrDict, DefaultAttrDict
-
 import lib.logger as logger
 from lib.exception import UserException
 from lib.db import Database
@@ -258,7 +257,11 @@ class Inventory(object):
                     list_.append(None)
             return list_
         if key in obj_list[index]:
-            return getattr(obj_list[index], key)
+            ret = getattr(obj_list[index], key)
+            if isinstance(ret, list):
+                return ret[:]
+            else:
+                return ret
 
     def get_nodes_label(self, index=None):
         """Get nodes label
@@ -363,9 +366,13 @@ class Inventory(object):
             str: nodes IPMI ipaddr
         """
 
-        return self._get_members(
-            self.inv.nodes, self.InvKey.IPMI,
-            index)[self.InvKey.IPADDRS][if_index]
+        ipmi_addr_list = self._get_members(
+            self.inv.nodes, self.InvKey.IPMI, index)
+        if index is not None:
+            return ipmi_addr_list[self.InvKey.IPADDRS][if_index]
+        else:
+            return [ipmi_addr_list[x][self.InvKey.IPADDRS][0]
+                    for x in range(len(ipmi_addr_list))]
 
     def set_nodes_ipmi_ipaddr(self, if_index, index, ipaddr):
         """Set nodes IPMI interface ipaddr
@@ -400,10 +407,13 @@ class Inventory(object):
         Returns:
             str: nodes PXE ipaddr
         """
-
-        return self._get_members(
-            self.inv.nodes, self.InvKey.PXE,
-            index)[self.InvKey.IPADDRS][if_index]
+        pxe_addr_list = self._get_members(
+            self.inv.nodes, self.InvKey.PXE, index)
+        if index is not None:
+            return pxe_addr_list[self.InvKey.IPADDRS][if_index]
+        else:
+            return [pxe_addr_list[x][self.InvKey.IPADDRS][0]
+                    for x in range(len(pxe_addr_list))]
 
     def set_nodes_pxe_ipaddr(self, if_index, index, ipaddr):
         """Set nodes PXE interface ipaddr
