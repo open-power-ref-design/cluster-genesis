@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -20,6 +20,7 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 
 import sys
 import subprocess
+import re
 
 
 def get_head_commit_message():
@@ -45,7 +46,7 @@ for i, line in enumerate(get_head_commit_message().splitlines()):
             if line.split()[-1][-1] == ".":
                 no_errors = False
                 errors.append("Subject line should not end with \".\"")
-            if len(line) > 50:
+            if len(re.sub(r' \(#\d+\)$', '', line)) > 50:
                 no_errors = False
                 errors.append("Subject line > 50 characters long")
     elif i == 1:
