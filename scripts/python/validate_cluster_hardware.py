@@ -20,6 +20,8 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 
 import time
 import sys
+import os
+import re
 from subprocess import Popen, PIPE
 from pyroute2 import IPRoute, NetlinkError
 from netaddr import IPNetwork
@@ -35,7 +37,7 @@ from lib.switch_exception import SwitchException
 from lib.switch import SwitchFactory
 from lib.exception import UserException, UserCriticalException
 from get_dhcp_lease_info import GetDhcpLeases
-from lib.genesis import get_dhcp_pool_start
+from lib.genesis import get_dhcp_pool_start, GEN_PATH
 
 # offset relative to bridge address
 NAME_SPACE_OFFSET_ADDR = 1
@@ -59,7 +61,12 @@ def main():
         log.error('Failed cluster nodes PXE validation')
 
 
-def _sub_proc_exec(cmd):
+def _sub_proc_launch(cmd, stdout=PIPE, stderr=PIPE):
+    data = Popen(cmd.split(), stdout=PIPE, stderr=PIPE)
+    return data
+
+
+def _sub_proc_exec(cmd, stdout=PIPE, stderr=PIPE):
     data = Popen(cmd.split(), stdout=PIPE, stderr=PIPE)
     stdout, stderr = data.communicate()
     return stdout, stderr
@@ -147,7 +154,7 @@ class NetNameSpace(object):
     def _get_name_sp_addr(self):
         return self.addr
 
-    def _exec_cmd(self, cmd):
+    def _launch_cmd(self, cmd, stdout=PIPE, stderr=PIPE):
         """Execute a command in the namespace
 
         Args:
@@ -155,8 +162,19 @@ class NetNameSpace(object):
             cmd (string)
         """
         cmd = 'ip netns exec {} {}'.format(self.name, cmd)
-        stdout, stderr = _sub_proc_exec(cmd)
-        return stdout, stderr
+        data = _sub_proc_launch(cmd, stdout, stderr)
+        return data
+
+    def _exec_cmd(self, cmd, stdout=PIPE, stderr=PIPE):
+        """Execute a command in the namespace
+
+        Args:
+            log (object): Log
+            cmd (string)
+        """
+        cmd = 'ip netns exec {} {}'.format(self.name, cmd)
+        std_out, std_err = _sub_proc_exec(cmd, stdout, stderr)
+        return std_out, std_err
 
     def _destroy_name_sp(self):
         self.ip.link('set', index=self.idx_br_ifc, state='down')
@@ -199,7 +217,7 @@ class ValidateClusterHardware(object):
         log (object): Log
     """
 
-    def __init__(self, dhcp_leases_file='/var/lib/misc/dnsmasq.leases'):
+    def __init__(self):
         self.log = logger.getlogger()
         try:
             self.cfg = Config()
@@ -208,7 +226,14 @@ class ValidateClusterHardware(object):
             raise UserException(exc)
         # initialize ipmi list of access info
         self.ipmi_list_ai = {}
-        self.dhcp_leases_file = dhcp_leases_file
+        vlan_ipmi = self.cfg.get_depl_netw_client_vlan(if_type='ipmi')[0]
+        vlan_pxe = self.cfg.get_depl_netw_client_vlan(if_type='pxe')[0]
+        self.dhcp_pxe_leases_file = GEN_PATH + \
+            'logs/dnsmasq{}.leases'.format(vlan_pxe)
+        self.dhcp_ipmi_leases_file = GEN_PATH + \
+            'logs/dnsmasq{}.leases'.format(vlan_ipmi)
+        self.tcp_dump_file = GEN_PATH + \
+            'logs/tcpdump{}.out'.format(vlan_pxe)
         self.node_table_ipmi = AttrDict()
         self.node_table_pxe = AttrDict()
 
@@ -335,7 +360,7 @@ class ValidateClusterHardware(object):
         Returns:
             table (AttrDict): switch, switch port, IPV4 address, MAC address
         """
-        dhcp_leases = GetDhcpLeases(self.dhcp_leases_file)
+        dhcp_leases = GetDhcpLeases(self.dhcp_ipmi_leases_file)
         dhcp_mac_ip = dhcp_leases.get_mac_ip()
 
         dhcp_mac_table = AttrDict()
@@ -352,7 +377,6 @@ class ValidateClusterHardware(object):
             ipmi_ports = self._get_ipmi_ports(label)
             mgmt_sw_cfg_mac_lists = \
                 sw.show_mac_address_table(format='std')
-
             # Get switch ipmi port mac address table
             # Logic below maintains same port order as config.yml
             sw_ipmi_mac_table = AttrDict()
@@ -373,52 +397,61 @@ class ValidateClusterHardware(object):
                             self.node_table_ipmi[label].append(
                                 [port, mac, dhcp_mac_table[mac]])
 
-    def _get_port_table_pxe(self, node_list):
-        """ Build table of discovered nodes.  The responding IP addresses are
-        correlated to MAC addresses in the dnsmasq.leases file.  The MAC
-        address is then used to correlate the IP address to a switch port.
+    def _build_port_table_pxe(self, mac_list):
+        """ Build table of discovered nodes.  The responding mac addresses
+        discovered by tcpdump are correlated to switch ports from cluster
+        switches. If nodes have taken an ip address (via dnsmasq) the ip
+        address is included in the table.
         Args:
             node_list (list of str): IPV4 addresses
         Returns:
             table (AttrDict): switch, switch port, IPV4 address, MAC address
         """
-        dhcp_leases = GetDhcpLeases(self.dhcp_leases_file)
+        dhcp_leases = GetDhcpLeases(self.dhcp_pxe_leases_file)
         dhcp_mac_ip = dhcp_leases.get_mac_ip()
 
         dhcp_mac_table = AttrDict()
-        for ip in node_list:
+        for mac in mac_list:
             for item in dhcp_mac_ip.items():
-                if ip in item:
+                if mac in item:
                     dhcp_mac_table[item[0]] = item[1]
-        self.log.debug('pxe mac-ip table')
+        self.log.debug('pxe dhcp mac table')
         self.log.debug(dhcp_mac_table)
 
         for sw_ai in self.cfg.yield_sw_mgmt_access_info():
             sw = SwitchFactory.factory(*sw_ai[1:])
-            label = sw_ai[0]
-            pxe_ports = self._get_pxe_ports(label)
-            mgmt_sw_cfg_mac_lists = \
+            sw_label = sw_ai[0]
+            pxe_ports = self._get_pxe_ports(sw_label)
+            mgmt_sw_mac_lists = \
                 sw.show_mac_address_table(format='std')
 
             # Get switch pxe port mac address table
             # Logic below maintains same port order as config.yml
             sw_pxe_mac_table = AttrDict()
             for port in pxe_ports:
-                if port in mgmt_sw_cfg_mac_lists:
-                    sw_pxe_mac_table[port] = mgmt_sw_cfg_mac_lists[port]
+                if port in mgmt_sw_mac_lists:
+                    sw_pxe_mac_table[port] = mgmt_sw_mac_lists[port]
             self.log.debug('Switch pxe port mac table')
             self.log.debug(sw_pxe_mac_table)
 
-            if label not in self.node_table_pxe.keys():
-                self.node_table_pxe[label] = []
+            # self.node_table_pxe is structured around switches
+            if sw_label not in self.node_table_pxe.keys():
+                self.node_table_pxe[sw_label] = []
 
-            for port in sw_pxe_mac_table:
-                for mac in dhcp_mac_table:
+            for mac in mac_list:
+                _port = '-'
+                for port in sw_pxe_mac_table:
                     if mac in sw_pxe_mac_table[port]:
-                        if not self._is_port_in_table(
-                                self.node_table_pxe[label], port):
-                            self.node_table_pxe[label].append(
-                                [port, mac, dhcp_mac_table[mac]])
+                        _port = port
+                        break
+                if mac in dhcp_mac_table:
+                    ip = dhcp_mac_table[mac]
+                else:
+                    ip = '-'
+                if not self._is_val_in_table(
+                        self.node_table_pxe[sw_label], mac):
+                    self.node_table_pxe[sw_label].append(
+                        [_port, mac, ip])
 
     def _reset_existing_bmcs(self, node_addr_list, cred_list):
         """ Attempts to reset any BMCs which have existing IP addresses since
@@ -468,7 +501,7 @@ class ValidateClusterHardware(object):
         addr.value += NAME_SPACE_OFFSET_ADDR
         addr = str(addr)
         cred_list = self._get_cred_list()
-        rc = True
+        rc = False
         dhcp_st = get_dhcp_pool_start()
         self.ipmi_ns = NetNameSpace('ipmi-ns-', 'br-ipmi-' + str(ipmi_vlan), addr)
 
@@ -484,10 +517,14 @@ class ValidateClusterHardware(object):
         node_list, stderr = _sub_proc_exec(cmd)
         self.log.debug('Pre-existing node list: \n{}'.format(node_list))
         node_list = node_list.splitlines()
+
         self._reset_existing_bmcs(node_list, cred_list)
 
-        cmd = 'dnsmasq --interface={} --dhcp-range={},{},{},300' \
-            .format(self.ipmi_ns._get_name_sp_ifc_name(),
+        print('Pause 20s for BMCs to begin reset')
+        time.sleep(20)
+
+        cmd = 'dnsmasq --dhcp-leasefile={} --interface={} --dhcp-range={},{},{},300' \
+            .format(self.dhcp_ipmi_leases_file, self.ipmi_ns._get_name_sp_ifc_name(),
                     addr_st, dhcp_end, netmask)
 
         dns_list, stderr = _sub_proc_exec('pgrep dnsmasq')
@@ -502,18 +539,17 @@ class ValidateClusterHardware(object):
             stdout, stderr = self.ipmi_ns._exec_cmd(cmd)
             print(stderr)
 
-        # Scan up to 20 times. Delay 5 seconds between scans
+        # Scan up to 25 times. Delay 5 seconds between scans
         # Allow infinite number of retries
         self.log.info('Scanning ipmi network on 5 s intervals')
         cnt = 0
+        cnt_down = 25
         while cnt < ipmi_cnt:
             print()
-            prog_ind = ''
-            for i in range(20):
-                print('\r{} of {} nodes discovered.{} '
-                      .format(cnt, ipmi_cnt, prog_ind), end="")
+            for i in range(cnt_down):
+                print('\r{} of {} nodes requesting DHCP address. Scan count: {} '
+                      .format(cnt, ipmi_cnt, cnt_down - i), end="")
                 sys.stdout.flush()
-                prog_ind += '.'
                 time.sleep(5)
                 cmd = 'fping -r0 -a -g {} {}'.format(addr_st, dhcp_end)
                 stdout, stderr = _sub_proc_exec(cmd)
@@ -521,14 +557,14 @@ class ValidateClusterHardware(object):
                 cnt = len(node_list)
                 if cnt >= ipmi_cnt:
                     rc = True
-                    print('\r{} of {} nodes discovered.{} '
-                          .format(cnt, ipmi_cnt, prog_ind), end="")
+                    print('\r{} of {} nodes requesting DHCP address. Scan count: {} '
+                          .format(cnt, ipmi_cnt, cnt_down - i), end="")
                     break
 
             self._get_port_table_ipmi(node_list)
             self.log.debug('Table of found IPMI ports: {}'.format(self.node_table_ipmi))
             for switch in self.node_table_ipmi:
-                print('\n\nSwitch: {}'.format(switch))
+                print('\n\nSwitch: {}                '.format(switch))
                 print(tabulate(self.node_table_ipmi[switch], headers=(
                     'port', 'MAC address', 'IP address')))
                 print()
@@ -552,8 +588,6 @@ class ValidateClusterHardware(object):
                 if resp == 'y':
                     self.log.info("'{}' entered. Continuing Genesis".format(resp))
                     break
-        print('\r{} of {} nodes discovered.{} '
-              .format(cnt, ipmi_cnt, prog_ind), end="")
         if cnt < ipmi_cnt:
             self.log.warning('Failed to validate expected number of nodes')
 
@@ -566,7 +600,7 @@ class ValidateClusterHardware(object):
         self._power_all(self.ipmi_list_ai, 'off')
 
         while time.time() < t1 + 60:
-            time.sleep(0.5)
+            time.sleep(1)
 
         self._power_all(self.ipmi_list_ai, 'on', bootdev='network')
 
@@ -595,12 +629,52 @@ class ValidateClusterHardware(object):
                 self.log.debug('Killing dnsmasq {}'.format(pid))
                 stdout, stderr = _sub_proc_exec('kill -15 ' + pid)
 
+        # kill tcpdump
+        tcpdump_list, stderr = _sub_proc_exec('pgrep tcpdump')
+        tcpdump_list = tcpdump_list.splitlines()
+
+        for pid in tcpdump_list:
+            ns_name, stderr = _sub_proc_exec('ip netns identify ' + pid)
+            if ns._get_name_sp_name() in ns_name:
+                self.log.debug('Killing tcpdump {}'.format(pid))
+                stdout, stderr = _sub_proc_exec('kill -15 ' + pid)
+
         # reconnect the veth pair to the container
         ns._reconnect_container()
 
         # Destroy the namespace
-        self.log.debug('Destroying ipmi namespace')
+        self.log.debug('Destroying namespace')
         ns._destroy_name_sp()
+
+    def _get_macs(self, mac_list, dump):
+        """ Parse the data returned by tcpdump looking for pxe boot
+        requests.
+        Args:
+            mac_list(list): list of already found mac addresses
+            dump(str): tcpdump output from the tcpdump file
+        """
+        _mac_iee802 = '([\dA-F]{2}[\.:-]){5}([\dA-F]{2})'
+        _mac_regex = re.compile(_mac_iee802, re.I)
+
+        dump = dump.split('BOOTP/DHCP, Request')
+
+        for item in dump:
+            # look first for 'magic cookie'
+            pos = item.find('6382 5363')
+            if pos >= 0:
+                bootp = item[pos:]
+                bootp = bootp[:2 + re.search(' ff|ff ', bootp, re.DOTALL).start()]
+                # look for pxe request info.  0x37 = 55 (parameter list request)
+                # 0x43 = 67 (boot filename request)
+                # 0xd1 = 209 (pxeconfig file request)
+                if ('37 ' in bootp or ' 37' in bootp):
+                    if (' d1' in bootp or 'd1 ' in bootp) or \
+                            ('43 ' in bootp or ' 43' in bootp):
+                        self.log.debug('bootp param request field: {}'.format(bootp))
+                        mac = _mac_regex.search(item).group()
+                        if mac not in mac_list:
+                            mac_list.append(mac)
+        return mac_list
 
     def validate_pxe(self, bootdev='default', persist=True):
         self.log.debug("Checking PXE networks and client PXE"
@@ -617,52 +691,81 @@ class ValidateClusterHardware(object):
         dhcp_st = get_dhcp_pool_start()
         pxe_ns = NetNameSpace('pxe-ns-', 'br-pxe-' + str(pxe_vlan), addr)
 
-        # setup DHCP, unless already running in namespace
-        # save start and end addr raw numeric values
+        # setup DHCP. save start and end addr raw numeric values
         self.log.debug('Installing DHCP server in network namespace')
         addr_st = self._add_offset_to_address(pxe_network, dhcp_st)
         addr_end = self._add_offset_to_address(pxe_network, dhcp_st + pxe_cnt + 2)
 
-        cmd = 'dnsmasq --interface={} --dhcp-range={},{},{},3600' \
-            .format(pxe_ns._get_name_sp_ifc_name(),
+        cmd = 'dnsmasq --dhcp-leasefile={} --interface={} --dhcp-range={},{},{},3600' \
+            .format(self.dhcp_pxe_leases_file, pxe_ns._get_name_sp_ifc_name(),
                     addr_st, addr_end, netmask)
 
         dns_list, stderr = _sub_proc_exec('pgrep dnsmasq')
         dns_list = dns_list.splitlines()
 
+        if os.path.exists(self.dhcp_pxe_leases_file):
+            os.remove(self.dhcp_pxe_leases_file)
+
+        # delete any remnant dnsmasq processes
         for pid in dns_list:
             ns_name, stderr = _sub_proc_exec('ip netns identify {}'.format(pid))
             if pxe_ns._get_name_sp_name() in ns_name:
-                print('DHCP already running in {}'.format(ns_name))
-                break
-        else:
-            stdout, stderr = pxe_ns._exec_cmd(cmd)
-            print(stderr)
+                self.log.debug('Killing dnsmasq. pid {}'.format(pid))
+                stdout, stderr = _sub_proc_exec('kill -15 ' + pid)
 
-        # Scan up to 20 times. Delay 10 seconds between scans
+        stdout, stderr = pxe_ns._exec_cmd(cmd)
+
+        if os.path.exists(self.tcp_dump_file):
+            os.remove(self.tcp_dump_file)
+
+        cmd = 'sudo tcpdump -X -U -i {} -w {} --immediate-mode  port 67' \
+            .format(pxe_ns._get_name_sp_ifc_name(), self.tcp_dump_file)
+
+        tcpdump_list, stderr = _sub_proc_exec('pgrep tcpdump')
+        tcpdump_list = tcpdump_list.splitlines()
+
+        # delete any remnant tcpdump processes
+        for pid in tcpdump_list:
+            ns_name, stderr = _sub_proc_exec('ip netns identify ' + pid)
+            if pxe_ns._get_name_sp_name() in ns_name:
+                self.log.debug('Killing tcpdump. pid {}'.format(pid))
+                stdout, stderr = _sub_proc_exec('kill -15 ' + pid)
+
+        pxe_ns._launch_cmd(cmd)
+
+        # Scan up to 25 times. Delay 10 seconds between scans
         # Allow infinite number of retries
-        self.log.info('Scanning pxe network on 10 s interval')
+        self.log.info('Scanning pxe network on 10 s intervals.')
         cnt = 0
+        cnt_prev = 0
+        cnt_down = 25
+        mac_list = []
+        dump = ''
         while cnt < pxe_cnt:
             print()
-            prog_ind = ''
-            for i in range(20):
-                print('\r{} of {} nodes discovered.{} '
-                      .format(cnt, pxe_cnt, prog_ind), end="")
-                prog_ind += '.'
+            cmd = 'sudo tcpdump -r {} -xx'.format(self.tcp_dump_file)
+            for i in range(cnt_down):
+                print('\r{} of {} nodes requesting PXE boot. Scan cnt: {} '
+                      .format(cnt, pxe_cnt, cnt_down - i), end="")
                 sys.stdout.flush()
                 time.sleep(10)
-                cmd = 'fping -r0 -a -g {} {}'.format(addr_st, addr_end)
-                stdout, stderr = _sub_proc_exec(cmd)
-                node_list = stdout.splitlines()
-                cnt = len(node_list)
+                # read the tcpdump file if size is not 0
+                if os.path.exists(self.tcp_dump_file) and os.path.getsize(self.tcp_dump_file):
+                    dump, stderr = _sub_proc_exec(cmd)
+                    if 'reading' not in stderr:
+                        self.log.warning('Failure reading tcpdump file - {}'.format(stderr))
+                mac_list = self._get_macs(mac_list, dump)
+                cnt = len(mac_list)
+                if cnt >= cnt_prev:
+                    cnt_prev = cnt
+                    # Pause briefly for in flight DHCP to complete and lease file to update
+                    time.sleep(2)
+                    self._build_port_table_pxe(mac_list)
                 if cnt >= pxe_cnt:
                     rc = True
-                    print('\r{} of {} nodes discovered.{} '
-                          .format(cnt, pxe_cnt, prog_ind), end="")
+                    print('\r{} of {} nodes requesting PXE boot. Scan count: {} '
+                          .format(cnt, pxe_cnt, cnt_down - i), end="")
                     break
-
-            self._get_port_table_pxe(node_list)
             self.log.debug('Table of found PXE ports: {}'.format(self.node_table_pxe))
             for switch in self.node_table_pxe:
                 print('\n\nSwitch: {}'.format(switch))
@@ -693,8 +796,6 @@ class ValidateClusterHardware(object):
                 if resp == 'y':
                     self.log.info("'{}' entered. Continuing Genesis".format(resp))
                     break
-        print('\r{} of {} nodes discovered.{} '.format(cnt, pxe_cnt, prog_ind), end="")
-        print()
         if cnt < pxe_cnt:
             self.log.warning('Failed to validate expected number of nodes')
 
@@ -708,7 +809,7 @@ class ValidateClusterHardware(object):
             self._power_all(self.ipmi_list_ai, 'off')
 
             while time.time() < t1 + 60:
-                time.sleep(0.5)
+                time.sleep(1)
 
             self._power_all(self.ipmi_list_ai, 'on', bootdev, persist=False)
 
@@ -749,6 +850,13 @@ class ValidateClusterHardware(object):
         for node in table:
             if port == node[0]:
                 self.log.debug('Table port: {} port: {}'.format(node[0], port))
+                return True
+        return False
+
+    def _is_val_in_table(self, table, val):
+        for item in table:
+            if val == item[0] or val == item[1]:
+                self.log.debug('Found in table: {} item: {}'.format(val, item))
                 return True
         return False
 
