@@ -1,5 +1,5 @@
 ---
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -29,9 +29,17 @@ os_image_urls:
         sha1sum: b167507d2a65fa81f199cd2125079beb499023c6
   - name: ubuntu-16.04.3-server-amd64
     images:
-      - url: http://releases.ubuntu.com/16.04/ubuntu-16.04.3-server-amd64.iso
+      - url: http://old-releases.ubuntu.com/releases/16.04.3/ubuntu-16.04.3-server-amd64.iso
         sha1sum: f3532991e031cae75bcf5e695afb844dd278fff9
+  - name: ubuntu-16.04.4-server-amd64
+    images:
+      - url: http://releases.ubuntu.com/16.04/ubuntu-16.04.4-server-amd64.iso
+        sha1sum: ee834fbeb94cc55972b38caafa2029c29625e2e8
   - name: ubuntu-16.04.3-server-ppc64el
     images:
       - url: http://cdimage.ubuntu.com/releases/16.04.3/release/ubuntu-16.04.3-server-ppc64el.iso
         sha1sum: 3048e855b83787a23dc7fdd7e72496e264059d44
+  - name: ubuntu-16.04.4-server-ppc64el
+    images:
+      - url: http://cdimage.ubuntu.com/releases/16.04.4/release/ubuntu-16.04.4-server-ppc64el.iso
+        sha1sum: 8c9ead9f40b14ccc3cd30443c2eb362dfbb071ad
