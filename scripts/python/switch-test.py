@@ -24,7 +24,7 @@ import readline
 from shutil import copyfile
 import yaml
 
-# import lib.logger as logger
+import lib.logger as logger
 from lib.switch import SwitchFactory
 from lib.switch_exception import SwitchException
 from lib.genesis import GEN_PATH
@@ -92,9 +92,11 @@ def main():
     ifc_addr = cfg['ifc_addr']
     ifc_netmask = cfg['ifc_netmask']
     port = cfg['port']
+    ports = cfg['ports']
     switchport_mode = cfg['switchport_mode']
     mlag_ifc = cfg['mlag_ifc']
     lag_ifc = cfg['lag_ifc']
+    operation = cfg['operation']
 
     host = rlinput('Enter host address: ', host)
     cfg['host'] = host
@@ -107,6 +109,8 @@ def main():
         print(error)
         sys.exit(0)
     sw = SwitchFactory.factory(_class, host, 'admin', 'admin', mode='active')
+    # Get needed enumerations
+    port_mode, allow_op = sw.get_enums()
     test = 1
 
     while test != 0:
@@ -117,9 +121,13 @@ def main():
             match = re.search(r'if (\d+) == test', line)
             if match:
                 print(match.group(1) + ' - ' + line.splitlines()[0])
-        test = int(rlinput('\nEnter a test to run: (0 to exit) ', str(test)))
+        test = rlinput('\nEnter a test to run: (0 to exit) ', '')
         cfg['test'] = test
+        if test == '':
+            test = 999
+        test = int(test)
 
+        # Test exit
         if 0 == test:
             sys.exit()
 
@@ -217,76 +225,86 @@ def main():
         # Test is port in trunk mode
         if 9 == test:
             print('\nTesting is port in trunk mode')
-            port = int(rlinput('Enter port #: ', str(port)))
+            port = rlinput('Enter port #: ', str(port))
             cfg['port'] = port
             print(sw.is_port_in_trunk_mode(port))
 
         # Test is port in access mode
         if 10 == test:
             print('\nTesting is port in access mode')
-            port = int(rlinput('Enter port #: ', str(port)))
+            port = rlinput('Enter port #: ', str(port))
             cfg['port'] = port
             print(sw.is_port_in_access_mode(port))
 
         # Test set switchport mode
         if 11 == test:
             print('\nTesting set switchport mode')
-            port = int(rlinput('Enter port #: ', str(port)))
+            port = rlinput('Enter port #: ', str(port))
             cfg['port'] = port
-            vlan = rlinput('Enter vlan (blank for None): ', str(vlan))
+            switchport_mode = rlinput('Enter switchport mode(trunk|hybrid|'
+                                      'access): ', switchport_mode)
+            cfg['switchport_mode'] = switchport_mode
+            if switchport_mode in ('trunk', 'hybrid'):
+                prompt = 'Enter native vlan / PVID (blank for None): '
+            else:
+                prompt = 'Enter access vlan (blank for default): '
+            print(port_mode[switchport_mode].value)
+            vlan = rlinput(prompt, str(vlan))
             if vlan == '':
                 vlan = None
             else:
                 cfg['vlan'] = int(vlan)
-            switchport_mode = rlinput('Enter switchport mode: ', switchport_mode)
-            cfg['switchport_mode'] = switchport_mode
             try:
-                sw.set_switchport_mode(switchport_mode, port, vlan)
+                sw.set_switchport_mode(port, port_mode[switchport_mode], vlan)
                 print('Set switchport mode to ' + switchport_mode)
             except SwitchException as exc:
                 print(exc)
 
-        # Test add vlans to port
+        # Test set  vlans on trunk / hybrid port
         if 12 == test:
-            print('\nTesting add vlans to port')
-            port = int(rlinput('Enter port #: ', str(port)))
+            print('\nTest set vlans on port')
+            operation = rlinput('Enter operation (ADD|ALL|EXCEPT|NONE|REMOVE): ',
+                                operation)
+            cfg['operation'] = operation
+            port = rlinput('Enter port #: ', str(lag_ifc))
             cfg['port'] = port
-            vlans = rlinput('Enter vlan list: ', vlans)
+            vlans = rlinput("Enter vlans (ex: '4' or '4,6' or '2-5'): ", str(vlans))
             cfg['vlans'] = vlans
             try:
-                sw.add_vlans_to_port(port, vlans)
+                sw.allowed_vlans_port(port, allow_op[operation], vlans)
+                print('{} vlans {} to port interface {}'.format(operation,
+                      vlans, port))
             except SwitchException as exc:
                 print(exc)
 
-        # Test remove vlans from port
+        # Test reserved
         if 13 == test:
-            print('\nTesting remove vlans from port')
-            port = int(rlinput('Enter port #: ', str(port)))
-            cfg['port'] = port
-            vlans = rlinput('Enter vlan list: ', vlans)
-            cfg['vlans'] = vlans
-            try:
-                sw.remove_vlans_from_port(port, vlans)
-            except SwitchException as exc:
-                print(exc)
+            print('\nNot implemented')
+#            port = rlinput('Enter port #: ', str(port))
+#            cfg['port'] = port
+#            vlans = rlinput('Enter vlan list: ', vlans)
+#            cfg['vlans'] = vlans
+#            try:
+#                sw.remove_vlans_from_port(port, vlans)
+#            except SwitchException as exc:
+#                print(exc)
 
-        # Test is vlan allowed for port
+        # Test is/are vlan(s) allowed for trunk port
         if 14 == test:
             print('\nTesting is vlan allowed for port')
-            port = int(rlinput('Enter port #: ', str(port)))
+            port = rlinput('Enter port #: ', str(port))
             cfg['port'] = port
-            vlan = int(rlinput('Enter vlan: ', str(vlan)))
-            cfg['vlan'] = vlan
-            print(sw.is_vlan_allowed_for_port(vlan, port))
+            vlans = rlinput('Enter vlan(s): ', str(vlans))
+            cfg['vlans'] = vlans
+            print(sw.is_vlan_allowed_for_port(vlans, port))
 
         # Test show ports
         if 15 == test:
             print('\nTesting show ports')
-            format = rlinput('Enter format ("std" or leave blank ): ', 'std')
-            if format == '':
-                format = None
+            format = rlinput('Enter format ("std" or "raw" ): ', 'std')
             ports = sw.show_ports(format=format)
-            if format is None:
+            print('back')
+            if format == 'raw':
                 print(ports)
             else:
                 print_dict(ports)
@@ -294,14 +312,14 @@ def main():
         # Test show native vlan
         if 16 == test:
             print('\nTesting show native vlan')
-            port = int(rlinput('Enter port #: ', str(port)))
+            port = rlinput('Enter port #: ', str(port))
             cfg['port'] = port
             print('Native vlan: {}'.format(sw.show_native_vlan(port)))
 
         # Test set native vlan
         if 17 == test:
             print('\nSet native vlan')
-            port = int(rlinput('Enter port #: ', str(port)))
+            port = rlinput('Enter port #: ', str(port))
             cfg['port'] = port
             vlan = rlinput('Enter vlan #: ', vlan)
             cfg['vlan'] = vlan
@@ -314,7 +332,7 @@ def main():
         # Test set mtu for port
         if 18 == test:
             print('\nSet port mtu')
-            port = int(rlinput('Enter port #: ', str(port)))
+            port = rlinput('Enter port #: ', str(port))
             mtu = rlinput('Enter mtu (0 for default mtu): ', 0)
             print(sw.set_mtu_for_port(port, mtu))
 
@@ -355,23 +373,67 @@ def main():
             except SwitchException as exc:
                 print(exc)
 
-        # Test show LAG interfaces summary
+        # Test show port channel (LAG) interfaces summary
         if 24 == test:
-            print(sw.show_lag_interfaces())
+            print(sw.show_port_channel_interfaces())
 
-        # Test create LAG interface (LAG port channel)
+        # Test create port channel (LAG) interface
         if 25 == test:
-            print('\nTest create LAG interface')
-            lag_ifc = int(rlinput('Enter lag ifc #: ', str(lag_ifc)))
+            print('\nTest create port channel interface')
+            lag_ifc = int(rlinput('Enter port channel #: ', str(lag_ifc)))
             cfg['lag_ifc'] = lag_ifc
             try:
                 sw.create_lag_interface(lag_ifc)
-                print('Created lag ifc {}'.format(lag_ifc))
+                print('Created port channel ifc {}'.format(lag_ifc))
+            except SwitchException as exc:
+                print(exc)
+
+        # Test set port channel mode
+        if 26 == test:
+            print('\nTest set port channel mode')
+            lag_ifc = rlinput('Enter port channel #: ', str(lag_ifc))
+            cfg['lag_ifc'] = lag_ifc
+            switchport_mode = rlinput('Enter switchport mode(trunk | access): ',
+                                      switchport_mode)
+            cfg['switchport_mode'] = switchport_mode
+            try:
+                sw.set_port_channel_mode(lag_ifc, port_mode[switchport_mode])
+            except SwitchException as exc:
+                print(exc)
+
+        # Test reserved
+        if 27 == test:
+            print('\n Not implemented')
+#            lag_ifc = rlinput('Enter lag ifc #: ', str(lag_ifc))
+#            cfg['lag_ifc'] = lag_ifc
+#            ports = rlinput('Enter ports: ', str(ports))
+#            cfg['ports'] = ports
+#            ports = ports.split()
+#            try:
+#                sw.add_ports_to_lag_interface(ports, lag_ifc)
+#                print('Added ports {} to lag interface {}'.format(ports, lag_ifc))
+#            except SwitchException as exc:
+#                print(exc)
+
+        # Test set vlans on port channel (LAG)
+        if 28 == test:
+            print('\nTest set vlans on port channel')
+            operation = rlinput('Enter operation (ADD|ALL|EXCEPT|NONE|REMOVE): ',
+                                operation)
+            cfg['operation'] = operation
+            lag_ifc = rlinput('Enter port channel ifc #: ', str(lag_ifc))
+            cfg['lag_ifc'] = lag_ifc
+            vlans = rlinput("Enter vlans (ex: '4' or '4,6' or '2-5'): ", str(vlans))
+            cfg['vlans'] = vlans
+            try:
+                sw.allowed_vlans_port_channel(lag_ifc, allow_op[operation], vlans)
+                print('{} vlans {} to port channel interface {}'.format(operation,
+                      vlans, lag_ifc))
             except SwitchException as exc:
                 print(exc)
 
         # Test remove LAG interface
-        if 26 == test:
+        if 29 == test:
             print('\nTest remove LAG interface')
             lag_ifc = int(rlinput('Enter lag ifc #: ', str(lag_ifc)))
             cfg['lag_ifc'] = lag_ifc
@@ -383,7 +445,7 @@ def main():
 
         yaml.dump(cfg, open(cfg_file_path.format(_class), 'w'),
                   default_flow_style=False)
-        test = rlinput('\nPress enter to continue, or enter a test to run ', '')
+        test = rlinput('\nPress enter to continue, or 0 to quit ', '')
         if test:
             test = int(test)
 
@@ -391,6 +453,9 @@ def main():
 if __name__ == '__main__':
     """Interactive test for switch methods
     """
-
-    # logger.create()
+    log_lvl = list(set(['info', 'debug', 'warning']).intersection(set(sys.argv)))
+    if log_lvl:
+        logger.create(log_lvl[0], log_lvl[0])
+    else:
+        logger.create('info', 'info')
     main()

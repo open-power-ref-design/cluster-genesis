@@ -1,4 +1,4 @@
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -58,27 +58,9 @@ class Lenovo(SwitchCommon):
         and password.
     """
     ENABLE_REMOTE_CONFIG = SwitchCommon.ENABLE_REMOTE_CONFIG
-    # override ENABLE_REMOTE_CONFIG as needed.
-    # ENABLE_REMOTE_CONFIG = 'enable;configure terminal; %s'
-    # override as needed per switch syntax:
-    # SHOW_VLANS = 'show vlan'
-    # override as needed.
-    # SHOW_MAC_ADDRESS_TABLE = 'show mac-address-table;'
-    # override as needed:
-    # CREATE_VLAN = 'vlan %d'
-    # override as needed:
-    # DELETE_VLAN = 'no vlan %d'
-    # override as needed:
-    # CLEAR_MAC_ADDRESS_TABLE = (
-    #    ENABLE_REMOTE_CONFIG %
-    #    'clear mac-address-table')
-    INTERFACE_CONFIG = 'interface port {}'
+    SEP = ';'
+    IFC_ETH_CFG = 'interface port {}'
     SHOW_PORT = 'show interface trunk'
-    ADD_VLANS_TO_PORT = (';switchport trunk allowed vlan add {}')
-    REMOVE_VLANS_FROM_PORT = (';switchport trunk allowed vlan remove {}')
-    # SET_NATIVE_VLAN = (
-    #     'interface port {}'
-    #     ';switchport access vlan {}')
     MGMT_INTERFACE_CONFIG = 'interface ip {}'
     SET_INTERFACE_IPADDR = ';ip address {}'
     SET_INTERFACE_MASK = ';ip netmask {}'

@@ -21,6 +21,7 @@ import re
 import os.path
 import netaddr
 import datetime
+from enum import Enum
 
 import lib.logger as logger
 from lib.switch_common import SwitchCommon
@@ -57,56 +58,63 @@ class Mellanox(SwitchCommon):
         access_list (list of str): optional list containing host, userid
         and password.
     """
-    ENABLE_REMOTE_CONFIG = 'cli enable "configure terminal" "%s"'
+    ENABLE_REMOTE_CONFIG = 'cli enable "configure terminal" {}'
     FORCE = 'force'
-    SET_MTU = 'mtu {}'
-    INTERFACE_CONFIG = 'interface ethernet 1/{} '
-    SHOW_SWITCHPORT = 'show interfaces switchport | include Eth1/{}'
-    SET_NATIVE_VLAN_ACCESS = 'interface ethernet 1/{} switchport access vlan {}'
-    SET_NATIVE_VLAN_TRUNK = 'interface ethernet 1/{} switchport access vlan {}'
-    SHOW_PORT = 'show interfaces switchport'
-    SET_SWITCHPORT_MODE_TRUNK = ('interface ethernet 1/{} switchport mode hybrid')
-    SET_SWITCHPORT_MODE_ACCESS = ('interface ethernet 1/{} switchport mode access')
-    SET_MLAG_PORT_CHANNEL_MODE_TRUNK = \
-        'interface mlag-port-channel {} switchport mode hybrid'
-    SET_LAG_PORT_CHANNEL_MODE_TRUNK = \
-        'interface port-channel {} switchport mode hybrid'
-    SWITCHPORT_HYBRID_ALLOWED_VLAN = \
-        'switchport hybrid allowed-vlan add %d'
-    ADD_VLANS_TO_PORT = \
-        'switchport hybrid allowed-vlan add {}'
-    REMOVE_VLANS_FROM_PORT = \
-        'switchport hybrid allowed-vlan remove {}'
-    SHUTDOWN = 'shutdown'
-    NO_SHUTDOWN = 'no shutdown'
-    IP_ROUTING = 'ip routing'
-    ENABLE_LACP = 'lacp'
-    QOS_ENABLE = 'dcb priority-flow-control enable force'
-    MLAG = 'protocol mlag'
-    LAG_PORT_CHANNEL = 'interface port-channel {} '
-    LAG_ACTIVE = 'channel-group {} mode active'
-    IPL = 'ipl 1'
-    QOS_ON = 'dcb priority-flow-control mode on force'
-    QOS_OFF = 'no dcb priority-flow-control mode force'
-    INTERFACE_VLAN = 'interface vlan {}'
-    IP_CIDR = 'ip address {}'
-    PEER_ADDR = 'peer-address {}'
-    MLAG_VIP = 'mlag-vip mlag-vip-domain ip %s force'
-    NO_MLAG_VIP = 'no mlag-vip'
-    ENABLE_MLAG = 'no mlag shutdown'
-    DISABLE_MLAG = 'mlag shutdown'
-    MLAG_PORT_CHANNEL = 'interface mlag-port-channel {} '
-    SHOW_IFC_LAG_PORT_CHANNEL = 'show interface port-channel summary'
-    SHOW_IFC_MLAG_PORT_CHANNEL = 'show interface mlag-port-channel summary'
-    STP_PORT_TYPE_EDGE = 'spanning-tree port type edge'
-    STP_BPDUFILTER_ENABLE = 'spanning-tree bpdufilter enable'
-    MLAG_ACTIVE = 'mlag-channel-group {} mode active'
-    NO_CHANNEL_GROUP = 'no channel-group'
-    NO_MLAG_CHANNEL_GROUP = 'no mlag-channel-group'
+    SET_MTU = '"mtu {}"'
+    SHOW_VLANS = '"show vlan"'
+    CREATE_VLAN = '"vlan {}"'
+    DELETE_VLAN = '"no vlan {}"'
+    SEP = ' '
+    IFC_ETH_CFG = '"interface ethernet 1/{}"'
+    IFC_PORT_CH_CFG = '"interface port-channel {}"'
+    NO_IFC_PORT_CH_CFG = '"no interface port-channel {}"'
+    IFC_MLAG_PORT_CH_CFG = '"interface mlag-port-channel {}"'
+    NO_IFC_MLAG_PORT_CH_CFG = '"no interface mlag-port-channel {}"'
+    SHOW_SWITCHPORT = '"show interfaces switchport | include Eth1/{}"'
+    SWITCHPORT_MODE = '"switchport mode {}"'
+    SWITCHPORT_ACCESS_VLAN = '"switchport access vlan {}"'
+    # Mellanox's hybrid mode is used when trunk is specified
+    SWITCHPORT_TRUNK_NATIVE_VLAN = '"switchport access vlan {}"'
+    SWITCHPORT_TRUNK_ALLOWED_VLAN = '"switchport hybrid allowed-vlan {} {}"'
+    NO_CHANNEL_GROUP = '"no channel-group"'
+    SET_NATIVE_VLAN_ACCESS = '"interface ethernet 1/{} switchport access vlan {}"'
+    SET_NATIVE_VLAN_TRUNK = '"interface ethernet 1/{} switchport access vlan {}"'
+    SHOW_PORT = '"show interfaces switchport"'
+    SHUTDOWN = '"shutdown"'
+    NO_SHUTDOWN = '"no shutdown"'
+    IP_ROUTING = '"ip routing"'
+    ENABLE_LACP = '"lacp"'
+    QOS_ENABLE = '"dcb priority-flow-control enable force"'
+    NO_QOS_ENABLE = '"no dcb priority-flow-control enable force"'
+    MLAG = '"protocol mlag"'
+    NO_MLAG = '"no protocol mlag"'
+    LAG_ACTIVE = '"channel-group {} mode active"'
+    IPL = '"ipl 1"'
+    NO_IPL = '"no ipl 1"'
+    QOS_ON = '"dcb priority-flow-control mode on force"'
+    QOS_OFF = '"no dcb priority-flow-control mode force"'
+    INTERFACE_VLAN = '"interface vlan {}"'
+    NO_INTERFACE_VLAN = '"no interface vlan {}"'
+    IP_CIDR = '"ip address {}"'
+    NO_IP_CIDR = '"no ip address {}"'
+    PEER_ADDR = '"peer-address {}"'
+    MLAG_VIP = '"mlag-vip mlag-vip-domain ip {} force"'
+    NO_MLAG_VIP = '"no mlag-vip"'
+    ENABLE_MLAG = '"no mlag shutdown"'
+    DISABLE_MLAG = '"mlag shutdown"'
+    MLAG_PORT_CHANNEL = '"interface mlag-port-channel {}"'
+    NO_MLAG_PORT_CHANNEL = '"no interface mlag-port-channel {}"'
+    SHOW_PORT_CHANNEL = '"show interface port-channel summary"'
+    SHOW_MLAG = '"show mlag"'
+    SHOW_IFC_MLAG_PORT_CHANNEL = '"show interfaces mlag-port-channel summary"'
+    STP_PORT_TYPE_EDGE = '"spanning-tree port type edge"'
+    STP_BPDUFILTER_ENABLE = '"spanning-tree bpdufilter enable"'
+    MLAG_ACTIVE = '"mlag-channel-group {} mode active"'
+    NO_MLAG_CHANNEL_GROUP = '"no mlag-channel-group"'
     MAC_RE = re.compile('([\da-fA-F]{2}:){5}([\da-fA-F]{2})')
-    CLEAR_MAC_ADDRESS_TABLE = 'clear mac-address-table dynamic'
-    SHOW_INTERFACE = 'show interface vlan {}'
-    SET_INTERFACE = 'interface vlan {} ip address {} {}'
+    CLEAR_MAC_ADDRESS_TABLE = '"clear mac-address-table dynamic"'
+    SHOW_INTERFACE = '"show interface vlan {}"'
+    SET_INTERFACE = '"interface vlan {} ip address {} {}"'
 
     def __init__(self, host=None, userid=None, password=None, mode=None,
                  outfile=None):
@@ -126,43 +134,12 @@ class Mellanox(SwitchCommon):
             f.close()
         super(Mellanox, self).__init__(host, userid, password, mode, outfile)
 
-    def set_switchport_mode(self, mode, port, nvlan=None):
-        """Sets the switchport mode.  Note that Mellanox's 'hybrid'
-        mode is functionally equivalent to most other vendor's 'trunk'
-        mode. To handle this, if mode is specified as 'trunk', it is
-        set to 'hybrid'. Mellanox's trunk mode can be set by setting
-        mode to 'trunk-native'.
-        """
-        if mode == 'trunk':
-            self.send_cmd(self.SET_SWITCHPORT_MODE_TRUNK.format(port))
-            if nvlan is not None:
-                self.send_cmd(self.SET_NATIVE_VLAN_TRUNK.format(port, nvlan))
-        if mode == 'access':
-            self.send_cmd(self.SET_SWITCHPORT_MODE_ACCESS.format(port))
-            if nvlan is not None:
-                self.send_cmd(self.SET_NATIVE_VLAN_ACCESS.format(port, nvlan))
-        if mode == 'trunk-native':
-            self.send_cmd('interface ethernet 1/{} switchport mode trunk'.format(port))
-        if self.mode == 'passive':
-            return
-        ports = self.show_ports('std')
-        port = str(port)
-        if port not in ports:
-            raise SwitchException(
-                'Port inaccessible (may already be in port channel).'
-                '\nFailed setting port {} to {} mode'.format(port, mode))
-        if ports[port]['mode'] == 'hybrid' and mode == 'trunk':
-            self.log.debug(
-                'Set port {} to {} mode'.format(port, mode))
-        elif ports[port]['mode'] == 'access' and mode == 'access':
-            self.log.debug(
-                'Set port {} to {} mode'.format(port, mode))
-        elif mode == 'trunk':
-            self.log.debug(
-                'Set port {} to {} mode'.format(port, mode))
-        else:
-            raise SwitchException(
-                'Failed setting port {} to {} mode'.format(port, mode))
+    class PortMode(Enum):
+        ACCESS = 'access'
+        FEX_FABRIC = ''
+        TRUNK = 'hybrid'
+        HYBRID = 'hybrid'
+        TRUNK_NATIVE = 'trunk'
 
     def show_ports(self, format=None):
         if self.mode == 'passive':
@@ -174,7 +151,8 @@ class Mellanox(SwitchCommon):
         elif format == 'std':
             port_info = port_info.splitlines()
             for line in port_info:
-                match = re.search(r'Eth1/(\d+)\s+(access|hybrid|trunk)\s+(\d+)\s+(.+)', line)
+                match = re.search(r'Eth1/(\d+)\s+(access|hybrid|trunk)'
+                                  '\s+(\d+|N/A)\s+(.+)', line)
                 if match:
                     ports[match.group(1)] = {
                         'mode': match.group(2),
@@ -300,62 +278,6 @@ class Mellanox(SwitchCommon):
             raise SwitchException(
                 'Failed configuring management interface vlan {}'.format(vlan))
 
-    def is_port_in_trunk_mode(self, port):
-        """Allows determination if a port is in 'trunk' mode. Note that
-        mellanox's hybrid mode is equivalent to most vendor's trunk mode.
-        """
-        if self.mode == 'passive':
-            return None
-        port = str(port)
-        ports = self.show_ports('std')
-        return 'hybrid' in ports[port]['mode']
-
-    def remove_channel_group(self, port):
-        # Remove channel-group from interface
-        self.send_cmd(
-            self.INTERFACE_CONFIG.format(port) +
-            ' ' +
-            self.NO_CHANNEL_GROUP)
-
-    def remove_mlag_channel_group(self, port):
-        # Remove channel-group from interface
-        self.send_cmd(
-            self.INTERFACE_CONFIG.format(port) +
-            ' ' +
-            self.NO_MLAG_CHANNEL_GROUP)
-
-    def add_vlans_to_lag_port_channel(self, port, vlans):
-        ports = self.show_ports('std')
-        port = str(port)
-        if port not in ports:
-            raise SwitchException(
-                'Port inaccessible (may already be in port channel).'
-                '\nFailed adding vlans {} to port {}'.format(vlans, port))
-        # Enable hybrid mode for port
-        self.send_cmd(self.SET_LAG_PORT_CHANNEL_MODE_TRUNK.format(port))
-
-        # Add VLANs to port
-        for vlan in vlans:
-            self.send_cmd(
-                self.LAG_PORT_CHANNEL.format(port) +
-                self.SWITCHPORT_HYBRID_ALLOWED_VLAN % vlan)
-
-    def add_vlans_to_mlag_port_channel(self, port, vlans):
-        ports = self.show_ports('std')
-        port = str(port)
-        if port not in ports:
-            raise SwitchException(
-                'Port inaccessible (may already be in MLAG port channel).'
-                '\nFailed adding vlans {} to port {}'.format(vlans, port))
-        # Enable hybrid mode for port
-        self.send_cmd(self.SET_MLAG_PORT_CHANNEL_MODE_TRUNK.format(port))
-
-        # Add VLANs to port
-        for vlan in vlans:
-            self.send_cmd(
-                self.MLAG_PORT_CHANNEL.format(port) +
-                self.SWITCHPORT_HYBRID_ALLOWED_VLAN % vlan)
-
     def set_mtu_for_port(self, port, mtu):
         # Bring port down
         self.send_cmd(
@@ -392,39 +314,15 @@ class Mellanox(SwitchCommon):
         if mtu == 0:
             self.send_cmd(
                 self.MLAG_PORT_CHANNEL.format(port) +
-                'no mtu ' +
+                '"no mtu"' +
                 self.FORCE)
         else:
             self.send_cmd(
                 self.MLAG_PORT_CHANNEL.format(port) +
+                self.SEP +
                 self.SET_MTU.format(mtu) +
-                ' ' +
+                self.SEP +
                 self.FORCE)
-
-    def create_lag_interface(self, lag_ifc):
-        # Create a LAG
-        self.send_cmd(
-            self.LAG_PORT_CHANNEL.format(lag_ifc))
-
-    def remove_lag_interface(self, lag_ifc):
-        # Remove LAG interface
-        self.send_cmd(
-            'no ' + self.LAG_PORT_CHANNEL.format(lag_ifc))
-
-    def bind_ports_to_lag_interface(self, ports, lag_ifc):
-        # Map a physical port to the LAG in active mode (LACP)
-        for port in ports:
-            self.send_cmd(
-                self.INTERFACE_CONFIG.format(port) +
-                ' ' +
-                self.LAG_ACTIVE.format(lag_ifc))
-        port_chan_summ = self.send_cmd('show interfaces port-channel summary')
-        for port in ports:
-            if 'Eth1/' + str(port) not in port_chan_summ:
-                self.log.error('Port {} not added to port channel {}'.format(
-                    port, lag_ifc))
-                raise SwitchException('Port {} not added to port channel {}'.
-                                      format(port, lag_ifc))
 
     def enable_lacp(self):
         self.send_cmd(self.ENABLE_LACP)
@@ -435,11 +333,8 @@ class Mellanox(SwitchCommon):
     def disable_mlag(self):
         self.send_cmd(self.DISABLE_MLAG)
 
-    def show_lag_interfaces(self):
-        return self.send_cmd(self.SHOW_IFC_LAG_PORT_CHANNEL)
-
     def is_mlag_configured(self):
-        mlag_info = self.send_cmd('show mlag')
+        mlag_info = self.send_cmd(self.SHOW_MLAG)
         match = re.search(r'\w*Unrecognized command', mlag_info)
         if match:
             return False
@@ -480,45 +375,44 @@ class Mellanox(SwitchCommon):
 
         # Remove IPL peer address
         self.send_cmd(
-            self.INTERFACE_VLAN.format(vlan) +
-            ' no ' +
-            self.IPL +
-            ' ' +
+            self.INTERFACE_VLAN.format(vlan) + self.SEP +
+            self.NO_IPL + self.SEP +
             self.PEER_ADDR.format(''))
 
         # Remove IPL address
         self.send_cmd(
-            self.INTERFACE_VLAN.format(vlan) +
-            ' no ' +
-            self.IP_CIDR.format(''))
+            self.INTERFACE_VLAN.format(vlan) + self.SEP +
+            self.NO_IP_CIDR.format(''))
 
         # Remove the interface on vlan
-        self.send_cmd('no ' + self.INTERFACE_VLAN.format(vlan))
+        self.send_cmd(self.NO_INTERFACE_VLAN.format(vlan))
 
         # Turn off QOS dcb priority flow control on port channel
         self.send_cmd(
-            self.LAG_PORT_CHANNEL.format(port_channel) +
+            self.LAG_PORT_CHANNEL.format(port_channel) + self.SEP +
             self.QOS_OFF)
 
         # Unbind IPL 1 from port channel
         self.send_cmd(
-            self.LAG_PORT_CHANNEL.format(port_channel) + 'no ' + self.IPL)
+            self.LAG_PORT_CHANNEL.format(port_channel) + self.NO_IPL)
 
         # Remove physical ports from channel group
-        self.send_cmd(self.INTERFACE_CONFIG.format(port1) + 'no channel group')
-        self.send_cmd(self.INTERFACE_CONFIG.format(port2) + 'no channel group')
+        self.send_cmd(self.IFC_ETH_CFG.format(port1) + self.SEP +
+                      '"no channel group"')
+        self.send_cmd(self.IFC_ETH_CFG.format(port2) + self.SEP +
+                      '"no channel group"')
 
         # Remove the port channel
-        self.send_cmd('no ' + self.LAG_PORT_CHANNEL.format(port_channel))
+        self.send_cmd(self.NO_IFC_PORT_CH_CFG.format(port_channel))
 
         # Remove the vlan
-        self.send_cmd('no vlan {}'.format(vlan))
+        self.send_cmd(self.DELETE_VLAN.format(vlan))
 
         # Disable mlag protocol
-        self.send_cmd('no ' + self.MLAG)
+        self.send_cmd(self.NO_MLAG)
 
         # Disable QOS
-        self.send_cmd('no ' + self.QOS_ENABLE)
+        self.send_cmd(self.NO_QOS_ENABLE)
 
     def configure_mlag(self,
                        vlan,
@@ -548,16 +442,17 @@ class Mellanox(SwitchCommon):
         # for port in self.inv.yield_mlag_ports(switch_index):
         for port in mlag_ipl_ports:
             self.send_cmd(
-                self.INTERFACE_CONFIG.format(port) +
+                self.INTERFACE_CONFIG.format(port) + self.SEP +
                 self.LAG_ACTIVE.format(port_channel))
 
         # Set this LAG as an IPL
         self.send_cmd(
-            self.LAG_PORT_CHANNEL.format(port_channel) + self.IPL)
+            self.LAG_PORT_CHANNEL.format(port_channel) + self.SEP + self.IPL)
 
         # Enable QoS on this specific interface
         self.send_cmd(
-            self.LAG_PORT_CHANNEL.format(port_channel) + self.QOS_ON)
+            self.LAG_PORT_CHANNEL.format(port_channel) +
+            + self.SEP + self.QOS_ON)
 
         # Create VLAN interface
         self.send_cmd(
@@ -566,20 +461,18 @@ class Mellanox(SwitchCommon):
         # Set MLAG IPL IP address
         self.send_cmd(
             self.INTERFACE_VLAN.format(vlan) +
-            ' ' +
+            self.SEP +
             self.IP_CIDR.format(cidr_mlag_ipl))
 
         # Set MLAG Peer IP address
         self.send_cmd(
             self.INTERFACE_VLAN.format(vlan) +
-            ' ' +
-            self.IPL +
-            ' ' +
+            self.SEP + self.IPL + self.SEP +
             self.PEER_ADDR.format(ipaddr_mlag_ipl_peer))
 
         # Set MLAG VIP
         if ipaddr_mlag_vip:
-            self.send_cmd(self.MLAG_VIP % ipaddr_mlag_vip)
+            self.send_cmd(self.MLAG_VIP.format(ipaddr_mlag_vip))
         else:
             self.send_cmd(self.MLAG_VIP.split(' ip')[0])
 
@@ -589,18 +482,43 @@ class Mellanox(SwitchCommon):
             self.MLAG_PORT_CHANNEL.format(mlag_ifc))
 
         self.send_cmd(
-            self.MLAG_PORT_CHANNEL.format(mlag_ifc) + self.STP_PORT_TYPE_EDGE)
+            self.MLAG_PORT_CHANNEL.format(mlag_ifc) + self.SEP +
+            self.STP_PORT_TYPE_EDGE)
 
         self.send_cmd(
-            self.MLAG_PORT_CHANNEL.format(mlag_ifc) + self.STP_BPDUFILTER_ENABLE)
+            self.MLAG_PORT_CHANNEL.format(mlag_ifc) + self.SEP +
+            self.STP_BPDUFILTER_ENABLE)
 
     def remove_mlag_interface(self, mlag_ifc):
         # Remove MLAG interface
-        self.send_cmd(
-            'no ' + self.MLAG_PORT_CHANNEL.format(mlag_ifc))
+        self.send_cmd(self.NO_MLAG_PORT_CHANNEL.format(mlag_ifc))
 
     def show_mlag_interfaces(self):
         return self.send_cmd(self.SHOW_IFC_MLAG_PORT_CHANNEL)
+
+    def set_mlag_port_channel_mode(self, port_ch, mode, nvlan=None):
+        cmd = self.IFC_MLAG_PORT_CH_CFG.format(port_ch) + self.SEP +\
+            self.SWITCHPORT_MODE.format(mode.value)
+        if nvlan:
+            cmd += self.SEP + self.SWITCHPORT_TRUNK_NATIVE_VLAN.format(nvlan)
+
+        self.send_cmd(cmd)
+
+    def allowed_vlans_mlag_port_channel(self, port, operation, vlans=''):
+        """ configure vlans on a port channel
+        ARGS:
+            operation (str): add | all | except | none | remove
+            vlan (str or tuple or list). if type string, can be of the
+            following formats: '4' or '4,5,8' or '5-10'
+        """
+        if isinstance(vlans, (tuple, list)):
+            vlans = [str(vlans[i]) for i in range(len(vlans))]
+            vlans = ','.join(vlans)
+        else:
+            vlans = str(vlans)
+        cmd = self.IFC_MLAG_PORT_CH_CFG.format(port) + self.SEP +\
+            self.SWITCHPORT_TRUNK_ALLOWED_VLAN.format(operation.value, vlans)
+        self.send_cmd(cmd)
 
     def bind_ports_to_mlag_interface(self, ports, mlag_ifc=None):
         """ Bind ports to an MLAG interface and enable it. If no mlag
@@ -617,14 +535,13 @@ class Mellanox(SwitchCommon):
             mlag_ifc = min(ports)
         for port in ports:
             self.send_cmd(
-                self.INTERFACE_CONFIG.format(port) + self.MLAG_ACTIVE.format(
-                    mlag_ifc))
+                self.IFC_ETH_CFG.format(port) + self.SEP +
+                self.MLAG_ACTIVE.format(mlag_ifc))
 
         self.send_cmd(
-            self.MLAG_PORT_CHANNEL.format(mlag_ifc) + self.NO_SHUTDOWN)
+            self.MLAG_PORT_CHANNEL.format(mlag_ifc) + self.SEP + self.NO_SHUTDOWN)
 
-        mlag_port_chan_summ = self.send_cmd(
-            'show interfaces mlag-port-channel summary')
+        mlag_port_chan_summ = self.send_cmd(self.SHOW_IFC_MLAG_PORT_CHANNEL)
         for port in ports:
             if 'Eth1/' + str(port) not in mlag_port_chan_summ:
                 self.log.error('Port {} not added to mlag port channel {}'.

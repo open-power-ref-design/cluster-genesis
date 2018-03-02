@@ -85,6 +85,9 @@ def configure_mgmt_switches():
                     ip,
                     userid,
                     password)
+                # Get the enumerations needed to call set_switchport_mode() and
+                # allowed_vlans_port()
+                port_mode, allow_op = sw.get_enums()
 
                 if sw.is_pingable():
                     LOG.debug(
@@ -112,7 +115,7 @@ def configure_mgmt_switches():
         LOG.debug('Management vlans: {}'.format(vlan_mgmt))
 
         vlan_client = cfg.get_depl_netw_client_vlan()
-
+        LOG.debug('vlan_mgmt: {} , vlan_client: {}'.format(vlan_mgmt, vlan_client))
         for vlan in vlan_mgmt + vlan_client:
             if vlan:
                 print('.', end="")
@@ -145,7 +148,15 @@ def configure_mgmt_switches():
                     sys.stdout.flush()
                     vlans = vlan_mgmt + vlan_client
                     LOG.debug('Adding vlans {} to port {}'.format(vlans, port))
-                    sw.add_vlans_to_port(port, vlans)
+                    sw.set_switchport_mode(port, port_mode.TRUNK)
+                except SwitchException as exc:
+                    LOG.error(exc)
+                try:
+                    sw.allowed_vlans_port(port, allow_op.NONE)
+                except SwitchException as exc:
+                    LOG.error(exc)
+                try:
+                    sw.allowed_vlans_port(port, allow_op.ADD, vlans)
                 except SwitchException as exc:
                     LOG.error(exc)
             else:
@@ -156,29 +167,26 @@ def configure_mgmt_switches():
                     else:
                         vlan = vlan_mgmt[0]
                 try:
-                    sw.set_switchport_native_vlan(vlan, port)
+                    sw.set_switchport_mode(port, port_mode.TRUNK)
+                    sw.allowed_vlans_port(port, allow_op.NONE)
+                    sw.allowed_vlans_port(port, allow_op.ADD, vlan)
                 except SwitchException as exc:
                     LOG.error(exc)
-
         for if_type in ['ipmi', 'pxe']:
             vlan = cfg.get_depl_netw_client_vlan(if_type=if_type)[0]
 
             for port in cfg.yield_client_switch_ports(switch_label, if_type):
-                if mode == 'passive' or sw.is_port_in_access_mode(port):
-                    LOG.debug('Port %s is already in access mode' % (port))
-                else:
-                    LOG.error('Port %s is not in access mode' % (port))
-                    raise UserCriticalException('Port %s is not in access mode'
-                                                % (port))
-
-                if vlan == sw.show_native_vlan(port):
-                    LOG.debug(
-                        'Management VLAN %s is already added to access port %s'
-                        % (vlan, port))
+                if mode == 'passive':
+                    LOG.debug('Set switchport mode - switch is in passive mode.')
                 else:
                     print('.', end="")
                     sys.stdout.flush()
-                    sw.set_switchport_native_vlan(vlan, port)
+                    try:
+                        LOG.debug('Setting port {} into {} mode with access '
+                                  'vlan {}'.format(port, port_mode.ACCESS, vlan))
+                        sw.set_switchport_mode(port, port_mode.ACCESS, vlan)
+                    except SwitchException as exc:
+                        LOG.error(exc)
 
         # write switch memory?
         # if cfg.is_write_switch_memory():

@@ -20,8 +20,11 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 import os.path
 import subprocess
 import re
+import netaddr
 from orderedattrdict import AttrDict
+from enum import Enum
 
+import lib.logger as logger
 from lib.ssh import SSH
 from lib.switch_exception import SwitchException
 
@@ -29,64 +32,116 @@ FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
 class SwitchCommon(object):
-    ENABLE_REMOTE_CONFIG = 'enable;configure terminal; %s'
+    ENABLE_REMOTE_CONFIG = 'configure terminal ; {} '
+    IFC_ETH_CFG = 'interface ethernet {} '
+    IFC_PORT_CH_CFG = 'interface port-channel {} '
+    PORT_PREFIX = 'Eth'
+    SEP = ';'
     SHOW_VLANS = 'show vlan'
     CREATE_VLAN = 'vlan {}'
     DELETE_VLAN = 'no vlan {}'
-    SET_NATIVE_VLAN = ('interface port {};switchport access vlan {}')
-    CLEAR_MAC_ADDRESS_TABLE = 'clear mac-address-table'
-    SHOW_MAC_ADDRESS_TABLE = 'show mac-address-table'
-    SET_SWITCHPORT_MODE_TRUNK = (
-        'no prompting'
-        ';interface port {}'
-        ';switchport mode trunk'
-        ';switchport trunk allowed vlan none'
-        ';exit'
-        ';prompting')
-    SET_NATIVE_VLAN_TRUNK = (
-        'no prompting'
-        ';interface port {}'
-        ';switchport trunk allowed vlan add {}'
-        ';switchport trunk native vlan {}'
-        ';exit'
-        ';prompting')
-    SET_SWITCHPORT_MODE_ACCESS = (
-        'no prompting'
-        ';interface port {}'
-        ';switchport mode access'
-        ';exit'
-        ';prompting')
-    SET_NATIVE_VLAN_ACCESS = (
-        'no prompting'
-        ';interface port {}'
-        ';switchport access vlan {}'
-        ';exit'
-        ';prompting')
+    SHOW_PORT = 'show interface brief'
+    CLEAR_MAC_ADDRESS_TABLE = 'clear mac address-table dynamic'
+    SHOW_MAC_ADDRESS_TABLE = 'show mac address-table ;'
+    ENABLE_LACP = 'feature lacp'
+    NO_CHANNEL_GROUP = 'no channel-group'
+    CHANNEL_GROUP_MODE = SEP + 'channel-group {} mode {} '
+    SHOW_PORT_CHANNEL = 'show port-channel summary'
+    SWITCHPORT_MODE = 'switchport mode {} '
+    SWITCHPORT_ACCESS_VLAN = 'switchport access vlan {} '
+    SWITCHPORT_TRUNK_NATIVE_VLAN = 'switchport trunk native vlan {} '
+    SWITCHPORT_TRUNK_ALLOWED_VLAN = 'switchport trunk allowed vlan {} {}'
+    SET_MTU = 'mtu {}'
+    FORCE = 'force'
+    MGMT_INTERFACE_CONFIG = 'interface ip {}'
+    SET_INTERFACE_IPADDR = ' ;ip address {}'
+    SET_INTERFACE_MASK = ' ;ip netmask {}'
+    SET_VLAN = ' ;vlan {}'
+    SHOW_IP_INTERFACE_BRIEF = 'show ip interface brief'
+    SHOW_INTERFACE = 'show interface vlan{}'
+    SET_INTERFACE = ('feature interface-vlan ;'
+                     'interface vlan {} ;'
+                     'ip address {} {} ;'
+                     'management ;'
+                     'no shutdown')
 
     def __init__(self, host=None, userid=None,
                  password=None, mode=None, outfile=None):
+        self.log = logger.getlogger()
         pass
+
+    class AllowOp(Enum):
+        ADD = 'add'
+        ALL = 'all'
+        EXCEPT = 'except'
+        NONE = 'none'
+        REMOVE = 'remove'
+
+    class PortMode(Enum):
+        ACCESS = 'access'
+        FEX_FABRIC = 'fex-fabric'
+        TRUNK = 'trunk'
+        HYBRID = ''
+        TRUNK_NATIVE = ''
+
+    def send_cmd(self, cmd):
+        if self.mode == 'passive':
+            f = open(self.outfile, 'a+')
+            f.write(cmd + '\n')
+            f.close()
+            return
+
+        if self.ENABLE_REMOTE_CONFIG:
+            cmd = self.ENABLE_REMOTE_CONFIG.format(cmd)
+            self.log.debug(cmd)
+        ssh = SSH()
+        __, data, _ = ssh.exec_cmd(
+            self.host,
+            self.userid,
+            self.password,
+            cmd,
+            ssh_log=True,
+            look_for_keys=False)
+        return data
+
+    def get_enums(self):
+        return self.PortMode, self.AllowOp
+
+    def show_ports(self, format='raw'):
+        if self.mode == 'passive':
+            return None
+        ports = {}
+        port_info = self.send_cmd(self.SHOW_PORT)
+        if format == 'raw':
+            return port_info
+        elif format == 'std':
+            port_info = port_info.splitlines()
+            for line in port_info:
+                match = re.search(
+                    r'Eth([0-9/]+)\s+(\d+)\s+\w+\s+(access|trunk)', line)
+                if match:
+                    # mode, avlans = self._get_port_detail(match)
+                    ports[match.group(1)] = {
+                        'mode': match.group(3),
+                        'nvlan': match.group(2),
+                        'avlans': ''}
+            port_info = self.send_cmd('show interface trunk').split('Port')
+            for item in port_info:
+                if 'Vlans Allowed on Trunk' in item:
+                    item = item.splitlines()
+                    for line in item:
+                        match = re.search(
+                            'Eth((?:\d+/)+\d+)\s+((?:\d+[,-])*\d+)', line)
+                        if match:
+                            ports[match.group(1)]['avlans'] = match.group(2)
+            return ports
 
     def show_vlans(self):
         if self.mode == 'passive':
             return None
+        self.log.debug(self.SHOW_VLANS)
         vlan_info = self.send_cmd(self.SHOW_VLANS)
         return vlan_info
-
-    def set_switchport_native_vlan(self, vlan, port):
-        vlan = str(vlan)
-        ports = self.show_ports(format='std')
-        if self.mode == 'passive' or ports[str(port)]['mode'] == 'access':
-            self.send_cmd(self.SET_NATIVE_VLAN_ACCESS.format(port, vlan))
-        elif ports[str(port)]['mode'] == 'trunk':
-            self.send_cmd(self.SET_NATIVE_VLAN_TRUNK.format(port, vlan, vlan))
-        if self.mode == 'passive' or vlan == self.show_native_vlan(port):
-            self.log.debug(
-                'Set native VLAN to {} for access port {}'.format(vlan, port))
-        else:
-            raise SwitchException(
-                'Failed adding management VLAN {} to access port {}'.format(
-                    vlan, port))
 
     def show_native_vlan(self, port):
         if self.mode == 'passive':
@@ -95,24 +150,39 @@ class SwitchCommon(object):
         ports = self.show_ports(format='std')
         return ports[port]['nvlan']
 
-    def set_switchport_mode(self, mode, port, nvlan=None):
-        if mode == 'trunk':
-            self.send_cmd(self.SET_SWITCHPORT_MODE_TRUNK.format(port))
-            if nvlan is not None:
-                self.send_cmd(self.SET_NATIVE_VLAN_TRUNK.format(port, nvlan, nvlan))
-        if mode == 'access':
-            self.send_cmd(self.SET_SWITCHPORT_MODE_ACCESS.format(port))
-            if nvlan is not None:
-                self.send_cmd(self.SET_NATIVE_VLAN_ACCESS.format(port, nvlan))
-        if self.mode == 'passive':
-            return
+    def set_switchport_mode(self, port, mode, vlan=None):
+        port = str(port)
+        cmd = self.IFC_ETH_CFG.format(port) + self.SEP
+        cmd += self.SWITCHPORT_MODE.format(mode.value) + self.SEP
+        if vlan:
+            if mode.value == 'trunk':
+                cmd += self.SWITCHPORT_TRUNK_NATIVE_VLAN.format(vlan)
+            if mode.value == 'access':
+                cmd += self.SWITCHPORT_ACCESS_VLAN.format(vlan)
+        self.send_cmd(cmd)
         ports = self.show_ports(format='std')
-        if ports[str(port)]['mode'] == mode:
-            self.log.info(
-                'Port {} is in {} mode'.format(port, mode))
+        if port not in ports:
+            msg = 'Unable to verify setting of switchport mode'
+            msg += 'for port {}. May already be in a channel group.'
+            msg.format(port)
+            self.log.debug(msg)
+            return
+        if self.mode == 'passive' or ports[port]['mode'] == mode.value:
+            self.log.debug(
+                'Port {} is in {} mode'.format(port, mode.value))
         else:
             raise SwitchException(
-                'Failed setting port {} to {} mode'.format(port, mode))
+                'Failed setting port {} to {} mode'.format(port, mode.value))
+
+        if vlan:
+            if self.mode == 'passive' or str(vlan) == ports[port]['nvlan']:
+                msg = 'PVID/Native vlan {} set on port {}'.format(vlan, port)
+                self.log.debug(msg)
+            else:
+                msg = 'Failed setting PVID/Native vlan {} on port {}'.format(
+                    vlan, port)
+                self.log.error(msg)
+                raise SwitchException(msg)
 
     def is_port_in_trunk_mode(self, port):
         """Allows determination if a port is in 'trunk' mode.
@@ -121,60 +191,93 @@ class SwitchCommon(object):
             return None
         port = str(port)
         ports = self.show_ports(format='std')
-        return 'trunk' in ports[port]['mode']
+        return self.PortMode.TRUNK in ports[port]['mode']
 
     def is_port_in_access_mode(self, port):
         if self.mode == 'passive':
             return None
         port = str(port)
         ports = self.show_ports('std')
-        return 'access' in ports[port]['mode']
+        return self.PortMode.ACCESS in ports[port]['mode']
 
-    def add_vlans_to_port(self, port, vlans):
-        # Add VLANs to port
-        if isinstance(vlans, (int, basestring)):
+    def allowed_vlans_port(self, port, operation, vlans=''):
+        """ configure vlans on a port channel
+        ARGS:
+            operation (enum of AllowOp): add | all | except | none | remove
+            vlan (str or tuple or list). if type string, can be of the
+            following formats: '4' or '4,5,8' or '5-10'
+        """
+        if isinstance(vlans, (tuple, list)):
+            vlans = vlans[:]
+            vlans = [str(vlans[i]) for i in range(len(vlans))]
+            vlans = ','.join(vlans)
+        else:
             vlans = str(vlans)
-            vlans = vlans.split(' ')
-            vlans = [int(vlan) for vlan in vlans]
-        for vlan in vlans:
-            self.send_cmd(
-                self.INTERFACE_CONFIG.format(port) +
-                ' ' +
-                self.ADD_VLANS_TO_PORT.format(vlan))
-            if (self.mode == 'passive' or
-                    self.is_vlan_allowed_for_port(vlan, port)):
-                self.log.debug(
-                    'VLAN {} is allowed for port {}'.format(vlan, port))
-            else:
-                raise SwitchException(
-                    'Failed adding VLAN {} to port {}'.format(vlan, port))
+        cmd = self.IFC_ETH_CFG.format(port) + self.SEP + \
+            self.SWITCHPORT_TRUNK_ALLOWED_VLAN.format(operation.value, vlans)
+        self.send_cmd(cmd)
 
-    def remove_vlans_from_port(self, port, vlans):
-        # Add VLANs to port
-        if isinstance(vlans, (int, basestring)):
-            vlans = str(vlans)
-            vlans = vlans.split(' ')
-            vlans = [int(vlan) for vlan in vlans]
-        for vlan in vlans:
-            self.send_cmd(
-                self.INTERFACE_CONFIG.format(port) +
-                ' ' +
-                self.REMOVE_VLANS_FROM_PORT.format(vlan))
-            if not self.is_vlan_allowed_for_port(vlan, port):
-                self.log.info(
-                    'VLAN {} removed from port {}'.format(vlan, port))
+        if operation.value == 'add':
+            if not self.is_vlan_allowed_for_port(vlans, port):
+                msg = 'Not all vlans in {} were added to port {}'. \
+                    format(vlans, port)
+                self.log.error(msg)
+                raise SwitchException(msg)
             else:
-                raise SwitchException(
-                    'Failed removing VLAN {} from port {}'.format(vlan, port))
+                self.log.debug('vlans {} were added to port {}'.
+                               format(vlans, port))
+        if operation.value == 'remove':
+            if self.is_vlan_allowed_for_port(vlans, port):
+                msg = 'Not all vlans in {} were removed from port {}'. \
+                    format(vlans, port)
+                self.log.error(msg)
+                raise SwitchException(msg)
+            else:
+                self.log.debug('vlans {} were removed from port {}'.
+                               format(vlans, port))
 
-    def is_vlan_allowed_for_port(self, vlan, port):
+    def is_vlan_allowed_for_port(self, vlans, port):
+        """ Test that all vlans in vlans are allowed for the given port
+        Args:
+            vlans: (int or str) string can be of form 'n', 'n,m,p', 'n-p'
+            port: (int or str)
+        Returns True if all vlans in vlans argument are allowed for port
+        """
         if self.mode == 'passive':
             return None
-        vlan = str(vlan)
+        vlans = str(vlans)
+        vlans = vlans.split(',')
+        result = True
         port = str(port)
         ports = self.show_ports('std')
-        if port in ports:
-            return vlan in ports[port]['avlans']
+        if port not in ports:
+            msg = 'Unable to verify setting of vlans '
+            msg += 'for port {}. May already be in a channel group.'
+            msg.format(port)
+            self.log.debug(msg)
+            return True
+        avlans = ports[port]['avlans']
+        avlans = avlans.split(',')
+        for vlan in vlans:
+            res = False
+            for i, _vlans in enumerate(avlans):
+                _vlans = _vlans.strip(' ')
+                if not vlan:
+                    res = True
+                    break
+                if not _vlans:
+                    break
+                elif '-' in vlan and vlan == _vlans:
+                    res = True
+                    break
+                elif int(vlan) >= int(_vlans.split('-')[0]) and \
+                        int(vlan) <= int(_vlans.split('-')[-1]):
+                    res = True
+                    break
+                else:
+                    pass
+            result = result and res
+        return result
 
     def create_vlan(self, vlan):
         self.send_cmd(self.CREATE_VLAN.format(vlan))
@@ -203,6 +306,23 @@ class SwitchCommon(object):
             return True
         return False
 
+    def set_mtu_for_port(self, port, mtu):
+        # Bring port down
+        self.send_cmd(
+            self.IFC_ETH_CFG.format(port) + self.SHUTDOWN)
+
+        # Set MTU
+        if mtu == 0:
+            self.send_cmd(
+                self.IFC_ETH_CFG.format(port) + 'no mtu')
+        else:
+            self.send_cmd(
+                self.IFC_ETH_CFG.format(port) + self.SET_MTU.format(mtu))
+
+        # Bring port up
+        self.send_cmd(
+            self.INTERFACE_CONFIG.format(port) + self.NO_SHUTDOWN)
+
     def show_mac_address_table(self, format=False):
         """Get switch mac address table.
 
@@ -227,16 +347,13 @@ class SwitchCommon(object):
                 self.log.error(
                     'Passive switch MAC address table file not found (%s)' % error)
                 raise
-            mac_info = self.get_port_to_mac(mac_info, self.log)
+            mac_info = self.get_port_to_mac(mac_info)
             return mac_info
 
         mac_info = self.send_cmd(self.SHOW_MAC_ADDRESS_TABLE)
         if not format or format == 'raw':
             return mac_info
-        if format == 'dict':
-            return self.get_mac_dict(mac_info)
-        if format == 'std':
-            return self.get_port_to_mac(mac_info, self.log)
+        return self.get_port_to_mac(mac_info, format)
 
     def clear_mac_address_table(self):
         """Clear switch mac address table by writing the CLEAR_MAC_ADDRESS_TABLE
@@ -251,7 +368,8 @@ class SwitchCommon(object):
         try:
             if self.mode == 'passive':
                 return None
-            output = subprocess.check_output(['bash', '-c', 'ping -c2 -i.5 ' + self.host])
+            output = subprocess.check_output(
+                ['bash', '-c', 'ping -c2 -i.5 ' + self.host])
             if '0% packet loss' in output:
                 return True
             else:
@@ -260,27 +378,8 @@ class SwitchCommon(object):
             self.log.error('Unable to ping switch.  {}'.format(exc))
             return False
 
-    def send_cmd(self, cmd):
-        if self.mode == 'passive':
-            f = open(self.outfile, 'a+')
-            f.write(cmd + '\n')
-            f.close()
-            return
-
-        if self.ENABLE_REMOTE_CONFIG:
-            cmd = self.ENABLE_REMOTE_CONFIG % (cmd)
-        ssh = SSH()
-        __, data, _ = ssh.exec_cmd(
-            self.host,
-            self.userid,
-            self.password,
-            cmd,
-            ssh_log=True,
-            look_for_keys=False)
-        return data
-
     @staticmethod
-    def get_mac_dict(mac_address_table):
+    def get_port_to_mac(mac_address_table, fmt='std'):
         """Convert MAC address table to dictionary.
 
         Args:
@@ -294,10 +393,16 @@ class SwitchCommon(object):
             dictionary: Keys are string port numbers and values are a list
             of MAC addresses both in native switch format.
         """
-        port_col = None
+        import lib.logger as logger
+        log = logger.getlogger()
         pos = None
-        mac_dict = {}
-        p = re.compile(r'\w+\.\w+\.\w+|\w+:\w+:\w+:\w+:\w+:\w+')
+        mac_dict = AttrDict()
+
+        _mac_iee802 = '([\dA-F]{2}[\.:-]){5}([\dA-F]{2})'
+        _mac_cisco = '([\dA-F]{4}\.){2}[\dA-F]{4}'
+        _mac_all = "%s|%s" % (_mac_iee802, _mac_cisco)
+        _mac_regex = re.compile(_mac_all, re.I)
+
         mac_address_table = mac_address_table.splitlines()
         p2 = re.compile('Port', re.IGNORECASE)
         for line in mac_address_table:
@@ -306,102 +411,257 @@ class SwitchCommon(object):
             if match:
                 pos = match.start()
             # find header seperator row
-            if re.search('-+', line):
-                iter = re.finditer('-+', line)
-                i = 0
-                for match in iter:
+            if re.search(r'--+', line):
+                log.debug('Found header seperator row: {}'.format(line))
+                iter = re.finditer(r'--+', line)
+                for i, match in enumerate(iter):
                     # find column aligned with 'Port'
                     if pos >= match.span()[0] and pos < match.span()[1]:
-                        port_col = i
-                    i += 1
+                        port_span = (match.span()[0], match.span()[1])
             # find rows with MACs
-            match = p.search(line)
+            match = _mac_regex.search(line)
+
             if match:
-                # isolate columns, extract row with macs
-                q = re.findall(r'[\w+:./]+', line)
-                port = q[port_col]
+                mac = match.group()
+                log.debug('Found mac address: {}'.format(mac))
+                _mac = mac
+                if fmt == 'std':
+                    _mac = mac[0:2]
+                    mac = re.sub(r'\.|\:', '', mac)
+                    for i in (2, 4, 6, 8, 10):
+                        _mac = _mac + ':' + mac[i:i + 2]
+                # Extract port section of row
+                port = line[port_span[0] - 1:port_span[1]].strip(' ')
+                if fmt == 'std':
+                    port = port.strip('Eth')
                 if port not in mac_dict.keys():
-                    mac_dict[port] = [match.group()]
+                    mac_dict[port] = [_mac]
                 else:
-                    mac_dict[port].append(match.group())
+                    mac_dict[port].append(_mac)
         return mac_dict
 
-    @staticmethod
-    def get_port_to_mac(mac_address_table, log=None):
-        """Get Attribute Dictionary mapping ports to lists of MAC address.
+    def enable_lacp(self):
+        self.send_cmd(self.ENABLE_LACP)
 
-        The returned attribute dictionary provides port numbers mapped to lists
-        of MAC addresses (from the switch MAC address table). Individual ports
-        can easily be retrieved by using the port number as the dictionary key.
+    def show_port_channel_interfaces(self):
+        return self.send_cmd(self.SHOW_PORT_CHANNEL)
+
+    def remove_channel_group(self, port):
+        # Remove interface from channel-group
+        self.send_cmd(
+            self.IFC_ETH_CFG.format(port) + self.SEP + self.NO_CHANNEL_GROUP)
+
+    def remove_port_channel_ifc(self, lag_ifc):
+        # Remove LAG interface
+        cmd = 'no ' + self.LAG_PORT_CHANNEL.format(lag_ifc)
+        print(cmd)
+        self.send_cmd(cmd)
+
+    def create_port_channel_ifc(self, lag_ifc):
+        # Create a LAG
+        cmd = self.LAG_PORT_CHANNEL.format(lag_ifc)
+        print(cmd)
+        self.send_cmd(cmd)
+
+    def set_port_channel_mode(self, port_ch, mode, nvlan=None):
+        cmd = self.IFC_PORT_CH_CFG.format(port_ch) + \
+            self.SWITCHPORT_MODE.format(mode.value)
+        if nvlan:
+            cmd += self.SWITCHPORT_TRUNK_NATIVE_VLAN.format(nvlan)
+
+        self.send_cmd(cmd)
+
+    def add_ports_to_port_channel_ifc(self, ports, lag_ifc, mode='active'):
+        # Map a physical port to the LAG in specified mode (active for LACP)
+        for port in ports:
+            cmd = self.IFC_ETH_CFG.format(port) + self.CHANNEL_GROUP_MODE.format(
+                lag_ifc, mode)
+            print(cmd)
+            self.send_cmd(cmd)
+        port_chan_summ = self.send_cmd('show port-channel summary')
+        for port in ports:
+            if self.PORT_PREFIX + str(port) not in port_chan_summ:
+                self.log.error('Port {} not added to port channel {}'.format(
+                    port, lag_ifc))
+                raise SwitchException('Port {} not added to port channel {}'.
+                                      format(port, lag_ifc))
+
+    def add_vlans_to_port_channel(self, port, vlans):
+        """    DEPRECATED   """
+        ports = self.show_ports('std')
+        port = str(port)
+        if port not in ports:
+            raise SwitchException(
+                'Port inaccessible (may already be in port channel).'
+                '\nFailed adding vlans {} to port {}'.format(vlans, port))
+        # Enable trunk mode for port
+        self.send_cmd(self.SET_LAG_PORT_CHANNEL_MODE_TRUNK.format(port))
+
+        # Add VLANs to port
+        for vlan in vlans:
+            self.send_cmd(
+                self.LAG_PORT_CHANNEL.format(port) +
+                'switchport trunk allowed vlan add {}'.format(vlan))
+
+    def allowed_vlans_port_channel(self, port, operation, vlans=''):
+        """ configure vlans on a port channel
+        ARGS:
+            operation (str): add | all | except | none | remove
+            vlan (str or tuple or list). if type string, can be of the
+            following formats: '4' or '4,5,8' or '5-10'
+        """
+        if isinstance(vlans, (tuple, list)):
+            vlans = [str(vlans[i]) for i in range(len(vlans))]
+            vlans = ','.join(vlans)
+        else:
+            vlans = str(vlans)
+
+        cmd = self.IFC_PORT_CH_CFG.format(port) + self.SEP + \
+            self.SWITCHPORT_TRUNK_ALLOWED_VLAN.format(operation.value, vlans)
+        self.send_cmd(cmd)
+
+    def set_mtu_for_port_channel(self, port, mtu):
+        # Set port-channel MTU
+        if mtu == 0:
+            self.send_cmd(
+                self.LAG_PORT_CHANNEL.format(port) +
+                'no mtu ' +
+                self.FORCE)
+        else:
+            self.send_cmd(
+                self.LAG_PORT_CHANNEL.format(port) +
+                self.SET_MTU.format(mtu) +
+                ' ' +
+                self.FORCE)
+
+    def remove_interface(self, vlan, host, netmask):
+        """Removes an in-band management interface.
+        Args:
+            host (string): hostname or ipv4 address in dot decimal notation
+            netmask (string): netmask in dot decimal notation
+            vlan (int or string): value between 1 and 4094.
+        raises:
+            SwitchException if unable to remove interface
+        """
+        vlan = str(vlan)
+        interfaces = self.show_interfaces(vlan, host, netmask, format='std')
+        if interfaces[-1][0]['configured']:
+            self.send_cmd('interface vlan {} ;no ip address {} {}'.
+                          format(vlan, host, netmask))
+            self.send_cmd('no interface vlan {}'.format(vlan))
+            interfaces = self.show_interfaces(vlan, host, netmask, format='std')
+            if interfaces[-1][0]['configured']:
+                self.log.info('Failed to remove interface Vlan {}.'.format(vlan))
+                raise SwitchException('Failed to remove interface Vlan {}.'.
+                                      format(vlan))
+        else:
+            if interfaces[-1][0]['found vlan']:
+                self.log.info('Specified interface on vlan {} does not exist.'.
+                              format(vlan))
+                raise SwitchException('Failed to remove interface Vlan {}.'.
+                                      format(vlan))
+
+    def show_interfaces(self, vlan='', host=None, netmask=None, format=None):
+        """Gets from the switch a list of programmed in-band interfaces. The
+        standard format consists of a list of lists. Each list entry contains
+        the vlan number, the ip address, netmask and the number of the interface.
+        which do not number the in-band interfaces, the last item in each list
+        is set to '-'. When vlan, host and netmask are specified, the last list
+        item contains 'True' or 'False' indicating whether an interface already
+        exists with the specified vlan, host and netmask. For switches which do
+        number the interfaces, (ie Lenovo) the last list item also contains the
+        next available interface number and the number of the found interface.
+        Args:
+            vlan (string): String representation of integer between
+                1 and 4094. If none specified, usually the default vlan is used.
+            host (string): hostname or ipv4 address in dot decimal notation
+            netmask (string): netmask in dot decimal notation
+            format (string): 'std' If format is not specified, The native (raw)
+                format is returned. If format is set to 'std', a 'standard'
+                format is returned.
+        Returns:
+        If format is unspecified, returns a raw string of data as it
+        comes from the switch. If format == 'std' a standard format is returned.
+        Standard format consists of a list of lists. Each list entry contains
+        the vlan number, the ip address, netmask and the number of the interface.
+        For switches which do not number the in-band interfaces, the last item
+        in each list is set to '-'. When vlan, host and netmask are specified,
+        the last list item contains a dictionary. The dictionary has three entries;
+            'configured' : set to True or False indicating whether an
+                interface already exists with the specified vlan, host and netmask.
+            'avail ifc' : For switches which do number the interfaces, (ie Lenovo)
+                this dictioanary entry contains the next available interface number.
+            'found ifc' : For switches which do number the interfaces, this entry
+                contains the number of the found interface.
+        """
+        if self.mode == 'passive':
+            return None
+        ifcs = []
+        ifc_info = ''
+        vlan = str(vlan)
+        found, found_vlan = False, False
+        ifc_info_brief = self.send_cmd(self.SHOW_IP_INTERFACE_BRIEF)
+        vlan_ifcs = re.findall(r'Vlan(\d+)', ifc_info_brief, re.MULTILINE)
+        for ifc in vlan_ifcs:
+            ifc_info = ifc_info + self.send_cmd(self.SHOW_INTERFACE.format(ifc))
+        if format is None:
+            return ifc_info
+        ifc_info = ifc_info.split('Vlan')
+        for line in ifc_info:
+            match = re.search(r'(\d+).*Internet Address is\s+'
+                              '((\w+.\w+.\w+.\w+)/\d+)', line, re.DOTALL)
+            if match:
+                mask = netaddr.IPNetwork(match.group(2))
+                mask = str(mask.netmask)
+                ifcs.append(
+                    [match.group(1), match.group(3), mask, '-'])
+                if (vlan, host, netmask, '-') == tuple(ifcs[-1]):
+                    found = True
+                if vlan in ifcs[-1]:
+                    found_vlan = True
+        ifcs.append([{'configured': found, 'found vlan': found_vlan}])
+        return ifcs
+
+    def configure_interface(self, host, netmask, vlan=1, intf=None):
+        """Configures a management interface. This implementation checks
+        if the host ip is already in use. If it is, a check is made to
+        see if it is configured as specified. If not, an exception is raised.
+        Lenovo numbers interfaces. The specified vlan will be created if it
+        does not already exist.
+
+        When implementing this method for a new switch, minimally this method
+        should configure (overwrite if necessary) the specified interface.
 
         Args:
-            mac_address_table_ (string):  MAC address table with rows delimited
-            by linefeed.
-
-        Returns:
-            AttrDict: Port to MAC address mapping.
+            host (string): hostname or ipv4 address in dot decimal notation
+            netmask (string): netmask in dot decimal notation
+            vlan (string): String representation of integer between
+            1 and 4094. The management interface is created on the specified
+            vlan intf (string): optional. String representation of integer
+            between 1 and 128.
+        raises:
+            SwitchException if unable to program interface
         """
-        _mac_iee802 = '([\dA-F]{2}[\.:-]){5}([\dA-F]{2})'
-        _mac_cisco = '([\dA-F]{4}\.){2}[\dA-F]{4}'
-        _mac_all = "%s|%s" % (_mac_iee802, _mac_cisco)
-        _mac_regex = re.compile(_mac_all, re.I)
-        port_to_mac = AttrDict()
-        mac_line_list = []
-        port_index = None
-        mac_index = None
+        vlan = str(vlan)
+        interfaces = self.show_interfaces(vlan, host, netmask, format='std')
+        if interfaces[-1][0]['configured']:
+            self.log.info(
+                'Switch interface vlan {} already configured'.format(vlan))
+            return
+        if interfaces[-1][0]['found vlan']:
+            self.log.info(
+                'Conflicting address. Interface vlan {} already configured'.
+                format(vlan))
+            raise SwitchException(
+                'Conflicting address exists on interface vlan {}'.format(vlan))
+            return
+        # create vlan if it does not already exist
+        self.create_vlan(vlan)
 
-        mac_header_re = re.compile('mac address', re.I)
-        single_s = re.compile('(\S)\s(\S)')
+        # create the interface
 
-        mac_lines = mac_address_table.splitlines()
-        if log:
-            log.debug("Converting MAC address table with %d lines to 'standard'"
-                      " attribute dictionary format" % len(mac_lines))
-        for line in mac_lines:
-            if _mac_regex.search(line):
-                if log:
-                    log.debug('Found mac address: %s' % line.rstrip())
-                mac_line_list.append(line.split())
-            elif mac_header_re.search(line):
-                if log:
-                    log.debug('Found possible header: %s' % line.rstrip())
-                header = single_s.sub('\g<1>\g<2>', line.lower()).split()
-                if set(["macaddress", "port"]) <= set(header):
-                    if log:
-                        log.debug('header: %s' % header)
-                    mac_index = header.index("macaddress")
-                    port_index = header.index("port")
-
-        if mac_index is None and mac_line_list:
-            for index, value in enumerate(mac_line_list[0]):
-                if _mac_regex.search(value):
-                    mac_index = index
-
-        if port_index is None and mac_line_list:
-            if mac_index == 1:
-                port_index = 0
-            else:
-                port_index = 1
-
-        for line in mac_line_list:
-            mac = line[mac_index].lower()
-            mac = mac.replace("-", ":")
-            mac = mac.replace(".", ":")
-            for i in [2, 5, 8, 11, 14]:
-                if mac[i] != ":":
-                    mac = mac[:i] + ":" + mac[i:]
-
-            if "/" in line[port_index]:
-                port = line[port_index].split("/", 1)[1]
-            else:
-                port = line[port_index]
-
-            if port in port_to_mac:
-                port_to_mac[port].append(mac)
-            else:
-                port_to_mac[port] = [mac]
-            if log:
-                log.debug(
-                    'port_to_mac[%s] = %s' % (port, port_to_mac[port]))
-        if log:
-            return port_to_mac
+        self.send_cmd(self.SET_INTERFACE.format(vlan, host, netmask))
+        interfaces = self.show_interfaces(vlan, host, netmask, format='std')
+        if not interfaces[-1][0]['configured']:
+            raise SwitchException(
+                'Failed configuring management interface vlan {}'.format(vlan))
