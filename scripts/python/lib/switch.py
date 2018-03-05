@@ -1,6 +1,6 @@
 """Switch configuration."""
 
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -21,6 +21,7 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 
 from lib import lenovo
 from lib import mellanox
+from lib import cisco
 from lib.exception import UserException
 import lib.logger as logger
 
@@ -53,7 +54,8 @@ class SwitchFactory(object):
             return lenovo.switch.factory(host, userid, password, mode, outfile)
         if switch_type in 'mellanox Mellanox MELLANOX':
             return mellanox.switch.factory(host, userid, password, mode, outfile)
-
+        if switch_type in 'cisco Cisco CISCO':
+            return cisco.switch.factory(host, userid, password, mode, outfile)
         msg = 'Invalid switch class'
         LOG.error(msg)
         raise UserException(msg)
