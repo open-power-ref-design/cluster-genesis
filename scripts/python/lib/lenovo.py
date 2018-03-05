@@ -57,7 +57,7 @@ class Lenovo(SwitchCommon):
         access_list (list of str): Optional list containing host, userid
         and password.
     """
-    ENABLE_REMOTE_CONFIG = SwitchCommon.ENABLE_REMOTE_CONFIG
+    ENABLE_REMOTE_CONFIG = 'en ; configure terminal ; {} '
     SEP = ';'
     IFC_ETH_CFG = 'interface port {}'
     SHOW_PORT = 'show interface trunk'
@@ -231,8 +231,9 @@ class Lenovo(SwitchCommon):
         """
         interfaces = self.show_interfaces(vlan, host, netmask, format='std')
         if self.mode == 'active' and interfaces[-1][0]['configured']:
-            self.log.info(
-                'Switch interface {} already configured'.format(interfaces[-1][0]['found ifc']))
+            self.log.debug(
+                'Switch interface {} already configured'.format(
+                    interfaces[-1][0]['found ifc']))
             return
         if vlan is not None:
             self.create_vlan(vlan)

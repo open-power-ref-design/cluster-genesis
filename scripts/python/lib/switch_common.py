@@ -153,12 +153,12 @@ class SwitchCommon(object):
     def set_switchport_mode(self, port, mode, vlan=None):
         port = str(port)
         cmd = self.IFC_ETH_CFG.format(port) + self.SEP
-        cmd += self.SWITCHPORT_MODE.format(mode.value) + self.SEP
+        cmd += self.SWITCHPORT_MODE.format(mode.value)
         if vlan:
             if mode.value == 'trunk':
-                cmd += self.SWITCHPORT_TRUNK_NATIVE_VLAN.format(vlan)
+                cmd += self.SEP + self.SWITCHPORT_TRUNK_NATIVE_VLAN.format(vlan)
             if mode.value == 'access':
-                cmd += self.SWITCHPORT_ACCESS_VLAN.format(vlan)
+                cmd += self.SEP + self.SWITCHPORT_ACCESS_VLAN.format(vlan)
         self.send_cmd(cmd)
         ports = self.show_ports(format='std')
         if port not in ports:
@@ -191,14 +191,14 @@ class SwitchCommon(object):
             return None
         port = str(port)
         ports = self.show_ports(format='std')
-        return self.PortMode.TRUNK in ports[port]['mode']
+        return self.PortMode.TRUNK.value in ports[port]['mode']
 
     def is_port_in_access_mode(self, port):
         if self.mode == 'passive':
             return None
         port = str(port)
         ports = self.show_ports('std')
-        return self.PortMode.ACCESS in ports[port]['mode']
+        return self.PortMode.ACCESS.value in ports[port]['mode']
 
     def allowed_vlans_port(self, port, operation, vlans=''):
         """ configure vlans on a port channel
