@@ -31,7 +31,6 @@ Welcome to Cluster Genesis User's Guide documentation!
    Intro-Setup
    Config-Specification
    Inventory-Specification
-   Gen-Command
    Create-Config-File
    Run-Cluster-Genesis
    Dev-Guide
