@@ -170,6 +170,7 @@ def configure_mgmt_switches():
                     sw.set_switchport_mode(port, port_mode.TRUNK)
                     sw.allowed_vlans_port(port, allow_op.NONE)
                     sw.allowed_vlans_port(port, allow_op.ADD, vlan)
+                    sw.set_switchport_mode(port, port_mode.TRUNK, vlan)
                 except SwitchException as exc:
                     LOG.error(exc)
         for if_type in ['ipmi', 'pxe']:
