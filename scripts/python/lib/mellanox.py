@@ -112,6 +112,7 @@ class Mellanox(SwitchCommon):
     MLAG_ACTIVE = '"mlag-channel-group {} mode active"'
     NO_MLAG_CHANNEL_GROUP = '"no mlag-channel-group"'
     MAC_RE = re.compile('([\da-fA-F]{2}:){5}([\da-fA-F]{2})')
+    SHOW_MAC_ADDRESS_TABLE = '"show mac-address-table"'
     CLEAR_MAC_ADDRESS_TABLE = '"clear mac-address-table dynamic"'
     SHOW_INTERFACE = '"show interface vlan {}"'
     SET_INTERFACE = '"interface vlan {} ip address {} {}"'
