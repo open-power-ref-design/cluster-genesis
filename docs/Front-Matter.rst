@@ -42,7 +42,7 @@ Revision History
 | 1.4    | 22 Sep 2017   | Release 1.4 Cisco passive mode      |    |
 |        |               | support.                            |    |
 +--------+---------------+-------------------------------------+----+
-| 2.0    | 6 Mar 2018    | Release 2.0 New config file format  |    |
+| 2.0b   | 7 Mar 2018    | Release 2.0 New config file format  |    |
 |        |               | and validation.                     |    |
 |        |               | Add hardware discovery and          |    |
 |        |               | validation.                         |    |
