@@ -76,6 +76,7 @@ class Mellanox(SwitchCommon):
     # Mellanox's hybrid mode is used when trunk is specified
     SWITCHPORT_TRUNK_NATIVE_VLAN = '"switchport access vlan {}"'
     SWITCHPORT_TRUNK_ALLOWED_VLAN = '"switchport hybrid allowed-vlan {} {}"'
+    CHANNEL_GROUP_MODE = SEP + '"channel-group {} mode {}"'
     NO_CHANNEL_GROUP = '"no channel-group"'
     SET_NATIVE_VLAN_ACCESS = '"interface ethernet 1/{} switchport access vlan {}"'
     SET_NATIVE_VLAN_TRUNK = '"interface ethernet 1/{} switchport access vlan {}"'
@@ -104,7 +105,7 @@ class Mellanox(SwitchCommon):
     DISABLE_MLAG = '"mlag shutdown"'
     MLAG_PORT_CHANNEL = '"interface mlag-port-channel {}"'
     NO_MLAG_PORT_CHANNEL = '"no interface mlag-port-channel {}"'
-    SHOW_PORT_CHANNEL = '"show interface port-channel summary"'
+    SHOW_PORT_CHANNEL = '"show interfaces port-channel summary"'
     SHOW_MLAG = '"show mlag"'
     SHOW_IFC_MLAG_PORT_CHANNEL = '"show interfaces mlag-port-channel summary"'
     STP_PORT_TYPE_EDGE = '"spanning-tree port type edge"'

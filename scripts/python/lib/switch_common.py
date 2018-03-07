@@ -35,7 +35,8 @@ class SwitchCommon(object):
     ENABLE_REMOTE_CONFIG = 'configure terminal ; {} '
     IFC_ETH_CFG = 'interface ethernet {} '
     IFC_PORT_CH_CFG = 'interface port-channel {} '
-    PORT_PREFIX = 'Eth'
+    NO_IFC_PORT_CH_CFG = 'no interface port-channel {} '
+    PORT_PREFIX = 'Eth1/'
     SEP = ';'
     SHOW_VLANS = 'show vlan'
     CREATE_VLAN = 'vlan {}'
@@ -446,39 +447,45 @@ class SwitchCommon(object):
     def show_port_channel_interfaces(self):
         return self.send_cmd(self.SHOW_PORT_CHANNEL)
 
-    def remove_channel_group(self, port):
+    def remove_ports_from_port_channel_ifc(self, ports):
         # Remove interface from channel-group
-        self.send_cmd(
-            self.IFC_ETH_CFG.format(port) + self.SEP + self.NO_CHANNEL_GROUP)
+        for port in ports:
+            self.send_cmd(
+                self.IFC_ETH_CFG.format(port) + self.SEP + self.NO_CHANNEL_GROUP)
+        port_chan_summ = self.show_port_channel_interfaces()
+        for port in ports:
+            if self.PORT_PREFIX + str(port) in port_chan_summ:
+                self.log.error('Port {} not removed from port channel'.format(
+                    port))
 
     def remove_port_channel_ifc(self, lag_ifc):
         # Remove LAG interface
-        cmd = 'no ' + self.LAG_PORT_CHANNEL.format(lag_ifc)
-        print(cmd)
+        cmd = self.NO_IFC_PORT_CH_CFG.format(lag_ifc)
+
         self.send_cmd(cmd)
 
     def create_port_channel_ifc(self, lag_ifc):
         # Create a LAG
-        cmd = self.LAG_PORT_CHANNEL.format(lag_ifc)
-        print(cmd)
+        cmd = self.IFC_PORT_CH_CFG.format(lag_ifc)
+
         self.send_cmd(cmd)
 
     def set_port_channel_mode(self, port_ch, mode, nvlan=None):
-        cmd = self.IFC_PORT_CH_CFG.format(port_ch) + \
+        cmd = self.IFC_PORT_CH_CFG.format(port_ch) + self.SEP +\
             self.SWITCHPORT_MODE.format(mode.value)
         if nvlan:
-            cmd += self.SWITCHPORT_TRUNK_NATIVE_VLAN.format(nvlan)
+            cmd += self.SEP + self.SWITCHPORT_TRUNK_NATIVE_VLAN.format(nvlan)
 
         self.send_cmd(cmd)
 
     def add_ports_to_port_channel_ifc(self, ports, lag_ifc, mode='active'):
         # Map a physical port to the LAG in specified mode (active for LACP)
         for port in ports:
-            cmd = self.IFC_ETH_CFG.format(port) + self.CHANNEL_GROUP_MODE.format(
-                lag_ifc, mode)
-            print(cmd)
+            cmd = self.IFC_ETH_CFG.format(port) + self.SEP + \
+                self.CHANNEL_GROUP_MODE.format(lag_ifc, mode)
+
             self.send_cmd(cmd)
-        port_chan_summ = self.send_cmd('show port-channel summary')
+        port_chan_summ = self.show_port_channel_interfaces()
         for port in ports:
             if self.PORT_PREFIX + str(port) not in port_chan_summ:
                 self.log.error('Port {} not added to port channel {}'.format(

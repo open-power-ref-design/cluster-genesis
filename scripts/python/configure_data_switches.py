@@ -92,6 +92,7 @@ def _get_port_chan_list():
                             ntmpl_ind, phyintf_idx)
                         ports = CFG.get_ntmpl_phyintf_data_ports(
                             ntmpl_ind, phyintf_idx)
+                        ports = [str(ports[i]) for i in range(len(ports))]
                         bonds[bond][ntmpl_label][phyintf][switch] = ports
     pretty_str = PP.pformat(bonds)
     log.debug('Bonds:')
@@ -448,15 +449,14 @@ def configure_data_switch():
                     # Configure LAG
                     for sw in chan_ports[bond][ntmpl][mstr_sw]:
                         for port_grp in chan_ports[bond][ntmpl][mstr_sw][sw]:
-                            chan_num = min(port_grp)
-                            chan_num = chan_num.rpartition('/')[-1]
+                            chan_num = min([int(port_grp[i].rpartition('/')
+                                           [-1]) for i in range(len(port_grp))])
                             print('.', end="")
                             sys.stdout.flush()
                             log.debug('Lag channel group: {} on switch: {}'.format(
                                 chan_num, sw))
-                            sw_dict[sw].remove_channel_group(chan_num)
                             sw_dict[sw].create_port_channel_ifc(chan_num)
-                            vlans = _get_port_vlans(sw, min(port_grp), port_vlans)
+                            vlans = _get_port_vlans(sw, chan_num, port_vlans)
                             _port_mode = port_mode[sw].TRUNK if vlans else \
                                 port_mode[sw].ACCESS
                             sw_dict[sw].set_port_channel_mode(chan_num, _port_mode)
@@ -467,7 +467,7 @@ def configure_data_switch():
                                 sw_dict[sw].allowed_vlans_port_channel(
                                     chan_num, allow_op[sw].NONE)
                                 sw_dict[sw].allowed_vlans_port_channel(
-                                    chan_num, allow_op.ADD, vlans)
+                                    chan_num, allow_op[sw].ADD, vlans)
                             if mtu:
                                 log.debug('set mtu for port channel: {}'.format(mtu))
                                 sw_dict[sw].set_mtu_for_port_channel(chan_num, mtu)
@@ -475,6 +475,8 @@ def configure_data_switch():
                             log.debug('Switch: {}, adding port(s) {} to lag chan'
                                       ' num: {}'.format(sw, port_grp, chan_num))
                             try:
+                                sw_dict[sw].remove_ports_from_port_channel_ifc(
+                                    port_grp)
                                 sw_dict[sw].add_ports_to_port_channel_ifc(
                                     port_grp, chan_num)
                             except SwitchException as exc:
