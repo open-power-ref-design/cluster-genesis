@@ -86,6 +86,9 @@ def enable_deployer_network():
                         bridge_ipaddr=bridge_ipaddr[i],
                         vlan=vlan[i],
                         type_=type_[i])
+        if cfg.get_depl_gateway() and type_[i] == "pxe":
+            _create_nat_gateway_rule(bridge_ipaddr[i] + "/" +
+                                     str(netprefix[i]))
 
 
 def _create_network(
@@ -484,6 +487,22 @@ def _wait_for_ifc_up(ifname, timespan=10):
         time.sleep(0.5)
     LOG.info('Timeout waiting for interface {} to come up'.format(ifname))
     return False
+
+
+def _create_nat_gateway_rule(network):
+    # Check if POSTROUTING nat rule already exists for client network
+    output = subprocess.check_output(
+        ['bash', '-c', 'iptables -L POSTROUTING -t nat']).splitlines()
+    for line in output:
+        if "MASQUERADE" in line and network in line:
+            LOG.debug('Found existing MASQUERADE NAT rule for {}: {}'.format(network, line))
+            break
+    else:
+        # If no existing rules are found for network create one
+        cmd = ("iptables -t nat -A POSTROUTING -p all -s {0} ! -d {0} "
+               "-j MASQUERADE").format(network)
+        output = subprocess.check_output(['bash', '-c', cmd])
+        LOG.debug('Created new MASQUERADE NAT rule for {}: {}'.format(network, output))
 
 
 if __name__ == '__main__':
