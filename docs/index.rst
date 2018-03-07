@@ -6,8 +6,8 @@
 Welcome to Cluster Genesis User's Guide documentation!
 ======================================================
 
-:Version: 1.3
-:Date: 2017-06-26
+:Version: 2.0b
+:Date: 2018-03-07
 :Document Owner:
     OpenPOWER Cluster Genesis Team
 :Authors:
@@ -15,10 +15,8 @@ Welcome to Cluster Genesis User's Guide documentation!
     Rolf Brudeseth,
     Jay Carman,
     Ray Harrington,
-    Doug Lehr
     Hoa Ngo,
-    Nilesh Shah,
-    Jorge Yanez,
+    Nilesh Shah
 
 
 .. toctree::
@@ -29,9 +27,9 @@ Welcome to Cluster Genesis User's Guide documentation!
    Front-Matter
    Release-Table
    Intro-Setup
+   Create-Config-File
    Config-Specification
    Inventory-Specification
-   Create-Config-File
    Run-Cluster-Genesis
    Dev-Guide
    Build-Introspection
