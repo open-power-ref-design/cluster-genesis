@@ -61,6 +61,7 @@ class Lenovo(SwitchCommon):
     SEP = ';'
     IFC_ETH_CFG = 'interface port {}'
     SHOW_PORT = 'show interface trunk'
+    PORT_PREFIX = ''
     CLEAR_MAC_ADDRESS_TABLE = 'clear mac-address-table'
     SHOW_MAC_ADDRESS_TABLE = 'show mac-address-table'
     MGMT_INTERFACE_CONFIG = 'interface ip {}'

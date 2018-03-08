@@ -65,6 +65,7 @@ class Mellanox(SwitchCommon):
     CREATE_VLAN = '"vlan {}"'
     DELETE_VLAN = '"no vlan {}"'
     SEP = ' '
+    PORT_PREFIX = 'Eth1/'
     IFC_ETH_CFG = '"interface ethernet 1/{}"'
     IFC_PORT_CH_CFG = '"interface port-channel {}"'
     NO_IFC_PORT_CH_CFG = '"no interface port-channel {}"'
