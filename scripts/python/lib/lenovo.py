@@ -143,10 +143,10 @@ class Lenovo(SwitchCommon):
             self.send_cmd(self.REMOVE_IFC.format(interfaces[-1][0]['found ifc']))
             interfaces = self.show_interfaces(vlan, host, netmask, format='std')
             if interfaces[-1][0]['configured']:
-                self.log.info('Failed to remove interface Vlan {}.'.format(vlan))
+                self.log.debug('Failed to remove interface Vlan {}.'.format(vlan))
                 raise SwitchException('Failed to remove interface Vlan {}.'.format(vlan))
         else:
-            self.log.info('Interface vlan {} does not exist.'.format(vlan))
+            self.log.debug('Interface vlan {} does not exist.'.format(vlan))
         return
 
     def show_interfaces(self, vlan='', host=None, netmask=None, format=None):

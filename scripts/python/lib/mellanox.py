@@ -234,11 +234,11 @@ class Mellanox(SwitchCommon):
             self.send_cmd('no interface vlan {}'.format(vlan))
             interfaces = self.show_interfaces(vlan, host, netmask, format='std')
             if interfaces[-1][0]['configured']:
-                self.log.info('Failed to remove interface Vlan {}.'.format(vlan))
+                self.log.debug('Failed to remove interface Vlan {}.'.format(vlan))
                 raise SwitchException('Failed to remove interface Vlan {}.'.format(vlan))
         else:
             if interfaces[-1][0]['found vlan']:
-                self.log.info('Specified interface on vlan {} does not exist.'.format(vlan))
+                self.log.debug('Specified interface on vlan {} does not exist.'.format(vlan))
                 raise SwitchException('Failed to remove interface Vlan {}.'.format(vlan))
 
     def configure_interface(self, host, netmask, vlan):
@@ -261,11 +261,11 @@ class Mellanox(SwitchCommon):
         vlan = str(vlan)
         interfaces = self.show_interfaces(vlan, host, netmask, format='std')
         if interfaces[-1][0]['configured']:
-            self.log.info(
+            self.log.debug(
                 'Switch interface vlan {} already configured'.format(vlan))
             return
         if interfaces[-1][0]['found vlan']:
-            self.log.info(
+            self.log.debug(
                 'Conflicting address. Interface vlan {} already configured'.format(vlan))
             raise SwitchException(
                 'Conflicting address exists on interface vlan {}'.format(vlan))
@@ -344,7 +344,7 @@ class Mellanox(SwitchCommon):
 
     def deconfigure_mlag(self):
         if not self.is_mlag_configured():
-            self.log.info('MLAG is not configured on switch {}'.format(self.host))
+            self.log.debug('MLAG is not configured on switch {}'.format(self.host))
             return
         # Get MLAG info.  Note that Mellanox supports only 1 IPL port channel
         mlag_info = self.send_cmd('show mlag')
@@ -352,7 +352,7 @@ class Mellanox(SwitchCommon):
         if match:
             port_channel = match.group(1)
             vlan = match.group(2)
-            self.log.info(
+            self.log.debug(
                 'Found IPL port channel {} on vlan {}. Removing.'
                 .format(port_channel, vlan))
         else:
@@ -367,7 +367,7 @@ class Mellanox(SwitchCommon):
         if match:
             port1 = match.group(1)
             port2 = match.group(2)
-            self.log.info('Found IPL ports {} {}'.format(port1, port2))
+            self.log.debug('Found IPL ports {} {}'.format(port1, port2))
         else:
             raise SwitchException(
                 'MLAG IPL port channel information not found')

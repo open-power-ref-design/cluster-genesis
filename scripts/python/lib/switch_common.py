@@ -218,21 +218,24 @@ class SwitchCommon(object):
             self.SWITCHPORT_TRUNK_ALLOWED_VLAN.format(operation.value, vlans)
         self.send_cmd(cmd)
 
+        res = self.is_vlan_allowed_for_port(vlans, port)
         if operation.value == 'add':
-            if not self.is_vlan_allowed_for_port(vlans, port):
+            if res is None:
+                return
+            elif not res:
                 msg = 'Not all vlans in {} were added to port {}'. \
                     format(vlans, port)
                 self.log.error(msg)
-                raise SwitchException(msg)
             else:
                 self.log.debug('vlans {} were added to port {}'.
                                format(vlans, port))
         if operation.value == 'remove':
-            if self.is_vlan_allowed_for_port(vlans, port):
+            if res is None:
+                return
+            elif res:
                 msg = 'Not all vlans in {} were removed from port {}'. \
                     format(vlans, port)
                 self.log.error(msg)
-                raise SwitchException(msg)
             else:
                 self.log.debug('vlans {} were removed from port {}'.
                                format(vlans, port))
@@ -254,9 +257,9 @@ class SwitchCommon(object):
         if port not in ports:
             msg = 'Unable to verify setting of vlans '
             msg += 'for port {}. May already be in a channel group.'
-            msg.format(port)
+            msg = msg.format(port)
             self.log.debug(msg)
-            return True
+            return
         avlans = ports[port]['avlans']
         avlans = avlans.split(',')
         for vlan in vlans:
@@ -558,13 +561,13 @@ class SwitchCommon(object):
             self.send_cmd('no interface vlan {}'.format(vlan))
             interfaces = self.show_interfaces(vlan, host, netmask, format='std')
             if interfaces[-1][0]['configured']:
-                self.log.info('Failed to remove interface Vlan {}.'.format(vlan))
+                self.log.debug('Failed to remove interface Vlan {}.'.format(vlan))
                 raise SwitchException('Failed to remove interface Vlan {}.'.
                                       format(vlan))
         else:
             if interfaces[-1][0]['found vlan']:
-                self.log.info('Specified interface on vlan {} does not exist.'.
-                              format(vlan))
+                self.log.debug('Specified interface on vlan {} does not exist.'.
+                               format(vlan))
                 raise SwitchException('Failed to remove interface Vlan {}.'.
                                       format(vlan))
 
@@ -652,11 +655,11 @@ class SwitchCommon(object):
         vlan = str(vlan)
         interfaces = self.show_interfaces(vlan, host, netmask, format='std')
         if interfaces[-1][0]['configured']:
-            self.log.info(
+            self.log.debug(
                 'Switch interface vlan {} already configured'.format(vlan))
             return
         if interfaces[-1][0]['found vlan']:
-            self.log.info(
+            self.log.debug(
                 'Conflicting address. Interface vlan {} already configured'.
                 format(vlan))
             raise SwitchException(

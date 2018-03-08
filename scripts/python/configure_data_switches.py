@@ -206,9 +206,9 @@ def _get_vlan_list():
         for vlan in vlan_list[switch]:
             for port in vlan_list[switch][vlan]:
                 if port in port_vlans[switch]:
-                    port_vlans[switch][port].append(vlan)
+                    port_vlans[switch][str(port)].append(vlan)
                 else:
-                    port_vlans[switch][port] = [vlan]
+                    port_vlans[switch][str(port)] = [vlan]
 
     pretty_str = PP.pformat(port_vlans)
     log.debug('port_vlans')
@@ -321,6 +321,18 @@ def _get_port_mtu(switch, port, mtu_list):
             return mtu
 
 
+def _get_channel_num(port_grp):
+    """ Return a channel number given a port group.  The lowest value
+    port number in the group is returned.  No checks are made to insure
+    that all ports are in the same chassis.
+    Args:
+        port_group: (tuple or list of str representing port numbers
+        of the form 'n' or 'm/n' or 'ethm/n' or similar
+    """
+    return min([int(port_grp[i].rpartition('/')[-1])
+               for i in range(len(port_grp))])
+
+
 def configure_data_switch():
     """ Configures data (access) switches.  Configuration is driven by the
     config.yml file.
@@ -409,8 +421,7 @@ def configure_data_switch():
                     for sw in chan_ports[bond][ntmpl][mstr_sw]:
                         for idx, port_grp in enumerate(
                                 chan_ports[bond][ntmpl][mstr_sw][sw]):
-                            chan_num = min(chan_ports[bond][ntmpl][mstr_sw]
-                                           [mstr_sw][idx])
+                            chan_num = _get_channel_num(port_grp)
                             log.debug('create mlag interface {} on switch {}'.
                                       format(chan_num, sw))
                             sw_dict[sw].remove_mlag_interface(chan_num)
@@ -449,14 +460,13 @@ def configure_data_switch():
                     # Configure LAG
                     for sw in chan_ports[bond][ntmpl][mstr_sw]:
                         for port_grp in chan_ports[bond][ntmpl][mstr_sw][sw]:
-                            chan_num = min([int(port_grp[i].rpartition('/')
-                                           [-1]) for i in range(len(port_grp))])
+                            chan_num = _get_channel_num(port_grp)
                             print('.', end="")
                             sys.stdout.flush()
                             log.debug('Lag channel group: {} on switch: {}'.format(
                                 chan_num, sw))
                             sw_dict[sw].create_port_channel_ifc(chan_num)
-                            vlans = _get_port_vlans(sw, chan_num, port_vlans)
+                            vlans = _get_port_vlans(sw, port_grp[0], port_vlans)
                             _port_mode = port_mode[sw].TRUNK if vlans else \
                                 port_mode[sw].ACCESS
                             sw_dict[sw].set_port_channel_mode(chan_num, _port_mode)
@@ -518,8 +528,7 @@ def deconfigure_data_switch():
                         if sw_dict[sw].is_mlag_configured():
                             for idx, port_grp in enumerate(chan_ports[bond][ntmpl]
                                                            [mstr_sw][sw]):
-                                chan_num = min(chan_ports[bond][ntmpl][mstr_sw]
-                                               [mstr_sw][idx])
+                                chan_num = _get_channel_num(port_grp)
                                 log.info('Deleting mlag interface: {} on'
                                          ' switch: {}'.format(chan_num, sw))
                                 sw_dict[sw].remove_mlag_interface(chan_num)
@@ -527,8 +536,7 @@ def deconfigure_data_switch():
                     # deconfigure LAG channel ports
                     for sw in chan_ports[bond][ntmpl][mstr_sw]:
                         for port_grp in chan_ports[bond][ntmpl][mstr_sw][sw]:
-                            chan_num = min(port_grp)
-                            chan_num = chan_num.rpartition('/')[-1]
+                            chan_num = _get_channel_num(port_grp)
                             log.debug('Deleting Lag interface {} on switch: {}'.format(
                                       chan_num, sw))
                             sw_dict[sw].remove_port_channel_ifc(chan_num)
