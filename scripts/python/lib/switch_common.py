@@ -357,7 +357,7 @@ class SwitchCommon(object):
         mac_info = self.send_cmd(self.SHOW_MAC_ADDRESS_TABLE)
         if not format or format == 'raw':
             return mac_info
-        return self.get_port_to_mac(mac_info, format)
+        return self.get_port_to_mac(mac_info, format, self.PORT_PREFIX)
 
     def clear_mac_address_table(self):
         """Clear switch mac address table by writing the CLEAR_MAC_ADDRESS_TABLE
@@ -383,7 +383,7 @@ class SwitchCommon(object):
             return False
 
     @staticmethod
-    def get_port_to_mac(mac_address_table, fmt='std'):
+    def get_port_to_mac(mac_address_table, fmt='std', port_prefix=''):
         """Convert MAC address table to dictionary.
 
         Args:
@@ -437,7 +437,7 @@ class SwitchCommon(object):
                 # Extract port section of row
                 port = line[port_span[0] - 1:port_span[1]].strip(' ')
                 if fmt == 'std':
-                    port = port.strip('Eth')
+                    port = port.rpartition(port_prefix)[-1]
                 if port not in mac_dict.keys():
                     mac_dict[port] = [_mac]
                 else:
