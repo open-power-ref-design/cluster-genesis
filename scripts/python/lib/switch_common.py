@@ -383,7 +383,7 @@ class SwitchCommon(object):
             return False
 
     @staticmethod
-    def get_port_to_mac(mac_address_table, fmt='std', port_prefix=''):
+    def get_port_to_mac(mac_address_table, fmt='std', port_prefix=' '):
         """Convert MAC address table to dictionary.
 
         Args:
