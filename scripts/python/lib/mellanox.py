@@ -93,12 +93,14 @@ class Mellanox(SwitchCommon):
     LAG_ACTIVE = '"channel-group {} mode active"'
     IPL = '"ipl 1"'
     NO_IPL = '"no ipl 1"'
+    IPL_PEER_ADDRESS = '"ipl 1 peer-address {}"'
+    NO_IPL_PEER_ADDRESS = '"no ipl 1 peer-address"'
     QOS_ON = '"dcb priority-flow-control mode on force"'
     QOS_OFF = '"no dcb priority-flow-control mode force"'
     INTERFACE_VLAN = '"interface vlan {}"'
     NO_INTERFACE_VLAN = '"no interface vlan {}"'
     IP_CIDR = '"ip address {}"'
-    NO_IP_CIDR = '"no ip address {}"'
+    NO_IP_CIDR = '"no ip address"'
     PEER_ADDR = '"peer-address {}"'
     MLAG_VIP = '"mlag-vip mlag-vip-domain ip {} force"'
     NO_MLAG_VIP = '"no mlag-vip"'
@@ -348,7 +350,7 @@ class Mellanox(SwitchCommon):
             self.log.debug('MLAG is not configured on switch {}'.format(self.host))
             return
         # Get MLAG info.  Note that Mellanox supports only 1 IPL port channel
-        mlag_info = self.send_cmd('show mlag')
+        mlag_info = self.send_cmd(self.SHOW_MLAG)
         match = re.search(r'\d+\s+Po(\d+)\s+(\d+)', mlag_info)
         if match:
             port_channel = match.group(1)
@@ -360,7 +362,7 @@ class Mellanox(SwitchCommon):
             raise SwitchException(
                 'MLAG port channel information not found')
 
-        port_channel_info = self.send_cmd(self.SHOW_IFC_LAG_PORT_CHANNEL)
+        port_channel_info = self.send_cmd(self.SHOW_PORT_CHANNEL)
         match = re.search(
             r'\d+\s+Po' +
             port_channel +
@@ -379,31 +381,30 @@ class Mellanox(SwitchCommon):
         # Remove IPL peer address
         self.send_cmd(
             self.INTERFACE_VLAN.format(vlan) + self.SEP +
-            self.NO_IPL + self.SEP +
-            self.PEER_ADDR.format(''))
+            self.NO_IPL_PEER_ADDRESS)
 
         # Remove IPL address
         self.send_cmd(
             self.INTERFACE_VLAN.format(vlan) + self.SEP +
-            self.NO_IP_CIDR.format(''))
+            self.NO_IP_CIDR)
 
         # Remove the interface on vlan
         self.send_cmd(self.NO_INTERFACE_VLAN.format(vlan))
 
         # Turn off QOS dcb priority flow control on port channel
         self.send_cmd(
-            self.LAG_PORT_CHANNEL.format(port_channel) + self.SEP +
+            self.IFC_PORT_CH_CFG.format(port_channel) + self.SEP +
             self.QOS_OFF)
 
         # Unbind IPL 1 from port channel
         self.send_cmd(
-            self.LAG_PORT_CHANNEL.format(port_channel) + self.NO_IPL)
+            self.IFC_PORT_CH_CFG.format(port_channel) + self.SEP + self.NO_IPL)
 
         # Remove physical ports from channel group
         self.send_cmd(self.IFC_ETH_CFG.format(port1) + self.SEP +
-                      '"no channel group"')
+                      '"no channel-group"')
         self.send_cmd(self.IFC_ETH_CFG.format(port2) + self.SEP +
-                      '"no channel group"')
+                      '"no channel-group"')
 
         # Remove the port channel
         self.send_cmd(self.NO_IFC_PORT_CH_CFG.format(port_channel))
@@ -439,23 +440,22 @@ class Mellanox(SwitchCommon):
 
         # Create a LAG
         self.send_cmd(
-            self.LAG_PORT_CHANNEL.format(port_channel))
+            self.IFC_PORT_CH_CFG.format(port_channel))
 
         # Map a physical port to the LAG in active mode (LACP)
         # for port in self.inv.yield_mlag_ports(switch_index):
         for port in mlag_ipl_ports:
             self.send_cmd(
-                self.INTERFACE_CONFIG.format(port) + self.SEP +
+                self.IFC_ETH_CFG.format(port) + self.SEP +
                 self.LAG_ACTIVE.format(port_channel))
 
         # Set this LAG as an IPL
         self.send_cmd(
-            self.LAG_PORT_CHANNEL.format(port_channel) + self.SEP + self.IPL)
+            self.IFC_PORT_CH_CFG.format(port_channel) + self.SEP + self.IPL)
 
         # Enable QoS on this specific interface
         self.send_cmd(
-            self.LAG_PORT_CHANNEL.format(port_channel) +
-            + self.SEP + self.QOS_ON)
+            self.IFC_PORT_CH_CFG.format(port_channel) + self.SEP + self.QOS_ON)
 
         # Create VLAN interface
         self.send_cmd(
@@ -470,8 +470,8 @@ class Mellanox(SwitchCommon):
         # Set MLAG Peer IP address
         self.send_cmd(
             self.INTERFACE_VLAN.format(vlan) +
-            self.SEP + self.IPL + self.SEP +
-            self.PEER_ADDR.format(ipaddr_mlag_ipl_peer))
+            self.SEP +
+            self.IPL_PEER_ADDRESS.format(ipaddr_mlag_ipl_peer))
 
         # Set MLAG VIP
         if ipaddr_mlag_vip:

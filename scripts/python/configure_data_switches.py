@@ -394,7 +394,9 @@ def configure_data_switch():
     for mstr_sw in mlag_list:
         log.debug('Configuring MLAG.  mlag switch mstr: ' + mstr_sw)
         for sw in mlag_list[mstr_sw]:
-            if not sw_dict[sw].is_mlag_configured():
+            is_mlag = sw_dict[sw].is_mlag_configured()
+            log.debug('vPC/MLAG configured on switch: {}, {}'.format(sw, is_mlag))
+            if not is_mlag:
                 print('.', end="")
                 sys.stdout.flush()
                 log.debug('Configuring MLAG on switch {}'.format(sw))
@@ -543,7 +545,9 @@ def deconfigure_data_switch():
     # Deconfigure MLAG
     for mstr_sw in mlag_list:
         for sw in mlag_list[mstr_sw]:
-            if sw_dict[sw].is_mlag_configured():
+            is_mlag = sw_dict[sw].is_mlag_configured()
+            log.debug('vPC/MLAG configured on sw {}: {}'.format(sw, is_mlag))
+            if is_mlag:
                 print('\n\nAbout to deconfigure MLAG on switch {}'.format(sw))
                 print('This will stop all MLAG communication on all switch ports')
                 print('OK to deconfigure MLAG?')

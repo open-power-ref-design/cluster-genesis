@@ -437,7 +437,7 @@ class SwitchCommon(object):
                 # Extract port section of row
                 port = line[port_span[0] - 1:port_span[1]].strip(' ')
                 if fmt == 'std':
-                    port = port.rpartition(port_prefix)[-1]
+                    port = port.replace(port_prefix, '')
                 if port not in mac_dict.keys():
                     mac_dict[port] = [_mac]
                 else:
@@ -457,7 +457,8 @@ class SwitchCommon(object):
                 self.IFC_ETH_CFG.format(port) + self.SEP + self.NO_CHANNEL_GROUP)
         port_chan_summ = self.show_port_channel_interfaces()
         for port in ports:
-            if self.PORT_PREFIX + str(port) in port_chan_summ:
+            if re.findall(self.PORT_PREFIX + str(port) + r'[\s+|\(]',
+                          port_chan_summ):
                 self.log.error('Port {} not removed from port channel'.format(
                     port))
 
@@ -490,7 +491,8 @@ class SwitchCommon(object):
             self.send_cmd(cmd)
         port_chan_summ = self.show_port_channel_interfaces()
         for port in ports:
-            if self.PORT_PREFIX + str(port) not in port_chan_summ:
+            if not re.findall(self.PORT_PREFIX + str(port) + r'[\s+|\(]',
+                              port_chan_summ):
                 self.log.error('Port {} not added to port channel {}'.format(
                     port, lag_ifc))
                 raise SwitchException('Port {} not added to port channel {}'.
