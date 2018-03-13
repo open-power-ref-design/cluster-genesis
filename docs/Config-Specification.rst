@@ -198,6 +198,7 @@ deployer:
 |                                   |                                            | behaviour.                                                                                 |          |
 |                                   |                                            |                                                                                            |          |
 +-----------------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------+----------+
+| .. _deployer_networks_mgmt:       |                                            |                                                                                            |          |
 |                                   |                                            |                                                                                            |          |
 | ::                                | ::                                         | Management network interface configuration.                                                | **yes**  |
 |                                   |                                            |                                                                                            |          |
@@ -219,6 +220,7 @@ deployer:
 |                                   |                                            | |   *prefix*  - Management network bit-length.                                             |          |
 |                                   |                                            |                                                                                            |          |
 +-----------------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------+----------+
+| .. _deployer_networks_client:     |                                            |                                                                                            |          |
 |                                   |                                            |                                                                                            |          |
 | ::                                | ::                                         | Client node BMC (IPMI) and OS (PXE) network interface configuration. Ansible communicates  | **yes**  |
 |                                   |                                            | with clients using this network during "post deploy" operations.                           |          |

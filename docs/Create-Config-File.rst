@@ -1,3 +1,5 @@
+.. _creating_the_config_file:
+
 Creating the config.yml File
 ============================
 
