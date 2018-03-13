@@ -5,6 +5,10 @@ Cluster Inventory File Specification
 
 **Specification Version: v2.0**
 
+.. |br| raw:: html
+
+   <br />
+
 TODO: Short description of *inventory.yml* and how it should be used.
 
 Each section represents a top level dictionary key:
@@ -23,15 +27,15 @@ version:
 |             |                  |                                                                                                                                      |          |
 | ::          | ::               | Inventory file version.                                                                                                              | **yes**  |
 |             |                  |                                                                                                                                      |          |
-|   version:  |   version: v2.0  |  -----------------------------------------------------                                                                               |          |
-|             |                  |  | Release Branch | Supported Inventory File Version |                                                                               |          |
-|             |                  |  =====================================================                                                                               |          |
-|             |                  |  | release-2.x    | version: v2.0                    |                                                                               |          |
-|             |                  |  -----------------------------------------------------                                                                               |          |
-|             |                  |  | release-1.x    | version: 1.0                     |                                                                               |          |
-|             |                  |  -----------------------------------------------------                                                                               |          |
-|             |                  |  | release-0.9    | version: 1.0                     |                                                                               |          |
-|             |                  |  -----------------------------------------------------                                                                               |          |
+|   version:  |   version: v2.0  |                                                                                                                                      |          |
+|             |                  |    Release Branch   Supported Inventory File Version                                                                                 |          |
+|             |                  |                                                                                                                                      |          |
+|             |                  |    release-2.x           version: v2.0                                                                                               |          |
+|             |                  |                                                                                                                                      |          |
+|             |                  |    release-1.x           version: 1.0                                                                                                |          |
+|             |                  |                                                                                                                                      |          |
+|             |                  |    release-0.9           version: 1.0                                                                                                |          |
+|             |                  |                                                                                                                                      |          |
 |             |                  |                                                                                                                                      |          |
 +-------------+------------------+--------------------------------------------------------------------------------------------------------------------------------------+----------+
 
@@ -184,8 +188,8 @@ nodes:
 |                      |                               |                                                                                                                |          |
 | ::                   |                               | Operating system configuration.                                                                                | **yes**  |
 |                      |                               |                                                                                                                |          |
-|   nodes:             |                               | See :ref:`Config Specification - Node Templates OS Section <Config-Specification:_node_templates_os:>`.        |          |
-|       os:            |                               |                                                                                                                |          |
+|   nodes:             |                               | See :ref:`Config Specification - Node Templates <Config-Specification:node_templates:>` under |br|             |          |
+|       os:            |                               | the 'os:' section.                                                                                             |          |
 |       ...            |                               |                                                                                                                |          |
 |                      |                               |                                                                                                                |          |
 +----------------------+-------------------------------+----------------------------------------------------------------------------------------------------------------+----------+
@@ -193,12 +197,10 @@ nodes:
 | ::                   |                               | Interface definitions.                                                                                         | **yes**  |
 |                      |                               |                                                                                                                |          |
 |   nodes:             |                               | | Interfaces assigned to a node in                                                                             |          |
-|       interfaces:    |                               |   :ref:`Config Specification - Node Templates interfaces <Config-Specification:_node_templates_interfaces:>`   |          |
-|       ...            |                               |   or                                                                                                           |          |
-|                      |                               |   :ref:`Config Specification - Node Templates networks <Config-Specification:_node_templates_networks:>` are   |          |
-|                      |                               |   included in this list. Interfaces are copied from                                                            |          |
-|                      |                               |   :ref:`Config Specification - Interfaces section <Config-Specification:interfaces:>` and modified in the      |          |
-|                      |                               |   following ways:                                                                                              |          |
+|       interfaces:    |                               |   :ref:`Config Specification - Node Templates <Config-Specification:node_templates:>` under                    |          |
+|       ...            |                               |   'interfaces:' or 'networks:' are |br| included in this list. Interfaces are copied from                      |          |
+|                      |                               |   :ref:`Config Specification - Interfaces section <Config-Specification:interfaces:>` and modified |br|        |          |
+|                      |                               |   in the following ways:                                                                                       |          |
 |                      |                               | |                                                                                                              |          |
 |                      |                               | |   * *address_list* and *address_start* keys are replaced with *address* and each value is replaced with a    |          |
 |                      |                               | |   single unique IP address.                                                                                  |          |
@@ -206,12 +208,13 @@ nodes:
 |                      |                               | |   * *IPADDR_list* and *IPADDR_start* keys are replaced with *IPADDR* and each value is replaced with a       |          |
 |                      |                               | |   single unique IP address.                                                                                  |          |
 |                      |                               | |                                                                                                              |          |
-|                      |                               | |   * If 'rename: false' in                                                                                    |          |
-|                      |                               |     :ref:`Config Specification - Node Templates <Config-Specification:_physical_ints_os:>` then *iface*,       |          |
-|                      |                               |     *DEVICE*, and any interface value referencing them will be modified to match the OS given interface name.  |          |
-|                      |                               |     See                                                                                                        |          |
-|                      |                               |     :ref:`Config Specification - interfaces: (Ubuntu) <Config-Specification:_interfaces_ubuntu_rename_notes:>` |          |
-|                      |                               |     and :ref:`Config Specification - interfaces: (RHEL) <Config-Specification:_interfaces_rhel_rename_notes:>` |          |
-|                      |                               |     for details.                                                                                               |          |
+|                      |                               | |   * If 'rename: false' is set in                                                                             |          |
+|                      |                               |     :ref:`Config Specification - Node Templates <Config-Specification:node_templates:>` under the |br|         |          |
+|                      |                               |     physical_interfaces: section, then                                                                         |          |
+|                      |                               |     *iface*, *DEVICE*, and any interface value referencing them will be modified to |br|                       |          |
+|                      |                               |     match the given interface name. See                                                                        |          |
+|                      |                               |     :ref:`Config Specification - interfaces:  <Config-Specification:interfaces:>`                              |          |
+|                      |                               |     And look in the 'description' column for |br| 'Ubuntu formatted OS interface configuration'                |          |
+|                      |                               |     or 'Red Hat formatted OS interface configuration' for details.                                             |          |
 |                      |                               |                                                                                                                |          |
 +----------------------+-------------------------------+----------------------------------------------------------------------------------------------------------------+----------+

@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Cluster Genesis User's Guide documentation!
-======================================================
+Welcome to Cluster POWER-Up User's Guide documentation!
+=======================================================
 
 :Version: 2.0b
 :Date: 2018-03-07
