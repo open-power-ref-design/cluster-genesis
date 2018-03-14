@@ -92,7 +92,7 @@ dedicated to specific purposes.
 Supported Hardware
 ~~~~~~~~~~~~~~~~~~~
 
-:**Compute Nodes**
+**Compute Nodes**
 
 OpenPOWER Compute Nodes;
 
