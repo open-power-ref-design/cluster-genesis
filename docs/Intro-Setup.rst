@@ -8,10 +8,10 @@ bare metal OpenPOWER servers running Linux. It leverages widely used open
 source tools such as Cobbler, Ansible and Python. Because it relies
 solely on industry standard protocols such as IPMI and PXE boot, hybrid
 clusters of OpenPOWER and x86 nodes can readily be supported. Currently
-Cluster POWER-Up supports Ethernet networking.  Cluster POWER-Up can
+Cluster POWER-Up supports Ethernet networking. Cluster POWER-Up can
 configure simple flat networks for typical HPC
 environments or more advanced networks with VLANS and bridges for
-OpenStack environments. Complex Heterogenious clusters can be easily deployed
+OpenStack environments. Complex heterogenous clusters can be easily deployed
 using POWER-Up's interface and node templates. Cluster POWER-Up configures
 the switches in the cluster with support for multiple switch vendors.
 
@@ -22,15 +22,15 @@ Cluster POWER-Up is designed to be easy to use. If you are implementing
 one of the supported architectures with supported hardware, it eliminates
 the need for custom scripts or programming. It does this via a text
 configuration file (config.yml) which drives the cluster configuration.
-The configuration file is a yaml text file which the user edits. Several
-Example config files are included docs directory. The configuration
+The configuration file is a YAML text file which the user edits. Several
+example config files are included docs directory. The configuration
 process is driven from a "deployer" node which can be removed from the
 cluster when finished. The POWER-Up process is as follows;
 
 #. Rack and cable the hardware.
 #. Initialize hardware.
 
-   - initialize switches with static ip address, userid and password.
+   - initialize switches with static IP address, userid and password.
    - insure that all cluster compute nodes are set to obtain a DHCP
      address on their BMC ports and they are configured to support
      PXE boot on one of their network adapters.
@@ -51,18 +51,18 @@ The POWER-Up software supports clusters of servers
 interconnected with Ethernet. The
 servers must support IPMI and PXE boot. Multiple racks can
 be configured with traditional two tier access-aggregation
-networking.  POWER-Up configures both a management and
-data network.  In simple / cost sensitive setups, the management
+networking. POWER-Up configures both a management and
+data network. In simple / cost sensitive setups, the management
 and data networks can be configured on the same physical switch.
-Power-Up can configure vlans and bonded networks with as many ports
-as the hardware supports.  Redundant data switches (ie MLAG) are also
+Power-Up can configure VLANs and bonded networks with as many ports
+as the hardware supports. Redundant data switches (ie MLAG) are also
 supported. (Currently only implemented on Mellanox switches.)
 
 Networking
 ~~~~~~~~~~
 
 Cluster POWER-Up supports Cisco, Mellanox and Lenovo switches. Not all
-functionailty is enabled on all switch types.  Currently redundant
+functionality is enabled on all switch types. Currently redundant
 networking (MLAG) is only implemented on Mellanox switches. Port channel
 support is only implemented on Cisco (NX-OS) and Mellanox switches.
 POWER-Up can configure any number of node interfaces on cluster nodes.
@@ -70,11 +70,11 @@ To facilitate installation of higher level software, interfaces can be
 optionally renamed.
 
 Interface templates are used to define network configurations
-in the config.yml file.  These can be physical ports, bonded ports,
-Linux bridges or vLANS.  Interface templates can be entered using
-Ubuntu or Red Hat network configuration syntax.  Once defined, interface
-templates can be applied to any node template.  Node interfaces can
-optionally be configured with static ip addresses.  These can be assigned
+in the config.yml file. These can be physical ports, bonded ports,
+Linux bridges or VLANS. Interface templates can be entered using
+Ubuntu or Red Hat network configuration syntax. Once defined, interface
+templates can be applied to any node template. Node interfaces can
+optionally be configured with static IP addresses. These can be assigned
 sequentially or from a list.
 
 Compute Nodes
@@ -83,7 +83,7 @@ Compute Nodes
 Cluster POWER-Up supports clusters of heterogeneous compute nodes. Users
 can define any number of node types by creating templates in a config file.
 Node templates can include any network templates defined in the network
-templates section.  The combination of node templates and network templates
+templates section. The combination of node templates and network templates
 allows great flexibility in building heterogeneous clusters with nodes
 dedicated to specific purposes.
 
@@ -92,7 +92,7 @@ dedicated to specific purposes.
 Supported Hardware
 ~~~~~~~~~~~~~~~~~~~
 
-**Compute Nodes**
+:**Compute Nodes**
 
 OpenPOWER Compute Nodes;
 
