@@ -152,10 +152,6 @@ def configure_mgmt_switches():
                 except SwitchException as exc:
                     LOG.error(exc)
                 try:
-                    sw.allowed_vlans_port(port, allow_op.NONE)
-                except SwitchException as exc:
-                    LOG.error(exc)
-                try:
                     sw.allowed_vlans_port(port, allow_op.ADD, vlans)
                 except SwitchException as exc:
                     LOG.error(exc)
