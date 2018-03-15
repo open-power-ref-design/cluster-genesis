@@ -275,7 +275,7 @@ class Config(object):
         try:
             return self.cfg.deployer.gateway
         except AttributeError:
-            pass
+            return False
 
     def get_depl_netw_mgmt_cnt(self):
         """Get deployer networks mgmt count

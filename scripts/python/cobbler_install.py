@@ -130,7 +130,7 @@ def cobbler_install():
 
     # Configure dnsmasq to use deployer as gateway
     if cfg.get_depl_gateway():
-        util.replace_regex(DNSMASQ_TEMPLATE, '\$next_server', bridge_pxe_ipaddr)
+        util.append_line(DNSMASQ_TEMPLATE, 'dhcp-option=3,%s' % bridge_pxe_ipaddr)
 
     # Cobbler modules configuration
     util.replace_regex(MODULES_CONF, 'module = manage_bind',
