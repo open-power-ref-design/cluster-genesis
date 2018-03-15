@@ -83,13 +83,14 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
+
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
 if on_rtd:
     html_theme = 'sphinx_rtd_theme'
 else:
     html_theme = 'sphinx_rtd_theme'
 
-# html themes: 'alabaster' 'nature' ' default'
+# html themes: 'alabaster' 'nature' ' default' 'classic'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -102,10 +103,10 @@ else:
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-# overrides for wide tables in RTD theme
 html_context = {
     'css_files': [
         '_static/my_theme.css', ], }
+
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
