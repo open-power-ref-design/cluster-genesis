@@ -28,7 +28,6 @@ import subprocess
 import enable_deployer_networks
 import validate_cluster_hardware
 import configure_mgmt_switches
-import configure_data_switches
 import download_os_images
 import lxc_conf
 import lib.argparse_gen as argparse_gen
@@ -359,6 +358,8 @@ class Gen(object):
         print('Success: SSH host key scan complete')
 
     def _config_data_switches(self):
+        import configure_data_switches
+
         print(COL.scroll_ten, COL.up_ten)
         print('{}Configuring data switches{}\n'.
               format(COL.header1, COL.endc))
