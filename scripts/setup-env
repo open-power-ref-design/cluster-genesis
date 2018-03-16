@@ -15,8 +15,8 @@
 # limitations under the License.
 
 # gen auto completion
-. scripts/gen-ac
-sudo cp scripts/gen-ac /etc/bash_completion.d
+. scripts/pup-ac
+sudo cp scripts/pup-ac /etc/bash_completion.d
 
 . scripts/teardown-ac
 sudo cp scripts/teardown-ac /etc/bash_completion.d
@@ -59,9 +59,6 @@ if [ -z $P ]; then
         mkdir ~/bin
         export PATH=$PATH:$HOME/bin
     fi
-
-    #gen auto completion
-    sudo cp scripts/gen-ac /etc/bash_completion.d
 
     cp scripts/cleanpath ~/bin
 

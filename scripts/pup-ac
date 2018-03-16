@@ -14,14 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-_gen()
+_pup()
 {
-    local cur prev opts
+    local cur prev opts prev_2 prev_3 comm_opts
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     prev_2="${COMP_WORDS[COMP_CWORD-2]}"
     prev_3="${COMP_WORDS[COMP_CWORD-3]}"
+
+    cmd="pup"
 
     comm_opts=" --help --all --log-level-file --log-level-print"
 
@@ -67,7 +69,7 @@ _gen()
 
     opts="setup config validate deploy post-deploy --help"
 
-    if [[ ${cur} == * ]] && [[ ${prev} == gen ]]; then
+    if [[ ${cur} == * ]] && [[ ${prev} == "$cmd" ]]; then
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         return 0
     fi
@@ -83,11 +85,11 @@ _gen()
 
     opts="$comm_opts"
 
-    if [[ ${cur} == * ]] && [[ ${prev_3} == gen ]]; then
+    if [[ ${cur} == * ]] && [[ ${prev_3} == "$cmd" ]]; then
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         return 0
     fi
 
 }
 
-complete -F _gen gen
+complete -F _pup pup
