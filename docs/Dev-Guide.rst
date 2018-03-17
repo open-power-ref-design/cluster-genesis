@@ -125,7 +125,7 @@ Or called directly (again, be mindful of your python environment!)
 File Format Validation
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Ensure that each text file is in *unix* mode where each line is terminated by a
+Ensure that each text file is in *unix* mode where lines are terminated by a
 linefeed::
 
     cluster-genesis$ tox -e file-format
