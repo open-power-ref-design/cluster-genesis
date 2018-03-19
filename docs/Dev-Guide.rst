@@ -49,7 +49,7 @@ Commit Message Rules
 Your Commit message can be validated within the tox environment
 (see below for setup of the tox environment)::
 
-    cluster-genesis$ tox -e commit_message_validate
+    cluster-genesis$ tox -e commit-message-validate
 
 Unit Tests and Linters
 ----------------------
@@ -78,10 +78,10 @@ List test environments::
     py27
     bashate
     flake8
-    ansible_lint
-    commit_message_validate
-    verify_copyright
-    file_format
+    ansible-lint
+    commit-message-validate
+    verify-copyright
+    file-format
 
 Run only 'flake8' test environment::
 
@@ -108,13 +108,13 @@ linters are used:
 
 - Bash: bashate
 - Python: pycodestyle/flake8/pylint
-- Ansible: ansible_lint
+- Ansible: ansible-lint
 
 Linters can be run through tox::
 
     cluster-genesis$ tox -e bashate
     cluster-genesis$ tox -e flake8
-    cluster-genesis$ tox -e ansible_lint
+    cluster-genesis$ tox -e ansible-lint
 
 Or called directly (again, be mindful of your python environment!)
 
@@ -123,7 +123,7 @@ issuing the *tox* command. They need to be called out explicitly::
 
     cluster-genesis$ tox -e pycodestyle
     cluster-genesis$ tox -e pylint
-    cluster-genesis$ tox -e pylint_errors
+    cluster-genesis$ tox -e pylint-errors
 
 File Format Validation
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -131,7 +131,7 @@ File Format Validation
 Ensure that each text file is in *unix* mode where lines are terminated by a
 linefeed::
 
-    cluster-genesis$ tox -e file_format
+    cluster-genesis$ tox -e file-format
 
 Copyright Date Validation
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -139,28 +139,4 @@ Copyright Date Validation
 If any changed files include a copyright header the year must be current. This
 rule is enforced within a tox environment::
 
-    cluster-genesis$ tox -e verify_copyright
-
-Mock Inventory Generation
--------------------------
-
-Upon completion, Cluster-Genesis provides an inventory of the cluster (saved
-locally on the deployer at /var/oprc/inventory.yml). This inventory is used to
-generate an Ansible dynamic inventory. It can also be consumed by other
-post-deployment services.
-
-A 'mock' inventory can be generated from any config.yml file. A tox environment
-is provided to automatically create a python virtual environment with all
-required dependencies. By default the 'config.yml' file in the cluster-genesis
-root directory will be used as the input::
-
-    cluster-genesis$ tox -e mock_inventory
-
-    usage: mock_inventory.py [-h] [config_file] [inventory_file]
-
-    positional arguments:
-      config_file     Input config.yml to process
-      inventory_file  Output inventory.yml path
-
-    optional arguments:
-      -h, --help      show this help message and exit
+    cluster-genesis$ tox -e verify-copyright
