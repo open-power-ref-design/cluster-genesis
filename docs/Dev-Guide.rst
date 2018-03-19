@@ -78,10 +78,10 @@ List test environments::
     py27
     bashate
     flake8
-    ansible-lint
+    ansible_lint
     commit_message_validate
     verify_copyright
-    file-format
+    file_format
 
 Run only 'flake8' test environment::
 
@@ -107,20 +107,23 @@ Linters are required to run cleanly before a commit is submitted. The following
 linters are used:
 
 - Bash: bashate
-- Python: pep8/flake8/pylint
-- Ansible: ansible-lint
+- Python: pycodestyle/flake8/pylint
+- Ansible: ansible_lint
 
 Linters can be run through tox::
 
     cluster-genesis$ tox -e bashate
-    cluster-genesis$ tox -e pep8
     cluster-genesis$ tox -e flake8
-    cluster-genesis$ tox -e pylint
-    cluster-genesis$ tox -e pylint-errors
-    cluster-genesis$ tox -e ansible-lint
-    cluster-genesis$ tox -e file-format
+    cluster-genesis$ tox -e ansible_lint
 
 Or called directly (again, be mindful of your python environment!)
+
+*Pylint* and *pycodestyle* validation is not automatically launched when
+issuing the *tox* command. They need to be called out explicitly::
+
+    cluster-genesis$ tox -e pycodestyle
+    cluster-genesis$ tox -e pylint
+    cluster-genesis$ tox -e pylint_errors
 
 File Format Validation
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -128,7 +131,7 @@ File Format Validation
 Ensure that each text file is in *unix* mode where lines are terminated by a
 linefeed::
 
-    cluster-genesis$ tox -e file-format
+    cluster-genesis$ tox -e file_format
 
 Copyright Date Validation
 ~~~~~~~~~~~~~~~~~~~~~~~~~
