@@ -1,3 +1,4 @@
+.. _appendix_g:
 
 Appendix - G Configuring Management Access on the Lenovo G8052 and Mellanox SX1410
 ==================================================================================

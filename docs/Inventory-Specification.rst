@@ -5,6 +5,10 @@ Cluster Inventory File Specification
 
 **Specification Version: v2.0**
 
+.. |br| raw:: html
+
+   <br />
+
 TODO: Short description of *inventory.yml* and how it should be used.
 
 Each section represents a top level dictionary key:
@@ -184,7 +188,7 @@ nodes:
 |                      |                               |                                                                                                                |          |
 | ::                   |                               | Operating system configuration.                                                                                | **yes**  |
 |                      |                               |                                                                                                                |          |
-|   nodes:             |                               | See :ref:`Config Specification - Node Templates <Config-Specification:node_templates:>` under                  |          |
+|   nodes:             |                               | See :ref:`Config Specification - Node Templates <Config-Specification:node_templates:>` under |br|             |          |
 |       os:            |                               | the 'os:' section.                                                                                             |          |
 |       ...            |                               |                                                                                                                |          |
 |                      |                               |                                                                                                                |          |
@@ -195,7 +199,7 @@ nodes:
 |   nodes:             |                               | | Interfaces assigned to a node in                                                                             |          |
 |       interfaces:    |                               |   :ref:`Config Specification - Node Templates <Config-Specification:node_templates:>` under                    |          |
 |       ...            |                               |   'interfaces:' or 'networks:' are |br| included in this list. Interfaces are copied from                      |          |
-|                      |                               |   :ref:`Config Specification - Interfaces section <Config-Specification:interfaces:>` and modified             |          |
+|                      |                               |   :ref:`Config Specification - Interfaces section <Config-Specification:interfaces:>` and modified |br|        |          |
 |                      |                               |   in the following ways:                                                                                       |          |
 |                      |                               | |                                                                                                              |          |
 |                      |                               | |   * *address_list* and *address_start* keys are replaced with *address* and each value is replaced with a    |          |
@@ -205,7 +209,7 @@ nodes:
 |                      |                               | |   single unique IP address.                                                                                  |          |
 |                      |                               | |                                                                                                              |          |
 |                      |                               | |   * If 'rename: false' is set in                                                                             |          |
-|                      |                               |     :ref:`Config Specification - Node Templates <Config-Specification:node_templates:>` under the              |          |
+|                      |                               |     :ref:`Config Specification - Node Templates <Config-Specification:node_templates:>` under the |br|         |          |
 |                      |                               |     physical_interfaces: section, then                                                                         |          |
 |                      |                               |     *iface*, *DEVICE*, and any interface value referencing them will be modified to |br|                       |          |
 |                      |                               |     match the given interface name. See                                                                        |          |

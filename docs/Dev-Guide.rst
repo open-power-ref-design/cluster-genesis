@@ -81,6 +81,7 @@ List test environments::
     ansible-lint
     commit_message_validate
     verify_copyright
+    file-format
 
 Run only 'flake8' test environment::
 
@@ -117,8 +118,17 @@ Linters can be run through tox::
     cluster-genesis$ tox -e pylint
     cluster-genesis$ tox -e pylint-errors
     cluster-genesis$ tox -e ansible-lint
+    cluster-genesis$ tox -e file-format
 
 Or called directly (again, be mindful of your python environment!)
+
+File Format Validation
+~~~~~~~~~~~~~~~~~~~~~~
+
+Ensure that each text file is in *unix* mode where lines are terminated by a
+linefeed::
+
+    cluster-genesis$ tox -e file-format
 
 Copyright Date Validation
 ~~~~~~~~~~~~~~~~~~~~~~~~~

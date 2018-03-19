@@ -108,12 +108,15 @@ class LxcConf(object):
 
         self.log.debug('Successfully created: %s' % self.LXC_CONF)
 
-        if not os.path.exists(os.path.join(HOME, '.config')):
-            os.mkdir(os.path.join(HOME, '.config'))
         if not os.path.exists(os.path.join(HOME, '.config', 'lxc')):
-            os.mkdir(os.path.join(HOME, '.config', 'lxc'))
+            self.log.debug('Creating path(s) {}'.format('.config/lxc'))
+            os.makedirs(os.path.join(HOME, '.config', 'lxc'))
         os.system('cp ' + os.path.join(GEN_PLAY_PATH, 'lxc-conf.yml') + ' ' +
                   os.path.join(HOME, '.config', 'lxc', 'default.conf'))
+
+        if not os.path.exists(os.path.join(HOME, '.local', 'share', 'lxc')):
+            self.log.debug('Creating path(s) {}'.format('.local/share/lxc'))
+            os.makedirs(os.path.join(HOME, '.local', 'share', 'lxc'))
 
     def get_lxc_uid_gid_range(self):
         username = pwd.getpwuid(os.getuid())[0]

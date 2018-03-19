@@ -298,7 +298,7 @@ the "container/set\_data\_switch\_config.yml" playbook to fail:
 
 * 1 ---*
 
-* 2 # Copyright 2017, IBM US, Inc.*
+* 2 # Copyright 2018, IBM US, Inc.*
 
 * 3 *
 
@@ -366,7 +366,7 @@ install playbook)**
 
 **---**
 
-**# Copyright 2017 IBM Corp.**
+**# Copyright 2018 IBM Corp.**
 
 **#**
 

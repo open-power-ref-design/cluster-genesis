@@ -1,0 +1,168 @@
+---
+# Copyright 2018 IBM Corp.
+#
+# All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+version: v2.0
+
+globals:
+    introspection: False
+    switch_mode_mgmt: active
+
+deployer:
+    gateway: true
+    networks:
+        mgmt:
+            - device: enp1s0f0
+              interface_ipaddr: 10.0.48.3
+              netmask: 255.255.255.0
+            - device: enp1s0f0
+              container_ipaddr: 192.168.16.2
+              bridge_ipaddr: 192.168.16.3
+              netmask: 255.255.255.0
+              vlan: 16
+        client:
+            - device: enp1s0f0
+              type: ipmi
+              container_ipaddr: 192.168.30.2
+              bridge_ipaddr: 192.168.30.3
+              netmask: 255.255.255.0
+              vlan: 30
+            - device: enp1s0f0
+              type: pxe
+              container_ipaddr: 192.168.40.2
+              bridge_ipaddr: 192.168.40.3
+              netmask: 255.255.255.0
+              vlan: 40
+
+switches:
+    mgmt:
+        - label: Mgmt_Switch
+          userid: admin
+          password: abc123
+          interfaces:
+              - type: inband
+                ipaddr: 10.0.48.3
+              - type: inband
+                ipaddr: 192.168.16.20
+                netmask: 255.255.255.0
+                vlan: 16
+          links:
+              - target: deployer
+                ports: 46
+              - target: Data_Switch
+                ports: 47
+    data:
+        - label: Data_Switch
+          userid: admin
+          password: abc123
+          interfaces:
+              - type: outband
+                ipaddr: 192.168.16.25
+                vlan: 16
+                port: mgmt0
+          links:
+              - target: Mgmt_Switch
+                ports: mgmt0
+
+interfaces:
+    - label: pxe-ifc
+      description: pxe interface
+      iface: eth0
+      method: dhcp
+
+    - label: external1
+      description: Organization site or external network
+      iface: eth1
+      method: static
+      address_list:
+          - 10.3.89.14
+          - 10.3.89.14
+      netmask: 255.255.255.0
+      broadcast: 10.3.89.255
+      gateway: 10.3.89.1
+      method: static
+      mtu: 9000
+    - label: external2
+      description: Additional data network
+      iface: eth2
+      method: manual
+
+node_templates:
+    - label: node-type1
+      ipmi:
+          userid: ADMIN
+          password: admin
+      os:
+          profile: ubuntu-16.04-server-ppc64el
+          users:
+              - name: user1
+                password: passw0rd
+                groups: sudo
+          install_device: /dev/sdj
+      physical_interfaces:
+          ipmi:
+              - switch: Mgmt_Switch
+                ports:
+                    - 1
+          pxe:
+              - switch: Mgmt_Switch
+                interface: pxe-ifc
+                rename: true
+                ports:
+                    - 2
+          data:
+              - switch: Data_Switch
+                interface: external1
+                rename: true
+                ports:
+                    - 5
+    - label: node-type2
+      ipmi:
+          userid: ADMIN
+          password: admin
+      os:
+          profile: ubuntu-16.04-server-ppc64el
+          users:
+              - name: user1
+                password: passw0rd
+                groups: sudo
+          install_device: /dev/sdj
+      physical_interfaces:
+          ipmi:
+              - switch: Mgmt_Switch
+                ports:
+                    - 3
+                    - 5
+          pxe:
+              - switch: Mgmt_Switch
+                interface: pxe-ifc
+                rename: true
+                ports:
+                    - 4
+                    - 6
+          data:
+              - switch: Data_Switch
+                interface: external1
+                rename: true
+                ports:
+                    - 6
+                    - 8
+              - switch: Data_Switch
+                interface: external2
+                rename: true
+                ports:
+                    - 7
+                    - 9
