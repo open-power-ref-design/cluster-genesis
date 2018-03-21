@@ -23,4 +23,4 @@ For additional instructions and developer resources:
 Authors
 =======
 
-Cluster Genesis is sponsored by IBM POWER Systems Development.
+POWER-Up is sponsored by IBM POWER Systems Development.
