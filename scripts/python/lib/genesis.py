@@ -25,18 +25,17 @@ import re
 import yaml
 
 
-GENESIS_DIR = 'cluster-genesis'
-FILE_PATH = os.path.dirname(os.path.abspath(__file__))
+PROJECT_NAME = "power-up"
 HOME = os.path.expanduser('~')
-GEN_PATH = FILE_PATH[:1 + len(GENESIS_DIR) + FILE_PATH.find(GENESIS_DIR)]
+GEN_PATH = os.path.abspath(os.path.join(__file__, "../../../../")) + "/"
 GEN_SCRIPTS_PATH = os.path.join(GEN_PATH, 'scripts', '')
 GEN_SCRIPTS_PYTHON_PATH = os.path.join(GEN_SCRIPTS_PATH, 'python', '')
 GEN_PLAY_PATH = os.path.join(GEN_PATH, 'playbooks', '')
 GEN_PASSIVE_PATH = os.path.join(GEN_PATH, 'passive', '')
 GEN_LOGS_PATH = os.path.join(GEN_PATH, 'logs', '')
 OPSYS = platform.dist()[0]
-DEFAULT_CONTAINER_NAME = 'cluster-genesis'
-CONTAINER_PACKAGE_PATH = '/opt/' + GENESIS_DIR
+DEFAULT_CONTAINER_NAME = PROJECT_NAME
+CONTAINER_PACKAGE_PATH = '/opt/' + PROJECT_NAME
 CONTAINER_ID_FILE = 'container'
 VENV_DIR = 'gen-venv'
 DEPLOYER_VENV_DIR = 'deployenv'
