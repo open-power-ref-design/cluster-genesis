@@ -27,7 +27,8 @@ import yaml
 
 PROJECT_NAME = "power-up"
 HOME = os.path.expanduser('~')
-GEN_PATH = os.path.abspath(os.path.join(__file__, "../../../../")) + "/"
+GEN_PATH = (os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "../../../")) + "/")
 GEN_SCRIPTS_PATH = os.path.join(GEN_PATH, 'scripts', '')
 GEN_SCRIPTS_PYTHON_PATH = os.path.join(GEN_SCRIPTS_PATH, 'python', '')
 GEN_PLAY_PATH = os.path.join(GEN_PATH, 'playbooks', '')
