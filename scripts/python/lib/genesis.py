@@ -119,6 +119,10 @@ def is_container():
         CONTAINER_PACKAGE_PATH, CONTAINER_ID_FILE))
 
 
+def get_project_name():
+    return PROJECT_NAME
+
+
 def get_container_package_path():
     return CONTAINER_PACKAGE_PATH
 

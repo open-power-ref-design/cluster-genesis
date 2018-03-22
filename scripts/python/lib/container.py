@@ -55,7 +55,7 @@ class Container(object):
     RSA_BIT_LENGTH = 2048
     PRIVATE_SSH_KEY_FILE = os.path.expanduser('~/.ssh/gen')
     PUBLIC_SSH_KEY_FILE = os.path.expanduser('~/.ssh/gen.pub')
-    DEFAULT_CONTAINER_NAME = 'cluster-genesis'
+    DEFAULT_CONTAINER_NAME = gen.get_project_name()
 
     def __init__(self, name):
         self.log = logger.getlogger()
