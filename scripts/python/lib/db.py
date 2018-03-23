@@ -33,12 +33,7 @@ from lib.exception import UserException
 
 
 class Database(object):
-    """Database
-
-    Args:
-        log (object): Log
-        db_file (string): Database file
-    """
+    """Database """
 
     FILE_MODE = 0o666
 
@@ -47,12 +42,6 @@ class Database(object):
         self.cfg_file = os.path.realpath(CFG_FILE)
         self.cfg = None
         self.inv = None
-
-        # Check if config file exists
-        if not os.path.isfile(self.cfg_file):
-            msg = 'Could not find config file: ' + self.cfg_file
-            self.log.error(msg)
-            raise UserException(msg)
 
         # If inventory file is broken link remove it
         if os.path.islink(INV_FILE):
@@ -65,6 +54,18 @@ class Database(object):
         # Create inventory file if it does not exist
         if not os.path.isfile(INV_FILE):
             os.mknod(INV_FILE, self.FILE_MODE)
+
+    def _is_config_file(self, config_file):
+        """ Check if config file exists
+
+        Exception:
+            If config file does not exist
+        """
+
+        if not os.path.isfile(config_file):
+            msg = 'Could not find config file: ' + config_file
+            self.log.error(msg)
+            raise UserException(msg)
 
     def _load_yaml_file(self, yaml_file):
         """Load from YAML file
@@ -110,6 +111,7 @@ class Database(object):
             object: Config
         """
 
+        self._is_config_file(self.cfg_file)
         self.cfg = self._load_yaml_file(self.cfg_file)
         return self.cfg
 
@@ -136,7 +138,10 @@ class Database(object):
             cfg_file = self.cfg_file
         else:
             cfg_file = os.path.realpath(config_file)
+
+        self._is_config_file(cfg_file)
         self.cfg = self._load_yaml_file(cfg_file)
+
         schema = ValidateConfigSchema(self.cfg)
         schema.validate_config_schema()
         logic = ValidateConfigLogic(self.cfg)
