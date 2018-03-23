@@ -14,56 +14,49 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+PROJECT_ROOT=$(git rev-parse --show-toplevel)
+
 # gen auto completion
-. scripts/pup-ac
-sudo cp scripts/pup-ac /etc/bash_completion.d
+. $PROJECT_ROOT/scripts/pup-ac
+sudo cp $PROJECT_ROOT/scripts/pup-ac /etc/bash_completion.d
 
-. scripts/teardown-ac
-sudo cp scripts/teardown-ac /etc/bash_completion.d
+. $PROJECT_ROOT/scripts/teardown-ac
+sudo cp $PROJECT_ROOT/scripts/teardown-ac /etc/bash_completion.d
 
-P=`pwd`
-P=${P#*"cluster-genesis"}
-if [ -z $P ]; then
-    if [[ ! $PATH == *"cluster-genesis/scripts:"* ]]; then
-        export PATH=`pwd`/scripts:$PATH
-    fi
+if [[ ! $PATH == *"$PROJECT_ROOT/scripts:"* ]]; then
+    export PATH=$PROJECT_ROOT/scripts:$PATH
+fi
 
-    if [[ ! $PATH == *"cluster-genesis/scripts/python:"* ]]; then
-        export PATH=`pwd`/scripts/python:$PATH
-    fi
+if [[ ! $PATH == *"$PROJECT_ROOT/scripts/python:"* ]]; then
+    export PATH=$PROJECT_ROOT/scripts/python:$PATH
+fi
 
-    if [[ ! $PATH == *"cluster-genesis/deployenv/bin:"* ]]; then
-        export PATH=`pwd`/deployenv/bin:$PATH
-    fi
+if [[ ! $PATH == *"$PROJECT_ROOT/deployenv/bin:"* ]]; then
+    export PATH=$PROJECT_ROOT/deployenv/bin:$PATH
+fi
 
-    if [ -z "$(grep -m1 `pwd`"/scripts:" ~/.bashrc)" ] || \
-    [ -z "$(grep -m1 `pwd`"/scripts/python:" ~/.bashrc)" ] || \
-    [ -z "$(grep -m1 `pwd`"/deployenv/bin:" ~/.bashrc)" ]; then
-        echo $'\n'"OK for Cluster Genesis to add setup statements to your"
-        echo $".bashrc file. (statements can be removed by running tear-down)"
-        echo;
-        read -p "Enter (y/n) ? " resp
-        if [[ $resp == "y" ]]; then
-            if [ -z "$(grep -m1 `pwd`"/scripts:" ~/.bashrc)" ]; then
-                echo "PATH="`pwd`"/scripts:\$PATH" >> ~/.bashrc
-            fi
-            if [ -z "$(grep -m1 `pwd`"/scripts/python:" ~/.bashrc)" ]; then
-                echo "PATH="`pwd`"/scripts/python:\$PATH" >> ~/.bashrc
-            fi
-            if [ -z "$(grep -m1 `pwd`"/deployenv/bin:" ~/.bashrc)" ]; then
-                echo "PATH="`pwd`"/deployenv/bin:\$PATH" >> ~/.bashrc
-            fi
+if [ -z "$(grep -m1 $PROJECT_ROOT"/scripts:" ~/.bashrc)" ] || \
+[ -z "$(grep -m1 $PROJECT_ROOT"/scripts/python:" ~/.bashrc)" ] || \
+[ -z "$(grep -m1 $PROJECT_ROOT"/deployenv/bin:" ~/.bashrc)" ]; then
+    echo $'\n'"OK for POWER-Up to add setup statements to your"
+    echo $".bashrc file. (statements can be removed by running tear-down)"
+    echo;
+    read -p "Enter (y/n) ? " resp
+    if [[ $resp == "y" ]]; then
+        if [ -z "$(grep -m1 $PROJECT_ROOT"/scripts:" ~/.bashrc)" ]; then
+            echo "PATH="$PROJECT_ROOT"/scripts:\$PATH" >> ~/.bashrc
+        fi
+        if [ -z "$(grep -m1 $PROJECT_ROOT"/scripts/python:" ~/.bashrc)" ]; then
+            echo "PATH="$PROJECT_ROOT"/scripts/python:\$PATH" >> ~/.bashrc
+        fi
+        if [ -z "$(grep -m1 $PROJECT_ROOT"/deployenv/bin:" ~/.bashrc)" ]; then
+            echo "PATH="$PROJECT_ROOT"/deployenv/bin:\$PATH" >> ~/.bashrc
         fi
     fi
-    if [ ! -d ~/bin ]; then
-        mkdir ~/bin
-        export PATH=$PATH:$HOME/bin
-    fi
-
-    cp scripts/cleanpath ~/bin
-
-else
-    echo "Please source setup-env from within the cluster-genesis directory"
-    echo "ie:"
-    echo "source scripts/setup-env"
 fi
+if [ ! -d ~/bin ]; then
+    mkdir ~/bin
+    export PATH=$PATH:$HOME/bin
+fi
+
+cp $PROJECT_ROOT/scripts/cleanpath ~/bin
