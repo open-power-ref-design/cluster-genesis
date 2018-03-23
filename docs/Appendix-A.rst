@@ -1,5 +1,7 @@
 .. highlight:: none
 
+.. _appendix_a:
+
 Appendix - A Using the 'pup' Program
 ====================================
 

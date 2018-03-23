@@ -48,20 +48,8 @@ Installing and Running the POWER-Up code. Step by Step Instructions
    section `4 <#anchor-4>`__ `Creating the config.yml
    File <#anchor-4>`__ for how to create the config.yml file)
 #. Copy any needed os image files (iso format) to the
-   '/power-up/os\_images' directory. Symbolic links to image
+   '~/power-up/os-images' directory. Symbolic links to image
    files are also allowed.
-#. For RHEL iso images, create a kickstart file having the same name as
-   your iso image but with an extension of .ks. This can be done by
-   copying the supplied kickstart file located in the
-   /power-up/os\_images/config directory. For example, if your
-   RHEL iso is *RHEL-7.2-20151030.0-Server-ppc64le-dvd1.iso*, from within
-   the */power-up/os\_images/config directory*::
-
-      $ cp RHEL-7.x-Server.ks RHEL-7.2-20151030.0-Server-ppc64le-dvd1.ks
-
-   (For this example, the cobbler-profile: key in your config.yml file should
-   have a value of RHEL-7.2-20151030.0-Server-ppc64le-dvd1 (NOTE: no .ks
-   extension)*
 
    **NOTE:**
    Before beginning the next step, be sure all BMCs are configured to obtain a
@@ -94,7 +82,7 @@ Installing and Running the POWER-Up code. Step by Step Instructions
       $ pup validate --config-file
 
    *Note:* Most of POWER-Up's capabilities are accessed using the 'pup' program.
-    For a complete overview of the pup program, see Appendix A.
+    For a complete overview of the pup program, see :ref:`Appendix-A <appendix_a>`.
 
 #. To deploy operating systems to your cluster nodes::
 
