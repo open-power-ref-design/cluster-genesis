@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -23,9 +23,8 @@ from subprocess import Popen, PIPE
 
 from lib.config import Config
 from lib.exception import UserException
+from lib.genesis import DEFAULT_CONTAINER_NAME
 import lib.logger as logger
-
-DEFAULT_CONTAINER_NAME = 'cluster-genesis'
 
 
 def _sub_proc_exec(cmd):
