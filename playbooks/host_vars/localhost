@@ -15,8 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-container_name: cluster-genesis
-project_path_local: "{{ ansible_env['PWD'] | regex_replace('^(.+/cluster-genesis).+?$', '\\1')}}"
+container_name: power-up
+project_path_local: "{{ ansible_env['PWD'] | regex_replace('^(.+/power-up).+?$', '\\1')}}"
 scripts_path_local: "{{ project_path_local }}/scripts"
 venv_path_local: "{{ project_path_local }}/deployenv"
 python_executable_local: "{{ venv_path_local }}/bin/python"

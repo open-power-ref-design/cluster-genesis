@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project_path: /opt/cluster-genesis
+project_path: /opt/power-up
 scripts_path: "{{ project_path }}/scripts"
 venv_path: "{{ project_path }}/gen-venv"
 python_executable: "{{ venv_path }}/bin/python"
