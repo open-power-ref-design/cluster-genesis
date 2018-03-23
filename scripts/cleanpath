@@ -1,4 +1,6 @@
-#Copyright 2017 IBM Corp.
+#!/bin/bash
+
+#Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -14,9 +16,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# First handle embedded case, then the case where it leads
-PATH=${PATH/":"*"cluster-genesis/scripts"/}
-PATH=${PATH/*"cluster-genesis/scripts:"/}
-PATH=${PATH/":"*"cluster-genesis/deployenv/bin"/}
-PATH=${PATH/*"cluster-genesis/deployenv/bin:"/}
+# PROJECT_ROOT value modified by scripts/setup-env
+PROJECT_ROOT=$HOME/power-up
+
+for dir in scripts deployenv/bin; do
+    dir_path="$PROJECT_ROOT/$dir"
+    PATH=${PATH/"$dir_path:"}
+    PATH=${PATH/":$dir_path"}
+done
+
 export PATH

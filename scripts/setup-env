@@ -60,3 +60,4 @@ if [ ! -d ~/bin ]; then
 fi
 
 cp $PROJECT_ROOT/scripts/cleanpath ~/bin
+sed -i 's,PROJECT_ROOT=.*,PROJECT_ROOT='"$PROJECT_ROOT"',' ~/bin/cleanpath
