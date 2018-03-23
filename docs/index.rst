@@ -28,9 +28,9 @@ Welcome to Cluster POWER-Up User's Guide documentation!
    Release-Table
    Intro-Setup
    Create-Config-File
+   Run-Cluster-Genesis
    Config-Specification
    Inventory-Specification
-   Run-Cluster-Genesis
    Dev-Guide
    Build-Introspection
    Appendix-A
