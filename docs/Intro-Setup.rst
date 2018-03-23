@@ -11,7 +11,7 @@ clusters of OpenPOWER and x86 nodes can readily be supported. Currently
 Cluster POWER-Up supports Ethernet networking. Cluster POWER-Up can
 configure simple flat networks for typical HPC
 environments or more advanced networks with VLANS and bridges for
-OpenStack environments. Complex heterogenous clusters can be easily deployed
+OpenStack environments. Complex heterogeneous clusters can be easily deployed
 using POWER-Up's interface and node templates. Cluster POWER-Up configures
 the switches in the cluster with support for multiple switch vendors.
 
@@ -176,11 +176,125 @@ If automated switch configuration is not desired 'passive' switch mode can be
 used with any switch model (See
 :ref:`Preparing for Passive Mode <passive-mode-setup>`)
 
-**Initial configuration of data switch(es)**
+**Initial configuration of cluster switch(es)**
+
+In order to configure your cluster switches, Cluster POWER-Up needs management
+access to all your cluster switches. This management network can be vlan isolated
+but for most applications a non-isolated management network is suitable and
+simpler to setup. To prepare for a non-isolated management network, you need to
+create management interfaces on all your cluster switches. The IP addresses for
+these management interfaces all need to be in the same subnet. The deployer will
+also need an IP address in this subnet. You will also need to know a userid  and
+password for each switch and each switch will need to be enabled for SSH access.
+One of the management switches in your cluster must have a data port accessible
+to the deployer. This can be a routed connection supporting tagged vlans, but it
+is recommended that there be a direct connection between the deployer and one
+management switch.
+
+For out of box installation, it is usually easiest to configure switches
+using a serial connection. Alternately, if the switch has a connection to a
+network without a DHCP server running, you may be able to access the switch at a
+default IP address. If the switch has a connection to a network with a DHCP server
+running, you may be able to reach it at the assigned IP address. See the switches
+installation guide. For additional info on Lenovo G8052 specific commands,
+see :ref:`Appendix-G <appendix_g>` and the *Lenovo RackSwitch G8052 Installation
+guide*).
+
+    .. _fig-network-setup:
+
+    .. figure:: _images/simple-cluster.png
+        :height: 350
+        :align: center
+
+        POWER-Up setup of the switch management network
+
+In this simple cluster example, the management switch has an in-band management
+interface. The
+initial setup requires a management interface on all switches configured to
+be accessible by the deployer node. The configured ip address must be provided
+in the 'interfaces:' list within each :ref:`'switches: mgmt:' <switches_mgmt>`
+and :ref:`'switches: data:' <switches_data>` item. Cluster POWER-Up uses this
+address along with the provided userid and password credentials to access the
+management switch. Any additional switch 'interfaces' will be configured
+automatically along with
+:ref:`deployer 'mgmt' networks <deployer_networks_mgmt>`.
+
+The following snippets are example config.yml entries for the diagram above:
+
+    - Switch config file definition::
+
+        switches:
+            mgmt:
+                - label: mgmt_switch
+                  userid: admin
+                  password: abc123
+                  class: lenovo
+                  interfaces:
+                      - type: inband
+                        ipaddr: 192.168.32.20
+                  links:
+                      - target: deployer
+                        ports: 46
+
+    - Deployer 'mgmt' networks::
+
+        deployer:
+            networks:
+                mgmt:
+                    - device: enp1s0f0
+                      interface_ipaddr: 192.168.32.95
+                      netmask: 255.255.255.0
+
+Note that the deployer mgmt interface_ipaddress is in the same subnet
+as the management switches ipaddr. (192.168.32.0 netmask: 255.255.255.0)
+
+As an example, management switch setup commands for the Lenovo G8052 are given
+below. For other supported switches consult the switch documentation.
+
+- Enable configuration of the management switch::
+
+    enable
+    configure terminal
+
+- Enable IP interface mode for the management interface::
+
+    RS G8052(config)# interface ip 1
+
+- assign a static ip address, netmask and gateway address to the management
+  interface. This must match one of the switch 'interfaces' items specified in
+  the config.yml :ref:`'switches: mgmt:' <switches_mgmt>` list::
+
+    RS G8052(config-ip-if)# ip address 192.168.32.20  # example IP address
+    RS G8052(config-ip-if)# ip netmask 255.255.255.0
+    RS G8052(config-ip-if)# vlan 1  # default vlan 1 if not specified
+    RS G8052(config-ip-if)# enable
+    RS G8052(config-ip-if)# exit
+
+- admin password. This must match the password specified in the config.yml
+  corresponding :ref:`'switches: mgmt:' <switches_mgmt>` list item. The
+  following command is interactive::
+
+    access user administrator-password
+
+- disable spanning tree::
+
+    spanning-tree mode disable
+
+- enable secure https and SSH login::
+
+    ssh enable
+    ssh generate-host-key
+    access https enable
+
+- Save the config. For additional information, consult vendor documentation)::
+
+    copy running-config startup-config
+
+**Adding additional management and data switch(es)**
 
 For out of box installation, it is usually necessary to configure the switch
-using a serial connection. See the switch installation guide. Using the Mellanox
-configuration wizard:
+using a serial connection. See the switch installation guide. As an example, for
+Mellanox switches, a configuration wizard can be used for initial configuration:
 
 - assign hostname
 - set DHCP to no for management interfaces
@@ -204,170 +318,41 @@ configuration wizard:
     configure terminal
     no spanning-tree
 
-  for Lenovo switches::
-
-    spanning-tree mode disable
-
 - enable SSH login::
 
     ssh server enable
-
-- If this switch has been used previously, delete any existing vlans which match
-  those specified in
-  :ref:`config.yml 'interfaces:' <Config-Specification:interfaces:>`. This
-  insures that only those nodes specified in the config file have access to the
-  cluster. (for a brand new switch this step can be ignored)
-
-  - login to the switch::
-
-        enable
-        configure terminal
-        show vlan
-
-    note those vlans that include the ports of the nodes to be included in the
-    new cluster and remove those vlans or remove those ports from existing
-    vlans::
-
-        no vlan n
 
 - Save config. In switch config mode::
 
     configuration write
 
-- If using redundant data switches with MLAG, Leave the interswitch peer links
-  (IPL) links disconnected until Cluster POWER-Up completes. (This avoids loops)
+- If using redundant data switches with MLAG or vPC, connect only a single
+  inter switch peer link (IPL) between switches or leave the IPL links disconnected
+  until Cluster POWER-Up completes. (This avoids loops)
 
-**Initial configuration of management switch(es)**
+- Add the additional switches to the config.yml. A data switch is added as shown
+  below:
 
-For out of box installation, it is usually necessary to configure the switch
-using a serial connection. See the switch installation guide. For additional
-info on Lenovo G8052 specific commands, see :ref:`Appendix-G <appendix_g>` and
-the *Lenovo RackSwitch G8052 Installation guide*)
-
-In order for Cluster POWER-Up to access and configure the switches in your
-cluster it is necessary to configure management access on all switches and
-provide management access information in the config.yml file.
-
-    .. _fig-network-setup:
-
-    .. figure:: _images/switch-management-network-setup.png
-        :height: 350
-        :align: center
-
-        POWER-Up setup of the switch management network
-
-In this example, the management switch has an in-band management interface. The
-initial setup requires a management interface on all switches configured to
-be accessible by the deployer node. The configured ip address must be provided
-in the 'interfaces:' list within each :ref:`'switches: mgmt:' <switches_mgmt>`
-and :ref:`'switches: data:' <switches_data>` item. Cluster POWER-Up uses this
-address along with the provided userid and password credentials to access the
-management switch. Any additional switch 'interfaces' will be configured
-automatically along with
-:ref:`deployer 'mgmt' networks <deployer_networks_mgmt>`.
-
-The following snippets are example config.yml entries for the diagram above:
-
-    - Switch IP Addresses::
+    - Switch config file definition::
 
         switches:
-            mgmt:
-                - label: Mgmt_Switch
-                  userid: admin
-                  password: abc123
-                  interfaces:
-                      - type: inband
-                        ipaddr: 10.0.48.3
-                      - type: inband
-                        ipaddr: 192.168.16.20
-                        netmask: 255.255.255.0
-                        vlan: 16
-                  links:
-                      - target: deployer
-                        ports: 46
-                      - target: Data_Switch
-                        ports: 47
+            .
+            .
             data:
-                - label: Data_Switch
+                - label: data_switch
                   userid: admin
                   password: abc123
+                  class: cisco
                   interfaces:
-                      - type: outband
-                        ipaddr: 192.168.16.25
-                        vlan: 16
-                        port: mgmt0
+                      - type: inband
+                        ipaddr: 192.168.32.25
                   links:
-                      - target: Mgmt_Switch
-                        ports: mgmt0
+                      - target: mgmt_switch
+                        ports: mgmt
 
-    - Deployer 'mgmt' networks::
-
-        deployer:
-            networks:
-                mgmt:
-                    - device: enp1s0f0
-                      interface_ipaddr: 10.0.48.3
-                      netmask: 255.255.255.0
-                    - device: enp1s0f0
-                      container_ipaddr: 192.168.16.2
-                      bridge_ipaddr: 192.168.16.3
-                      netmask: 255.255.255.0
-                      vlan: 16
-
-Management switch setup commands for the Lenovo G8052:
-
-- Enable configuration of the management switch::
-
-    enable
-    configure terminal
-
-- Enable IP interface mode for the management interface::
-
-    RS G8052(config)# interface ip 1
-
-- assign a static ip address, netmask and gateway address to the management
-  interface. This must match one of the switch 'interfaces' items specified in
-  the config.yml :ref:`'switches: mgmt:' <switches_mgmt>` list::
-
-    RS G8052(config-ip-if)# ip address 10.0.48.20  # example IP address
-    RS G8052(config-ip-if)# ip netmask 255.255.240.0
-    RS G8052(config-ip-if)# vlan 1  # default vlan 1 if not specified
-    RS G8052(config-ip-if)# enable
-    RS G8052(config-ip-if)# exit
-
-- Optionally configure a default gateway and enable the gateway::
-
-    RS G8052(config)# ip gateway 1 address 10.0.48.1  # example ip address
-    RS G8052(config)# ip gateway 1 enable
-
-- admin password. This must match the password specified in the config.yml
-  corresponding :ref:`'switches: mgmt:' <switches_mgmt>` list item. The
-  following command is interactive::
-
-    access user administrator-password
-
-- disable spanning tree::
-
-    spanning-tree mode disable
-
-  For Lenovo switches::
-
-    enable
-    configure terminal
-    spanning-tree mode disable
-
-- enable secure https and SSH login::
-
-    ssh enable
-    ssh generate-host-key
-    access https enable
-
-- Save the config (For Lenovo switches, enter config mode). For additional
-  information, consult vendor documentation)::
-
-    copy running-config startup-config
-
-This completes normal POWER-Up initial configuration.
+This completes normal POWER-Up initial configuration. For additional information
+and examples on preparing cluster hardware, see the sample configurations in the
+appendices.
 
 .. _passive-mode-setup:
 
@@ -375,7 +360,7 @@ This completes normal POWER-Up initial configuration.
 
 In passive mode, POWER-Up configures the cluster compute nodes without requiring
 any management communication with the cluster switches. This facilitates the use
-of POWER-Up even when the switch hardare is not supported or in cases where the
+of POWER-Up even when the switch hardware is not supported or in cases where the
 end user does not allow 3rd party access to their switches. When running
 POWER-Up in passive mode, the user is responsible for configuring the cluster
 switches. The user must also provide the Cluster POWER-Up software with MAC
@@ -400,7 +385,7 @@ POWER-Up runs.
 Configuration of the data switches is dependent on the user requirements. The
 user / installer is responsible for all configuration.  Generally, configuration
 of the data switches should occur after Cluster POWER-Up completes. In
-particular, note that it is not usually possible to aquire complete MAC address
+particular, note that it is not usually possible to acquire complete MAC address
 information once vPC (AKA MLAG or VLAG) has been configured on the data
 switches.
 
@@ -430,10 +415,13 @@ switch has a connection to the internet) or through another interface.
           (https://fedoraproject.org/wiki/EPEL)
         - SSH login enabled
         - sudo privileges
+
 - Optionally, assign a static, public ip address to the BMC port to allow
   external control of the deployer node.
+
 - login into the deployer and install the vim, vlan, bridge-utils and fping
-  packages
+  packages:
+
     - Ubuntu::
 
         $ sudo apt-get update
