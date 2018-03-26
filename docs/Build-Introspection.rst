@@ -1,6 +1,8 @@
 Building the Introspection Kernel and Filesystem
 ================================================
 
+*Note:*  Introspection is not yet supported in POWER-Up 2.0
+
 Introspection enables the clients to boot a Linux mini-kernel and filesystem
 prior to deployment. This allows Cluster Genesis to extract client hardware
 resource information and provides an environment for users to run configuration

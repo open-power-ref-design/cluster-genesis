@@ -7,7 +7,7 @@ Appendix - D Example system 1 -  Basic Flat Cluster
      :height: 350
      :align: center
 
-     A simple flat cluster with two node types
+     A basic flat cluster with two node types
 
 **A Sample config.yml file for a basic flat cluster**
 

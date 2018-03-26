@@ -1,39 +1,37 @@
 .. highlight:: none
 
-Appendix - I Using the 'tear-down' Program
-==========================================
+Appendix - I Using the 'teardown' Program
+=========================================
 
 
-The 'tear-down' program allows for select 'tear down' of the Genesis
+The 'teardown' program allows for select 'tear down' of the Genesis
 environment on the deployer node and cluster switches. It is primarily used
 when redeploying your cluster for test purposes, after taking corrective action
 after previous deployment failures or for removing the Cluster Genesis environment
 from the deployer node.
 
-tear-down is completely interactive and only acts when you respond 'y' to prompts.
+Similar to the pup program, teardown has built in help and supports tab completion.
 
 Usage::
 
-	tear-down
+	teardown <command> [<args>] [options] [–help | -h]
 
-There are currently no arguments or options.
-
-The tear-down program can perform the following
+The teardown program can perform the following
 functions;
 
-    - Backup the config.yml file.  Backed up to ~/configbak directory.
-      Config.yml files are date/time stamped.
-    - Backup the os-images directory
-    - Remove the Cluster Genesis created management interface from the
-      management switch.
-    - Remove the Cluster Genesis created bridges from the deployer node.
-    - Remove the Genesis container.  Removes the containers SSH key fom the
-      deployers known_host file.
-    - Remove the Cluster Genesis software and the directory it is installed in.
-    - Remove entries made to the .bashrc file and undo changes made to the
-      $PATH environment variable.
-    - Remove the SSH keys for cluster switches from the deployer known_host file.
+    - Destroy the container associated with the current config.yml file.
+      $ teardown deployer --container
+    - Undo the deployer network configuration associated with the current
+      config.yml file
+      $ teardown deployer --networks
+    - Undo the configuration of the data switches associated with the current
+      config.yml file.
+      $ teardown switches --data
 
-For a typical redeploy where the Cluster Genesis software does not need
-updating, you should remove the cluster genesis container and it's associated
-bridges.  You should also allow removal of all SSH keys from the known_hosts file.
+**NOTE:** teardown actions are driven by the current config.yml file. If you
+wish to make changes to your cluster configuration, be sure to teardown the
+existing cluster configuration before changing your config.yml file.
+
+For a typical re-deploy where the Cluster Genesis software does not need
+updating, you should teardown the deployer container and the data switches
+configuration.

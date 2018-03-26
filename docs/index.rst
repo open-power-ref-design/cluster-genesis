@@ -34,7 +34,6 @@ Welcome to Cluster POWER-Up User's Guide documentation!
    Dev-Guide
    Build-Introspection
    Appendix-A
-   Appendix-C
    Appendix-D
    Appendix-E
    Appendix-F

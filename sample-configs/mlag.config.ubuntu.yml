@@ -30,7 +30,7 @@ deployer:
     networks:
         mgmt:
             - device: enP1p10s0f0
-              interface_ipaddr: 192.168.32.95
+              interface_ipaddr: 192.168.32.253
               prefix: 24
         client:
             - device: enP1p10s0f0
@@ -48,14 +48,14 @@ deployer:
 
 switches:
     mgmt:
-        - label: mgmt1
+        - label: mgmt_1
           class: lenovo
           userid: admin
           password: passw0rd
           rack_id: rack1
           interfaces:
               - type: outband
-                ipaddr: 192.168.5.10
+                ipaddr: 192.168.32.20
                 port: mgmt0
           links:
               - target: deployer
@@ -79,9 +79,7 @@ switches:
                 ipaddr: 192.168.32.25
                 port: mgmt0
           links:
-              - target: mgmt1
-                ipaddr: 192.168.5.11
-                vip: 192.168.5.254
+              - target: mgmt_1
                 ports:
                     - mgmt0
               - target: data1_2
@@ -89,8 +87,8 @@ switches:
                 prefix: 24
                 vlan: 4000
                 ports:
-                    - 1
-                    - 2
+                    - 35
+                    - 36
         - label: data_1_2
           class: mellanox
           userid: admin
@@ -102,16 +100,14 @@ switches:
                 port: mgmt0
           links:
               - target: mgmt_1
-                ipaddr: 192.168.5.12
-                vip: 192.168.5.254
                 ports: mgmt0
               - target: data1_1
                 ipaddr: 10.0.0.2
                 netmask: 255.255.255.0
                 vlan: 4000
                 ports:
-                    - 1
-                    - 2
+                    - 35
+                    - 36
 
 interfaces:
     - label: pxe-ifc
