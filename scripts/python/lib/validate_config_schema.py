@@ -218,9 +218,7 @@ class SchemaDefinition(jsl.Document):
         jsl.fields.DocumentField(Interfaces),
         required=True)
 
-    networks = jsl.fields.ArrayField(
-        jsl.fields.DocumentField(Networks),
-        required=True)
+    networks = jsl.fields.ArrayField(jsl.fields.DocumentField(Networks))
 
     node_templates = jsl.fields.ArrayField(required=True)
 
