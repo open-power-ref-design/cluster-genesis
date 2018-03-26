@@ -6,8 +6,8 @@
 Welcome to Cluster POWER-Up User's Guide documentation!
 =======================================================
 
-:Version: 2.0b
-:Date: 2018-03-07
+:Version: 2.0
+:Date: 2018-03-26
 :Document Owner:
     OpenPOWER Cluster Genesis Team
 :Authors:
