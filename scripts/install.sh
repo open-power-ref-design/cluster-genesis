@@ -57,3 +57,11 @@ source deployenv/bin/activate
 pip install 'ansible~=2.3.0.0' orderedattrdict pyroute2 jsonschema jsl \
     'pyghmi==1.0.28' 'wget==3.2'
 deactivate
+
+# Create empty log file to ensure user is owner
+if [ ! -d "logs" ]; then
+    mkdir logs
+    if [ ! -f logs/gen ]; then
+        touch logs/gen
+    fi
+fi

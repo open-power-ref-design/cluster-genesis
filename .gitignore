@@ -18,3 +18,4 @@ playbooks/known_hosts
 debug_data/
 playbooks/lxc.conf
 scripts/python/switch-test-cfg-*.yml
+logs/gen
