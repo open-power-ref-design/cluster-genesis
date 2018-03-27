@@ -54,8 +54,14 @@ fi
 sudo -E -H pip install --upgrade virtualenv
 virtualenv --no-wheel --system-site-packages deployenv
 source deployenv/bin/activate
-pip install 'ansible~=2.3.0.0' orderedattrdict pyroute2 jsonschema jsl \
-    'pyghmi==1.0.28' 'wget==3.2'
+pip install \
+    'ansible==2.5.0' \
+    'orderedattrdict==1.5' \
+    'pyroute2==0.5.0' \
+    'jsonschema==2.6.0' \
+    'jsl==0.2.4' \
+    'pyghmi==1.0.42' \
+    'wget==3.2'
 deactivate
 
 # Create empty log file to ensure user is owner
