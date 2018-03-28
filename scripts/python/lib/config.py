@@ -2192,9 +2192,12 @@ class Config(object):
         """
 
         node_template = self.cfg.node_templates[node_template_index]
-        return self._get_members(
-            node_template.physical_interfaces.data, self.CfgKey.INTERFACE,
-            index)
+        try:
+            return self._get_members(
+                node_template.physical_interfaces.data, self.CfgKey.INTERFACE,
+                index)
+        except AttributeError:
+            return []
 
     def yield_ntmpl_phyintf_data_interface(self, node_template_index):
         """Yield node_templates physical_interfaces data interface
@@ -2219,7 +2222,10 @@ class Config(object):
         """
 
         node_template = self.cfg.node_templates[node_template_index]
-        return len(node_template.physical_interfaces.data)
+        try:
+            return len(node_template.physical_interfaces.data)
+        except AttributeError:
+            return 0
 
     def yield_ntmpl_phyintf_data_ind(self, node_template_index):
         """Yield node_templates physical_interfaces data index
