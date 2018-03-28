@@ -359,7 +359,7 @@ node_templates:
           profile: ubuntu-14.04.4-server-ppc64el
           users:
               - name: root
-                password: passw0rd
+                password: $6$Utk.IILMG9.$EepS/sIgD4aA.qYQ3voZL9yI3/5Q4vv.p2s4sSmfCLAJlLAuaEmXDizDaBmJYGqHpobwpU2l4rJW.uUY4WNyv.
               - name: user1
                 groups: sudo
               - name: testuser1
@@ -434,7 +434,7 @@ node_templates:
           profile: RHEL-7.2-20151030.0-Server-ppc64le-dvd1
           users:
               - name: root
-                password_crypted: $6$STFB8U/AyA$sVhg5a/2RvDiXof9EhADVcUm/7Tq8T4m
+                password: $6$Utk.IILMG9.$EepS/sIgD4aA.qYQ3voZL9yI3/5Q4vv.p2s4sSmfCLAJlLAuaEmXDizDaBmJYGqHpobwpU2l4rJW.uUY4WNyv.
               - name: user1
                 groups: sudo
               - name: testuser1
