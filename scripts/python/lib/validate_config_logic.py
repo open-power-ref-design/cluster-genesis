@@ -165,7 +165,7 @@ class ValidateConfigLogic(object):
                 phy_ifc_lbl = self.cfg.get_ntmpl_phyintf_pxe_interface(
                     ntmpl_ind, phyintf_idx)
                 validate_interface_defined(phy_ifc_lbl)
-                rename = self.cfg.get_ntmpl_phyintf_data_rename(ntmpl_ind, phyintf_idx)
+                rename = self.cfg.get_ntmpl_phyintf_pxe_rename(ntmpl_ind, phyintf_idx)
                 if rename is not True and rename is not False:
                     msg = ('\nInvalid value for "rename:" ({}) in node template '
                            '"{}", \nphysical interface "{}"').format(
