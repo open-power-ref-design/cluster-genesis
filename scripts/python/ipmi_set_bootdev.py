@@ -17,6 +17,7 @@
 
 from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
+
 import sys
 import time
 from subprocess import Popen, PIPE
@@ -26,6 +27,7 @@ from pyghmi import exceptions as pyghmi_exception
 from lib.inventory import Inventory
 import lib.logger as logger
 from lib.exception import UserException
+import lib.genesis as gen
 
 
 def _sub_proc_exec(cmd):
@@ -36,7 +38,13 @@ def _sub_proc_exec(cmd):
 
 def ipmi_set_bootdev(bootdev, persist=False, client_list=None):
     log = logger.getlogger()
-    inv = Inventory()
+
+    if gen.is_container():
+        inv_file = gen.INV_FILE
+    else:
+        inv_file = gen.get_symlink_realpath()
+
+    inv = Inventory(inv_file)
 
     if type(persist) is not bool:
         persist = (persist == 'True')

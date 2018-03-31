@@ -27,8 +27,6 @@ from orderedattrdict.yamlutils import AttrDictYAMLLoader
 import lib.logger as logger
 from lib.validate_config_schema import ValidateConfigSchema
 from lib.validate_config_logic import ValidateConfigLogic
-from lib.genesis import CFG_FILE
-from lib.genesis import INV_FILE
 from lib.exception import UserException
 
 
@@ -37,23 +35,36 @@ class Database(object):
 
     FILE_MODE = 0o666
 
-    def __init__(self):
+    def __init__(self, inv_file=None, cfg_file=None):
+        from lib.genesis import CFG_FILE
+        from lib.genesis import INV_FILE
+
         self.log = logger.getlogger()
-        self.cfg_file = os.path.realpath(CFG_FILE)
+
+        if cfg_file:
+            self.cfg_file = os.path.realpath(cfg_file)
+        else:
+            self.cfg_file = os.path.realpath(CFG_FILE)
+
+        if not inv_file:
+            inv_file = INV_FILE
+
+        self.inv_file = os.path.realpath(inv_file)
+
         self.cfg = None
         self.inv = None
 
         # If inventory file is broken link remove it
-        if os.path.islink(INV_FILE):
-            if not os.path.exists(os.readlink(INV_FILE)):
-                os.unlink(INV_FILE)
+        if os.path.islink(inv_file):
+            if not os.path.exists(os.readlink(inv_file)):
+                os.unlink(inv_file)
 
         # Set 'inv_file' attribute after checking link
-        self.inv_file = os.path.realpath(INV_FILE)
+        self.inv_file = os.path.realpath(inv_file)
 
         # Create inventory file if it does not exist
-        if not os.path.isfile(INV_FILE):
-            os.mknod(INV_FILE, self.FILE_MODE)
+        if not os.path.isfile(inv_file):
+            os.mknod(inv_file, self.FILE_MODE)
 
     def _is_config_file(self, config_file):
         """ Check if config file exists

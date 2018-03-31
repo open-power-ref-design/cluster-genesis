@@ -21,6 +21,7 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 
 from enum import Enum
 from orderedattrdict import AttrDict, DefaultAttrDict
+
 import lib.logger as logger
 from lib.exception import UserException
 from lib.db import Database
@@ -89,9 +90,9 @@ class Inventory(object):
         IFACE = 'iface'
         DEVICE = 'DEVICE'
 
-    def __init__(self):
+    def __init__(self, inv_file=None):
         self.log = logger.getlogger()
-        self.dbase = Database()
+        self.dbase = Database(inv_file=inv_file)
 
         self.inv = AttrDict()
         inv = self.dbase.load_inventory()

@@ -25,10 +25,10 @@ import json
 from lib.inventory import Inventory
 from lib.config import Config
 import lib.logger as logger
-from lib import genesis
+import lib.genesis as gen
 
 SSH_USER = 'root'
-SSH_PRIVATE_KEY = genesis.get_ssh_private_key_file()
+SSH_PRIVATE_KEY = gen.get_ssh_private_key_file()
 INVENTORY_INIT = {
     'all': {
         'vars': {
@@ -51,7 +51,11 @@ INVENTORY_INIT = {
 
 
 def generate_dynamic_inventory():
-    inv = Inventory()
+    if gen.is_container():
+        inv_file = gen.INV_FILE
+    else:
+        inv_file = gen.get_symlink_realpath()
+    inv = Inventory(inv_file)
     cfg = Config()
 
     # Initialize the empty inventory
@@ -117,7 +121,6 @@ if __name__ == '__main__':
     parser.add_argument('--list', action='store_true')
     parser.add_argument('--host', action='store')
     args = parser.parse_args()
-
     logger.create()
     LOG = logger.getlogger()
 

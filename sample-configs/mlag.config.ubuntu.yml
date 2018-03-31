@@ -204,12 +204,12 @@ node_templates:
           install_device: /dev/sdj
       physical_interfaces:
           ipmi:
-              - switch: mgmt1
+              - switch: mgmt_1
                 ports:
                     - 10
                     - 12
           pxe:
-              - switch: mgmt1
+              - switch: mgmt_1
                 interface: pxe-ifc
                 rename: true
                 ports:
@@ -246,12 +246,12 @@ node_templates:
           install_device: /dev/sdj
       physical_interfaces:
           ipmi:
-              - switch: mgmt1
+              - switch: mgmt_1
                 ports:
                     - 14
                     - 16
           pxe:
-              - switch: mgmt1
+              - switch: mgmt_1
                 interface: pxe-ifc
                 rename: true
                 ports:
@@ -288,12 +288,12 @@ node_templates:
           install_device: /dev/sdj
       physical_interfaces:
           ipmi:
-              - switch: mgmt1
+              - switch: mgmt_1
                 ports:
                     - 18
                     - 20
           pxe:
-              - switch: mgmt1
+              - switch: mgmt_1
                 interface: pxe-ifc
                 rename: true
                 ports:

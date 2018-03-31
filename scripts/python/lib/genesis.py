@@ -95,6 +95,25 @@ def load_localhost(filename):
         sys.exit('Could not load file: ' + filename)
 
 
+def get_symlink_filename():
+    from lib.config import Config
+    cfg = Config()
+    cont_vlan = str(cfg.get_depl_netw_client_vlan(if_type='pxe')[0])
+    file_name = INV_FILE_NAME.replace('.', cont_vlan + '.')
+    return os.path.join(GEN_PATH, file_name)
+
+
+def get_symlink_realpath():
+    return os.path.realpath(get_symlink_filename())
+
+
+def get_container_name():
+    from lib.config import Config
+    cfg = Config()
+    cont_vlan = str(cfg.get_depl_netw_client_vlan(if_type='pxe')[0])
+    return DEFAULT_CONTAINER_NAME + '-pxe' + cont_vlan
+
+
 def is_container_running():
     cont_running = False
     lxc_ls_output = subprocess.check_output(['bash', '-c', 'lxc-ls -f'])

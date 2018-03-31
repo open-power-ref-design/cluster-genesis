@@ -202,17 +202,20 @@ class Gen(object):
             print('Fail:', exc.message, file=sys.stderr)
             sys.exit(1)
         print('Success: Created inventory file')
+        deployer_inv_file = gen.get_symlink_realpath()
 
-        # Remove existing inventory file on deployer
-        deployer_inv_file = os.path.realpath(gen.INV_FILE)
-        if os.path.isfile(deployer_inv_file):
-            os.remove(deployer_inv_file)
+        # If inventory file symlink is broken link remove it
+        symlink_file = gen.get_symlink_filename()
+        if os.path.islink(symlink_file):
+            if not os.path.exists(os.readlink(symlink_file)):
+                os.unlink(symlink_file)
 
         # Create a sym link on deployer to inventory inside container
-        cont_inv_file = os.path.join(gen.LXC_DIR, cont.name, 'rootfs',
-                                     gen.CONTAINER_PACKAGE_PATH[1:],
-                                     gen.INV_FILE_NAME)
-        os.symlink(cont_inv_file, deployer_inv_file)
+        if not os.path.isfile(deployer_inv_file):
+            cont_inv_file = os.path.join(gen.LXC_DIR, cont.name, 'rootfs',
+                                         gen.CONTAINER_PACKAGE_PATH[1:],
+                                         gen.INV_FILE_NAME)
+            os.symlink(cont_inv_file, deployer_inv_file)
 
     def _install_cobbler(self):
         from lib.container import Container
@@ -348,7 +351,6 @@ class Gen(object):
         except UserException as exc:
             print('Fail:', exc.message, file=sys.stderr)
             sys.exit(1)
-
         _run_playbook("wait_for_clients_ping.yml")
 
         print('Success: Client OS installaion complete')
@@ -566,7 +568,6 @@ def _run_playbook(playbook):
     inventory = ' -i ' + gen.get_python_path() + '/inventory.py'
     playbook = ' ' + playbook
     cmd = ansible_playbook + inventory + playbook
-
     command = ['bash', '-c', cmd]
     log.debug('Run subprocess: %s' % ' '.join(command))
     process = subprocess.Popen(command, cwd=gen.get_playbooks_path())

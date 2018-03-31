@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -25,11 +25,17 @@ from lib.inventory import Inventory
 from lib.ipmi_power import IpmiPower
 import lib.logger as logger
 from lib.exception import UserException
+import lib.genesis as gen
 
 
 def ipmi_power_off(time_out, wait):
-    inv = Inventory()
+    if gen.is_container():
+        inv_file = gen.INV_FILE
+    else:
+        inv_file = gen.get_symlink_realpath()
+    inv = Inventory(inv_file)
     log = logger.getlogger()
+    log.debug('Fetching inventory {}'.format(inv_file))
     ipmi_power = IpmiPower()
 
     bmcs = []
@@ -47,6 +53,7 @@ def ipmi_power_off(time_out, wait):
                 (bmc['rack_id'], bmc['ipv4']))
         else:
             bmcs.append(bmc)
+            log.debug('Powering off {} {}'.format(hostname, bmc['ipv4']))
             ipmi_power.set_power_off(bmc)
 
     start_time = time.time()
