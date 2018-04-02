@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Cluster Genesis 'gen' command"""
+"""POWER-Up 'gen' command"""
 
 # Copyright 2018 IBM Corp.
 #
@@ -42,7 +42,7 @@ from ipmi_power_on import ipmi_power_on
 
 
 class Gen(object):
-    """Cluster Genesis 'gen' command
+    """POWER-Up 'gen' command
 
     Args:
         log(object): log
@@ -161,7 +161,7 @@ class Gen(object):
         except UserException as exc:
             print('{}Failure: Data switch validation\n{}{}'.
                   format(COL.yellow, exc.message, COL.endc))
-            print('Warning. Cluster Genesis can continue with deployment, but')
+            print('Warning. POWER-Up can continue with deployment, but')
             print('data network configuration will not succeed until issues ')
             print('are resolved')
 
@@ -171,7 +171,7 @@ class Gen(object):
             err = True
             print('{}Failure: Node IPMI validation error\n{}{}'.
                   format(COL.yellow, exc.message, COL.endc))
-            print('Warning. Cluster Genesis can continue with deployment, but')
+            print('Warning. POWER-Up can continue with deployment, but')
             print('Not all nodes will be deployed at this time')
 
         try:
@@ -180,7 +180,7 @@ class Gen(object):
             err = True
             print('{}Failure: Node PXE validation error\n{}{}'.
                   format(COL.yellow, exc.message, COL.endc))
-            print('Warning. Cluster Genesis can continue with deployment, but')
+            print('Warning. POWER-Up can continue with deployment, but')
             print('Not all nodes will be deployed at this time')
 
         if err:
@@ -531,10 +531,10 @@ class Gen(object):
             if argparse_gen.is_arg_present(self.args.all):
                 print("\n\nPress enter to continue with node configuration ")
                 print("and data switch setup, or 'T' to terminate ")
-                print("Cluster Genesis. (To restart, type: 'gen post-deploy)")
+                print("POWER-Up. (To restart, type: 'pup post-deploy)")
                 resp = raw_input("\nEnter or 'T': ")
                 if resp == 'T':
-                    sys.exit('Cluster Genesis stopped at user request')
+                    sys.exit('POWER-Up stopped at user request')
                 cmd = argparse_gen.Cmd.POST_DEPLOY.value
 
         if cmd == argparse_gen.Cmd.POST_DEPLOY.value:
