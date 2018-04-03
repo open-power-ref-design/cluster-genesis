@@ -19,6 +19,7 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
 import os
+import sys
 import pwd
 from shutil import copy2
 import re
@@ -61,7 +62,7 @@ A2ENMOD = '/usr/sbin/a2enmod'
 def cobbler_install():
     """Install and configure Cobbler in container.
 
-    This function must be called within the container 'gen-venv'
+    This function must be called within the container 'pup-venv'
     python virtual environment. Cobbler will be installed within
     this environment.
     """
@@ -69,10 +70,33 @@ def cobbler_install():
     cfg = Config()
     log = logger.getlogger()
 
+    # Check to see if cobbler is already installed
+    try:
+        util.bash_cmd('cobbler check')
+        log.info("Cobbler is already installed")
+        return
+    except util.CalledProcessError as error:
+        if error.returncode == 127:
+            log.debug("'cobbler' command not found, continuing with "
+                      "installation")
+        else:
+            log.warning("Cobbler is installed but not working:")
+            log.warning(error.output)
+            print("\nPress enter to remove Cobbler and attempt to ")
+            print("re-install, or 'T' to terminate.")
+            resp = raw_input("\nEnter or 'T': ")
+            log.debug("User response = \'{}\'".format(resp))
+            if resp == 'T':
+                sys.exit('POWER-Up stopped at user request')
+
     # Clone cobbler github repo
     cobbler_url = URL
     cobbler_branch = BRANCH
     install_dir = gen.get_cobbler_install_dir()
+    if os.path.exists(install_dir):
+        log.info(
+            "Removing Cobbler source directory \'{}\'".format(install_dir))
+        util.bash_cmd('rm -rf %s' % install_dir)
     log.info(
         "Cloning Cobbler branch \'%s\' from \'%s\'" %
         (cobbler_branch, cobbler_url))
@@ -97,8 +121,9 @@ def cobbler_install():
     util.backup_file(NTP_CONF)
 
     # Create tftp root directory
-    mode = 0o755
-    os.mkdir(TFTPBOOT, mode)
+    if not os.path.exists(TFTPBOOT):
+        mode = 0o755
+        os.mkdir(TFTPBOOT, mode)
 
     # Set IP address range to use for unrecognized DHCP clients
     dhcp_range = 'dhcp-range=%s,%s  # %s'
@@ -182,7 +207,9 @@ def cobbler_install():
                            globals_env_variables['http_proxy'])
 
     # Create link to
-    util.bash_cmd('ln -s %s/cobbler %s' % (LOCAL_PY_DIST_PKGS, PY_DIST_PKGS))
+    if not os.path.exists(PY_DIST_PKGS):
+        util.bash_cmd('ln -s %s/cobbler %s' %
+                      (LOCAL_PY_DIST_PKGS, PY_DIST_PKGS))
 
     # Set PXE timeout to maximum
     util.replace_regex(PXEDEFAULT_TEMPLATE, r'TIMEOUT \d+',

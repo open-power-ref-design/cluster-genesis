@@ -149,13 +149,15 @@ def inv_set_ipmi_pxe_ip():
         # Save info to verify connection come back up
         ipmi_userid = inv.get_nodes_ipmi_userid(index)
         ipmi_password = inv.get_nodes_ipmi_password(index)
-        nodes_list.append({'hostname': hostname,
-                           'index': index,
-                           'ipmi_userid': ipmi_userid,
-                           'ipmi_password': ipmi_password,
-                           'ipmi_new_ipaddr': ipmi_new_ipaddr,
-                           'ipmi_ipaddr': ipmi_ipaddr,
-                           'ipmi_mac': ipmi_mac})
+        # No need to reset and check if the IP does not change
+        if ipmi_new_ipaddr != ipmi_ipaddr:
+            nodes_list.append({'hostname': hostname,
+                               'index': index,
+                               'ipmi_userid': ipmi_userid,
+                               'ipmi_password': ipmi_password,
+                               'ipmi_new_ipaddr': ipmi_new_ipaddr,
+                               'ipmi_ipaddr': ipmi_ipaddr,
+                               'ipmi_mac': ipmi_mac})
 
     # Issue MC cold reset to force refresh of IPMI interfaces
     for node in nodes_list:

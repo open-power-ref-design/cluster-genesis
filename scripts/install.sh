@@ -51,18 +51,8 @@ sudo -E -H pip install --upgrade wheel
 if [[ $VERSION_ID == "14.04" || $ID == "rhel" ]]; then
     sudo -E -H pip install --upgrade lxc-python2
 fi
-sudo -E -H pip install --upgrade virtualenv
-virtualenv --no-wheel --system-site-packages deployenv
-source deployenv/bin/activate
-pip install \
-    'ansible==2.4.3.0' \
-    'orderedattrdict==1.5' \
-    'pyroute2==0.5.0' \
-    'jsonschema==2.6.0' \
-    'jsl==0.2.4' \
-    'pyghmi==1.0.42' \
-    'wget==3.2'
-deactivate
+
+/bin/bash "${BASH_SOURCE%/*}/venv_install.sh"
 
 # Create empty log file to ensure user is owner
 if [ ! -d "logs" ]; then
