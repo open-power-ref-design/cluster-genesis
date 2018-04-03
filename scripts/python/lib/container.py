@@ -93,7 +93,8 @@ class Container(object):
             self.name = name
         self.cont = lxc.Container(self.name)
         # Get a file descriptor for stdout
-        self.fd = open(os.path.join(gen.GEN_PATH, self.name + '.stdout'), 'w')
+        self.fd = open(os.path.join(gen.GEN_LOGS_PATH,
+                                    self.name + '.stdout.log'), 'w')
 
     def open_ssh(self):
         cont_ipaddr = self.cont.get_ips(
@@ -218,6 +219,7 @@ class Container(object):
                 lxc.attach_run_command,
                 cmd,
                 stdout=stdout,
+                stderr=stdout,
                 extra_env_vars=[
                     logger.get_log_level_env_var_file(),
                     logger.get_log_level_env_var_print()])
@@ -318,8 +320,10 @@ class Container(object):
             '-sc', 'a|%s' % public_key,
             '-cx', '/root/.ssh/authorized_keys'], stdout=self.fd)
 
-        self.log.info('\nInstalling software packages in container')
-        self.log.info('This may take several minutes depending on network speed')
+        print()
+        self.log.info('Installing software packages in container\n'
+                      'This may take several minutes depending on network '
+                      'speed')
 
         # Update/Upgrade container distro packages
         self.run_command(["apt-get", "update"], stdout=self.fd)
