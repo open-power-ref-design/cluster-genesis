@@ -658,15 +658,16 @@ class Inventory(object):
 
         for interface in self.inv.nodes[node_index][self.InvKey.INTERFACES]:
             for key, value in interface.iteritems():
-                value_split = []
-                for _value in value.split():
-                    if old_name == _value or old_name in _value.split('.'):
-                        _value = _value.replace(old_name, set_name)
-                    value_split.append(_value)
-                new_value = " ".join(value_split)
-                self.log.debug("Renaming node \'%s\' interface key \'%s\' from "
-                               "\'%s\' to \'%s\'" %
-                               (self.inv.nodes[node_index].hostname, key, value,
-                                new_value))
-                interface[key] = new_value
+                if isinstance(value, basestring):
+                    value_split = []
+                    for _value in value.split():
+                        if old_name == _value or old_name in _value.split('.'):
+                            _value = _value.replace(old_name, set_name)
+                        value_split.append(_value)
+                    new_value = " ".join(value_split)
+                    self.log.debug("Renaming node \'%s\' interface key \'%s\' "
+                                   "from \'%s\' to \'%s\'" %
+                                   (self.inv.nodes[node_index].hostname, key,
+                                    value, new_value))
+                    interface[key] = new_value
         self.dbase.dump_inventory(self.inv)
