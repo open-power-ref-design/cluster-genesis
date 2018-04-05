@@ -19,6 +19,7 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
 import xmlrpclib
+import re
 
 from lib.inventory import Inventory
 import lib.genesis as gen
@@ -41,7 +42,7 @@ def cobbler_add_systems():
         password_ipmi = inv.get_nodes_ipmi_password(index)
         ipv4_pxe = inv.get_nodes_pxe_ipaddr(0, index)
         mac_pxe = inv.get_nodes_pxe_mac(0, index)
-        cobbler_profile = inv.get_nodes_os_profile(index)
+        cobbler_profile = re.sub("[.]iso", "", inv.get_nodes_os_profile(index))
         raid1_enabled = False
 
         new_system_create = cobbler_server.new_system(token)

@@ -855,7 +855,7 @@ node_templates:
 |             profile:               |         install_device: /dev/sda              |                                                                                  |          |
 |             install_device:        |         users:                                | |   *profile*         - Cobbler profile to use for OS installation. This         |          |
 |             users:                 |             - name: root                      |                         name usually should match the name of the                |          |
-|                 - name:            |               password: <crypted password>    |                         installation image (without the'.iso' extension).        |          |
+|                 - name:            |               password: <crypted password>    |                         installation image (with or without the'.iso' extension).|          |
 |                   password:        |             - name: user1                     | |   *install_device*  - Path to installation disk device.                        |          |
 |             groups:                |               password: <crypted password>    |                                                                                  |          |
 |                 - name:            |               groups: sudo,testgroup1         | | Optional keys:                                                                 |          |
