@@ -59,7 +59,7 @@ class Lenovo(SwitchCommon):
     """
     ENABLE_REMOTE_CONFIG = 'en ; configure terminal ; {} '
     SEP = ';'
-    IFC_ETH_CFG = 'interface port {}'
+    IFC_ETH_CFG = 'no prompting ; interface port {}'
     SHOW_PORT = 'show interface trunk'
     PORT_PREFIX = ''
     CLEAR_MAC_ADDRESS_TABLE = 'clear mac-address-table'

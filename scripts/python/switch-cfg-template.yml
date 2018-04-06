@@ -3,10 +3,12 @@
 mlag_ifc: 36
 lag_ifc: 1
 port: 23
+operation: ADD
+ports: 23,24
 switchport_mode: access
 test: 1
 vlan: 20
 vlans: 20 21
-host: 192.168.16.25
-ifc_addr: 192.168.36.20
+host: 192.168.32.25
+ifc_addr: 192.168.32.20
 ifc_netmask: 255.255.255.0

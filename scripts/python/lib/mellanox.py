@@ -61,6 +61,7 @@ class Mellanox(SwitchCommon):
     ENABLE_REMOTE_CONFIG = 'cli enable "configure terminal" {}'
     FORCE = 'force'
     SET_MTU = '"mtu {}"'
+    NO_MTU = '"no mtu"'
     SHOW_VLANS = '"show vlan"'
     CREATE_VLAN = '"vlan {}"'
     DELETE_VLAN = '"no vlan {}"'
@@ -283,23 +284,6 @@ class Mellanox(SwitchCommon):
             raise SwitchException(
                 'Failed configuring management interface vlan {}'.format(vlan))
 
-    def set_mtu_for_port(self, port, mtu):
-        # Bring port down
-        self.send_cmd(
-            self.INTERFACE_CONFIG.format(port) + self.SHUTDOWN)
-
-        # Set MTU
-        if mtu == 0:
-            self.send_cmd(
-                self.INTERFACE_CONFIG.format(port) + 'no mtu')
-        else:
-            self.send_cmd(
-                self.INTERFACE_CONFIG.format(port) + self.SET_MTU.format(mtu))
-
-        # Bring port up
-        self.send_cmd(
-            self.INTERFACE_CONFIG.format(port) + self.NO_SHUTDOWN)
-
     def set_mtu_for_lag_port_channel(self, port, mtu):
         # Set port-channel MTU
         if mtu == 0:
@@ -319,7 +303,9 @@ class Mellanox(SwitchCommon):
         if mtu == 0:
             self.send_cmd(
                 self.MLAG_PORT_CHANNEL.format(port) +
-                '"no mtu"' +
+                self.SEP +
+                self.NO_MTU +
+                self.SEP +
                 self.FORCE)
         else:
             self.send_cmd(

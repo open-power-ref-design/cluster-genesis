@@ -53,6 +53,9 @@ class SwitchCommon(object):
     SWITCHPORT_TRUNK_NATIVE_VLAN = 'switchport trunk native vlan {} '
     SWITCHPORT_TRUNK_ALLOWED_VLAN = 'switchport trunk allowed vlan {} {}'
     SET_MTU = 'mtu {}'
+    NO_MTU = 'no mtu'
+    SHUTDOWN = 'shutdown'
+    NO_SHUTDOWN = 'no shutdown'
     FORCE = 'force'
     MGMT_INTERFACE_CONFIG = 'interface ip {}'
     SET_INTERFACE_IPADDR = ' ;ip address {}'
@@ -313,19 +316,19 @@ class SwitchCommon(object):
     def set_mtu_for_port(self, port, mtu):
         # Bring port down
         self.send_cmd(
-            self.IFC_ETH_CFG.format(port) + self.SHUTDOWN)
+            self.IFC_ETH_CFG.format(port) + self.SEP + self.SHUTDOWN)
 
         # Set MTU
         if mtu == 0:
             self.send_cmd(
-                self.IFC_ETH_CFG.format(port) + 'no mtu')
+                self.IFC_ETH_CFG.format(port) + self.SEP + self.NO_MTU)
         else:
             self.send_cmd(
-                self.IFC_ETH_CFG.format(port) + self.SET_MTU.format(mtu))
+                self.IFC_ETH_CFG.format(port) + self.SEP + self.SET_MTU.format(mtu))
 
         # Bring port up
         self.send_cmd(
-            self.INTERFACE_CONFIG.format(port) + self.NO_SHUTDOWN)
+            self.IFC_ETH_CFG.format(port) + self.SEP + self.NO_SHUTDOWN)
 
     def show_mac_address_table(self, format=False):
         """Get switch mac address table.
