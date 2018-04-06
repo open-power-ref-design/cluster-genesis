@@ -128,12 +128,15 @@ class Gen(object):
         print('Success: Created container')
 
     def _config_file(self):
+        from lib.inv_nodes import InventoryNodes
         print(COL.scroll_ten, COL.up_ten)
         print('{}Validating cluster configuration file{}\n'.
               format(COL.header1, COL.endc))
         dbase = Database()
+        nodes = InventoryNodes()
         try:
             dbase.validate_config(self.args.config_file)
+            nodes.create_nodes()
         except UserException as exc:
             print(exc.message, file=sys.stderr)
             print('{}Failure: Config file validation.\n{}{}'.
