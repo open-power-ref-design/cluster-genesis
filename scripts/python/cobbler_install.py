@@ -53,6 +53,7 @@ NTP_CONF = '/etc/ntp.conf'
 COBBLER = '/usr/local/bin/cobbler'
 LOCAL_PY_DIST_PKGS = '/usr/local/lib/python2.7/dist-packages'
 PY_DIST_PKGS = '/usr/lib/python2.7/dist-packages'
+APACHE2_CONF = '/etc/apache2/apache2.conf'
 
 A2ENCONF = '/usr/sbin/a2enconf'
 A2ENMOD = '/usr/sbin/a2enmod'
@@ -95,6 +96,7 @@ def cobbler_install():
     util.backup_file(PXEDEFAULT_TEMPLATE)
     util.backup_file(KICKSTART_DONE)
     util.backup_file(NTP_CONF)
+    util.backup_file(APACHE2_CONF)
 
     # Create tftp root directory
     mode = 0o755
@@ -180,6 +182,9 @@ def cobbler_install():
         util.replace_regex(COBBLER_SETTINGS, 'proxy_url_ext: ""',
                            'proxy_url_ext: %s' %
                            globals_env_variables['http_proxy'])
+    util.replace_regex(COBBLER_SETTINGS, 'default_password_crypted:',
+                       'default_password_crypted: '
+                       '$1$clusterp$/gd3ep3.36A2808GGdHUz.')
 
     # Create link to
     util.bash_cmd('ln -s %s/cobbler %s' % (LOCAL_PY_DIST_PKGS, PY_DIST_PKGS))
@@ -203,6 +208,9 @@ def cobbler_install():
     cont_pxe_broadcast = str(
         IPNetwork(cont_pxe_ipaddr + '/' + cont_pxe_netmask).broadcast)
     util.append_line(NTP_CONF, 'broadcast %s' % cont_pxe_broadcast)
+
+    # Set Apache2 'ServerName'
+    util.append_line(APACHE2_CONF, "ServerName localhost")
 
     # Restart services
     _restart_service('ntp')
