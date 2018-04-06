@@ -34,7 +34,7 @@ GITHUB = 'https://github.com/open-power-ref-design-toolkit/cluster-genesis'
 EPILOG = 'home page:\n  %s' % GITHUB
 ABSENT = '\u009fabsent\u009c'
 LOG_LEVEL_CHOICES = ['nolog', 'debug', 'info', 'warning', 'error', 'critical']
-LOG_LEVEL_FILE = ['info']
+LOG_LEVEL_FILE = ['debug']
 LOG_LEVEL_PRINT = ['info']
 
 

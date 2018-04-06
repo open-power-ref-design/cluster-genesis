@@ -29,7 +29,7 @@ DEPLOYER_NETWORKS_HELP = ('Deletes {} created interfaces and bridges. \nRemoves 
 GITHUB = 'https://github.com/open-power-ref-design-toolkit/cluster-genesis'
 EPILOG = 'home page:\n  %s' % GITHUB
 LOG_LEVEL_CHOICES = ['nolog', 'debug', 'info', 'warning', 'error', 'critical']
-LOG_LEVEL_FILE = ['info']
+LOG_LEVEL_FILE = ['debug']
 LOG_LEVEL_PRINT = ['info']
 
 
