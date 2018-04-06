@@ -204,8 +204,9 @@ def _get_vlan_list():
     port_vlans = Tree()
     for switch in vlan_list:
         for vlan in vlan_list[switch]:
+            print('vlan: {}'.format(vlan))
             for port in vlan_list[switch][vlan]:
-                if port in port_vlans[switch]:
+                if str(port) in port_vlans[switch]:
                     port_vlans[switch][str(port)].append(vlan)
                 else:
                     port_vlans[switch][str(port)] = [vlan]
