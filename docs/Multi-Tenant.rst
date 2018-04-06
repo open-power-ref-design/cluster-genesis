@@ -10,7 +10,7 @@ time while maintaining complete isolation between tenants.
 The process of sub-dividing a cluster into multiple groups is simple. You create a
 config.yml file for each group of nodes and deploy the groups one at a time. Each
 group must have a unique PXE and IPMI subnet and vlan number. The mgmt network can
-common for all groups. POWER-Up creates a container and isolated networks on the
+be common for all groups. POWER-Up creates a container and isolated networks on the
 deployer for each tenant in the cluster. A symbolic link to the inventory.yml file
 for each group is created in the power-up directory with the name inventoryn.yml
 where n is the number of the pxe vlan for the group.
