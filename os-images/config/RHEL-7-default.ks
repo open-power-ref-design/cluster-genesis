@@ -38,15 +38,6 @@ mkdir /root/.ssh
 chmod 700 /root/.ssh
 wget http://$http_server/authorized_keys -O /root/.ssh/authorized_keys
 chmod 600 /root/.ssh/authorized_keys
-# Add ssh keys to defaultuser
-mkdir /home/defaultuser/.ssh
-chown defaultuser:defaultuser /home/defaultuser/.ssh
-chmod 700 /home/defaultuser/.ssh
-wget http://$http_server/authorized_keys -O /home/defaultuser/.ssh/authorized_keys
-chown defaultuser:defaultuser /home/defaultuser/.ssh/authorized_keys
-chmod 600 /home/defaultuser/.ssh/authorized_keys
-# Enable passwordless sudo for defaultuser
-echo -e "defaultuser\tALL=NOPASSWD: ALL" > /etc/sudoers.d/defaultuser
 echo -e "[$distro]" > /etc/yum.repos.d/$(distro).repo
 echo -e "name=$distro" >> /etc/yum.repos.d/$(distro).repo
 echo -e "baseurl=http://$http_server/$distro/" >> /etc/yum.repos.d/$(distro).repo
