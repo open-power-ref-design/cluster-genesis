@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -15,9 +15,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [[ "$1" == "deployer" ]] && [[ "$2" == "--networks" ]]; then
-    sudo env "PATH=$PATH" teardown.py $@
-    exit
+if [[ "$1" == "deployer" ]]; then
+    if [[ "$2" == "--networks" ]]; then
+        sudo env "PATH=$PATH" teardown.py $@
+    elif [[ "$2" == "--all" ]] || [[ "$2" == "--al" ]] || \
+            [[ "$2" == "--a" ]] || [[ "$2" == "-a" ]]; then
+        sudo env "PATH=$PATH" teardown.py deployer --networks
+        teardown.py deployer --container
+    else
+        teardown.py $@
+    fi
+else
+    teardown.py $@
 fi
-
-teardown.py $@
