@@ -562,13 +562,13 @@ def deconfigure_data_switch():
     # Deconfigure switch vlans - first remove from ports
     for switch in port_vlans:
         for port in port_vlans[switch]:
-            for vlan in port_vlans[switch][port]:
-                log.debug('port: {} removing vlans: {}'.format(
-                          port, port_vlans[switch][port]))
-                sw_dict[switch].allowed_vlans_port(port, allow_op[switch].REMOVE, vlan)
-                log.debug('Switch {}, setting port: {} to access mode'.format(
-                    switch, port))
-                sw_dict[switch].set_switchport_mode(port, port_mode[switch].ACCESS)
+            log.debug('switch: {}, port: {}, removing vlans: {}'.format(
+                      switch, port, port_vlans[switch][port]))
+            sw_dict[switch].allowed_vlans_port(
+                port, allow_op[switch].REMOVE, port_vlans[switch][port])
+            log.debug('Switch {}, setting port: {} to access mode'.format(
+                switch, port))
+            sw_dict[switch].set_switchport_mode(port, port_mode[switch].ACCESS)
     # Delete the vlans
     for switch in port_vlans:
         vlans = []
@@ -577,14 +577,15 @@ def deconfigure_data_switch():
                 if vlan not in vlans:
                     vlans.append(vlan)
                     sw_dict[switch].delete_vlan(vlan)
-                    log.debug('Switch {}, deleting vlan {}'.format(switch, vlan))
+                    log.debug('Switch: {}, deleting vlan: {}'.format(switch, vlan))
 
     # Deconfigure switch mtu
     for switch in mtu_list:
         for mtu in mtu_list[switch]:
             for port in mtu_list[switch][mtu]:
                 sw_dict[switch].set_mtu_for_port(port, 0)
-                log.debug('port: {} setting mtu: {}'.format(port, 'default mtu'))
+                log.debug('switch: {}, port: {}, setting mtu: {}'.format(
+                    switch, port, 'default mtu'))
 
 
 def gather_and_display():
