@@ -51,11 +51,7 @@ INVENTORY_INIT = {
 
 
 def generate_dynamic_inventory():
-    if gen.is_container():
-        inv_file = gen.INV_FILE
-    else:
-        inv_file = gen.get_symlink_realpath()
-    inv = Inventory(inv_file)
+    inv = Inventory()
     cfg = Config()
 
     # Initialize the empty inventory

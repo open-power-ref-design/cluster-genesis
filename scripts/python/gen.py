@@ -33,7 +33,7 @@ import lxc_conf
 import lib.argparse_gen as argparse_gen
 import lib.logger as logger
 import lib.genesis as gen
-from lib.db import Database
+from lib.db import DatabaseConfig
 from lib.exception import UserException, UserCriticalException
 from lib.switch_exception import SwitchException
 from ipmi_power_off import ipmi_power_off
@@ -131,7 +131,7 @@ class Gen(object):
         print(COL.scroll_ten, COL.up_ten)
         print('{}Validating cluster configuration file{}\n'.
               format(COL.header1, COL.endc))
-        dbase = Database()
+        dbase = DatabaseConfig()
         try:
             dbase.validate_config(self.args.config_file)
         except UserException as exc:
@@ -205,10 +205,10 @@ class Gen(object):
         deployer_inv_file = gen.get_symlink_realpath()
 
         # If inventory file symlink is broken link remove it
-        symlink_file = gen.get_symlink_filename()
-        if os.path.islink(symlink_file):
-            if not os.path.exists(os.readlink(symlink_file)):
-                os.unlink(symlink_file)
+        symlink_path = gen.get_symlink_path()
+        if os.path.islink(symlink_path):
+            if not os.path.exists(os.readlink(symlink_path)):
+                os.unlink(symlink_path)
 
         # Create a sym link on deployer to inventory inside container
         if not os.path.isfile(deployer_inv_file):

@@ -24,7 +24,7 @@ from orderedattrdict import AttrDict, DefaultAttrDict
 
 import lib.logger as logger
 from lib.exception import UserException
-from lib.db import Database
+from lib.db import DatabaseInventory
 
 
 class Singleton(type):
@@ -92,7 +92,7 @@ class Inventory(object):
 
     def __init__(self, inv_file=None):
         self.log = logger.getlogger()
-        self.dbase = Database(inv_file=inv_file)
+        self.dbase = DatabaseInventory(inv_file=inv_file)
 
         self.inv = AttrDict()
         inv = self.dbase.load_inventory()

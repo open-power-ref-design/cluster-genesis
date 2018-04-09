@@ -23,7 +23,6 @@ import argparse
 from lib.inventory import Inventory
 from lib.config import Config
 from lib.exception import UserException
-import lib.genesis as gen
 
 
 def _get_pxe_ips(inv):
@@ -45,12 +44,7 @@ if __name__ == '__main__':
     parser.add_argument('--deployer', action='store_true')
     args = parser.parse_args()
 
-    if gen.is_container():
-        inv_file = gen.INV_FILE
-    else:
-        inv_file = gen.get_symlink_realpath()
-
-    inv = Inventory(inv_file)
+    inv = Inventory()
     cfg = Config()
 
     ip_list = _get_pxe_ips(inv)
