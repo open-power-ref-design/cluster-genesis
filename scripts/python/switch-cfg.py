@@ -24,9 +24,6 @@ import re
 import readline
 from shutil import copyfile
 import yaml
-from collections import OrderedDict
-
-import code
 
 import lib.logger as logger
 from lib.switch import SwitchFactory
@@ -120,7 +117,6 @@ def main(_class, host):
     test = 1
 
     def show_menu():
-        #menu = OrderedDict()
         menu = {}
         menu[0.1] = 'Available tests (0 to exit) :\n'
         menu[1] = {'desc': 'Ping switch', 'func': '_ping_switch'}
@@ -255,7 +251,6 @@ def main(_class, host):
     def _is_port_in_access_mode(cfg):
         print('\nTesting is port in access mode')
         cfg['port'] = rlinput('Enter port #: ', str(cfg['port']))
-        #cfg['port'] = port
         print(sw.is_port_in_access_mode(cfg['port']))
 
     # Test set switchport mode
@@ -263,7 +258,7 @@ def main(_class, host):
         print('\nTesting set switchport mode')
         cfg['port'] = rlinput('Enter port #: ', str(cfg['port']))
         cfg['switchport_mode'] = rlinput('Enter switchport mode(TRUNK|HYBRID|'
-                                  'ACCESS): ', cfg['switchport_mode'])
+                                         'ACCESS): ', cfg['switchport_mode'])
         if cfg['switchport_mode'] in ('TRUNK', 'HYBRID'):
             prompt = 'Enter native vlan / PVID (blank for None): '
         else:
@@ -283,7 +278,7 @@ def main(_class, host):
     def _set_allowed_vlans(cfg):
         print('\nTest set vlans on port')
         cfg['operation'] = rlinput('Enter operation (ADD|ALL|EXCEPT|NONE|REMOVE): ',
-                            cfg['operation'])
+                                   cfg['operation'])
         cfg['port'] = rlinput('Enter port #: ', str(cfg['port']))
         cfg['vlans'] = rlinput("Enter vlans (ex: '4' or '4,6' or '2-5'): ",
                                str(cfg['vlans']))
@@ -333,7 +328,7 @@ def main(_class, host):
         print('\nTest set port channel mode')
         cfg['lag_ifc'] = rlinput('Enter port channel #: ', str(cfg['lag_ifc']))
         cfg['switchport_mode'] = rlinput('Enter switchport mode(trunk | access): ',
-                                  cfg['switchport_mode'])
+                                         cfg['switchport_mode'])
         try:
             sw.set_port_channel_mode(lag_ifc, port_mode[cfg['switchport_mode']])
         except SwitchException as exc:
@@ -356,17 +351,16 @@ def main(_class, host):
     # Test set vlans on port channel (LAG)
     def _set_allowed_vlans_port_channel(cfg):
         print('\nTest set vlans on port channel')
-        operation = rlinput('Enter operation (ADD|ALL|EXCEPT|NONE|REMOVE): ',
-                            operation)
-        cfg['operation'] = operation
-        lag_ifc = rlinput('Enter port channel ifc #: ', str(lag_ifc))
-        cfg['lag_ifc'] = lag_ifc
-        vlans = rlinput("Enter vlans (ex: '4' or '4,6' or '2-5'): ", str(vlans))
-        cfg['vlans'] = vlans
+        cfg['operation'] = rlinput('Enter operation (ADD|ALL|EXCEPT|NONE|REMOVE): ',
+                                   cfg['operation'])
+        cfg['lag_ifc'] = rlinput('Enter port channel ifc #: ', str(cfg['lag_ifc']))
+        cfg['vlans'] = rlinput("Enter vlans (ex: '4' or '4,6' or '2-5'): ",
+                               str(cfg['vlans']))
         try:
-            sw.allowed_vlans_port_channel(lag_ifc, allow_op[operation], vlans)
-            print('{} vlans {} to port channel interface {}'.format(operation,
-                  vlans, lag_ifc))
+            sw.allowed_vlans_port_channel(cfg['lag_ifc'], allow_op[cfg['operation']],
+                                          cfg['vlans'])
+            print('{} vlans {} to port channel interface {}'.format(cfg['operation'],
+                  cfg['vlans'], cfg['lag_ifc']))
         except SwitchException as exc:
             print(exc)
 
@@ -414,10 +408,8 @@ def main(_class, host):
         except SwitchException as exc:
             print(exc)
 
-
     test = ''
     while test != 0:
-        #menu = show_menu()
         if not test:
             menu = show_menu()
             test = rlinput('{}\nEnter a test to run: {}'.format(Color.blue, Color.endc), '')
@@ -426,13 +418,10 @@ def main(_class, host):
         except ValueError:
             continue
 
-
         if test == 0:
             sys.exit()
 
         func_name = menu[test]['func']
-        #print('function to call: {}'.format(func_name))
-        #code.interact(local=dict(globals(), **locals()))
         func_to_call = locals()[func_name]
         func_to_call(cfg)
 
@@ -447,17 +436,14 @@ if __name__ == '__main__':
     """Interactive test for switch methods
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('clas', \
-        choices=['cisco', 'mellanox', 'lenovo'], help='switch class')
+    parser.add_argument('clas', choices=['cisco', 'mellanox', 'lenovo'],
+                        help='switch class')
     parser.add_argument('host', help='Host name or ip address')
-    parser.add_argument('--print', '-p', dest='log_lvl_print', \
-        help='print log level', default='info')
-    parser.add_argument('--file', '-f', dest='log_lvl_file', \
-        help='file log level', default='info')
+    parser.add_argument('--print', '-p', dest='log_lvl_print',
+                        help='print log level', default='info')
+    parser.add_argument('--file', '-f', dest='log_lvl_file',
+                        help='file log level', default='info')
     args = parser.parse_args()
-    #print(args)
-    #sys.exit('bye bye')
-
 
     logger.create(args.log_lvl_print, args.log_lvl_file)
     main(args.clas, args.host)
