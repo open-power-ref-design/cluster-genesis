@@ -144,12 +144,15 @@ def main(_class, host):
         menu[35] = {'desc': 'Set port channel mode', 'func': '_set_port_channel_mode'}
         menu[36] = {'desc': 'Set allowed vlans on port channel',
                     'func': '_set_allowed_vlans_port_channel'}
-        menu[40.1] = '{}       vPC / MLAG functions      {}'.format(Color.bold, Color.endc)
+        menu[40.1] = '{}       vPC / MLAG functions{}'.format(Color.bold, Color.endc)
         menu[41] = {'desc': 'Is MLAG configured on switch', 'func': '_is_mlag'}
         menu[42] = {'desc': 'Show MLAG interfaces', 'func': '_show_mlag_ifcs'}
         menu[43] = {'desc': 'Create MLAG interface', 'func': '_create_mlag_ifc'}
         menu[44] = {'desc': 'Delete MLAG interface', 'func': '_delete_mlag_ifc'}
-        menu[45] = {'desc': 'Add ports to MLAG interface', 'func': '_add_ports_to_mlag_port_channel'}
+        menu[45] = {'desc': 'Add ports to MLAG port channel', 'func':
+                    '_add_ports_to_mlag_port_channel'}
+        menu[46] = {'desc': 'Set allowed vlans on MLAG port channel',
+                    'func': '_set_allowed_vlans_mlag_port_channel'}
         print('\n\n')
         for item in sorted(menu.keys()):
             if not isinstance(item, int):
@@ -286,7 +289,7 @@ def main(_class, host):
                                str(cfg['vlans']))
         try:
             sw.allowed_vlans_port(cfg['port'], allow_op[cfg['operation']],
-                                  cfg['vlans'])
+                                  cfg['vlans'].split())
             print('{} vlans {} to port interface {}'.format(allow_op[cfg['operation']],
                   cfg['vlans'], cfg['port']))
         except SwitchException as exc:
@@ -353,11 +356,11 @@ def main(_class, host):
         cfg['operation'] = rlinput('Enter operation (ADD|ALL|EXCEPT|NONE|REMOVE): ',
                                    cfg['operation'])
         cfg['lag_ifc'] = rlinput('Enter port channel ifc #: ', str(cfg['lag_ifc']))
-        cfg['vlans'] = rlinput("Enter vlans (ex: '4' or '4,6' or '2-5'): ",
+        cfg['vlans'] = rlinput("Enter vlans (ex: '4' or '4 6' or '2-5'): ",
                                str(cfg['vlans']))
         try:
             sw.allowed_vlans_port_channel(cfg['lag_ifc'], allow_op[cfg['operation']],
-                                          cfg['vlans'])
+                                          cfg['vlans'].split())
             print('{} vlans {} to port channel interface {}'.format(cfg['operation'],
                   cfg['vlans'], cfg['lag_ifc']))
         except SwitchException as exc:
@@ -400,6 +403,21 @@ def main(_class, host):
         except SwitchException as exc:
             print(exc)
 
+    def _set_allowed_vlans_mlag_port_channel(cfg):
+        print('\nTest set vlans on port channel')
+        cfg['operation'] = rlinput('Enter operation (ADD|ALL|EXCEPT|NONE|REMOVE): ',
+                                   cfg['operation'])
+        cfg['lag_ifc'] = rlinput('Enter port channel ifc #: ', str(cfg['lag_ifc']))
+        cfg['vlans'] = rlinput("Enter vlans (ex: '4' or '4,6' or '2-5'): ",
+                               str(cfg['vlans']))
+        try:
+            sw.allowed_vlans_mlag_port_channel(cfg['lag_ifc'],
+                allow_op[cfg['operation']], cfg['vlans'].split())
+            print('{} vlans {} to port channel interface {}'.format(cfg['operation'],
+                  cfg['vlans'], cfg['lag_ifc']))
+        except SwitchException as exc:
+            print(exc)
+
     # Test remove MLAG interface
     def _delete_mlag_ifc(cfg):
         print('\nTest remove MLAG interface')
@@ -425,20 +443,19 @@ def main(_class, host):
         try:
             test = int(test)
         except ValueError:
-            continue
+            test = 99
 
         if test == 0:
-            sys.exit()
+            sys.exit(0)
 
-        func_name = menu[test]['func']
-        func_to_call = locals()[func_name]
-        func_to_call(cfg)
+        if test != 99:
+            func_name = menu[test]['func']
+            func_to_call = locals()[func_name]
+            func_to_call(cfg)
 
-        yaml.dump(cfg, open(cfg_file_path.format(_class), 'w'),
-                  default_flow_style=False)
+            yaml.dump(cfg, open(cfg_file_path.format(_class), 'w'),
+                      default_flow_style=False)
         test = rlinput('\nPress enter to continue or a test to run ', '')
-        if test:
-            test = int(test)
 
 
 if __name__ == '__main__':
