@@ -132,22 +132,24 @@ def main(_class, host):
         menu[11] = {'desc': 'Is VLAN(s) allowed on port', 'func': '_is_vlan_allowed'}
         menu[12] = {'desc': 'Show native / access VLAN', 'func': '_show_native_vlan'}
         menu[13] = {'desc': 'Set MTU on port', 'func': '_set_mtu'}
+        menu[13.1] = '{}       Mgmt interface functions {}'.format(Color.bold, Color.endc)
         menu[14] = {'desc': 'Create an in-band interface', 'func': '_create_inband_ifc'}
         menu[15] = {'desc': 'Delete an in-band interface', 'func': '_delete_inband_ifc'}
         menu[16] = {'desc': 'show in-band interface(s)', 'func': '_show_inband_ifc'}
-        menu[13.1] = '{}       Mgmt interface functions {}'.format(Color.bold, Color.endc)
         menu[30.1] = '{}       Port channel functions  {}'.format(Color.bold, Color.endc)
         menu[31] = {'desc': 'Show port channels', 'func': '_show_port_channel_interfaces'}
         menu[32] = {'desc': 'Create port channel', 'func': '_create_port_channel_interface'}
-        menu[34] = {'desc': 'Set port channel mode', 'func': '_set_port_channel_mode'}
-        menu[35] = {'desc': 'Set allowed vlans on port channel',
+        menu[33] = {'desc': 'Add ports to port channel', 'func': '_add_ports_to_port_channel'}
+        menu[34] = {'desc': 'Delete port channel', 'func': '_delete_port_channel'}
+        menu[35] = {'desc': 'Set port channel mode', 'func': '_set_port_channel_mode'}
+        menu[36] = {'desc': 'Set allowed vlans on port channel',
                     'func': '_set_allowed_vlans_port_channel'}
-        menu[33] = {'desc': 'Delete port channel', 'func': '_delete_port_channel'}
         menu[40.1] = '{}       vPC / MLAG functions      {}'.format(Color.bold, Color.endc)
         menu[41] = {'desc': 'Is MLAG configured on switch', 'func': '_is_mlag'}
         menu[42] = {'desc': 'Show MLAG interfaces', 'func': '_show_mlag_ifcs'}
         menu[43] = {'desc': 'Create MLAG interface', 'func': '_create_mlag_ifc'}
         menu[44] = {'desc': 'Delete MLAG interface', 'func': '_delete_mlag_ifc'}
+        menu[45] = {'desc': 'Add ports to MLAG interface', 'func': '_add_ports_to_mlag_port_channel'}
         print('\n\n')
         for item in sorted(menu.keys()):
             if not isinstance(item, int):
@@ -335,18 +337,15 @@ def main(_class, host):
             print(exc)
 
     # Test reserved
-#    if 27 == test:
-#        print('\n Not implemented')
-#            lag_ifc = rlinput('Enter lag ifc #: ', str(lag_ifc))
-#            cfg['lag_ifc'] = lag_ifc
-#            ports = rlinput('Enter ports: ', str(ports))
-#            cfg['ports'] = ports
-#            ports = ports.split()
-#            try:
-#                sw.add_ports_to_lag_interface(ports, lag_ifc)
-#                print('Added ports {} to lag interface {}'.format(ports, lag_ifc))
-#            except SwitchException as exc:
-#                print(exc)
+    def _add_ports_to_port_channel(cfg):
+        cfg['lag_ifc'] = rlinput('Enter lag ifc #: ', str(cfg['lag_ifc']))
+        cfg['ports'] = rlinput('Enter ports: ', str(cfg['ports']))
+        ports = cfg['ports'].split()
+        try:
+            sw.add_ports_to_port_channel_ifc(ports, cfg['lag_ifc'])
+            print('Added ports {} to lag interface {}'.format(cfg['ports'], cfg['lag_ifc']))
+        except SwitchException as exc:
+            print(exc)
 
     # Test set vlans on port channel (LAG)
     def _set_allowed_vlans_port_channel(cfg):
@@ -388,6 +387,16 @@ def main(_class, host):
         try:
             sw.create_mlag_interface(cfg['mlag_ifc'])
             print('Created mlag ifc {}'.format(cfg['mlag_ifc']))
+        except SwitchException as exc:
+            print(exc)
+
+    def _add_ports_to_mlag_port_channel(cfg):
+        cfg['lag_ifc'] = rlinput('Enter lag ifc #: ', str(cfg['lag_ifc']))
+        cfg['ports'] = rlinput('Enter ports: ', str(cfg['ports']))
+        ports = cfg['ports'].split()
+        try:
+            sw.bind_ports_to_mlag_interface(ports, cfg['lag_ifc'])
+            print('Added ports {} to lag interface {}'.format(cfg['ports'], cfg['lag_ifc']))
         except SwitchException as exc:
             print(exc)
 
