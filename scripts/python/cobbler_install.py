@@ -233,6 +233,7 @@ def _restart_service(service):
 
 
 def _service_start_on_boot(service):
+    util.bash_cmd('update-rc.d %s defaults' % service)
     util.bash_cmd('update-rc.d %s enable' % service)
 
 
