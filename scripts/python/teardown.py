@@ -22,8 +22,9 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 
 import sys
 
-import teardown_deployer_networks
 import teardown_deployer_container
+import enable_deployer_gateway
+import teardown_deployer_networks
 import lib.argparse_teardown as argparse_teardown
 import lib.logger as logger
 import configure_data_switches
@@ -42,11 +43,11 @@ class Teardown(object):
     def _destroy_deployer_container(self):
         teardown_deployer_container.teardown_deployer_container()
 
+    def _teardown_deployer_gateway(self):
+        enable_deployer_gateway.enable_deployer_gateway(remove=True)
+
     def _teardown_deployer_networks(self):
         teardown_deployer_networks.teardown_deployer_network()
-
-    def _teardown_deployer_gateway(self):
-        sys.exit('Teardown deployer gateway not implemented')
 
     def _teardown_switch_data(self):
         configure_data_switches.deconfigure_data_switch()
@@ -60,12 +61,12 @@ class Teardown(object):
         # Determine which subcommand was specified
         try:
             if self.args.deployer:
-                if self.args.networks:
-                    self._teardown_deployer_networks()
                 if self.args.container:
                     self._destroy_deployer_container()
                 if self.args.gateway:
                     self._teardown_deployer_gateway()
+                if self.args.networks:
+                    self._teardown_deployer_networks()
         except AttributeError:
             pass
 
