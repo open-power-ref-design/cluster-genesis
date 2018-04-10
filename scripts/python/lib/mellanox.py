@@ -567,14 +567,10 @@ class Mellanox(SwitchCommon):
             vlan (str or tuple or list). if type string, can be of the
             following formats: '4' or '4,5,8' or '5-10'
         """
-        if isinstance(vlans, (tuple, list)):
-            vlans = [str(vlans[i]) for i in range(len(vlans))]
-            vlans = ','.join(vlans)
-        else:
-            vlans = str(vlans)
-        cmd = self.IFC_MLAG_PORT_CH_CFG.format(port) + self.SEP +\
-            self.SWITCHPORT_TRUNK_ALLOWED_VLAN.format(operation.value, vlans)
-        self.send_cmd(cmd)
+        for vlan in vlans:
+            cmd = self.IFC_MLAG_PORT_CH_CFG.format(port) + self.SEP + \
+                self.SWITCHPORT_TRUNK_ALLOWED_VLAN.format(operation.value, vlan)
+            self.send_cmd(cmd)
 
     def bind_ports_to_mlag_interface(self, ports, mlag_ifc=None):
         """ Bind ports to an MLAG interface and enable it. If no mlag

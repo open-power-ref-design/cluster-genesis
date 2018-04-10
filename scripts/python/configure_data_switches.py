@@ -540,7 +540,7 @@ def deconfigure_data_switch():
                         for port_grp in chan_ports[bond][ntmpl][mstr_sw][sw]:
                             chan_num = _get_channel_num(port_grp)
                             log.info('Deleting Lag interface {} on switch: {}'.format(
-                                      chan_num, sw))
+                                     chan_num, sw))
                             sw_dict[sw].remove_port_channel_ifc(chan_num)
     # Deconfigure MLAG
     for mstr_sw in mlag_list:
@@ -562,7 +562,7 @@ def deconfigure_data_switch():
     for switch in port_vlans:
         for port in port_vlans[switch]:
             log.info('switch: {}, port: {}, removing vlans: {}'.format(
-                      switch, port, port_vlans[switch][port]))
+                     switch, port, port_vlans[switch][port]))
             sw_dict[switch].allowed_vlans_port(
                 port, allow_op[switch].REMOVE, port_vlans[switch][port])
             log.info('Switch {}, setting port: {} to access mode'.format(
