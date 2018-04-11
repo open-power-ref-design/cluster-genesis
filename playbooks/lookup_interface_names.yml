@@ -31,7 +31,7 @@
 
     - name: Create list of PXE MACs with rename=false in inventory
       set_fact:
-        set_macs: "{{ set_macs| combine( {item.0: mac_to_device[item.0]} ) }}"
+        set_macs: "{{ set_macs| combine( {item.0: mac_to_device[item.0|lower]} ) }}"
       with_together:
         - "{{ vars['pxe']['macs'] }}"
         - "{{ vars['pxe']['rename'] }}"
@@ -41,7 +41,7 @@
 
     - name: Create list of data MACs with rename=false in inventory
       set_fact:
-        set_macs: "{{ set_macs| combine( {item.0: mac_to_device[item.0]} ) }}"
+        set_macs: "{{ set_macs| combine( {item.0: mac_to_device[item.0|lower]} ) }}"
       with_together:
         - "{{ vars['data']['macs'] }}"
         - "{{ vars['data']['rename'] }}"

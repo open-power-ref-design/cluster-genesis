@@ -25,10 +25,10 @@ import json
 from lib.inventory import Inventory
 from lib.config import Config
 import lib.logger as logger
-from lib import genesis
+import lib.genesis as gen
 
 SSH_USER = 'root'
-SSH_PRIVATE_KEY = genesis.get_ssh_private_key_file()
+SSH_PRIVATE_KEY = gen.get_ssh_private_key_file()
 INVENTORY_INIT = {
     'all': {
         'vars': {
@@ -117,7 +117,6 @@ if __name__ == '__main__':
     parser.add_argument('--list', action='store_true')
     parser.add_argument('--host', action='store')
     args = parser.parse_args()
-
     logger.create()
     LOG = logger.getlogger()
 

@@ -27,33 +27,25 @@ from orderedattrdict.yamlutils import AttrDictYAMLLoader
 import lib.logger as logger
 from lib.validate_config_schema import ValidateConfigSchema
 from lib.validate_config_logic import ValidateConfigLogic
-from lib.genesis import CFG_FILE
-from lib.genesis import INV_FILE
 from lib.exception import UserException
+import lib.genesis as gen
 
 
-class Database(object):
+class DatabaseConfig(object):
     """Database """
 
     FILE_MODE = 0o666
 
-    def __init__(self):
+    def __init__(self, cfg_file=None):
         self.log = logger.getlogger()
-        self.cfg_file = os.path.realpath(CFG_FILE)
+
+        if cfg_file:
+            self.cfg_file = os.path.realpath(cfg_file)
+        else:
+            self.cfg_file = os.path.realpath(gen.CFG_FILE)
+
         self.cfg = None
         self.inv = None
-
-        # If inventory file is broken link remove it
-        if os.path.islink(INV_FILE):
-            if not os.path.exists(os.readlink(INV_FILE)):
-                os.unlink(INV_FILE)
-
-        # Set 'inv_file' attribute after checking link
-        self.inv_file = os.path.realpath(INV_FILE)
-
-        # Create inventory file if it does not exist
-        if not os.path.isfile(INV_FILE):
-            os.mknod(INV_FILE, self.FILE_MODE)
 
     def _is_config_file(self, config_file):
         """ Check if config file exists
@@ -115,22 +107,6 @@ class Database(object):
         self.cfg = self._load_yaml_file(self.cfg_file)
         return self.cfg
 
-    def load_inventory(self):
-        """Load inventory from database
-
-        Returns:
-            object: Inventory
-        """
-
-        self.inv = self._load_yaml_file(self.inv_file)
-        return self.inv
-
-    def dump_inventory(self, inv):
-        """Dump inventory to database"""
-
-        self.inv = inv
-        self._dump_yaml_file(self.inv_file, inv)
-
     def validate_config(self, config_file):
         """Validate config"""
 
@@ -146,3 +122,80 @@ class Database(object):
         schema.validate_config_schema()
         logic = ValidateConfigLogic(self.cfg)
         logic.validate_config_logic()
+
+
+class DatabaseInventory(object):
+    """Database """
+
+    FILE_MODE = 0o666
+
+    def __init__(self, inv_file=None):
+        self.log = logger.getlogger()
+
+        if inv_file:
+            self.inv_file = os.path.realpath(inv_file)
+        else:
+            symlink_path = gen.get_symlink_path()
+            if os.path.islink(symlink_path):
+                if not os.path.exists(os.readlink(symlink_path)):
+                    os.unlink(symlink_path)
+            self.inv_file = gen.get_inventory_realpath()
+
+        self.inv = None
+
+        # Create inventory file if it does not exist
+        if not os.path.isfile(self.inv_file):
+            os.mknod(self.inv_file, self.FILE_MODE)
+
+    def _load_yaml_file(self, yaml_file):
+        """Load from YAML file
+
+        Exception:
+            If load from file fails
+        """
+
+        msg = "Failed to load '{}'".format(yaml_file)
+        try:
+            return yaml.load(open(yaml_file), Loader=AttrDictYAMLLoader)
+        except yaml.parser.ParserError as exc:
+            self.log.error("Failed to parse JSON '{}' - {}".format(
+                yaml_file, exc))
+            raise UserException(msg)
+        except Exception as exc:
+            self.log.error("Failed to load '{}' - {}".format(yaml_file, exc))
+            raise UserException(msg)
+
+    def _dump_yaml_file(self, yaml_file, content):
+        """Dump to YAML file
+
+        Exception:
+            If dump to file fails
+        """
+
+        try:
+            yaml.safe_dump(
+                content,
+                open(yaml_file, 'w'),
+                indent=4,
+                default_flow_style=False)
+        except Exception as exc:
+            self.log.error("Failed to dump inventory to '{}' - {}".format(
+                yaml_file, exc))
+            raise UserException("Failed to dump inventory to '{}'".format(
+                yaml_file))
+
+    def load_inventory(self):
+        """Load inventory from database
+
+        Returns:
+            object: Inventory
+        """
+
+        self.inv = self._load_yaml_file(self.inv_file)
+        return self.inv
+
+    def dump_inventory(self, inv):
+        """Dump inventory to database"""
+
+        self.inv = inv
+        self._dump_yaml_file(self.inv_file, inv)

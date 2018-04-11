@@ -95,6 +95,34 @@ def load_localhost(filename):
         sys.exit('Could not load file: ' + filename)
 
 
+def get_symlink_path():
+    from lib.config import Config
+    cfg = Config()
+    cont_vlan = str(cfg.get_depl_netw_client_vlan(if_type='pxe')[0])
+    file_name = INV_FILE_NAME.replace('.', cont_vlan + '.')
+    return os.path.join(GEN_PATH, file_name)
+
+
+def get_symlink_realpath():
+    return os.path.realpath(get_symlink_path())
+
+
+def get_inventory_realpath():
+    # If called inside a POWER_Up container, return the path to the inventory.yml
+    # file.  If callled outside the container, returns the realpath of the
+    # inventory.yml file corresponding to the active container.
+    if is_container() or not is_container_running():
+        return INV_FILE
+    return os.path.realpath(get_symlink_path())
+
+
+def get_container_name():
+    from lib.config import Config
+    cfg = Config()
+    cont_vlan = str(cfg.get_depl_netw_client_vlan(if_type='pxe')[0])
+    return DEFAULT_CONTAINER_NAME + '-pxe' + cont_vlan
+
+
 def is_container_running():
     cont_running = False
     lxc_ls_output = subprocess.check_output(['bash', '-c', 'lxc-ls -f'])

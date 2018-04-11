@@ -33,6 +33,7 @@ class InventoryNodes(object):
 
     def __init__(self):
         self.log = logger.getlogger()
+
         self.inv = Inventory()
 
     def __del__(self):

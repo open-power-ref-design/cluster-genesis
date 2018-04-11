@@ -21,9 +21,10 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 
 from enum import Enum
 from orderedattrdict import AttrDict, DefaultAttrDict
+
 import lib.logger as logger
 from lib.exception import UserException
-from lib.db import Database
+from lib.db import DatabaseInventory
 
 
 class Singleton(type):
@@ -89,9 +90,9 @@ class Inventory(object):
         IFACE = 'iface'
         DEVICE = 'DEVICE'
 
-    def __init__(self):
+    def __init__(self, inv_file=None):
         self.log = logger.getlogger()
-        self.dbase = Database()
+        self.dbase = DatabaseInventory(inv_file=inv_file)
 
         self.inv = AttrDict()
         inv = self.dbase.load_inventory()
@@ -721,15 +722,16 @@ class Inventory(object):
 
         for interface in self.inv.nodes[node_index][self.InvKey.INTERFACES]:
             for key, value in interface.iteritems():
-                value_split = []
-                for _value in value.split():
-                    if old_name == _value or old_name in _value.split('.'):
-                        _value = _value.replace(old_name, set_name)
-                    value_split.append(_value)
-                new_value = " ".join(value_split)
-                self.log.debug("Renaming node \'%s\' interface key \'%s\' from "
-                               "\'%s\' to \'%s\'" %
-                               (self.inv.nodes[node_index].hostname, key, value,
-                                new_value))
-                interface[key] = new_value
+                if isinstance(value, basestring):
+                    value_split = []
+                    for _value in value.split():
+                        if old_name == _value or old_name in _value.split('.'):
+                            _value = _value.replace(old_name, set_name)
+                        value_split.append(_value)
+                    new_value = " ".join(value_split)
+                    self.log.debug("Renaming node \'%s\' interface key \'%s\' "
+                                   "from \'%s\' to \'%s\'" %
+                                   (self.inv.nodes[node_index].hostname, key,
+                                    value, new_value))
+                    interface[key] = new_value
         self.dbase.dump_inventory(self.inv)
