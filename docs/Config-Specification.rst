@@ -855,7 +855,7 @@ node_templates:
 |             profile:               |         install_device: /dev/sda              |                                                                                  |          |
 |             install_device:        |         users:                                | |   *profile*         - Cobbler profile to use for OS installation. This         |          |
 |             users:                 |             - name: root                      |                         name usually should match the name of the                |          |
-|                 - name:            |               password: <crypted password>    |                         installation image (without the'.iso' extension).        |          |
+|                 - name:            |               password: <crypted password>    |                         installation image (with or without the'.iso' extension).|          |
 |                   password:        |             - name: user1                     | |   *install_device*  - Path to installation disk device.                        |          |
 |             groups:                |               password: <crypted password>    |                                                                                  |          |
 |                 - name:            |               groups: sudo,testgroup1         | | Optional keys:                                                                 |          |
@@ -866,7 +866,9 @@ node_templates:
 |                                    |                                               |                         (e.g. "controller-1" and "controoler-2").                |          |
 |                                    |                                               | |   *users*           - OS user accounts to create. All parameters in the        |          |
 |                                    |                                               |                         `Ansible user module <ansible_user_module_>`_ are        |          |
-|                                    |                                               |                         supported.                                               |          |
+|                                    |                                               |                         supported. **note:** Plaintext user passwords are not    |          |
+|                                    |                                               |                         supported. For help see                                  |          |
+|                                    |                                               |                         `Ansible's guide for generating passwords <gen_pass_>`_. |          |
 |                                    |                                               | |   *groups*          - OS groups to create. All parameters in the `Ansible      |          |
 |                                    |                                               |                         group module <ansible_group_module_>`_ are               |          |
 |                                    |                                               |                         supported.                                               |          |
@@ -1010,6 +1012,7 @@ node_templates:
 +------------------------------------+-----------------------------------------------+----------------------------------------------------------------------------------+----------+
 
 .. _ansible_user_module: http://docs.ansible.com/ansible/latest/user_module.html
+.. _gen_pass: http://docs.ansible.com/ansible/latest/reference_appendices/faq.html#how-do-i-generate-crypted-passwords-for-the-user-module
 .. _ansible_group_module: http://docs.ansible.com/ansible/latest/group_module.html
 
 

@@ -112,7 +112,7 @@ node_templates:
           hostname_prefix: rhel72
           users:
               - name: user1
-                password: passw0rd
+                password: $6$Utk.IILMG9.$EepS/sIgD4aA.qYQ3voZL9yI3/5Q4vv.p2s4sSmfCLAJlLAuaEmXDizDaBmJYGqHpobwpU2l4rJW.uUY4WNyv.
                 groups: sudo
           install_device: /dev/sda
       physical_interfaces:

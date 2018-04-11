@@ -55,7 +55,7 @@ sudo -E -H pip install --upgrade virtualenv
 virtualenv --no-wheel --system-site-packages deployenv
 source deployenv/bin/activate
 pip install \
-    'ansible==2.5.0' \
+    'ansible==2.4.3.0' \
     'orderedattrdict==1.5' \
     'pyroute2==0.5.0' \
     'jsonschema==2.6.0' \

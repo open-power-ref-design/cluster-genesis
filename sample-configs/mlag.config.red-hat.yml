@@ -246,7 +246,7 @@ node_templates:
           profile: RHEL-7.3-20161019.0-Server-ppc64le-dvd1.iso
           users:
               - name: user1
-                password: passw0rd
+                password: $6$Utk.IILMG9.$EepS/sIgD4aA.qYQ3voZL9yI3/5Q4vv.p2s4sSmfCLAJlLAuaEmXDizDaBmJYGqHpobwpU2l4rJW.uUY4WNyv.
                 groups: sudo
           install_device: /dev/sdj
       physical_interfaces:
@@ -288,7 +288,7 @@ node_templates:
           profile: RHEL-7.3-20161019.0-Server-ppc64le-dvd1.iso
           users:
               - name: user1
-                password: passw0rd
+                password: $6$Utk.IILMG9.$EepS/sIgD4aA.qYQ3voZL9yI3/5Q4vv.p2s4sSmfCLAJlLAuaEmXDizDaBmJYGqHpobwpU2l4rJW.uUY4WNyv.
                 groups: sudo
           install_device: /dev/sdj
       physical_interfaces:
@@ -330,7 +330,7 @@ node_templates:
           profile: ubuntu-16.04-server-ppc64el
           users:
               - name: user1
-                password: passw0rd
+                password: $6$Utk.IILMG9.$EepS/sIgD4aA.qYQ3voZL9yI3/5Q4vv.p2s4sSmfCLAJlLAuaEmXDizDaBmJYGqHpobwpU2l4rJW.uUY4WNyv.
                 groups: sudo
           install_device: /dev/sdj
       physical_interfaces:
