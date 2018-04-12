@@ -20,6 +20,7 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 
 import os
 import re
+import sys
 import subprocess
 import platform
 import time
@@ -30,6 +31,7 @@ import lib.logger as logger
 from lib.config import Config
 from lib.genesis import GEN_PATH
 from lib.exception import UserCriticalException
+from lib.genesis import Color
 
 IPR = IPRoute()
 
@@ -107,8 +109,8 @@ def _create_network(
         raise UserCriticalException('External interface {} not found.'
                                     .format(dev_label))
 
+    # if a bridge_ipaddr is not specied, then a bridge will not be created.
     if not bridge_ipaddr:
-        # if a bridge_ipaddr is not specied, then a bridge will not be created.
         # if address not already on device, then add it.
         if not interface_ipaddr + '/' + str(netprefix) in ifc_addresses[dev_label]:
             LOG.debug('Adding address {} to link {}'.
@@ -150,7 +152,7 @@ def _create_network(
                 mask=netmask,
                 broadcast=broadcast,
                 ifc_cfgd=ifc_cfgd)
-
+    # bridge
     else:
         # Check for existing addresses on the external interface and
         # remove any that lie within the mgmt subnet. You only need to remove
@@ -208,6 +210,14 @@ def _create_network(
             mode = 'a'
         else:
             mode = 'w'
+
+        if IPR.link_lookup(ifname=br_label):
+            LOG.info('{}NOTE: bridge {} is already in use{}'.format(Color.bold,
+                     br_label, Color.endc))
+            print("Enter to continue, or 'T' to terminate deployment")
+            resp = raw_input("\nEnter or 'T': ")
+            if resp == 'T':
+                sys.exit('POWER-Up stopped at user request')
 
         _write_br_cfg_file(
             br_label,
