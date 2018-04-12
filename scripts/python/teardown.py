@@ -27,6 +27,7 @@ import teardown_deployer_container
 import lib.argparse_teardown as argparse_teardown
 import lib.logger as logger
 import configure_data_switches
+from lib.genesis import get_container_name
 
 
 class Teardown(object):
@@ -38,6 +39,11 @@ class Teardown(object):
 
     def __init__(self, args):
         self.args = args
+        print('\nUsing config file for container: {}'.format(get_container_name()))
+        print("Enter to continue or 'T' to terminate")
+        resp = raw_input("\nEnter or 'T': ")
+        if resp == 'T':
+            sys.exit('POWER-Up stopped at user request')
 
     def _destroy_deployer_container(self):
         teardown_deployer_container.teardown_deployer_container()
