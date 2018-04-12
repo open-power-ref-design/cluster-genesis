@@ -103,9 +103,10 @@ def cobbler_install():
     os.mkdir(TFTPBOOT, mode)
 
     # Set IP address range to use for unrecognized DHCP clients
-    dhcp_range = 'dhcp-range=%s,%s  # %s'
+    dhcp_range = 'dhcp-range=%s,%s,%s  # %s'
     util.remove_line(DNSMASQ_TEMPLATE, 'dhcp-range')
     dhcp_pool_start = gen.get_dhcp_pool_start()
+    dhcp_lease_time = cfg.get_globals_dhcp_lease_time()
     for index, netw_type in enumerate(cfg.yield_depl_netw_client_type()):
         depl_netw_client_ip = cfg.get_depl_netw_client_cont_ip(index)
         depl_netw_client_netmask = cfg.get_depl_netw_client_netmask(index)
@@ -115,6 +116,7 @@ def cobbler_install():
 
         entry = dhcp_range % (str(network.network + dhcp_pool_start),
                               str(network.network + network.size - 1),
+                              str(dhcp_lease_time),
                               str(network.cidr))
 
         util.append_line(DNSMASQ_TEMPLATE, entry)
@@ -132,6 +134,7 @@ def cobbler_install():
 
     # Configure dnsmasq to use deployer as gateway
     if cfg.get_depl_gateway():
+        util.remove_line(COBBLER_CONF, 'dhcp-option')
         util.append_line(DNSMASQ_TEMPLATE, 'dhcp-option=3,%s' % bridge_pxe_ipaddr)
 
     # Cobbler modules configuration
