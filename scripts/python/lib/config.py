@@ -175,7 +175,7 @@ class Config(object):
         """
 
         try:
-            return self.cfg.globals.dhcp_lease_time
+            return str(self.cfg.globals.dhcp_lease_time)
         except AttributeError:
             return "1h"
 

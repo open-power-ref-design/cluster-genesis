@@ -50,6 +50,7 @@ class Globals(jsl.Document):
     env_variables = jsl.fields.DictField()
     switch_mode_mgmt = jsl.fields.StringField()
     switch_mode_data = jsl.fields.StringField()
+    dhcp_lease_time = _string_int_field()
 
 
 class LocationRacks(jsl.Document):
