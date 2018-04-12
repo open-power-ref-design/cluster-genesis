@@ -31,10 +31,10 @@ class InventoryNodes(object):
     SWITCH_NOT_FOUND = \
         "Node template '%s' did not have corresponding management switch '%s'"
 
-    def __init__(self):
+    def __init__(self, inv_path=None):
         self.log = logger.getlogger()
 
-        self.inv = Inventory()
+        self.inv = Inventory(inv_path)
 
     def __del__(self):
         self.inv.update_nodes()
