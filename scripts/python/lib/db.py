@@ -199,3 +199,8 @@ class DatabaseInventory(object):
 
         self.inv = inv
         self._dump_yaml_file(self.inv_file, inv)
+
+    def __del__(self):
+        if (os.path.isfile(self.inv_file) and
+                os.stat(self.inv_file).st_size == 0):
+            os.remove(self.inv_file)

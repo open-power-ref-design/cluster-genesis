@@ -255,6 +255,10 @@ class Gen(object):
             if not os.path.exists(os.readlink(symlink_path)):
                 os.unlink(symlink_path)
 
+        # If inventory is an empty file delete it
+        if os.stat(deployer_inv_file).st_size == 0:
+            os.remove(deployer_inv_file)
+
         # Create a sym link on deployer to inventory inside container
         if not os.path.isfile(deployer_inv_file):
             cont_inv_file = os.path.join(gen.LXC_DIR, cont.name, 'rootfs',

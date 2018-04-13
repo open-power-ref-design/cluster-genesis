@@ -239,14 +239,3 @@ def _assign_interface_ips(interfaces, interface_ip_lists):
                 interface[list_key] = ip
 
     return interfaces, interface_ip_lists
-
-
-class InventoryNodesTest(InventoryNodes):
-    """InventoryNodesTest
-
-    Overrides the InventoryNodes destructor to skip writing inventory
-    to file.
-    """
-
-    def __del__(self):
-        pass

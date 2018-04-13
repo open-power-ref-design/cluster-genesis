@@ -111,7 +111,7 @@ def get_inventory_realpath():
     # If called inside a POWER_Up container, return the path to the inventory.yml
     # file.  If callled outside the container, returns the realpath of the
     # inventory.yml file corresponding to the active container.
-    if is_container() or not is_container_running():
+    if is_container():
         return INV_FILE
     return os.path.realpath(get_symlink_path())
 
@@ -126,9 +126,10 @@ def get_container_name():
 def is_container_running():
     cont_running = False
     lxc_ls_output = subprocess.check_output(['bash', '-c', 'lxc-ls -f'])
-    cont_running = re.search('^%s\d+\s+RUNNING' % (DEFAULT_CONTAINER_NAME + '-pxe'),
-                             lxc_ls_output, re.MULTILINE)
-    if cont_running:
+    lxc_ls_output_search = re.search('^%s\d+\s+RUNNING' %
+                                     (DEFAULT_CONTAINER_NAME + '-pxe'),
+                                     lxc_ls_output, re.MULTILINE)
+    if lxc_ls_output_search is not None:
         cont_running = True
     return cont_running
 
