@@ -42,7 +42,8 @@ def cobbler_add_systems():
         password_ipmi = inv.get_nodes_ipmi_password(index)
         ipv4_pxe = inv.get_nodes_pxe_ipaddr(0, index)
         mac_pxe = inv.get_nodes_pxe_mac(0, index)
-        cobbler_profile = re.sub("[.]iso", "", inv.get_nodes_os_profile(index))
+        cobbler_profile = gen.check_os_profile(
+            re.sub("[.]iso", "", inv.get_nodes_os_profile(index)))
         raid1_enabled = False
 
         new_system_create = cobbler_server.new_system(token)

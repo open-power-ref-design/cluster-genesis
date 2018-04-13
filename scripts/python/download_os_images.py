@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -23,10 +23,12 @@ from orderedattrdict.yamlutils import AttrDictYAMLLoader
 import os.path
 import wget
 import hashlib
+import sys
 
 import lib.logger as logger
 from lib.config import Config
 from lib.genesis import get_os_images_path
+from lib.genesis import check_os_profile
 from lib.exception import UserException
 
 OS_IMAGES_URLS_FILENAME = 'os-image-urls.yml'
@@ -53,7 +55,7 @@ def download_os_images():
 
     for os_profile in cfg.yield_ntmpl_os_profile():
         for os_image_url in os_image_urls:
-            if os_profile in os_image_url.name:
+            if check_os_profile(os_profile) in os_image_url.name:
                 for image in os_image_url.images:
                     dest = os_images_path
                     if 'filename' in image:
@@ -63,6 +65,8 @@ def download_os_images():
                     if not os.path.isfile(dest):
                         log.info('Downloading OS image: %s' % image.url)
                         wget.download(image.url, out=dest)
+                        print('')
+                        sys.stdout.flush()
                     log.info('Verifying OS image sha1sum: %s' % dest)
                     sha1sum = _sha1sum(dest)
                     if image.sha1sum != sha1sum:

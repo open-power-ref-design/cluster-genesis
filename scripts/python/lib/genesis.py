@@ -270,6 +270,18 @@ def get_dhcp_pool_start():
     return DHCP_POOL_START
 
 
+def check_os_profile(profile):
+    ubuntu_lts_pointers = {
+        "ubuntu-14.04-server-amd64": "ubuntu-14.04.5-server-amd64",
+        "ubuntu-14.04-server-ppc64el": "ubuntu-14.04.5-server-ppc64el",
+        "ubuntu-16.04-server-amd64": "ubuntu-16.04.4-server-amd64",
+        "ubuntu-16.04-server-ppc64el": "ubuntu-16.04.4-server-ppc64el"}
+    if profile in list(ubuntu_lts_pointers):
+        return ubuntu_lts_pointers[profile]
+    else:
+        return profile
+
+
 if os.path.isfile(GEN_PATH + "playbooks/host_vars/localhost"):
     localhost_content = load_localhost(GEN_PATH + "playbooks/host_vars/localhost")
     container_name = localhost_content['container_name']
