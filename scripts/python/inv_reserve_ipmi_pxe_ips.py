@@ -118,16 +118,19 @@ def inv_set_ipmi_pxe_ip():
         raise UserException('No IPMI or PXE client network found')
 
     # Modify IP addresses for each node
+    dhcp_lease_time = cfg.get_globals_dhcp_lease_time()
     for index, hostname in enumerate(inv.yield_nodes_hostname()):
         # IPMI reservations are written directly to the dnsmasq template
         ipmi_ipaddr = inv.get_nodes_ipmi_ipaddr(0, index)
         ipmi_mac = inv.get_nodes_ipmi_mac(0, index)
         ipmi_new_ipaddr = ipmiNetwork.get_next_ip()
         util.remove_line(DNSMASQ_TEMPLATE, "^dhcp-host=" + ipmi_mac + ".*")
-        util.append_line(DNSMASQ_TEMPLATE, 'dhcp-host=%s,%s-bmc,%s\n' %
-                         (ipmi_mac, hostname, ipmi_new_ipaddr))
+        util.append_line(DNSMASQ_TEMPLATE, 'dhcp-host=%s,%s-bmc,%s,%s\n' %
+                         (ipmi_mac, hostname, ipmi_new_ipaddr,
+                          dhcp_lease_time))
         _adjust_dhcp_pool(ipmiNetwork.network,
-                          ipmiNetwork.get_next_ip(reserve=False))
+                          ipmiNetwork.get_next_ip(reserve=False),
+                          dhcp_lease_time)
 
         # PXE reservations are handled by Cobbler
         pxe_ipaddr = inv.get_nodes_pxe_ipaddr(0, index)
@@ -138,7 +141,8 @@ def inv_set_ipmi_pxe_ip():
                  (hostname, pxe_mac, pxe_ipaddr, pxe_new_ipaddr))
         inv.set_nodes_pxe_ipaddr(0, index, pxe_new_ipaddr)
         _adjust_dhcp_pool(pxeNetwork.network,
-                          pxeNetwork.get_next_ip(reserve=False))
+                          pxeNetwork.get_next_ip(reserve=False),
+                          dhcp_lease_time)
 
         # Run Cobbler sync to process DNSMASQ template
         cobbler_server = xmlrpclib.Server("http://127.0.0.1/cobbler_api")
@@ -219,10 +223,11 @@ def inv_set_ipmi_pxe_ip():
                             len(nodes_list))
 
 
-def _adjust_dhcp_pool(network, dhcp_pool_start):
-    dhcp_range = 'dhcp-range=%s,%s  # %s'
+def _adjust_dhcp_pool(network, dhcp_pool_start, dhcp_lease_time):
+    dhcp_range = 'dhcp-range=%s,%s,%s  # %s'
     new_entry = dhcp_range % (dhcp_pool_start,
                               str(network.network + network.size - 1),
+                              str(dhcp_lease_time),
                               str(network.cidr))
 
     entry = "^dhcp-range=.* # " + str(network.cidr)

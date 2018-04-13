@@ -54,6 +54,7 @@ COBBLER = '/usr/local/bin/cobbler'
 LOCAL_PY_DIST_PKGS = '/usr/local/lib/python2.7/dist-packages'
 PY_DIST_PKGS = '/usr/lib/python2.7/dist-packages'
 APACHE2_CONF = '/etc/apache2/apache2.conf'
+MANAGE_DNSMASQ = '/opt/cobbler/cobbler/modules/manage_dnsmasq.py'
 
 A2ENCONF = '/usr/sbin/a2enconf'
 A2ENMOD = '/usr/sbin/a2enmod'
@@ -83,6 +84,13 @@ def cobbler_install():
         "Cobbler branch \'%s\' cloned into \'%s\'" %
         (repo.active_branch, repo.working_dir))
 
+    # Modify Cobbler scrpit that write DHCP reservations so that the
+    #   lease time is included.
+    dhcp_lease_time = cfg.get_globals_dhcp_lease_time()
+    util.replace_regex(MANAGE_DNSMASQ, 'systxt \= systxt \+ \"\\\\n\"',
+                       "systxt = systxt + \",{}\\\\n\"".
+                       format(dhcp_lease_time))
+
     # Run cobbler make install
     util.bash_cmd('cd %s; make install' % install_dir)
 
@@ -106,7 +114,6 @@ def cobbler_install():
     dhcp_range = 'dhcp-range=%s,%s,%s  # %s'
     util.remove_line(DNSMASQ_TEMPLATE, 'dhcp-range')
     dhcp_pool_start = gen.get_dhcp_pool_start()
-    dhcp_lease_time = cfg.get_globals_dhcp_lease_time()
     for index, netw_type in enumerate(cfg.yield_depl_netw_client_type()):
         depl_netw_client_ip = cfg.get_depl_netw_client_cont_ip(index)
         depl_netw_client_netmask = cfg.get_depl_netw_client_netmask(index)
@@ -134,7 +141,7 @@ def cobbler_install():
 
     # Configure dnsmasq to use deployer as gateway
     if cfg.get_depl_gateway():
-        util.remove_line(COBBLER_CONF, 'dhcp-option')
+        util.remove_line(DNSMASQ_TEMPLATE, 'dhcp-option')
         util.append_line(DNSMASQ_TEMPLATE, 'dhcp-option=3,%s' % bridge_pxe_ipaddr)
 
     # Cobbler modules configuration
