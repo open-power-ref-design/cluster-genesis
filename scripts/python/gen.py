@@ -26,6 +26,7 @@ import getpass
 import subprocess
 
 import enable_deployer_networks
+import enable_deployer_gateway
 import validate_cluster_hardware
 import configure_mgmt_switches
 import download_os_images
@@ -101,6 +102,24 @@ class Gen(object):
                   format(COL.yellow, exc, COL.endc))
         else:
             print('Successfully completed deployer network setup\n')
+
+    def _enable_deployer_gateway(self):
+        print(COL.scroll_ten, COL.up_ten)
+        print('{}Setting up PXE network gateway and NAT record{}\n'.
+              format(COL.header1, COL.endc))
+        try:
+            enable_deployer_gateway.enable_deployer_gateway()
+        except UserCriticalException as exc:
+            print('{}Critical error occured while setting up PXE network '
+                  'gateway and NAT record:\n{}{}'.
+                  format(COL.red, exc, COL.endc))
+            sys.exit(1)
+        except UserException as exc:
+            print('{}Error occured while setting up PXE network gateway and '
+                  'NAT record: \n{}{}'.
+                  format(COL.yellow, exc, COL.endc))
+        else:
+            print('Successfully completed PXE network gateway setup\n')
 
     def _create_container(self):
         print(COL.scroll_ten, COL.up_ten)
@@ -515,9 +534,17 @@ class Gen(object):
                 print(
                     'Fail: Invalid subcommand in container', file=sys.stderr)
                 sys.exit(1)
+
             self._check_root_user(cmd)
+
+            if self.args.all:
+                self.args.networks = True
+                self.args.gateway = True
+
             if self.args.networks:
                 self._create_deployer_networks()
+            if self.args.gateway:
+                self._enable_deployer_gateway()
 
         if cmd == argparse_gen.Cmd.CONFIG.value:
             if gen.is_container():

@@ -16,12 +16,13 @@
 # limitations under the License.
 
 if [[ "$1" == "deployer" ]]; then
-    if [[ "$2" == "--networks" ]]; then
+    if [[ "$2" == "--networks" ]] || [[ "$2" == "--gateway" ]]; then
         sudo env "PATH=$PATH" teardown.py $@
     elif [[ "$2" == "--all" ]] || [[ "$2" == "--al" ]] || \
             [[ "$2" == "--a" ]] || [[ "$2" == "-a" ]]; then
-        sudo env "PATH=$PATH" teardown.py deployer --networks
         teardown.py deployer --container
+        sudo env "PATH=$PATH" teardown.py deployer --gateway
+        sudo env "PATH=$PATH" teardown.py deployer --networks
     else
         teardown.py $@
     fi
