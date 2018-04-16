@@ -40,7 +40,7 @@ if [[ "$1" == "deploy" ]] && ([[ "$2" == "-a" ]] || [[ "$2" == "--all" ]] || \
         exit
     fi
 
-    sudo env "PATH=$PATH" gen.py setup --networks $@
+    sudo env "PATH=$PATH" gen.py setup --all $@
     if [ $? -ne 0 ]; then
         exit
     fi
