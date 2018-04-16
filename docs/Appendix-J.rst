@@ -51,11 +51,11 @@ Prepare New Host
 
     **NOTE:** anytime you leave and restart your shell session, you need to
     re-execute the set-env script. Alternately, (recommended) add the following
-    to your .bashrc file; *PATH=~/cluster-genesis/deployenv/bin:$PATH*
+    to your .bashrc file; *PATH=~/cluster-genesis/pup-venv/bin:$PATH*
 
     ie::
 
-    user@new-host:~$ echo "PATH=~/cluster-genesis/deployenv/bin:\$PATH" >> ~/.bashrc
+    user@new-host:~$ echo "PATH=~/cluster-genesis/pup-venv/bin:\$PATH" >> ~/.bashrc
 
 #. Copy config.yml, inventory.yml, and known_hosts files from origin to new
    host::

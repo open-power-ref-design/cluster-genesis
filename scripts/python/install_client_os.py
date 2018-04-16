@@ -82,13 +82,13 @@ def install_client_os():
 
     cnt = 60
     handled_list = []
-    log.info('Waiting for installation to begin.  Scanning on 10 sec intervals')
+    log.info('Waiting for installation to begin.  Polling on 10 sec intervals')
     while cnt > 0:
         stdout, stderr = _sub_proc_exec(cmd)
         latest_list = re.findall(r'(?:\d{1,3}\.){3}\d{1,3}', stdout)
         new_list, handled_list = _get_lists(latest_list, handled_list)
         installing_cnt = len(handled_list)
-        print('Nodes installing: {} of {}. Count down: {}{}'.
+        print('Nodes installing: {} of {}. Remaining polls: {}{}'.
               format(installing_cnt, client_cnt, cnt, gen.Color.up_one))
         sys.stdout.flush()
         if new_list:
@@ -98,7 +98,7 @@ def install_client_os():
         if installing_cnt == client_cnt:
             break
         cnt -= 1
-    print()
+    print('\n')
     log.info(stdout)
     msg = ('\nNot all cluster nodes have started installation.  Genesis is\n'
            'continuing with the installation. Clients that have not begun\n'

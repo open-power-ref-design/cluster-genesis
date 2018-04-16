@@ -1,5 +1,5 @@
----
-# Copyright 2017 IBM Corp.
+#!/bin/bash
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -15,12 +15,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-- name: set_port_macs.yml
-  hosts: localhost
-  tasks:
-    - name: Get interface MACs from the switch and write them to the inventory
-      command: "{{ python_executable_local }} \
-                {{ scripts_path_local }}/python/set_port_macs.py \
-                /var/oprc/inventory.yml \
-                {{ log_level }}"
-      ignore_errors: yes
+sudo -E -H pip install --upgrade virtualenv
+virtualenv --no-wheel --system-site-packages ${1}pup-venv
+source ${1}pup-venv/bin/activate
+pip install \
+    'ansible==2.4.3.0' \
+    'orderedattrdict==1.5' \
+    'pyroute2==0.5.0' \
+    'jsonschema==2.6.0' \
+    'jsl==0.2.4' \
+    'pyghmi==1.0.42' \
+    'wget==3.2' \
+    'pyasn1==0.4.2' \
+    'pysnmp==4.4.4' \
+    'pyaml==17.12.1' \
+    'paramiko==2.4.1' \
+    'tabulate==0.8.2' \
+    'gitpython==2.1.9'
+deactivate

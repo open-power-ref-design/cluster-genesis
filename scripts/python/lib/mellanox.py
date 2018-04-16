@@ -283,6 +283,59 @@ class Mellanox(SwitchCommon):
             raise SwitchException(
                 'Failed configuring management interface vlan {}'.format(vlan))
 
+    def allowed_vlans_port(self, port, operation, vlans=''):
+        """ configure vlans on a port channel
+        ARGS:
+            operation (enum of AllowOp): add | all | except | none | remove
+            vlan (str or tuple or list). if type string, can be of the
+            following formats: '4' or '4,5,8' or '5-10'
+        """
+        for vlan in vlans:
+            cmd = self.IFC_ETH_CFG.format(port) + self.SEP + \
+                self.SWITCHPORT_TRUNK_ALLOWED_VLAN.format(operation.value, vlan)
+            self.send_cmd(cmd)
+
+        if isinstance(vlans, (tuple, list)):
+            vlans = vlans[:]
+            vlans = [str(vlans[i]) for i in range(len(vlans))]
+            vlans = ','.join(vlans)
+        else:
+            vlans = str(vlans)
+
+        res = self.is_vlan_allowed_for_port(vlans, port)
+        if operation.value == 'add':
+            if res is None:
+                return
+            elif not res:
+                msg = 'Not all vlans in {} were added to port {}'. \
+                    format(vlans, port)
+                self.log.error(msg)
+            else:
+                self.log.debug('vlans {} were added to port {}'.
+                               format(vlans, port))
+        if operation.value == 'remove':
+            if res is None:
+                return
+            elif res:
+                msg = 'Not all vlans in {} were removed from port {}'. \
+                    format(vlans, port)
+                self.log.error(msg)
+            else:
+                self.log.debug('vlans {} were removed from port {}'.
+                               format(vlans, port))
+
+    def allowed_vlans_port_channel(self, port, operation, vlans=''):
+        """ configure vlans on a port channel
+        ARGS:
+            operation (str): add | all | except | none | remove
+            vlan (str or tuple or list). if type string, can be of the
+            following formats: '4' or '4,5,8' or '5-10'
+        """
+        for vlan in vlans:
+            cmd = self.IFC_PORT_CH_CFG.format(port) + self.SEP + \
+                self.SWITCHPORT_TRUNK_ALLOWED_VLAN.format(operation.value, vlan)
+            self.send_cmd(cmd)
+
     def set_mtu_for_port(self, port, mtu):
         # Bring port down
         self.send_cmd(
@@ -514,14 +567,10 @@ class Mellanox(SwitchCommon):
             vlan (str or tuple or list). if type string, can be of the
             following formats: '4' or '4,5,8' or '5-10'
         """
-        if isinstance(vlans, (tuple, list)):
-            vlans = [str(vlans[i]) for i in range(len(vlans))]
-            vlans = ','.join(vlans)
-        else:
-            vlans = str(vlans)
-        cmd = self.IFC_MLAG_PORT_CH_CFG.format(port) + self.SEP +\
-            self.SWITCHPORT_TRUNK_ALLOWED_VLAN.format(operation.value, vlans)
-        self.send_cmd(cmd)
+        for vlan in vlans:
+            cmd = self.IFC_MLAG_PORT_CH_CFG.format(port) + self.SEP + \
+                self.SWITCHPORT_TRUNK_ALLOWED_VLAN.format(operation.value, vlan)
+            self.send_cmd(cmd)
 
     def bind_ports_to_mlag_interface(self, ports, mlag_ifc=None):
         """ Bind ports to an MLAG interface and enable it. If no mlag

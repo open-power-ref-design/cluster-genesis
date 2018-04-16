@@ -17,5 +17,5 @@
 
 project_path: /opt/power-up
 scripts_path: "{{ project_path }}/scripts"
-venv_path: "{{ project_path }}/gen-venv"
+venv_path: "{{ project_path }}/pup-venv"
 python_executable: "{{ venv_path }}/bin/python"

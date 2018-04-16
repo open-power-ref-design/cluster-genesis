@@ -21,9 +21,10 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 
 from enum import Enum
 from orderedattrdict import AttrDict, DefaultAttrDict
+
 import lib.logger as logger
 from lib.exception import UserException
-from lib.db import Database
+from lib.db import DatabaseInventory
 
 
 class Singleton(type):
@@ -89,9 +90,9 @@ class Inventory(object):
         IFACE = 'iface'
         DEVICE = 'DEVICE'
 
-    def __init__(self):
+    def __init__(self, inv_file=None):
         self.log = logger.getlogger()
-        self.dbase = Database()
+        self.dbase = DatabaseInventory(inv_file=inv_file)
 
         self.inv = AttrDict()
         inv = self.dbase.load_inventory()
@@ -439,6 +440,69 @@ class Inventory(object):
             self.inv.nodes, self.InvKey.PXE,
             index)[self.InvKey.MACS][if_index]
 
+    def _check_all_nodes_mac_ipaddr(self, interface_type, key):
+        """Check if PXE/IPMI key is populated across all nodes
+        Args:
+            interface_type (str): Interface type ("ipmi" or "pxe")
+            key (str): Dictionary key ("macs", "ipaddrs", etc.)
+
+        Returns:
+            bool: True if all nodes have value populated for key
+        """
+
+        # If no nodes defined return False
+        if (self.InvKey.NODES not in self.inv or
+                len(self.inv[self.InvKey.NODES]) < 1):
+            return False
+
+        # If any value is None immediately return False
+        for node in self.inv[self.InvKey.NODES]:
+            for item in node[interface_type][key]:
+                if item is None:
+                    return False
+        else:
+            return True
+
+    def check_all_nodes_ipmi_ipaddrs(self):
+        """Check if all nodes have populated IPMI interface ipaddr
+
+        Returns:
+            bool: True if all nodes have all IPMI ipaddrs items populated
+        """
+
+        return self._check_all_nodes_mac_ipaddr(self.InvKey.IPMI,
+                                                self.InvKey.IPADDRS)
+
+    def check_all_nodes_ipmi_macs(self):
+        """Check if all nodes have populated IPMI interface mac
+
+        Returns:
+            bool: True if all nodes have all IPMI macs items populated
+        """
+
+        return self._check_all_nodes_mac_ipaddr(self.InvKey.IPMI,
+                                                self.InvKey.MACS)
+
+    def check_all_nodes_pxe_ipaddrs(self):
+        """Check if all nodes have populated PXE interface ipaddr
+
+        Returns:
+            bool: True if all nodes have all PXE ipaddrs items populated
+        """
+
+        return self._check_all_nodes_mac_ipaddr(self.InvKey.PXE,
+                                                self.InvKey.IPADDRS)
+
+    def check_all_nodes_pxe_macs(self):
+        """Check if all nodes have populated PXE interface mac
+
+        Returns:
+            bool: True if all nodes have all PXE macs items populated
+        """
+
+        return self._check_all_nodes_mac_ipaddr(self.InvKey.PXE,
+                                                self.InvKey.MACS)
+
     def get_nodes_os_profile(self, index=None):
         """Get nodes OS profile
         Args:
@@ -658,15 +722,16 @@ class Inventory(object):
 
         for interface in self.inv.nodes[node_index][self.InvKey.INTERFACES]:
             for key, value in interface.iteritems():
-                value_split = []
-                for _value in value.split():
-                    if old_name == _value or old_name in _value.split('.'):
-                        _value = _value.replace(old_name, set_name)
-                    value_split.append(_value)
-                new_value = " ".join(value_split)
-                self.log.debug("Renaming node \'%s\' interface key \'%s\' from "
-                               "\'%s\' to \'%s\'" %
-                               (self.inv.nodes[node_index].hostname, key, value,
-                                new_value))
-                interface[key] = new_value
+                if isinstance(value, basestring):
+                    value_split = []
+                    for _value in value.split():
+                        if old_name == _value or old_name in _value.split('.'):
+                            _value = _value.replace(old_name, set_name)
+                        value_split.append(_value)
+                    new_value = " ".join(value_split)
+                    self.log.debug("Renaming node \'%s\' interface key \'%s\' "
+                                   "from \'%s\' to \'%s\'" %
+                                   (self.inv.nodes[node_index].hostname, key,
+                                    value, new_value))
+                    interface[key] = new_value
         self.dbase.dump_inventory(self.inv)

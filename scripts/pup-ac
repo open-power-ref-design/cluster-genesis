@@ -49,8 +49,8 @@ _pup()
     fi
 
     opts="--create-inventory --install-cobbler --download-os-images "
-    opts+="--inv-add-ports-ipmi --inv-add-ports-pxe --add-cobbler-distros "
-    opts+="--add-cobbler-systems --install-client-os "
+    opts+="--inv-add-ports-ipmi --inv-add-ports-pxe --reserve-ipmi-pxe-ips "
+    opts+="--add-cobbler-distros --add-cobbler-systems --install-client-os "
     opts="$opts""$comm_opts"
 
     if [[ ${cur} == * ]] && [[ ${prev} == deploy ]]; then

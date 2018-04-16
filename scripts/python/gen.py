@@ -26,6 +26,7 @@ import getpass
 import subprocess
 
 import enable_deployer_networks
+import enable_deployer_gateway
 import validate_cluster_hardware
 import configure_mgmt_switches
 import download_os_images
@@ -33,7 +34,7 @@ import lxc_conf
 import lib.argparse_gen as argparse_gen
 import lib.logger as logger
 import lib.genesis as gen
-from lib.db import Database
+from lib.db import DatabaseConfig
 from lib.exception import UserException, UserCriticalException
 from lib.switch_exception import SwitchException
 from ipmi_power_off import ipmi_power_off
@@ -102,6 +103,24 @@ class Gen(object):
         else:
             print('Successfully completed deployer network setup\n')
 
+    def _enable_deployer_gateway(self):
+        print(COL.scroll_ten, COL.up_ten)
+        print('{}Setting up PXE network gateway and NAT record{}\n'.
+              format(COL.header1, COL.endc))
+        try:
+            enable_deployer_gateway.enable_deployer_gateway()
+        except UserCriticalException as exc:
+            print('{}Critical error occured while setting up PXE network '
+                  'gateway and NAT record:\n{}{}'.
+                  format(COL.red, exc, COL.endc))
+            sys.exit(1)
+        except UserException as exc:
+            print('{}Error occured while setting up PXE network gateway and '
+                  'NAT record: \n{}{}'.
+                  format(COL.yellow, exc, COL.endc))
+        else:
+            print('Successfully completed PXE network gateway setup\n')
+
     def _create_container(self):
         print(COL.scroll_ten, COL.up_ten)
         print('{}Creating container for running the Cluster '
@@ -132,8 +151,9 @@ class Gen(object):
         print(COL.scroll_ten, COL.up_ten)
         print('{}Validating cluster configuration file{}\n'.
               format(COL.header1, COL.endc))
-        dbase = Database()
-        nodes = InventoryNodes()
+        dbase = DatabaseConfig()
+        inv_path = gen.GEN_LOGS_PATH + gen.INV_FILE_NAME
+        nodes = InventoryNodes(inv_path)
         try:
             dbase.validate_config(self.args.config_file)
             nodes.create_nodes()
@@ -192,7 +212,30 @@ class Gen(object):
             print('Successfully validated cluster hardware.\n')
 
     def _create_inventory(self):
+        from lib.inventory import Inventory
+        log = logger.getlogger()
+        inv = Inventory()
+        node_count = len(inv.inv['nodes'])
+        if node_count > 0:
+            log.info("Inventory already exists!")
+            print("\nInventory already exists with {} nodes defined."
+                  "".format(node_count))
+            print("Press enter to continue using the existing inventory.")
+            print("Type 'C' to continue creating a new inventory. "
+                  "WARNING: Contents of current file will be overwritten!")
+            resp = raw_input("Type 'T' to terminate Cluster Genesis ")
+            if resp == 'T':
+                sys.exit('POWER-Up stopped at user request')
+            elif resp == 'C':
+                log.info("'{}' entered. Creating new inventory file."
+                         "".format(resp))
+            else:
+                log.info("Continuing with existing inventory.")
+                return
+
         from lib.container import Container
+
+        log = logger.getlogger()
 
         cont = Container(self.args.create_inventory)
         cmd = []
@@ -204,18 +247,28 @@ class Gen(object):
         except UserException as exc:
             print('Fail:', exc.message, file=sys.stderr)
             sys.exit(1)
-        print('Success: Created inventory file')
 
-        # Remove existing inventory file on deployer
-        deployer_inv_file = os.path.realpath(gen.INV_FILE)
-        if os.path.isfile(deployer_inv_file):
+        deployer_inv_file = gen.get_symlink_realpath()
+
+        # If inventory file symlink is broken link remove it
+        symlink_path = gen.get_symlink_path()
+        if os.path.islink(symlink_path):
+            if not os.path.exists(os.readlink(symlink_path)):
+                os.unlink(symlink_path)
+
+        # If inventory is an empty file delete it
+        if os.stat(deployer_inv_file).st_size == 0:
             os.remove(deployer_inv_file)
 
         # Create a sym link on deployer to inventory inside container
-        cont_inv_file = os.path.join(gen.LXC_DIR, cont.name, 'rootfs',
-                                     gen.CONTAINER_PACKAGE_PATH[1:],
-                                     gen.INV_FILE_NAME)
-        os.symlink(cont_inv_file, deployer_inv_file)
+        if not os.path.isfile(deployer_inv_file):
+            cont_inv_file = os.path.join(gen.LXC_DIR, cont.name, 'rootfs',
+                                         gen.CONTAINER_PACKAGE_PATH[1:],
+                                         gen.INV_FILE_NAME)
+            log.debug("Creating symlink on deployer to container inventory: "
+                      "{} -> {}".format(deployer_inv_file, cont_inv_file))
+            os.symlink(cont_inv_file, deployer_inv_file)
+        print('Success: Created inventory file')
 
     def _install_cobbler(self):
         from lib.container import Container
@@ -242,16 +295,24 @@ class Gen(object):
             sys.exit(1)
 
         cont = Container(self.args.download_os_images)
-        ssh = cont.open_ssh()
-        sftp = cont.open_sftp(ssh)
+        local_os_images = gen.get_os_images_path()
+        cont_os_images = gen.get_container_os_images_path()
         try:
-            cont.copy_dir_to_container(sftp, cont.depl_os_images_path)
+            cont.copy_dir_to_container(local_os_images, cont_os_images)
         except UserException as exc:
             print('Fail:', exc.message, file=sys.stderr)
             sys.exit(1)
         print('Success: OS images downloaded and copied into container')
 
     def _inv_add_ports_ipmi(self):
+        log = logger.getlogger()
+        from lib.inventory import Inventory
+        inv = Inventory()
+        if (inv.check_all_nodes_ipmi_macs() and
+                inv.check_all_nodes_ipmi_ipaddrs()):
+            log.info("IPMI ports MAC and IP addresses already in inventory")
+            return
+
         dhcp_lease_file = '/var/lib/misc/dnsmasq.leases'
         from lib.container import Container
 
@@ -285,6 +346,14 @@ class Gen(object):
         print('Success: Cobbler distros and profiles added')
 
     def _inv_add_ports_pxe(self):
+        log = logger.getlogger()
+        from lib.inventory import Inventory
+        inv = Inventory()
+        if (inv.check_all_nodes_pxe_macs() and
+                inv.check_all_nodes_pxe_ipaddrs()):
+            log.info("PXE ports MAC and IP addresses already in inventory")
+            return
+
         power_time_out = gen.get_power_time_out()
         power_wait = gen.get_power_wait()
         ipmi_power_off(power_time_out, power_wait)
@@ -351,7 +420,6 @@ class Gen(object):
         except UserException as exc:
             print('Fail:', exc.message, file=sys.stderr)
             sys.exit(1)
-
         _run_playbook("wait_for_clients_ping.yml")
 
         print('Success: Client OS installaion complete')
@@ -471,9 +539,17 @@ class Gen(object):
                 print(
                     'Fail: Invalid subcommand in container', file=sys.stderr)
                 sys.exit(1)
+
             self._check_root_user(cmd)
+
+            if self.args.all:
+                self.args.networks = True
+                self.args.gateway = True
+
             if self.args.networks:
                 self._create_deployer_networks()
+            if self.args.gateway:
+                self._enable_deployer_gateway()
 
         if cmd == argparse_gen.Cmd.CONFIG.value:
             if gen.is_container():
@@ -569,7 +645,6 @@ def _run_playbook(playbook):
     inventory = ' -i ' + gen.get_python_path() + '/inventory.py'
     playbook = ' ' + playbook
     cmd = ansible_playbook + inventory + playbook
-
     command = ['bash', '-c', cmd]
     log.debug('Run subprocess: %s' % ' '.join(command))
     process = subprocess.Popen(command, cwd=gen.get_playbooks_path())

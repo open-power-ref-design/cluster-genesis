@@ -25,7 +25,7 @@ import netaddr
 from itertools import chain
 
 import lib.logger as logger
-from lib.db import Database
+from lib.db import DatabaseConfig
 from lib.exception import UserException
 
 
@@ -82,7 +82,7 @@ class Config(object):
         if cfg:
             self.cfg = cfg
         else:
-            dbase = Database()
+            dbase = DatabaseConfig()
             self.cfg = dbase.load_config()
 
     @staticmethod

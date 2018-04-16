@@ -27,7 +27,7 @@ Schema and logic validation of the config file can be performed with the
 *pup.py* command::
 
     $ cd cluster-genesis
-    $ source deployenv/bin/activate
+    $ source pup-venv/bin/activate
     $ ./scripts/python/pup.py validate --config-file
 
 Switch Mode

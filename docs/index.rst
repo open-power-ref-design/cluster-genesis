@@ -31,6 +31,7 @@ Welcome to Cluster POWER-Up User's Guide documentation!
    Run-Cluster-Genesis
    Config-Specification
    Inventory-Specification
+   Multi-Tenant
    Dev-Guide
    Build-Introspection
    Appendix-A

@@ -31,13 +31,13 @@ if [[ ! $PATH == *"$PROJECT_ROOT/scripts/python:"* ]]; then
     export PATH=$PROJECT_ROOT/scripts/python:$PATH
 fi
 
-if [[ ! $PATH == *"$PROJECT_ROOT/deployenv/bin:"* ]]; then
-    export PATH=$PROJECT_ROOT/deployenv/bin:$PATH
+if [[ ! $PATH == *"$PROJECT_ROOT/pup-venv/bin:"* ]]; then
+    export PATH=$PROJECT_ROOT/pup-venv/bin:$PATH
 fi
 
 if [ -z "$(grep -m1 $PROJECT_ROOT"/scripts:" ~/.bashrc)" ] || \
 [ -z "$(grep -m1 $PROJECT_ROOT"/scripts/python:" ~/.bashrc)" ] || \
-[ -z "$(grep -m1 $PROJECT_ROOT"/deployenv/bin:" ~/.bashrc)" ]; then
+[ -z "$(grep -m1 $PROJECT_ROOT"/pup-venv/bin:" ~/.bashrc)" ]; then
     echo $'\n'"OK for POWER-Up to add setup statements to your"
     echo $".bashrc file. (statements can be removed by running tear-down)"
     echo;
@@ -49,8 +49,8 @@ if [ -z "$(grep -m1 $PROJECT_ROOT"/scripts:" ~/.bashrc)" ] || \
         if [ -z "$(grep -m1 $PROJECT_ROOT"/scripts/python:" ~/.bashrc)" ]; then
             echo "PATH="$PROJECT_ROOT"/scripts/python:\$PATH" >> ~/.bashrc
         fi
-        if [ -z "$(grep -m1 $PROJECT_ROOT"/deployenv/bin:" ~/.bashrc)" ]; then
-            echo "PATH="$PROJECT_ROOT"/deployenv/bin:\$PATH" >> ~/.bashrc
+        if [ -z "$(grep -m1 $PROJECT_ROOT"/pup-venv/bin:" ~/.bashrc)" ]; then
+            echo "PATH="$PROJECT_ROOT"/pup-venv/bin:\$PATH" >> ~/.bashrc
         fi
     fi
 fi

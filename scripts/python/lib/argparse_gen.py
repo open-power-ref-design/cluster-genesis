@@ -133,7 +133,7 @@ def get_args(parser_args=False):
     parser_setup.add_argument(
         '-a', '--all',
         action='store_true',
-        help='TBD')
+        help='Run all cluster setup steps')
 
     # 'config' subcommand arguments
     parser_config.set_defaults(
