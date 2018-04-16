@@ -147,12 +147,13 @@ class Gen(object):
         print('Success: Created container')
 
     def _config_file(self):
-        from lib.inv_nodes import InventoryNodesTest
+        from lib.inv_nodes import InventoryNodes
         print(COL.scroll_ten, COL.up_ten)
         print('{}Validating cluster configuration file{}\n'.
               format(COL.header1, COL.endc))
         dbase = DatabaseConfig()
-        nodes = InventoryNodesTest()
+        inv_path = gen.GEN_LOGS_PATH + gen.INV_FILE_NAME
+        nodes = InventoryNodes(inv_path)
         try:
             dbase.validate_config(self.args.config_file)
             nodes.create_nodes()
