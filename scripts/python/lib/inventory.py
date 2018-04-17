@@ -90,9 +90,9 @@ class Inventory(object):
         IFACE = 'iface'
         DEVICE = 'DEVICE'
 
-    def __init__(self, inv_file=None):
+    def __init__(self, cfg_file=None, inv_file=None):
         self.log = logger.getlogger()
-        self.dbase = DatabaseInventory(inv_file=inv_file)
+        self.dbase = DatabaseInventory(inv_file=inv_file, cfg_file=cfg_file)
 
         self.inv = AttrDict()
         inv = self.dbase.load_inventory()

@@ -57,9 +57,9 @@ class Container(object):
     PUBLIC_SSH_KEY_FILE = os.path.expanduser('~/.ssh/gen.pub')
     DEFAULT_CONTAINER_NAME = gen.get_project_name()
 
-    def __init__(self, name):
+    def __init__(self, config_path=None, name=None):
         self.log = logger.getlogger()
-        self.cfg = Config()
+        self.cfg = Config(config_path)
 
         self.cont_package_path = gen.get_container_package_path()
         self.cont_id_file = gen.get_container_id_file()
@@ -71,7 +71,6 @@ class Container(object):
         self.depl_package_path = gen.get_package_path()
         self.depl_python_path = gen.get_python_path()
         self.depl_playbooks_path = gen.get_playbooks_path()
-        self.config_file = gen.get_config_file_name()
 
         self.cont_ini = os.path.join(self.depl_package_path, 'container.ini')
         self.rootfs = self.ROOTFS
@@ -84,7 +83,7 @@ class Container(object):
             raise UserException(msg)
         self.rootfs.arch = self.ARCHITECTURE[arch]
 
-        if name is None:
+        if name is True or name is None:
             for vlan in self.cfg.yield_depl_netw_client_vlan('pxe'):
                 break
             self.name = '{}-pxe{}'.format(self.DEFAULT_CONTAINER_NAME, vlan)

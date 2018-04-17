@@ -103,6 +103,13 @@ def get_args(parser_args=False):
         action='store_true',
         help='Apply all actions')
 
+    parser_deployer.add_argument(
+        'config_file_name',
+        nargs='?',
+        default='config.yml',
+        metavar='CONFIG-FILE-NAME',
+        help='Config file name. Specify relative to the power-up directory.')
+
     # 'switches' subcommand arguments
     parser_switches.set_defaults(
         switches=True)
@@ -123,6 +130,13 @@ def get_args(parser_args=False):
         '-a', '--all',
         action='store_true',
         help='Deconfigure all switches.')
+
+    parser_switches.add_argument(
+        'config_file_name',
+        nargs='?',
+        default='config.yml',
+        metavar='CONFIG-FILE-NAME',
+        help='Config file name. Specify relative to the power-up directory.')
 
     if parser_args:
         return (parser, parser_deployer, parser_switches)

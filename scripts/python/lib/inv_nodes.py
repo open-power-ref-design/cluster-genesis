@@ -31,16 +31,17 @@ class InventoryNodes(object):
     SWITCH_NOT_FOUND = \
         "Node template '%s' did not have corresponding management switch '%s'"
 
-    def __init__(self, inv_path=None):
+    def __init__(self, inv_path=None, cfg_path=None):
         self.log = logger.getlogger()
 
-        self.inv = Inventory(inv_path)
+        self.cfg_path = cfg_path
+        self.inv = Inventory(cfg_path, inv_path)
 
     def __del__(self):
         self.inv.update_nodes()
 
     def create_nodes(self):
-        cfg = Config()
+        cfg = Config(self.cfg_path)
         interface_ip_lists = _gen_interface_ip_lists(cfg)
         # Iterate over node templates
         for index_ntmplt in cfg.yield_ntmpl_ind():

@@ -47,9 +47,9 @@ class LxcConf(object):
     IPADDR = 'ipaddr'
     PREFIX = 'prefix'
 
-    def __init__(self):
+    def __init__(self, config_path=None):
         self.log = logger.getlogger()
-        self.cfg = Config()
+        self.cfg = Config(config_path)
         if OPSYS not in ('Ubuntu', 'redhat'):
             raise Exception('Unsupported Operating System')
 

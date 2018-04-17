@@ -27,6 +27,7 @@ from itertools import chain
 import lib.logger as logger
 from lib.db import DatabaseConfig
 from lib.exception import UserException
+from lib.genesis import CFG_FILE
 
 
 class Config(object):
@@ -77,12 +78,15 @@ class Config(object):
         IPADDR_START = 'IPADDR_start'
         SOFTWARE_BOOTSTRAP = 'software_bootstrap'
 
-    def __init__(self, cfg=None):
+    def __init__(self, config_path=None, cfg=None):
         self.log = logger.getlogger()
         if cfg:
             self.cfg = cfg
+        elif config_path:
+            dbase = DatabaseConfig(config_path)
+            self.cfg = dbase.load_config()
         else:
-            dbase = DatabaseConfig()
+            dbase = DatabaseConfig(CFG_FILE)
             self.cfg = dbase.load_config()
 
     @staticmethod

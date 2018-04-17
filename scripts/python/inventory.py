@@ -21,6 +21,7 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 
 import argparse
 import json
+import os.path
 
 from lib.inventory import Inventory
 from lib.config import Config
@@ -51,8 +52,15 @@ INVENTORY_INIT = {
 
 
 def generate_dynamic_inventory():
-    inv = Inventory()
-    cfg = Config()
+    config_pointer_file = gen.get_python_path() + '/config_pointer_file'
+    if os.path.isfile(config_pointer_file):
+        with open(config_pointer_file) as f:
+            config_path = f.read()
+    else:
+        config_path = None
+
+    inv = Inventory(config_path)
+    cfg = Config(config_path)
 
     # Initialize the empty inventory
     dynamic_inventory = INVENTORY_INIT

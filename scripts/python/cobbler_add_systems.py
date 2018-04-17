@@ -18,6 +18,7 @@
 from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
+import sys
 import xmlrpclib
 import re
 
@@ -26,7 +27,7 @@ import lib.genesis as gen
 import lib.logger as logger
 
 
-def cobbler_add_systems():
+def cobbler_add_systems(cfg_file=None):
     LOG = logger.getlogger()
 
     cobbler_user = gen.get_cobbler_user()
@@ -34,7 +35,7 @@ def cobbler_add_systems():
     cobbler_server = xmlrpclib.Server("http://127.0.0.1/cobbler_api")
     token = cobbler_server.login(cobbler_user, cobbler_pass)
 
-    inv = Inventory()
+    inv = Inventory(cfg_file=cfg_file)
 
     for index, hostname in enumerate(inv.yield_nodes_hostname()):
         ipv4_ipmi = inv.get_nodes_ipmi_ipaddr(0, index)
@@ -155,4 +156,13 @@ def cobbler_add_systems():
 if __name__ == '__main__':
     logger.create()
 
-    cobbler_add_systems()
+    if len(sys.argv) > 2:
+        try:
+            raise Exception()
+        except Exception:
+            sys.exit('Invalid argument count')
+
+    if len(sys.argv) == 2:
+        cobbler_add_systems(sys.argv[1])
+    else:
+        cobbler_add_systems()

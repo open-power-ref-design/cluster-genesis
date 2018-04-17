@@ -40,12 +40,12 @@ class InventoryAddPorts(object):
         dhcp_leases_file (str): file path for the dnsmasq.leases file.
         port_type (str): 'ipmi' or 'pxe'
     """
-    def __init__(self, dhcp_leases_file, port_type):
+    def __init__(self, dhcp_leases_file, port_type, config_path=None):
         self.log = logger.getlogger()
-        self.cfg = Config()
+        self.cfg = Config(config_path)
         self.dhcp_leases_file = dhcp_leases_file
         self.port_type = port_type
-        self.inv = Inventory()
+        self.inv = Inventory(cfg_file=config_path)
         self.log.debug('Add ports, port type: {}'.format(self.port_type))
 
     def get_ports(self):
@@ -258,14 +258,14 @@ class InventoryAddPorts(object):
         return (self.ports_found, self.ports_total)
 
 
-def get_port_status(dhcp_leases_file, port_type):
+def get_port_status(dhcp_leases_file, port_type, config_path):
     log = logger.getlogger()
     found_all = False
     max_cnt = 30
     yellow = '\033[93m'
     endc = '\033[0m'
 
-    INV_PORTS = InventoryAddPorts(dhcp_leases_file, port_type)
+    INV_PORTS = InventoryAddPorts(dhcp_leases_file, port_type, config_path)
     while found_all is not True:
         print()
         for cnt in range(max_cnt):
@@ -306,7 +306,7 @@ if __name__ == '__main__':
     logger.create('nolog', 'info')
     LOG = logger.getlogger()
 
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 4:
         try:
             raise Exception()
         except:
@@ -315,5 +315,6 @@ if __name__ == '__main__':
 
     DHCP_LEASES_FILE = sys.argv[1]
     PORT_TYPE = sys.argv[2]
+    CONFIG_PATH = sys.argv[3]
 
-    get_port_status(DHCP_LEASES_FILE, PORT_TYPE)
+    get_port_status(DHCP_LEASES_FILE, PORT_TYPE, CONFIG_PATH)

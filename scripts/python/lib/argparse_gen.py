@@ -131,6 +131,13 @@ def get_args(parser_args=False):
         help='Configure PXE network gateway and NAT record')
 
     parser_setup.add_argument(
+        'config_file_name',
+        nargs='?',
+        default='config.yml',
+        metavar='CONFIG-FILE-NAME',
+        help='Config file name. Specify relative to the power-up directory.')
+
+    parser_setup.add_argument(
         '-a', '--all',
         action='store_true',
         help='Run all cluster setup steps')
@@ -146,17 +153,20 @@ def get_args(parser_args=False):
 
     parser_config.add_argument(
         '--data-switches',
-        nargs='?',
-        default=ABSENT,
-        metavar='CONTAINER-NAME',
+        action='store_true',
         help='Configure the cluster data switches')
 
     parser_config.add_argument(
         '--create-container',
-        nargs='?',
-        default=ABSENT,
-        metavar='CONTAINER-NAME',
+        action='store_true',
         help='Create deployer container')
+
+    parser_config.add_argument(
+        'config_file_name',
+        nargs='?',
+        default='config.yml',
+        metavar='CONFIG-FILE-NAME',
+        help='Config file name. Specify relative to the power-up directory.')
 
     # 'validate' subcommand arguments
     parser_validate.set_defaults(
@@ -164,16 +174,19 @@ def get_args(parser_args=False):
 
     parser_validate.add_argument(
         '--config-file',
-        nargs='?',
-        default=ABSENT,
-        metavar='CONFIG-FILE',
+        action='store_true',
         help='Schema and logic config file validation')
 
     parser_validate.add_argument(
-        '--cluster-hardware',
+        'config_file_name',
         nargs='?',
-        default=ABSENT,
-        metavar='BOOTDEV',
+        default='config.yml',
+        metavar='CONFIG-FILE-NAME',
+        help='Config file name. Specify relative to the power-up directory.')
+
+    parser_validate.add_argument(
+        '--cluster-hardware',
+        action='store_true',
         help='Cluster hardware discovery and validation')
 
     # 'deploy' subcommand arguments
@@ -182,72 +195,59 @@ def get_args(parser_args=False):
 
     parser_deploy.add_argument(
         '--create-inventory',
-        nargs='?',
-        default=ABSENT,
-        metavar='CONTAINER-NAME',
+        action='store_true',
         help='Create inventory')
 
     parser_deploy.add_argument(
         '--install-cobbler',
-        nargs='?',
-        default=ABSENT,
-        metavar='CONTAINER-NAME',
+        action='store_true',
         help='Install Cobbler')
 
     parser_deploy.add_argument(
         '--download-os-images',
-        nargs='?',
-        default=ABSENT,
-        metavar='CONTAINER-NAME',
+        action='store_true',
         help='Download OS images')
 
     parser_deploy.add_argument(
         '--inv-add-ports-ipmi',
-        nargs='?',
-        default=ABSENT,
-        metavar='CONTAINER-NAME',
+        action='store_true',
         help='Discover and add IPMI ports to inventory')
 
     parser_deploy.add_argument(
         '--inv-add-ports-pxe',
-        nargs='?',
-        default=ABSENT,
-        metavar='CONTAINER-NAME',
+        action='store_true',
         help='Discover and add PXE ports to inventory')
 
     parser_deploy.add_argument(
         '--reserve-ipmi-pxe-ips',
-        nargs='?',
-        default=ABSENT,
-        metavar='CONTAINER-NAME',
+        action='store_true',
         help='Configure DHCP IP reservations for IPMI and PXE interfaces')
 
     parser_deploy.add_argument(
         '--add-cobbler-distros',
-        nargs='?',
-        default=ABSENT,
-        metavar='CONTAINER-NAME',
+        action='store_true',
         help='Add Cobbler distros and profiles')
 
     parser_deploy.add_argument(
         '--add-cobbler-systems',
-        nargs='?',
-        default=ABSENT,
-        metavar='CONTAINER-NAME',
+        action='store_true',
         help='Add Cobbler systems')
 
     parser_deploy.add_argument(
         '--install-client-os',
-        nargs='?',
-        default=ABSENT,
-        metavar='CONTAINER-NAME',
+        action='store_true',
         help='Initiate client OS installation(s)')
 
     parser_deploy.add_argument(
-        '-a', '--all',
+        'config_file_name',
         nargs='?',
-        default=ABSENT,
-        metavar='CONTAINER-NAME',
+        default='config.yml',
+        metavar='CONFIG-FILE-NAME',
+        help='Config file name. Specify relative to the power-up directory.')
+
+    parser_deploy.add_argument(
+        '-a', '--all',
+        action='store_true',
         help='Run all cluster deployment steps')
 
     # 'post-deploy' subcommand arguments
@@ -255,38 +255,35 @@ def get_args(parser_args=False):
 
     parser_post_deploy.add_argument(
         '--ssh-keyscan',
-        nargs='?',
-        default=ABSENT,
-        metavar='CONTAINER-NAME',
+        action='store_true',
         help='Scan SSH keys')
 
     parser_post_deploy.add_argument(
         '--gather-mac-addr',
-        nargs='?',
-        default=ABSENT,
-        metavar='CONTAINER-NAME',
+        action='store_true',
         help='Gather MAC addresses from switches and update inventory')
 
     parser_post_deploy.add_argument(
         '--lookup-interface-names',
-        nargs='?',
-        default=ABSENT,
-        metavar='CONTAINER-NAME',
+        action='store_true',
         help=('Lookup OS assigned name of all interfaces configured with '
               '\'rename: false\' and update inventory'))
 
     parser_post_deploy.add_argument(
         '--config-client-os',
-        nargs='?',
-        default=ABSENT,
-        metavar='CONTAINER-NAME',
+        action='store_true',
         help='Configure cluster nodes client OS')
 
     parser_post_deploy.add_argument(
-        '-a', '--all',
+        'config_file_name',
         nargs='?',
-        default=ABSENT,
-        metavar='CONTAINER-NAME',
+        default='config.yml',
+        metavar='CONFIG-FILE-NAME',
+        help='Config file name. Config files need to reside in the power-up directory.')
+
+    parser_post_deploy.add_argument(
+        '-a', '--all',
+        action='store_true',
         help='Run all cluster post deployment steps')
 
     if parser_args:
@@ -317,7 +314,7 @@ def _check_validate(args, subparser):
 
 
 def _check_deploy(args, subparser):
-    if (args.create_inventory == ABSENT and
+    if (not args.create_inventory and
             args.install_cobbler == ABSENT and
             args.download_os_images == ABSENT and
             args.inv_add_ports_ipmi == ABSENT and
@@ -347,7 +344,7 @@ def _check_post_deploy(args, subparser):
 
 
 def is_arg_present(arg):
-    if arg == ABSENT:
+    if arg == ABSENT or arg is False:
         return False
     return True
 

@@ -24,14 +24,14 @@ import lib.logger as logger
 from lib.inventory import Inventory
 
 
-def inv_set_interface_name(set_mac, set_name):
+def inv_set_interface_name(set_mac, set_name, config_path=None):
     """Set physical interface name
 
     Args:
         macs (str): Interface MAC address
         name (str): Device name
     """
-    inv = Inventory()
+    inv = Inventory(config_path)
     inv.set_interface_name(set_mac, set_name)
 
 
@@ -39,15 +39,16 @@ if __name__ == '__main__':
     """
     Arg1: Interface MAC address
     Arg2: Device name
+    Arg3: config file path
     """
     logger.create()
     LOG = logger.getlogger()
 
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 4:
         try:
             raise Exception()
         except:
-            LOG.error('Invalid argument count')
+            LOG.error('Invalid argument count: {}'.format(len(sys.argv)))
             sys.exit(1)
 
-    inv_set_interface_name(sys.argv[1], sys.argv[2])
+    inv_set_interface_name(sys.argv[1], sys.argv[2], sys.argv[3])

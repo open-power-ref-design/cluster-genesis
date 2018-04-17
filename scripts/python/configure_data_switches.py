@@ -21,6 +21,7 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 import os
 import sys
 import pprint
+import argparse
 
 import lib.logger as logger
 from lib.config import Config
@@ -29,7 +30,6 @@ from lib.switch_exception import SwitchException
 # from write_switch_memory import WriteSwitchMemory
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
-CFG = Config()
 PP = pprint.PrettyPrinter(indent=1, width=120)
 
 
@@ -333,7 +333,7 @@ def _get_channel_num(port_grp):
                for i in range(len(port_grp))])
 
 
-def configure_data_switch():
+def configure_data_switch(config_path):
     """ Configures data (access) switches.  Configuration is driven by the
     config.yml file.
     Args:
@@ -341,6 +341,8 @@ def configure_data_switch():
     Returns:
     """
     log = logger.getlogger()
+    global CFG
+    CFG = Config(config_path)
 
     port_vlans = _get_vlan_list()
     mtu_list = _get_mtu_list()
@@ -496,7 +498,7 @@ def configure_data_switch():
                                             '{}.\n {}'.format(sw, exc.message))
 
 
-def deconfigure_data_switch():
+def deconfigure_data_switch(config_path):
     """ Deconfigures data (access) switches.  Deconfiguration is driven by the
     config.yml file. Generally deconfiguration is done in reverse order of
     configuration.
@@ -505,6 +507,8 @@ def deconfigure_data_switch():
     Returns:
     """
     log = logger.getlogger()
+    global CFG
+    CFG = Config(config_path)
 
     port_vlans = _get_vlan_list()
     mtu_list = _get_mtu_list()
@@ -587,7 +591,10 @@ def deconfigure_data_switch():
                     switch, port, 'default mtu'))
 
 
-def gather_and_display():
+def gather_and_display(config_path):
+    global CFG
+    CFG = Config(config_path)
+
     port_vlans = _get_vlan_list()
     mtu_list = _get_mtu_list()
     chan_ports = _get_port_chan_list()
@@ -611,18 +618,32 @@ if __name__ == '__main__':
     """ Configures or deconfigures data switches.
     Args: optional log level or optional deconfig in any order
     """
+    parser = argparse.ArgumentParser()
+    parser.add_argument('config_path', nargs='?',
+                        help='path to config file',
+                        default=None)
+    parser.add_argument('--display', action='store_true',
+                        help='display gathered switch info')
 
-    log_lvl = list(set(['info', 'debug', 'warning']).intersection(set(sys.argv)))
-    if log_lvl:
-        logger.create(log_lvl[0], log_lvl[0])
-    else:
-        logger.create('info', 'info')
+    parser.add_argument('--deconfig', action='store_true',
+                        help='deconfigure switch')
 
-    if 'gather' in sys.argv:
-        gather_and_display()
+    parser.add_argument('--print', '-p', dest='log_lvl_print',
+                        help='print log level', default='info')
+
+    parser.add_argument('--file', '-f', dest='log_lvl_file',
+                        help='file log level', default='info')
+
+    args = parser.parse_args()
+
+    logger.create(args.log_lvl_print, args.log_lvl_file)
+
+    if args.display:
+        gather_and_display(args.config_path)
         sys.exit()
 
-    if any([x in ['deconfigure', 'deconfig', 'de'] for x in sys.argv]):
-        deconfigure_data_switch()
-    elif log_lvl or len(sys.argv) == 1:
-        configure_data_switch()
+    if args.deconfig:
+        deconfigure_data_switch(args.config_path)
+        sys.exit()
+
+    configure_data_switch(args.config_path)

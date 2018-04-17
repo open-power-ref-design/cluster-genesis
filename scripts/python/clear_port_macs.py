@@ -18,13 +18,15 @@
 from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
+import sys
+
 import lib.logger as logger
 from lib.config import Config
 from lib.switch import SwitchFactory
 
 
-def main():
-    cfg = Config()
+def main(config_path=None):
+    cfg = Config(config_path)
     for sw_info in cfg.yield_sw_data_access_info():
         switch = SwitchFactory.factory(
             sw_info[1],
@@ -37,4 +39,14 @@ def main():
 
 if __name__ == '__main__':
     logger.create()
-    main()
+
+    if len(sys.argv) > 2:
+        try:
+            raise Exception()
+        except Exception:
+            sys.exit('Invalid argument count')
+
+    if len(sys.argv) == 2:
+        main(sys.argv[1])
+    else:
+        main()

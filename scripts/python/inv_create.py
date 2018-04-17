@@ -20,6 +20,8 @@
 from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
+import sys
+
 import lib.logger as logger
 from lib.inv_nodes import InventoryNodes
 
@@ -27,17 +29,28 @@ from lib.inv_nodes import InventoryNodes
 class InventoryCreate(object):
     """Create inventory"""
 
-    def __init__(self):
-        pass
+    def __init__(self, config_path=None):
+        self.config_path = config_path
 
     def create(self):
         """Create inventory"""
 
-        nodes = InventoryNodes()
+        nodes = InventoryNodes(cfg_path=self.config_path)
         nodes.create_nodes()
 
 
 if __name__ == '__main__':
     logger.create()
-    INV = InventoryCreate()
-    INV.create()
+
+    if len(sys.argv) > 2:
+        try:
+            raise Exception()
+        except Exception:
+            sys.exit('Invalid argument count')
+
+    if len(sys.argv) == 2:
+        INV = InventoryCreate(sys.argv[1])
+        INV.create()
+    else:
+        INV = InventoryCreate()
+        INV.create()

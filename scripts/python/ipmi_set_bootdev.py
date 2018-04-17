@@ -34,9 +34,9 @@ def _sub_proc_exec(cmd):
     return stdout, stderr
 
 
-def ipmi_set_bootdev(bootdev, persist=False, client_list=None):
+def ipmi_set_bootdev(bootdev, persist=False, config_path=None, client_list=None):
     log = logger.getlogger()
-    inv = Inventory()
+    inv = Inventory(cfg_file=config_path)
 
     if type(persist) is not bool:
         persist = (persist == 'True')
@@ -135,7 +135,7 @@ if __name__ == '__main__':
     logger.create()
     LOG = logger.getlogger()
 
-    if len(sys.argv) != 4:
+    if len(sys.argv) != 5:
         try:
             raise Exception()
         except:
@@ -144,6 +144,7 @@ if __name__ == '__main__':
 
     BOOTDEV = sys.argv[1]
     PERSIST = sys.argv[2]
-    CLIENT_LIST = sys.argv[3]
+    CONFIG_PATH = sys.argv[3]
+    CLIENT_LIST = sys.argv[4]
 
-    ipmi_set_bootdev(BOOTDEV, PERSIST, CLIENT_LIST)
+    ipmi_set_bootdev(BOOTDEV, PERSIST, CONFIG_PATH, CLIENT_LIST)

@@ -18,6 +18,7 @@
 from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
+import sys
 import subprocess
 from netaddr import IPNetwork
 
@@ -25,7 +26,7 @@ import lib.logger as logger
 from lib.config import Config
 
 
-def enable_deployer_gateway(remove=False):
+def enable_deployer_gateway(config_path=None, remove=False):
     """Configure or remove NAT record for PXE Network gateway
     Args:
         remove (bool, optional): True(default)= configure NAT record
@@ -34,7 +35,7 @@ def enable_deployer_gateway(remove=False):
                                      exists.
     """
 
-    cfg = Config()
+    cfg = Config(config_path)
     log = logger.getlogger()
 
     if not remove:
@@ -83,4 +84,14 @@ def _create_nat_gateway_rule(network, remove=False):
 
 if __name__ == '__main__':
     logger.create()
-    enable_deployer_gateway()
+
+    if len(sys.argv) > 2:
+        try:
+            raise Exception()
+        except Exception:
+            sys.exit('Invalid argument count')
+
+    if len(sys.argv) == 2:
+        enable_deployer_gateway(sys.argv[1])
+    else:
+        enable_deployer_gateway()

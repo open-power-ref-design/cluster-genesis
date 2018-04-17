@@ -27,8 +27,8 @@ import lib.logger as logger
 from lib.exception import UserException
 
 
-def ipmi_power_on(time_out, wait):
-    inv = Inventory()
+def ipmi_power_on(time_out, wait, config_path):
+    inv = Inventory(cfg_file=config_path)
     log = logger.getlogger()
     ipmi_power = IpmiPower()
 
@@ -91,7 +91,7 @@ if __name__ == '__main__':
     logger.create()
     LOG = logger.getlogger()
 
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 4:
         try:
             raise Exception()
         except Exception:
@@ -100,5 +100,6 @@ if __name__ == '__main__':
 
     TIME_OUT = int(sys.argv[1])
     WAIT = int(sys.argv[2])
+    CONFIG_PATH = sys.argv[3]
 
-    ipmi_power_on(TIME_OUT, WAIT)
+    ipmi_power_on(TIME_OUT, WAIT, CONFIG_PATH)

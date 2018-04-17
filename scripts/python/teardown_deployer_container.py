@@ -33,13 +33,13 @@ def _sub_proc_exec(cmd):
     return stdout, stderr
 
 
-def teardown_deployer_container():
+def teardown_deployer_container(config_path):
     """Teardown the Cluster Genesis container on the deployer.
     This function is idempotent.
     """
     log = logger.getlogger()
     try:
-        cfg = Config()
+        cfg = Config(config_path)
     except UserException:
         log.error('Unable to open Cluster Genesis config.yml file')
         sys.exit(1)
@@ -59,4 +59,11 @@ def teardown_deployer_container():
 
 if __name__ == '__main__':
     logger.create('nolog', 'info')
-    teardown_deployer_container()
+
+    if len(sys.argv) != 2:
+        try:
+            raise Exception()
+        except Exception:
+            sys.exit('Invalid argument count')
+
+    teardown_deployer_container(sys.argv[1])

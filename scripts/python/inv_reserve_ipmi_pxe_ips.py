@@ -18,6 +18,7 @@
 from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
+import sys
 import xmlrpclib
 from netaddr import IPNetwork
 from pyghmi.ipmi import command as ipmi_command
@@ -76,7 +77,7 @@ class IPManager(object):
         return ip_address
 
 
-def inv_set_ipmi_pxe_ip():
+def inv_set_ipmi_pxe_ip(config_path):
     """Configure DHCP IP reservations for IPMI and PXE interfaces
 
     IP addresses are assigned sequentially within the appropriate
@@ -89,15 +90,15 @@ def inv_set_ipmi_pxe_ip():
                        - Unable to connect to BMC at new IPMI IP address
     """
     log = logger.getlogger()
-    cfg = Config()
-    inv = Inventory()
+    cfg = Config(config_path)
+    inv = Inventory(cfg_file=config_path)
 
     ipmiNetwork = None
     pxeNetwork = None
     nodes_list = []
 
     # All nodes should be powered off before starting
-    ipmi_power_off(POWER_TIME_OUT, POWER_WAIT)
+    ipmi_power_off(POWER_TIME_OUT, POWER_WAIT, config_path)
 
     # Create IPManager object for IPMI and/or PXE networks
     start_offset = gen.get_dhcp_pool_start()
@@ -234,4 +235,5 @@ def _adjust_dhcp_pool(network, dhcp_pool_start):
 if __name__ == '__main__':
 
     logger.create()
-    inv_set_ipmi_pxe_ip()
+
+    inv_set_ipmi_pxe_ip(sys.argv[1])

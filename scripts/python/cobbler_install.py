@@ -61,7 +61,7 @@ A2ENCONF = '/usr/sbin/a2enconf'
 A2ENMOD = '/usr/sbin/a2enmod'
 
 
-def cobbler_install():
+def cobbler_install(config_path=None):
     """Install and configure Cobbler in container.
 
     This function must be called within the container 'pup-venv'
@@ -69,7 +69,7 @@ def cobbler_install():
     this environment.
     """
 
-    cfg = Config()
+    cfg = Config(config_path)
     log = logger.getlogger()
 
     # Check to see if cobbler is already installed
@@ -289,4 +289,14 @@ def _generate_random_characters(length=100):
 
 if __name__ == '__main__':
     logger.create()
-    cobbler_install()
+
+    if len(sys.argv) > 2:
+        try:
+            raise Exception()
+        except Exception:
+            sys.exit('Invalid argument count')
+
+    if len(sys.argv) == 2:
+        cobbler_install(sys.argv[1])
+    else:
+        cobbler_install()

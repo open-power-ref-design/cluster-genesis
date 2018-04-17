@@ -31,10 +31,10 @@ ACTIVE = 'active'
 PASSIVE = 'passive'
 
 
-def configure_mgmt_switches():
+def configure_mgmt_switches(config_file=None):
 
     LOG = logger.getlogger()
-    cfg = Config()
+    cfg = Config(config_file)
     LOG.debug('------------------- configure_mgmt_switches -------------------')
 
     for index, switch_label in enumerate(cfg.yield_sw_mgmt_label()):
@@ -193,4 +193,14 @@ def configure_mgmt_switches():
 
 if __name__ == '__main__':
     logger.create()
-    configure_mgmt_switches()
+
+    if len(sys.argv) > 2:
+        try:
+            raise Exception()
+        except Exception:
+            sys.exit('Invalid argument count')
+
+    if len(sys.argv) == 2:
+        configure_mgmt_switches(sys.argv[1])
+    else:
+        configure_mgmt_switches()

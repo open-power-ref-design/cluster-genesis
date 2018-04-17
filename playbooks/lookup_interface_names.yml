@@ -63,6 +63,6 @@
     - name: Call 'inv_set_interface_names.py' with lookup data
       command: "{{ python_executable }} \
                 {{ scripts_path }}/python/inv_set_interface_names.py \
-                {{ item.key }} {{ item.value }}"
+                {{ item.key }} {{ item.value }} {{ config_path }}"
       with_dict: "{{ set_macs_all }}"
 ...

@@ -37,7 +37,8 @@ class ValidateConfigLogic(object):
         self.log = logger.getlogger()
         self.config = config
         from lib.config import Config
-        self.cfg = Config(self.config)
+        # Instantiate Config with supplied config object
+        self.cfg = Config(cfg=self.config)
 
     def _validate_version(self):
         """Validate version

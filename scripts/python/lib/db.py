@@ -36,13 +36,10 @@ class DatabaseConfig(object):
 
     FILE_MODE = 0o666
 
-    def __init__(self, cfg_file=None):
+    def __init__(self, cfg_file):
         self.log = logger.getlogger()
 
-        if cfg_file:
-            self.cfg_file = os.path.realpath(cfg_file)
-        else:
-            self.cfg_file = os.path.realpath(gen.CFG_FILE)
+        self.cfg_file = cfg_file
 
         self.cfg = None
         self.inv = None
@@ -102,21 +99,15 @@ class DatabaseConfig(object):
         Returns:
             object: Config
         """
-
         self._is_config_file(self.cfg_file)
         self.cfg = self._load_yaml_file(self.cfg_file)
         return self.cfg
 
-    def validate_config(self, config_file):
+    def validate_config(self):
         """Validate config"""
 
-        if config_file is None:
-            cfg_file = self.cfg_file
-        else:
-            cfg_file = os.path.realpath(config_file)
-
-        self._is_config_file(cfg_file)
-        self.cfg = self._load_yaml_file(cfg_file)
+        self._is_config_file(self.cfg_file)
+        self.cfg = self._load_yaml_file(self.cfg_file)
 
         schema = ValidateConfigSchema(self.cfg)
         schema.validate_config_schema()
@@ -129,17 +120,17 @@ class DatabaseInventory(object):
 
     FILE_MODE = 0o666
 
-    def __init__(self, inv_file=None):
+    def __init__(self, inv_file=None, cfg_file=None):
         self.log = logger.getlogger()
 
         if inv_file:
             self.inv_file = os.path.realpath(inv_file)
         else:
-            symlink_path = gen.get_symlink_path()
+            symlink_path = gen.get_symlink_path(cfg_file)
             if os.path.islink(symlink_path):
                 if not os.path.exists(os.readlink(symlink_path)):
                     os.unlink(symlink_path)
-            self.inv_file = gen.get_inventory_realpath()
+            self.inv_file = gen.get_inventory_realpath(cfg_file)
 
         self.inv = None
 

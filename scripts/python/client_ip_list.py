@@ -19,10 +19,12 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
 import argparse
+import os.path
 
 from lib.inventory import Inventory
 from lib.config import Config
 from lib.exception import UserException
+from lib.genesis import get_python_path
 
 
 def _get_pxe_ips(inv):
@@ -44,8 +46,15 @@ if __name__ == '__main__':
     parser.add_argument('--deployer', action='store_true')
     args = parser.parse_args()
 
-    inv = Inventory()
-    cfg = Config()
+    config_pointer_file = get_python_path() + '/config_pointer_file'
+    if os.path.isfile(config_pointer_file):
+        with open(config_pointer_file) as f:
+            config_path = f.read()
+    else:
+        config_path = None
+
+    inv = Inventory(config_path)
+    cfg = Config(config_path)
 
     ip_list = _get_pxe_ips(inv)
 

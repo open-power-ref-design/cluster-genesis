@@ -36,7 +36,7 @@ from lib.genesis import Color
 IPR = IPRoute()
 
 
-def enable_deployer_network():
+def enable_deployer_network(config_path=None):
     """creates or modifies the network elements on the deployer which allow
     communication between the Genesis container and the cluster nodes
     and switches. The management networks can utilize the default linux
@@ -47,7 +47,7 @@ def enable_deployer_network():
     This function is idempotent.
     """
     global LOG
-    cfg = Config()
+    cfg = Config(config_path)
     LOG = logger.getlogger()
     LOG.debug('------------------- enable_deployer_networks ----------------------')
 
@@ -209,7 +209,7 @@ def _create_network(
             mode = 'w'
 
         if IPR.link_lookup(ifname=br_label):
-            LOG.info('{}NOTE: bridge {} is already in use{}'.format(Color.bold,
+            LOG.info('{}NOTE: bridge {} is already configured.{}'.format(Color.bold,
                      br_label, Color.endc))
             print("Enter to continue, or 'T' to terminate deployment")
             resp = raw_input("\nEnter or 'T': ")
@@ -498,4 +498,14 @@ def _wait_for_ifc_up(ifname, timespan=10):
 
 if __name__ == '__main__':
     logger.create()
-    enable_deployer_network()
+
+    if len(sys.argv) > 2:
+        try:
+            raise Exception()
+        except Exception:
+            sys.exit('Invalid argument count')
+
+    if len(sys.argv) == 2:
+        enable_deployer_network(sys.argv[1])
+    else:
+        enable_deployer_network()

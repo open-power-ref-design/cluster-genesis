@@ -18,6 +18,7 @@
 from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
+import sys
 import yaml
 from orderedattrdict.yamlutils import AttrDictYAMLLoader
 import os.path
@@ -40,14 +41,14 @@ def _sha1sum(file_path):
     return sha1sum.hexdigest()
 
 
-def download_os_images():
+def download_os_images(config_path=None):
     """Download OS installation images"""
 
     log = logger.getlogger()
     os_images_path = get_os_images_path() + "/"
     os_image_urls_yaml_path = os_images_path + OS_IMAGES_URLS_FILENAME
 
-    cfg = Config()
+    cfg = Config(config_path)
     os_image_urls = yaml.load(open(os_image_urls_yaml_path),
                               Loader=AttrDictYAMLLoader).os_image_urls
 
@@ -75,4 +76,13 @@ def download_os_images():
 if __name__ == '__main__':
     logger.create()
 
-    download_os_images()
+    if len(sys.argv) > 2:
+        try:
+            raise Exception()
+        except Exception:
+            sys.exit('Invalid argument count')
+
+    if len(sys.argv) == 2:
+        download_os_images(sys.argv[1])
+    else:
+        download_os_images()

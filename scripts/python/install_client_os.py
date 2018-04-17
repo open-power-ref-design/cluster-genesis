@@ -60,14 +60,14 @@ def _get_lists(latest_list, handled_list):
     return new_list, handled_list
 
 
-def install_client_os():
+def install_client_os(config_path=None):
     log = logger.getlogger()
     cobbler_set_netboot_enabled(True)
-    ipmi_power_off(POWER_TIME_OUT, POWER_WAIT)
-    ipmi_set_bootdev('network', False)
-    ipmi_power_on(POWER_TIME_OUT, POWER_WAIT)
-    cfg = Config()
-    inv = Inventory()
+    ipmi_power_off(POWER_TIME_OUT, POWER_WAIT, config_path)
+    ipmi_set_bootdev('network', False, config_path)
+    ipmi_power_on(POWER_TIME_OUT, POWER_WAIT, config_path)
+    cfg = Config(config_path)
+    inv = Inventory(cfg_file=config_path)
 
     client_list = inv.get_nodes_ipmi_ipaddr(0)
     client_cnt = len(client_list)
@@ -92,7 +92,7 @@ def install_client_os():
               format(installing_cnt, client_cnt, cnt, gen.Color.up_one))
         sys.stdout.flush()
         if new_list:
-            ipmi_set_bootdev('default', True, new_list)
+            ipmi_set_bootdev('default', True, config_path, new_list)
         else:
             sleep(10)
         if installing_cnt == client_cnt:
@@ -112,4 +112,14 @@ def install_client_os():
 
 if __name__ == '__main__':
     logger.create()
-    install_client_os()
+
+    if len(sys.argv) > 2:
+        try:
+            raise Exception()
+        except Exception:
+            sys.exit('Invalid argument count')
+
+    if len(sys.argv) == 2:
+        install_client_os(sys.argv[1])
+    else:
+        install_client_os()
