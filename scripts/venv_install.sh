@@ -29,6 +29,8 @@ pip install \
     'pyasn1==0.4.2' \
     'pysnmp==4.4.4' \
     'pyaml==17.12.1' \
+    'pyOpenSSL==17.5.0' \
+    'cryptography==2.2.2' \
     'paramiko==2.4.1' \
     'tabulate==0.8.2' \
     'gitpython==2.1.9'
