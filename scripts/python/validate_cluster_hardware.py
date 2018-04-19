@@ -238,6 +238,7 @@ class ValidateClusterHardware(object):
             'logs/tcpdump{}.out'.format(vlan_pxe)
         self.node_table_ipmi = AttrDict()
         self.node_table_pxe = AttrDict()
+        self.node_list = []
 
     def _add_offset_to_address(self, addr, offset):
         """calculates an address with an offset added.
@@ -609,6 +610,7 @@ class ValidateClusterHardware(object):
                 if resp == 'y':
                     self.log.info("'{}' entered. Continuing Genesis".format(resp))
                     break
+        self.node_list = node_list
         if cnt < ipmi_cnt:
             self.log.warning('Failed to validate expected number of nodes')
 
@@ -854,6 +856,10 @@ class ValidateClusterHardware(object):
             self._power_all(self.ipmi_list_ai, 'on', bootdev, persist=False)
 
         self._teardown_ns(self.ipmi_ns)
+
+        # Reset BMCs to insure they acquire a new address from container
+        # during inv_add_ports. Avoids conflicting addresses during redeploy
+        self._reset_existing_bmcs(self.node_list, self._get_cred_list())
 
         self.log.info('Cluster nodes validation complete')
         if not rc:
