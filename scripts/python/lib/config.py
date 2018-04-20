@@ -172,6 +172,17 @@ class Config(object):
         except AttributeError:
             return {}
 
+    def get_globals_dhcp_lease_time(self):
+        """Get globals dhcp_lease_time
+        Returns:
+            str: dhcp_lease_time
+        """
+
+        try:
+            return str(self.cfg.globals.dhcp_lease_time)
+        except AttributeError:
+            return "1h"
+
     def is_passive_mgmt_switches(self):
         """Get management switch mode
         Returns:

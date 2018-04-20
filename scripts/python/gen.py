@@ -163,11 +163,13 @@ class Gen(object):
         try:
             dbase.validate_config()
             nodes.create_nodes()
-        except UserException as exc:
-            print(exc.message, file=sys.stderr)
-            print('{}Failure: Config file validation.\n{}{}'.
-                  format(COL.red, exc, COL.endc))
+        except UserCriticalException as exc:
+            exc.message = 'Failure: Config file validation.\n' + exc.message
+            print('{}{}{}'.format(COL.red, exc.message, COL.endc))
             sys.exit(1)
+        except UserException as exc:
+            exc.message = 'Warning: Config file validation.\n' + exc.message
+            print('{}{}{}'.format(COL.yellow, exc.message, COL.endc))
         else:
             print('Successfully completed config file validation.\n')
 

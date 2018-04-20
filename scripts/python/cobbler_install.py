@@ -56,6 +56,7 @@ LOCAL_PY_DIST_PKGS = '/usr/local/lib/python2.7/dist-packages'
 PY_DIST_PKGS = '/usr/lib/python2.7/dist-packages'
 INITD = '/etc/init.d/'
 APACHE2_CONF = '/etc/apache2/apache2.conf'
+MANAGE_DNSMASQ = '/opt/cobbler/cobbler/modules/manage_dnsmasq.py'
 
 A2ENCONF = '/usr/sbin/a2enconf'
 A2ENMOD = '/usr/sbin/a2enmod'
@@ -108,6 +109,13 @@ def cobbler_install(config_path=None):
         "Cobbler branch \'%s\' cloned into \'%s\'" %
         (repo.active_branch, repo.working_dir))
 
+    # Modify Cobbler scrpit that write DHCP reservations so that the
+    #   lease time is included.
+    dhcp_lease_time = cfg.get_globals_dhcp_lease_time()
+    util.replace_regex(MANAGE_DNSMASQ, 'systxt \= systxt \+ \"\\\\n\"',
+                       "systxt = systxt + \",{}\\\\n\"".
+                       format(dhcp_lease_time))
+
     # Run cobbler make install
     util.bash_cmd('cd %s; make install' % install_dir)
 
@@ -129,7 +137,7 @@ def cobbler_install(config_path=None):
         os.mkdir(TFTPBOOT, mode)
 
     # Set IP address range to use for unrecognized DHCP clients
-    dhcp_range = 'dhcp-range=%s,%s  # %s'
+    dhcp_range = 'dhcp-range=%s,%s,%s  # %s'
     util.remove_line(DNSMASQ_TEMPLATE, 'dhcp-range')
     dhcp_pool_start = gen.get_dhcp_pool_start()
     for index, netw_type in enumerate(cfg.yield_depl_netw_client_type()):
@@ -141,6 +149,7 @@ def cobbler_install(config_path=None):
 
         entry = dhcp_range % (str(network.network + dhcp_pool_start),
                               str(network.network + network.size - 1),
+                              str(dhcp_lease_time),
                               str(network.cidr))
 
         util.append_line(DNSMASQ_TEMPLATE, entry)
@@ -158,6 +167,7 @@ def cobbler_install(config_path=None):
 
     # Configure dnsmasq to use deployer as gateway
     if cfg.get_depl_gateway():
+        util.remove_line(DNSMASQ_TEMPLATE, 'dhcp-option')
         util.append_line(DNSMASQ_TEMPLATE, 'dhcp-option=3,%s' % bridge_pxe_ipaddr)
 
     # Cobbler modules configuration

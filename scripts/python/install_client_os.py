@@ -85,7 +85,8 @@ def install_client_os(config_path=None):
     log.info('Waiting for installation to begin.  Polling on 10 sec intervals')
     while cnt > 0:
         stdout, stderr = _sub_proc_exec(cmd)
-        latest_list = re.findall(r'(?:\d{1,3}\.){3}\d{1,3}', stdout)
+        latest_list = re.findall(r'(?:\d{1,3}\.){3}\d{1,3}.+installing', stdout)
+        latest_list = re.findall(r'(?:\d{1,3}\.){3}\d{1,3}', ''.join(latest_list))
         new_list, handled_list = _get_lists(latest_list, handled_list)
         installing_cnt = len(handled_list)
         print('Nodes installing: {} of {}. Remaining polls: {}{}'.
@@ -107,7 +108,7 @@ def install_client_os(config_path=None):
            'clients installer via IPMI SOL console to resolve the problem\n'
            'manually.\n')
     if installing_cnt != client_cnt:
-        log.info('\n{}{}{}'.format(gen.Color.yellow, msg, gen.Color.endc))
+        log.info('\n{}{}{}'.format(gen.Color.red, msg, gen.Color.endc))
 
 
 if __name__ == '__main__':

@@ -50,7 +50,7 @@ d-i pkgsel/update-policy select none
 d-i grub-installer/only_debian boolean false
 d-i grub-installer/with_other_os boolean false
 d-i preseed/late_command string \
-in-target /usr/bin/wget http://$http_server/$(distro_name).sources.list -O /etc/apt/sources.list; \
+$SNIPPET('get_ubuntu_sources_list')
 in-target mkdir /root/.ssh; \
 in-target /bin/chmod 700 /root/.ssh; \
 in-target /usr/bin/wget http://$http_server/authorized_keys -O /root/.ssh/authorized_keys; \

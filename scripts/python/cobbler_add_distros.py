@@ -103,9 +103,11 @@ def setup_image_config_files(path):
         util.copy_file(snippets_src_dir + _file, SNIPPETS_DIR)
 
     # Copy apt source lists to web repo directory
+    if not os.path.isdir(HTML_DIR + 'ubuntu_sources'):
+        os.makedirs(HTML_DIR + 'ubuntu_sources')
     for _file in os.listdir(path):
-        if _file.endswith('.list') and os.path.isdir(HTML_DIR + _file[:-13]):
-            util.copy_file(path + _file, HTML_DIR)
+        if _file.endswith('.list'):
+            util.copy_file(path + _file, HTML_DIR + 'ubuntu_sources')
 
 
 def cobbler_add_distro(path, name):
