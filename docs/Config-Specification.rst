@@ -56,6 +56,7 @@ globals:
       env_variables:
       switch_mode_mgmt:
       switch_mode_data:
+      dhcp_lease_time:
 
 +-----------------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------+----------+
 | Element                           | Example(s)                                 | Description                                                                                | Required |
@@ -95,6 +96,16 @@ globals:
 |      switch_mode_data:            |                                            | | *active*                                                                                 |          |
 |      ...                          |                                            |                                                                                            |          |
 |                                   |                                            |                                                                                            |          |
+|                                   |                                            |                                                                                            |          |
++-----------------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------+----------+
+|                                   |                                            |                                                                                            |          |
+| ::                                | ::                                         | Sets DHCP lease time given to client nodes. Value can be in seconds, minutes (e.g. "15m"), | no       |
+|                                   |                                            | hours (e.g. "1h") or "infinite" (lease does not expire).                                   |          |
+|   globals:                        |   dhcp_lease_time: 15m                     |                                                                                            |          |
+|      dhcp_lease_time:             |                                            |                                                                                            |          |
+|      ...                          | ::                                         |                                                                                            |          |
+|                                   |                                            |                                                                                            |          |
+|                                   |   dhcp_lease_time: 1h                      |                                                                                            |          |
 |                                   |                                            |                                                                                            |          |
 +-----------------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------+----------+
 
@@ -855,7 +866,7 @@ node_templates:
 |             profile:               |         install_device: /dev/sda              |                                                                                  |          |
 |             install_device:        |         users:                                | |   *profile*         - Cobbler profile to use for OS installation. This         |          |
 |             users:                 |             - name: root                      |                         name usually should match the name of the                |          |
-|                 - name:            |               password: <crypted password>    |                         installation image (without the'.iso' extension).        |          |
+|                 - name:            |               password: <crypted password>    |                         installation image (with or without the'.iso' extension).|          |
 |                   password:        |             - name: user1                     | |   *install_device*  - Path to installation disk device.                        |          |
 |             groups:                |               password: <crypted password>    |                                                                                  |          |
 |                 - name:            |               groups: sudo,testgroup1         | | Optional keys:                                                                 |          |

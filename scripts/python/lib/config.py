@@ -25,7 +25,7 @@ import netaddr
 from itertools import chain
 
 import lib.logger as logger
-from lib.db import Database
+from lib.db import DatabaseConfig
 from lib.exception import UserException
 
 
@@ -82,7 +82,7 @@ class Config(object):
         if cfg:
             self.cfg = cfg
         else:
-            dbase = Database()
+            dbase = DatabaseConfig()
             self.cfg = dbase.load_config()
 
     @staticmethod
@@ -167,6 +167,17 @@ class Config(object):
             return self.cfg.globals.env_variables
         except AttributeError:
             return {}
+
+    def get_globals_dhcp_lease_time(self):
+        """Get globals dhcp_lease_time
+        Returns:
+            str: dhcp_lease_time
+        """
+
+        try:
+            return str(self.cfg.globals.dhcp_lease_time)
+        except AttributeError:
+            return "1h"
 
     def is_passive_mgmt_switches(self):
         """Get management switch mode

@@ -26,6 +26,7 @@ from shutil import copy2
 import lib.logger as logger
 
 PATTERN_MAC = '[\da-fA-F]{2}:){5}[\da-fA-F]{2}'
+CalledProcessError = subprocess.CalledProcessError
 
 
 def bash_cmd(cmd):
@@ -40,7 +41,8 @@ def bash_cmd(cmd):
     log = logger.getlogger()
     command = ['bash', '-c', cmd]
     log.debug('Run subprocess: %s' % ' '.join(command))
-    output = subprocess.check_output(command, universal_newlines=True)
+    output = subprocess.check_output(command, universal_newlines=True,
+                                     stderr=subprocess.STDOUT).decode('utf-8')
     log.debug(output)
 
     return output
@@ -57,24 +59,39 @@ def backup_file(path):
     """
     log = logger.getlogger()
     backup_path = path + '.orig'
+    version = 0
+    while os.path.exists(backup_path):
+        version += 1
+        backup_path += "." + str(version)
     log.debug('Make backup copy of orignal file: \'%s\'' % backup_path)
     copy2(path, backup_path)
     os.chmod(backup_path, 0o444)
 
 
-def append_line(path, line):
+def append_line(path, line, check_exists=True):
     """Append line to end of text file
 
     Args:
         path (str): Path of file
         line (str): String to append
+        check_exists(bool): Check if line exists before appending
     """
     log = logger.getlogger()
     log.debug('Add line \'%s\' to file \'%s\'' % (line, path))
+
     if not line.endswith('\n'):
         line += '\n'
-    with open(path, 'a') as file_out:
-        file_out.write(line)
+
+    exists = False
+    if check_exists:
+        with open(path, 'r') as file_in:
+            for read_line in file_in:
+                if read_line == line:
+                    exists = True
+
+    if not exists:
+        with open(path, 'a') as file_out:
+            file_out.write(line)
 
 
 def remove_line(path, regex):

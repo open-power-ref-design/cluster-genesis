@@ -29,7 +29,7 @@ DEPLOYER_NETWORKS_HELP = ('Deletes {} created interfaces and bridges. \nRemoves 
 GITHUB = 'https://github.com/open-power-ref-design-toolkit/cluster-genesis'
 EPILOG = 'home page:\n  %s' % GITHUB
 LOG_LEVEL_CHOICES = ['nolog', 'debug', 'info', 'warning', 'error', 'critical']
-LOG_LEVEL_FILE = ['info']
+LOG_LEVEL_FILE = ['debug']
 LOG_LEVEL_PRINT = ['info']
 
 
@@ -84,9 +84,9 @@ def get_args(parser_args=False):
         deployer=True)
 
     parser_deployer.add_argument(
-        '--networks',
+        '--container',
         action='store_true',
-        help=DEPLOYER_NETWORKS_HELP)
+        help='Destroy the {} container.'.format(PROJECT))
 
     parser_deployer.add_argument(
         '--gateway',
@@ -94,9 +94,9 @@ def get_args(parser_args=False):
         help='Delete deployer network gateway and NAT record')
 
     parser_deployer.add_argument(
-        '--container',
+        '--networks',
         action='store_true',
-        help='Destroy the {} container.'.format(PROJECT))
+        help=DEPLOYER_NETWORKS_HELP)
 
     parser_deployer.add_argument(
         '-a', '--all',

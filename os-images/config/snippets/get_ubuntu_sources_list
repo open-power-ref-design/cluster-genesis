@@ -1,0 +1,25 @@
+## Copyright 2018 IBM Corp.
+##
+## All Rights Reserved.
+##
+## Licensed under the Apache License, Version 2.0 (the "License");
+## you may not use this file except in compliance with the License.
+## You may obtain a copy of the License at
+##
+##     http://www.apache.org/licenses/LICENSE-2.0
+##
+## Unless required by applicable law or agreed to in writing, software
+## distributed under the License is distributed on an "AS IS" BASIS,
+## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+## See the License for the specific language governing permissions and
+## limitations under the License.
+##
+#set http_server = $getVar('$http_server')
+#set os_version = $getVar('$os_version')
+#if $arch == 'x86_64'
+    #set image_arch = 'amd64'
+#else if $arch == 'ppc64le'
+    #set image_arch = 'ppc64el'
+#end if
+#set output =  "in-target /usr/bin/wget http://%s/ubuntu_sources/ubuntu-%s-server-%s.sources.list -O /etc/apt/sources.list; \\" % (http_server, os_version, image_arch)
+#echo $output

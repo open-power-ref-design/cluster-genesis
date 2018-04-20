@@ -19,7 +19,7 @@
 # PROJECT_ROOT value modified by scripts/setup-env
 PROJECT_ROOT=$HOME/power-up
 
-for dir in scripts deployenv/bin; do
+for dir in scripts pup-venv/bin; do
     dir_path="$PROJECT_ROOT/$dir"
     PATH=${PATH/"$dir_path:"}
     PATH=${PATH/":$dir_path"}

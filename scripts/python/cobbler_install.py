@@ -19,6 +19,7 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
 import os
+import sys
 import pwd
 from shutil import copy2
 import re
@@ -53,6 +54,9 @@ NTP_CONF = '/etc/ntp.conf'
 COBBLER = '/usr/local/bin/cobbler'
 LOCAL_PY_DIST_PKGS = '/usr/local/lib/python2.7/dist-packages'
 PY_DIST_PKGS = '/usr/lib/python2.7/dist-packages'
+INITD = '/etc/init.d/'
+APACHE2_CONF = '/etc/apache2/apache2.conf'
+MANAGE_DNSMASQ = '/opt/cobbler/cobbler/modules/manage_dnsmasq.py'
 
 A2ENCONF = '/usr/sbin/a2enconf'
 A2ENMOD = '/usr/sbin/a2enmod'
@@ -61,7 +65,7 @@ A2ENMOD = '/usr/sbin/a2enmod'
 def cobbler_install():
     """Install and configure Cobbler in container.
 
-    This function must be called within the container 'gen-venv'
+    This function must be called within the container 'pup-venv'
     python virtual environment. Cobbler will be installed within
     this environment.
     """
@@ -69,10 +73,33 @@ def cobbler_install():
     cfg = Config()
     log = logger.getlogger()
 
+    # Check to see if cobbler is already installed
+    try:
+        util.bash_cmd('cobbler check')
+        log.info("Cobbler is already installed")
+        return
+    except util.CalledProcessError as error:
+        if error.returncode == 127:
+            log.debug("'cobbler' command not found, continuing with "
+                      "installation")
+        else:
+            log.warning("Cobbler is installed but not working:")
+            log.warning(error.output)
+            print("\nPress enter to remove Cobbler and attempt to ")
+            print("re-install, or 'T' to terminate.")
+            resp = raw_input("\nEnter or 'T': ")
+            log.debug("User response = \'{}\'".format(resp))
+            if resp == 'T':
+                sys.exit('POWER-Up stopped at user request')
+
     # Clone cobbler github repo
     cobbler_url = URL
     cobbler_branch = BRANCH
     install_dir = gen.get_cobbler_install_dir()
+    if os.path.exists(install_dir):
+        log.info(
+            "Removing Cobbler source directory \'{}\'".format(install_dir))
+        util.bash_cmd('rm -rf %s' % install_dir)
     log.info(
         "Cloning Cobbler branch \'%s\' from \'%s\'" %
         (cobbler_branch, cobbler_url))
@@ -81,6 +108,13 @@ def cobbler_install():
     log.info(
         "Cobbler branch \'%s\' cloned into \'%s\'" %
         (repo.active_branch, repo.working_dir))
+
+    # Modify Cobbler scrpit that write DHCP reservations so that the
+    #   lease time is included.
+    dhcp_lease_time = cfg.get_globals_dhcp_lease_time()
+    util.replace_regex(MANAGE_DNSMASQ, 'systxt \= systxt \+ \"\\\\n\"',
+                       "systxt = systxt + \",{}\\\\n\"".
+                       format(dhcp_lease_time))
 
     # Run cobbler make install
     util.bash_cmd('cd %s; make install' % install_dir)
@@ -95,13 +129,15 @@ def cobbler_install():
     util.backup_file(PXEDEFAULT_TEMPLATE)
     util.backup_file(KICKSTART_DONE)
     util.backup_file(NTP_CONF)
+    util.backup_file(APACHE2_CONF)
 
     # Create tftp root directory
-    mode = 0o755
-    os.mkdir(TFTPBOOT, mode)
+    if not os.path.exists(TFTPBOOT):
+        mode = 0o755
+        os.mkdir(TFTPBOOT, mode)
 
     # Set IP address range to use for unrecognized DHCP clients
-    dhcp_range = 'dhcp-range=%s,%s  # %s'
+    dhcp_range = 'dhcp-range=%s,%s,%s  # %s'
     util.remove_line(DNSMASQ_TEMPLATE, 'dhcp-range')
     dhcp_pool_start = gen.get_dhcp_pool_start()
     for index, netw_type in enumerate(cfg.yield_depl_netw_client_type()):
@@ -113,6 +149,7 @@ def cobbler_install():
 
         entry = dhcp_range % (str(network.network + dhcp_pool_start),
                               str(network.network + network.size - 1),
+                              str(dhcp_lease_time),
                               str(network.cidr))
 
         util.append_line(DNSMASQ_TEMPLATE, entry)
@@ -130,6 +167,7 @@ def cobbler_install():
 
     # Configure dnsmasq to use deployer as gateway
     if cfg.get_depl_gateway():
+        util.remove_line(DNSMASQ_TEMPLATE, 'dhcp-option')
         util.append_line(DNSMASQ_TEMPLATE, 'dhcp-option=3,%s' % bridge_pxe_ipaddr)
 
     # Cobbler modules configuration
@@ -180,9 +218,14 @@ def cobbler_install():
         util.replace_regex(COBBLER_SETTINGS, 'proxy_url_ext: ""',
                            'proxy_url_ext: %s' %
                            globals_env_variables['http_proxy'])
+    util.replace_regex(COBBLER_SETTINGS, 'default_password_crypted:',
+                       'default_password_crypted: '
+                       '$1$clusterp$/gd3ep3.36A2808GGdHUz.')
 
     # Create link to
-    util.bash_cmd('ln -s %s/cobbler %s' % (LOCAL_PY_DIST_PKGS, PY_DIST_PKGS))
+    if not os.path.exists(PY_DIST_PKGS):
+        util.bash_cmd('ln -s %s/cobbler %s' %
+                      (LOCAL_PY_DIST_PKGS, PY_DIST_PKGS))
 
     # Set PXE timeout to maximum
     util.replace_regex(PXEDEFAULT_TEMPLATE, r'TIMEOUT \d+',
@@ -203,6 +246,13 @@ def cobbler_install():
     cont_pxe_broadcast = str(
         IPNetwork(cont_pxe_ipaddr + '/' + cont_pxe_netmask).broadcast)
     util.append_line(NTP_CONF, 'broadcast %s' % cont_pxe_broadcast)
+
+    # Add 'required-stop' line to cobblerd init.d to avoid warning
+    util.replace_regex(INITD + 'cobblerd', '### END INIT INFO',
+                       '# Required-Stop:\n### END INIT INFO')
+
+    # Set Apache2 'ServerName'
+    util.append_line(APACHE2_CONF, "ServerName localhost")
 
     # Restart services
     _restart_service('ntp')
@@ -233,7 +283,13 @@ def _restart_service(service):
 
 
 def _service_start_on_boot(service):
-    util.bash_cmd('update-rc.d %s enable' % service)
+    util.replace_regex(INITD + service,
+                       '# Default-Start:.*',
+                       '# Default-Start: 2 3 4 5')
+    util.replace_regex(INITD + service,
+                       '# Default-Stop:.*',
+                       '# Default-Stop: 0 1 6')
+    util.bash_cmd('update-rc.d %s defaults' % service)
 
 
 def _generate_random_characters(length=100):

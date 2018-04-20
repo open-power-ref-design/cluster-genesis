@@ -32,6 +32,7 @@ from tabulate import tabulate
 
 import lib.logger as logger
 from lib.config import Config
+from lib.inventory import Inventory
 from lib.ssh import SSH_Exception
 from lib.switch_exception import SwitchException
 from lib.switch import SwitchFactory
@@ -221,6 +222,7 @@ class ValidateClusterHardware(object):
         self.log = logger.getlogger()
         try:
             self.cfg = Config()
+            self.inv = Inventory()
         except UserException as exc:
             self.log.critical(exc)
             raise UserException(exc)
@@ -492,6 +494,25 @@ class ValidateClusterHardware(object):
 
     def validate_ipmi(self):
         self.log.info("Discover and validate cluster nodes")
+        if self.inv.check_all_nodes_ipmi_macs():
+            self.log.info("Inventory exists with IPMI MACs populated.")
+            print("\nPress Enter to continue cluster deployment without "
+                  "running IPMI hardware validation.")
+            print("Type 'C' to validate cluster nodes defined in current "
+                  "'config.yml'")
+            resp = raw_input("Type 'T' to terminate Cluster Genesis ")
+            if resp == 'T':
+                resp = raw_input("Type 'y' to confirm ")
+                if resp == 'y':
+                    self.log.info("'{}' entered. Terminating Genesis at user "
+                                  "request".format(resp))
+                    sys.exit(1)
+            elif resp == 'C':
+                self.log.info("'{}' entered. Continuing with hardware "
+                              "validation".format(resp))
+            else:
+                print()
+                return
         ipmi_cnt, pxe_cnt = self._get_port_cnts()
         ipmi_addr, bridge_addr, ipmi_prefix, ipmi_vlan = self._get_network('ipmi')
         ipmi_network = ipmi_addr + '/' + str(ipmi_prefix)
@@ -677,6 +698,25 @@ class ValidateClusterHardware(object):
         return mac_list
 
     def validate_pxe(self, bootdev='default', persist=True):
+        if self.inv.check_all_nodes_pxe_macs():
+            self.log.info("Inventory exists with PXE MACs populated.")
+            print("\nPress Enter to continue cluster deployment without "
+                  "running PXE hardware validation.")
+            print("Type 'C' to validate cluster nodes defined in current "
+                  "'config.yml'")
+            resp = raw_input("Type 'T' to terminate Cluster Genesis ")
+            if resp == 'T':
+                resp = raw_input("Type 'y' to confirm ")
+                if resp == 'y':
+                    self.log.info("'{}' entered. Terminating Genesis at user "
+                                  "request".format(resp))
+                    sys.exit(1)
+            elif resp == 'C':
+                self.log.info("'{}' entered. Continuing with hardware "
+                              "validation".format(resp))
+            else:
+                print()
+                return
         self.log.debug("Checking PXE networks and client PXE"
                        " ports ________\n")
         self.log.debug('Boot device: {}'.format(bootdev))

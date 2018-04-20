@@ -18,7 +18,7 @@
 container_name: power-up
 project_path_local: "{{ ansible_env['PWD'] | regex_replace('^(.+/power-up).+?$', '\\1')}}"
 scripts_path_local: "{{ project_path_local }}/scripts"
-venv_path_local: "{{ project_path_local }}/deployenv"
+venv_path_local: "{{ project_path_local }}/pup-venv"
 python_executable_local: "{{ venv_path_local }}/bin/python"
 ssh_key_private: "{{ ansible_env.HOME }}/.ssh/gen"
 ssh_key_public: "{{ ssh_key_private }}.pub"

@@ -38,8 +38,8 @@ OPSYS = platform.dist()[0]
 DEFAULT_CONTAINER_NAME = PROJECT_NAME
 CONTAINER_PACKAGE_PATH = '/opt/' + PROJECT_NAME
 CONTAINER_ID_FILE = 'container'
-VENV_DIR = 'gen-venv'
-DEPLOYER_VENV_DIR = 'deployenv'
+VENV_DIR = 'pup-venv'
+DEPLOYER_VENV_DIR = 'pup-venv'
 PYTHON_EXE = 'bin/python'
 SCRIPTS_DIR = 'scripts'
 PYTHON_DIR = 'python'
@@ -95,12 +95,41 @@ def load_localhost(filename):
         sys.exit('Could not load file: ' + filename)
 
 
+def get_symlink_path():
+    from lib.config import Config
+    cfg = Config()
+    cont_vlan = str(cfg.get_depl_netw_client_vlan(if_type='pxe')[0])
+    file_name = INV_FILE_NAME.replace('.', cont_vlan + '.')
+    return os.path.join(GEN_PATH, file_name)
+
+
+def get_symlink_realpath():
+    return os.path.realpath(get_symlink_path())
+
+
+def get_inventory_realpath():
+    # If called inside a POWER_Up container, return the path to the inventory.yml
+    # file.  If callled outside the container, returns the realpath of the
+    # inventory.yml file corresponding to the active container.
+    if is_container():
+        return INV_FILE
+    return os.path.realpath(get_symlink_path())
+
+
+def get_container_name():
+    from lib.config import Config
+    cfg = Config()
+    cont_vlan = str(cfg.get_depl_netw_client_vlan(if_type='pxe')[0])
+    return DEFAULT_CONTAINER_NAME + '-pxe' + cont_vlan
+
+
 def is_container_running():
     cont_running = False
     lxc_ls_output = subprocess.check_output(['bash', '-c', 'lxc-ls -f'])
-    cont_running = re.search('^%s\d+\s+RUNNING' % (DEFAULT_CONTAINER_NAME + '-pxe'),
-                             lxc_ls_output, re.MULTILINE)
-    if cont_running:
+    lxc_ls_output_search = re.search('^%s\d+\s+RUNNING' %
+                                     (DEFAULT_CONTAINER_NAME + '-pxe'),
+                                     lxc_ls_output, re.MULTILINE)
+    if lxc_ls_output_search is not None:
         cont_running = True
     return cont_running
 
@@ -239,6 +268,18 @@ def get_cobbler_pass():
 
 def get_dhcp_pool_start():
     return DHCP_POOL_START
+
+
+def check_os_profile(profile):
+    ubuntu_lts_pointers = {
+        "ubuntu-14.04-server-amd64": "ubuntu-14.04.5-server-amd64",
+        "ubuntu-14.04-server-ppc64el": "ubuntu-14.04.5-server-ppc64el",
+        "ubuntu-16.04-server-amd64": "ubuntu-16.04.4-server-amd64",
+        "ubuntu-16.04-server-ppc64el": "ubuntu-16.04.4-server-ppc64el"}
+    if profile in list(ubuntu_lts_pointers):
+        return ubuntu_lts_pointers[profile]
+    else:
+        return profile
 
 
 if os.path.isfile(GEN_PATH + "playbooks/host_vars/localhost"):

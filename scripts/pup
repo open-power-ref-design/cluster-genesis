@@ -15,7 +15,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [[ "$1" == "setup" ]] && [[ "$2" == "--networks" ]]; then
+if [[ "$1" == "setup" ]] && ([[ "$2" == "--networks" ]] ||
+        [[ "$2" == "--gateway" ]] || [[ "$2" == "-a" ]] ||
+        [[ "$2" == "--all" ]]); then
     sudo env "PATH=$PATH" gen.py $@
     exit
 fi
@@ -38,7 +40,7 @@ if [[ "$1" == "deploy" ]] && ([[ "$2" == "-a" ]] || [[ "$2" == "--all" ]] || \
         exit
     fi
 
-    sudo env "PATH=$PATH" gen.py setup --networks $@
+    sudo env "PATH=$PATH" gen.py setup --all $@
     if [ $? -ne 0 ]; then
         exit
     fi
