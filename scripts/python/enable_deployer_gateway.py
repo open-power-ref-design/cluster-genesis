@@ -18,12 +18,15 @@
 from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
+import argparse
+import os.path
 import sys
 import subprocess
 from netaddr import IPNetwork
 
 import lib.logger as logger
 from lib.config import Config
+from lib.genesis import GEN_PATH
 
 
 def enable_deployer_gateway(config_path=None, remove=False):
@@ -83,15 +86,24 @@ def _create_nat_gateway_rule(network, remove=False):
 
 
 if __name__ == '__main__':
-    logger.create()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('config_path', default='config.yml',
+                        help='Config file path.  Absolute path or relative '
+                        'to power-up/')
 
-    if len(sys.argv) > 2:
-        try:
-            raise Exception()
-        except Exception:
-            sys.exit('Invalid argument count')
+    parser.add_argument('--print', '-p', dest='log_lvl_print',
+                        help='print log level', default='info')
 
-    if len(sys.argv) == 2:
-        enable_deployer_gateway(sys.argv[1])
-    else:
-        enable_deployer_gateway()
+    parser.add_argument('--file', '-f', dest='log_lvl_file',
+                        help='file log level', default='info')
+
+    args = parser.parse_args()
+
+    if not os.path.isfile(args.config_path):
+        args.config_path = GEN_PATH + args.config_path
+        print('Using config path: {}'.format(args.config_path))
+    if not os.path.isfile(args.config_path):
+        sys.exit('{} does not exist'.format(args.config_path))
+
+    logger.create(args.log_lvl_print, args.log_lvl_file)
+    enable_deployer_gateway(args.config_path)

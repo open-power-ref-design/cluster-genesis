@@ -18,6 +18,8 @@
 from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
+import argparse
+import os.path
 import sys
 import xmlrpclib
 from netaddr import IPNetwork
@@ -238,7 +240,25 @@ def _adjust_dhcp_pool(network, dhcp_pool_start, dhcp_lease_time):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('config_path', default='config.yml',
+                        help='Config file path.  Absolute path or relative '
+                        'to power-up/')
 
-    logger.create()
+    parser.add_argument('--print', '-p', dest='log_lvl_print',
+                        help='print log level', default='info')
 
-    inv_set_ipmi_pxe_ip(sys.argv[1])
+    parser.add_argument('--file', '-f', dest='log_lvl_file',
+                        help='file log level', default='info')
+
+    args = parser.parse_args()
+
+    if not os.path.isfile(args.config_path):
+        args.config_path = gen.GEN_PATH + args.config_path
+        print('Using config path: {}'.format(args.config_path))
+    if not os.path.isfile(args.config_path):
+        sys.exit('{} does not exist'.format(args.config_path))
+
+    logger.create(args.log_lvl_print, args.log_lvl_file)
+
+    inv_set_ipmi_pxe_ip(args.config_path)

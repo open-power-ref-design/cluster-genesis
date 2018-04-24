@@ -307,11 +307,7 @@ if __name__ == '__main__':
     LOG = logger.getlogger()
 
     if len(sys.argv) != 4:
-        try:
-            raise Exception()
-        except:
-            LOG.error('Invalid argument count')
-            sys.exit(1)
+        sys.exit('Invalid argument count')
 
     DHCP_LEASES_FILE = sys.argv[1]
     PORT_TYPE = sys.argv[2]

@@ -20,7 +20,6 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 
 import sys
 
-import lib.logger as logger
 from lib.inventory import Inventory
 
 
@@ -41,14 +40,8 @@ if __name__ == '__main__':
     Arg2: Device name
     Arg3: config file path
     """
-    logger.create()
-    LOG = logger.getlogger()
 
     if len(sys.argv) != 4:
-        try:
-            raise Exception()
-        except:
-            LOG.error('Invalid argument count: {}'.format(len(sys.argv)))
-            sys.exit(1)
+        sys.exit('Invalid number of arguments.')
 
     inv_set_interface_name(sys.argv[1], sys.argv[2], sys.argv[3])

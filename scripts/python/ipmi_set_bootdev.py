@@ -136,11 +136,7 @@ if __name__ == '__main__':
     LOG = logger.getlogger()
 
     if len(sys.argv) != 5:
-        try:
-            raise Exception()
-        except:
-            LOG.error('Invalid argument count')
-            sys.exit(1)
+        sys.exit('Invalid argument count')
 
     BOOTDEV = sys.argv[1]
     PERSIST = sys.argv[2]

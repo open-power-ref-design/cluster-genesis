@@ -18,6 +18,7 @@
 from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
+import argparse
 import os
 import sys
 import pwd
@@ -298,15 +299,25 @@ def _generate_random_characters(length=100):
 
 
 if __name__ == '__main__':
-    logger.create()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('config_path', default='config.yml',
+                        help='Config file path.  Absolute path or relative '
+                        'to power-up/')
 
-    if len(sys.argv) > 2:
-        try:
-            raise Exception()
-        except Exception:
-            sys.exit('Invalid argument count')
+    parser.add_argument('--print', '-p', dest='log_lvl_print',
+                        help='print log level', default='info')
 
-    if len(sys.argv) == 2:
-        cobbler_install(sys.argv[1])
-    else:
-        cobbler_install()
+    parser.add_argument('--file', '-f', dest='log_lvl_file',
+                        help='file log level', default='info')
+
+    args = parser.parse_args()
+
+    logger.create(args.log_lvl_print, args.log_lvl_file)
+
+    if not os.path.isfile(args.config_path):
+        args.config_path = gen.GEN_PATH + args.config_path
+        print('Using config path: {}'.format(args.config_path))
+    if not os.path.isfile(args.config_path):
+        sys.exit('{} does not exist'.format(args.config_path))
+
+    cobbler_install(args.config_path)

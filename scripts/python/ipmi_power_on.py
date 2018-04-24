@@ -92,11 +92,7 @@ if __name__ == '__main__':
     LOG = logger.getlogger()
 
     if len(sys.argv) != 4:
-        try:
-            raise Exception()
-        except Exception:
-            LOG.error('Invalid argument count')
-            sys.exit(1)
+        sys.exit('Invalid argument count')
 
     TIME_OUT = int(sys.argv[1])
     WAIT = int(sys.argv[2])

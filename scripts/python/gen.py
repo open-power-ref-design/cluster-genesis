@@ -525,18 +525,23 @@ class Gen(object):
         """Launch actions"""
 
         cmd = None
-        self.config_file_path += self.args.config_file_name
         self.cont_config_file_path += self.args.config_file_name
-        if self.args.config_file_name == 'config.yml':
-            if not os.path.isfile(self.config_file_path):
-                print('No config.yml file found. Please create a config.yml')
-                print('file or specify the name of a config file.')
-                sys.exit(1)
-            else:
-                print('\nNo config file specified. Using "config.yml"')
-                resp = raw_input('Enter to continue. "T" to terminate ')
-                if resp == 'T':
-                    sys.exit('POWER-Up stopped at user request')
+
+        if not os.path.isfile(self.args.config_file_name):
+            self.config_file_path += self.args.config_file_name
+        else:
+            self.config_file_path = self.args.config_file_name
+
+        if not os.path.isfile(self.config_file_path):
+            print('{} not found. Please specify a config file'.format(
+                self.config_file_path))
+            sys.exit(1)
+
+        if 'config.yml' in self.config_file_path:
+            print('\nUsing {}'.format(self.config_file_path))
+            resp = raw_input('Enter to continue. "T" to terminate ')
+            if resp == 'T':
+                sys.exit('POWER-Up stopped at user request')
 
         # Determine which subcommand was specified
         try:

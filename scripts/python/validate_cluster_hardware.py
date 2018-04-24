@@ -18,6 +18,7 @@
 from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
+import argparse
 import time
 import sys
 import os
@@ -44,11 +45,11 @@ from lib.genesis import get_dhcp_pool_start, GEN_PATH
 NAME_SPACE_OFFSET_ADDR = 1
 
 
-def main():
+def main(config_path):
     """Validate config"""
     log = logger.getlogger()
 
-    val = ValidateClusterHardware()
+    val = ValidateClusterHardware(config_path)
     if not val.validate_mgmt_switches():
         log.error('Failed validating cluster management switches')
 
@@ -1183,5 +1184,24 @@ class ValidateClusterHardware(object):
 
 
 if __name__ == '__main__':
-    logger.create()
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('config_path', default='config.yml',
+                        help='Config file path.  Absolute path or relative '
+                        'to power-up/')
+
+    parser.add_argument('--print', '-p', dest='log_lvl_print',
+                        help='print log level', default='info')
+
+    parser.add_argument('--file', '-f', dest='log_lvl_file',
+                        help='file log level', default='info')
+
+    args = parser.parse_args()
+
+    if not os.path.isfile(args.config_path):
+        args.config_path = GEN_PATH + args.config_path
+        print('Using config path: {}'.format(args.config_path))
+    if not os.path.isfile(args.config_path):
+        sys.exit('{} does not exist'.format(args.config_path))
+
+    logger.create(args.log_lvl_print, args.log_lvl_file)
+    main(args.config_path)

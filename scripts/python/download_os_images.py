@@ -18,6 +18,7 @@
 from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
+import argparse
 import sys
 import yaml
 from orderedattrdict.yamlutils import AttrDictYAMLLoader
@@ -27,8 +28,7 @@ import hashlib
 
 import lib.logger as logger
 from lib.config import Config
-from lib.genesis import get_os_images_path
-from lib.genesis import check_os_profile
+from lib.genesis import check_os_profile, get_os_images_path, GEN_PATH
 from lib.exception import UserException
 
 OS_IMAGES_URLS_FILENAME = 'os-image-urls.yml'
@@ -77,15 +77,24 @@ def download_os_images(config_path=None):
 
 
 if __name__ == '__main__':
-    logger.create()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('config_path', default='config.yml',
+                        help='Config file path.  Absolute path or relative '
+                        'to power-up/')
 
-    if len(sys.argv) > 2:
-        try:
-            raise Exception()
-        except Exception:
-            sys.exit('Invalid argument count')
+    parser.add_argument('--print', '-p', dest='log_lvl_print',
+                        help='print log level', default='info')
 
-    if len(sys.argv) == 2:
-        download_os_images(sys.argv[1])
-    else:
-        download_os_images()
+    parser.add_argument('--file', '-f', dest='log_lvl_file',
+                        help='file log level', default='info')
+
+    args = parser.parse_args()
+
+    if not os.path.isfile(args.config_path):
+        args.config_path = GEN_PATH + args.config_path
+        print('Using config path: {}'.format(args.config_path))
+    if not os.path.isfile(args.config_path):
+        sys.exit('{} does not exist'.format(args.config_path))
+
+    logger.create(args.log_lvl_print, args.log_lvl_file)
+    download_os_images(args.config_path)

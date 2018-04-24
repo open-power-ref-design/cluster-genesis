@@ -27,6 +27,7 @@ import lib.logger as logger
 from lib.config import Config
 from lib.switch import SwitchFactory
 from lib.switch_exception import SwitchException
+from lib.genesis import GEN_PATH
 # from write_switch_memory import WriteSwitchMemory
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -637,6 +638,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     logger.create(args.log_lvl_print, args.log_lvl_file)
+
+    if not os.path.isfile(args.config_path):
+        args.config_path = GEN_PATH + args.config_path
+        print('Using config path: {}'.format(args.config_path))
+    if not os.path.isfile(args.config_path):
+        sys.exit('{} does not exist'.format(args.config_path))
 
     if args.display:
         gather_and_display(args.config_path)
