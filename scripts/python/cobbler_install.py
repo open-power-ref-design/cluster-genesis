@@ -57,6 +57,8 @@ PY_DIST_PKGS = '/usr/lib/python2.7/dist-packages'
 INITD = '/etc/init.d/'
 APACHE2_CONF = '/etc/apache2/apache2.conf'
 MANAGE_DNSMASQ = '/opt/cobbler/cobbler/modules/manage_dnsmasq.py'
+COBBLER_DLCONTENT = '/opt/cobbler/cobbler/action_dlcontent.py'
+COBBLER_SETTINGS_PY = '/opt/cobbler/cobbler/settings.py'
 
 A2ENCONF = '/usr/sbin/a2enconf'
 A2ENMOD = '/usr/sbin/a2enmod'
@@ -115,6 +117,16 @@ def cobbler_install():
     util.replace_regex(MANAGE_DNSMASQ, 'systxt \= systxt \+ \"\\\\n\"',
                        "systxt = systxt + \",{}\\\\n\"".
                        format(dhcp_lease_time))
+
+    # Use non-secure http to download network boot-loaders
+    util.replace_regex(COBBLER_DLCONTENT,
+                       'https://cobbler.github.io',
+                       'http://cobbler.github.io')
+
+    # Use non-secure http to download signatures
+    util.replace_regex(COBBLER_SETTINGS_PY,
+                       'https://cobbler.github.io',
+                       'http://cobbler.github.io')
 
     # Run cobbler make install
     util.bash_cmd('cd %s; make install' % install_dir)
