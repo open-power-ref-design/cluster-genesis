@@ -622,7 +622,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('config_path', nargs='?',
                         help='path to config file',
-                        default=None)
+                        default='config.yml')
     parser.add_argument('--display', action='store_true',
                         help='display gathered switch info')
 

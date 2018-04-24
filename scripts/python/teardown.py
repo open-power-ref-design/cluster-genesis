@@ -21,6 +21,7 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
 import sys
+import os.path
 
 import teardown_deployer_container
 import enable_deployer_gateway
@@ -60,12 +61,21 @@ class Teardown(object):
 
     def launch(self):
         """Launch actions"""
-        self.config_file_path += self.args.config_file_name
-        print('\nUsing config file for container: {}'.format(self.config_file_path))
-        print("Enter to continue or 'T' to terminate")
-        resp = raw_input("\nEnter or 'T': ")
-        if resp == 'T':
-            sys.exit('POWER-Up stopped at user request')
+        if not os.path.isfile(self.args.config_file_name):
+            self.config_file_path += self.args.config_file_name
+        else:
+            self.config_file_path = self.args.config_file_name
+
+        if not os.path.isfile(self.config_file_path):
+            print('{} not found. Please specify a config file'.format(
+                self.config_file_path))
+            sys.exit(1)
+
+        if 'config.yml' in self.config_file_path:
+            print('\nUsing {}'.format(self.config_file_path))
+            resp = raw_input('Enter to continue. "T" to terminate ')
+            if resp == 'T':
+                sys.exit('POWER-Up stopped at user request')
 
         # Determine which subcommand was specified
         try:
