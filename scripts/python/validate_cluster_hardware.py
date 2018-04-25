@@ -227,6 +227,7 @@ class ValidateClusterHardware(object):
             self.log.critical(exc)
             raise UserException(exc)
         # initialize ipmi list of access info
+        self.ran_ipmi = False
         self.ipmi_list_ai = {}
         vlan_ipmi = self.cfg.get_depl_netw_client_vlan(if_type='ipmi')[0]
         vlan_pxe = self.cfg.get_depl_netw_client_vlan(if_type='pxe')[0]
@@ -495,8 +496,8 @@ class ValidateClusterHardware(object):
 
     def validate_ipmi(self):
         self.log.info("Discover and validate cluster nodes")
-        if self.inv.check_all_nodes_ipmi_macs():
-            self.log.info("Inventory exists with IPMI MACs populated.")
+        if self.inv.check_all_nodes_ipmi_macs() and self.inv.check_all_nodes_pxe_macs():
+            self.log.info("Inventory exists with IPMI and PXE MACs populated.")
             print("\nPress Enter to continue cluster deployment without "
                   "running IPMI hardware validation.")
             print("Type 'C' to validate cluster nodes defined in current "
@@ -628,6 +629,7 @@ class ValidateClusterHardware(object):
         self._power_all(self.ipmi_list_ai, 'on', bootdev='network')
 
         self.log.debug('Cluster nodes IPMI validation complete')
+        self.ran_ipmi = True
         if not rc:
             raise UserException('Not all node IPMI ports validated')
 
@@ -702,6 +704,8 @@ class ValidateClusterHardware(object):
     def validate_pxe(self, bootdev='default', persist=True):
         if self.inv.check_all_nodes_pxe_macs():
             self.log.info("Inventory exists with PXE MACs populated.")
+            if not self.ran_ipmi:
+                return
             print("\nPress Enter to continue cluster deployment without "
                   "running PXE hardware validation.")
             print("Type 'C' to validate cluster nodes defined in current "
@@ -719,6 +723,10 @@ class ValidateClusterHardware(object):
             else:
                 print()
                 return
+        if not self.ran_ipmi:
+            return
+        if not self.node_table_ipmi:
+            raise UserCriticalException('No BMCs discovered')
         self.log.debug("Checking PXE networks and client PXE"
                        " ports ________\n")
         self.log.debug('Boot device: {}'.format(bootdev))
@@ -798,10 +806,10 @@ class ValidateClusterHardware(object):
                         self.log.warning('Failure reading tcpdump file - {}'.format(stderr))
                 mac_list = self._get_macs(mac_list, dump)
                 cnt = len(mac_list)
-                if cnt >= cnt_prev:
+                if cnt > cnt_prev:
                     cnt_prev = cnt
                     # Pause briefly for in flight DHCP to complete and lease file to update
-                    time.sleep(2)
+                    time.sleep(5)
                     self._build_port_table_pxe(mac_list)
                 if cnt >= pxe_cnt:
                     rc = True
@@ -866,7 +874,7 @@ class ValidateClusterHardware(object):
             raise UserException('Not all node PXE ports validated')
 
     def _reset_unfound_nodes(self):
-        """ Power cycle the nodes who's PXE ports are not responding to pings.
+        """ Power cycle the nodes who's PXE ports are not requesting pxe boot.
         """
         ipmi_missing_list_ai = {}
         for label in self.cfg.yield_sw_mgmt_label():
@@ -875,7 +883,7 @@ class ValidateClusterHardware(object):
             for node in self.node_table_ipmi[label]:
                 if node[0] in ipmi_ports:
                     idx = ipmi_ports.index(node[0])
-                    if not self._is_port_in_table(
+                    if label not in self.node_table_pxe or not self._is_port_in_table(
                             self.node_table_pxe[label], pxe_ports[idx]):
                         ipmi_missing_list_ai[node[2]] = self.ipmi_list_ai[node[2]]
         self.log.debug('Cycling power to missing nodes list: {}'
