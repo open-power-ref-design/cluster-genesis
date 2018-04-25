@@ -24,7 +24,6 @@ from netaddr import IPNetwork
 import re
 
 from lib.exception import UserException, UserCriticalException
-import lib.logger as logger
 
 
 class ValidateConfigLogic(object):
