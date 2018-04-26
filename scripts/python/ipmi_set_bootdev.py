@@ -61,7 +61,7 @@ def ipmi_set_bootdev(bootdev, persist=False, client_list=None):
         if ipv4_pxe in client_list:
             try:
                 status = ipmi_cmd.set_bootdev(bootdev, persist)
-            except pyghmi_exception.IpmiException as error:
+            except (pyghmi_exception.IpmiException, AssertionError) as error:
                 msg = (
                     'set_bootdev failed (device=%s persist=%s), retrying once - '
                     'Rack: %s - IP: %s, %s' %
@@ -74,7 +74,8 @@ def ipmi_set_bootdev(bootdev, persist=False, client_list=None):
                     password=password)
                 try:
                     status = ipmi_cmd.set_bootdev(bootdev, persist)
-                except pyghmi_exception.IpmiException as error:
+                except (pyghmi_exception.IpmiException,
+                        AssertionError) as error:
                     msg = (
                         'set_bootdev failed (device=%s persist=%s) - '
                         'Rack: %s - IP: %s, %s' %
@@ -94,7 +95,7 @@ def ipmi_set_bootdev(bootdev, persist=False, client_list=None):
 
             try:
                 status = ipmi_cmd.get_bootdev()
-            except pyghmi_exception.IpmiException as error:
+            except (pyghmi_exception.IpmiException, AssertionError) as error:
                 msg = (
                     'get_bootdev failed - '
                     'Rack: %s - IP: %s, %s' %
