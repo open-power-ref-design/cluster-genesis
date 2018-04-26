@@ -61,11 +61,11 @@ def ipmi_set_bootdev(bootdev, persist=False, client_list=None):
         if ipv4_pxe in client_list:
             try:
                 status = ipmi_cmd.set_bootdev(bootdev, persist)
-            except pyghmi_exception.IpmiException as error:
+            except (pyghmi_exception.IpmiException, AssertionError) as error:
                 msg = (
-                    'set_bootdev failed (device=%s persist=%s), retrying once - '
-                    'Rack: %s - IP: %s, %s' %
-                    (bootdev, persist, rack_id, ipv4, str(error)))
+                    'set_bootdev failed (device=%s persist=%s), retrying once '
+                    '- Rack: %s - IP: %s, (%s) %s' %
+                    (bootdev, persist, rack_id, ipv4, type(error), str(error)))
                 log.warning(msg)
                 del ipmi_cmd
                 ipmi_cmd = ipmi_command.Command(
@@ -74,11 +74,13 @@ def ipmi_set_bootdev(bootdev, persist=False, client_list=None):
                     password=password)
                 try:
                     status = ipmi_cmd.set_bootdev(bootdev, persist)
-                except pyghmi_exception.IpmiException as error:
+                except (pyghmi_exception.IpmiException,
+                        AssertionError) as error:
                     msg = (
                         'set_bootdev failed (device=%s persist=%s) - '
-                        'Rack: %s - IP: %s, %s' %
-                        (bootdev, persist, rack_id, ipv4, str(error)))
+                        'Rack: %s - IP: %s, (%s) %s' %
+                        (bootdev, persist, rack_id, ipv4, type(error),
+                         str(error)))
                     log.error(msg)
                     raise UserException(msg)
 
@@ -94,11 +96,11 @@ def ipmi_set_bootdev(bootdev, persist=False, client_list=None):
 
             try:
                 status = ipmi_cmd.get_bootdev()
-            except pyghmi_exception.IpmiException as error:
+            except (pyghmi_exception.IpmiException, AssertionError) as error:
                 msg = (
                     'get_bootdev failed - '
-                    'Rack: %s - IP: %s, %s' %
-                    (rack_id, ipv4, str(error)))
+                    'Rack: %s - IP: %s, (%s) %s' %
+                    (rack_id, ipv4, type(error), str(error)))
                 log.error(msg)
                 raise UserException(msg)
 
