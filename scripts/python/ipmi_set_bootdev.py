@@ -63,9 +63,9 @@ def ipmi_set_bootdev(bootdev, persist=False, client_list=None):
                 status = ipmi_cmd.set_bootdev(bootdev, persist)
             except (pyghmi_exception.IpmiException, AssertionError) as error:
                 msg = (
-                    'set_bootdev failed (device=%s persist=%s), retrying once - '
-                    'Rack: %s - IP: %s, %s' %
-                    (bootdev, persist, rack_id, ipv4, str(error)))
+                    'set_bootdev failed (device=%s persist=%s), retrying once '
+                    '- Rack: %s - IP: %s, (%s) %s' %
+                    (bootdev, persist, rack_id, ipv4, type(error), str(error)))
                 log.warning(msg)
                 del ipmi_cmd
                 ipmi_cmd = ipmi_command.Command(
@@ -78,8 +78,9 @@ def ipmi_set_bootdev(bootdev, persist=False, client_list=None):
                         AssertionError) as error:
                     msg = (
                         'set_bootdev failed (device=%s persist=%s) - '
-                        'Rack: %s - IP: %s, %s' %
-                        (bootdev, persist, rack_id, ipv4, str(error)))
+                        'Rack: %s - IP: %s, (%s) %s' %
+                        (bootdev, persist, rack_id, ipv4, type(error),
+                         str(error)))
                     log.error(msg)
                     raise UserException(msg)
 
@@ -98,8 +99,8 @@ def ipmi_set_bootdev(bootdev, persist=False, client_list=None):
             except (pyghmi_exception.IpmiException, AssertionError) as error:
                 msg = (
                     'get_bootdev failed - '
-                    'Rack: %s - IP: %s, %s' %
-                    (rack_id, ipv4, str(error)))
+                    'Rack: %s - IP: %s, (%s) %s' %
+                    (rack_id, ipv4, type(error), str(error)))
                 log.error(msg)
                 raise UserException(msg)
 
