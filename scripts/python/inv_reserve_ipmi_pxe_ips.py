@@ -28,7 +28,7 @@ from lib.config import Config
 from lib.inventory import Inventory
 import lib.genesis as gen
 import lib.utilities as util
-from ipmi_power_off import ipmi_power_off
+from ipmi_set_power import ipmi_set_power
 from lib.exception import UserException
 import lib.logger as logger
 
@@ -36,7 +36,6 @@ DNSMASQ_TEMPLATE = '/etc/cobbler/dnsmasq.template'
 COBBLER_USER = gen.get_cobbler_user()
 COBBLER_PASS = gen.get_cobbler_pass()
 WAIT_TIME = 1200
-POWER_TIME_OUT = gen.get_power_time_out()
 POWER_WAIT = gen.get_power_wait()
 SLEEP_TIME = gen.get_power_sleep_time()
 
@@ -97,7 +96,7 @@ def inv_set_ipmi_pxe_ip():
     nodes_list = []
 
     # All nodes should be powered off before starting
-    ipmi_power_off(POWER_TIME_OUT, POWER_WAIT)
+    ipmi_set_power('off', wait=POWER_WAIT)
 
     # Create IPManager object for IPMI and/or PXE networks
     start_offset = gen.get_dhcp_pool_start()
