@@ -40,9 +40,9 @@ def ipmi_set_power(state, client_list=None, max_attempts=5, wait=6):
 
     if not client_list:
         log.debug('Retrieving IPMI address list from inventory')
-        clients_left = inv.get_nodes_ipmi_ipaddr(0)
-    else:
-        clients_left = client_list
+        client_list = inv.get_nodes_ipmi_ipaddr(0)
+
+    clients_left = client_list[:]
 
     attempt = 0
     clients_left.sort()
@@ -116,14 +116,15 @@ def ipmi_set_power(state, client_list=None, max_attempts=5, wait=6):
 
         for client in clients_set:
             clients_left.remove(client)
-            if not clients_left:
-                print('Successfully powered {} {} client devices'
-                      .format(state, len(client_list)))
+
         if attempt == max_attempts and clients_left:
             log.error('Failed to power {} some clients'.format(state))
             log.error(clients_left)
 
         del bmc_dict
+
+    log.info('Powered {} {} of {} client devices.'
+             .format(state, len(client_list) - len(clients_left), len(client_list)))
 
     if state == 'off':
         print('Pausing 60 sec for client power off')

@@ -41,7 +41,7 @@ def ipmi_set_bootdev(bootdev, persist=False, client_list=None):
         client_list = inv.get_nodes_pxe_ipaddr(0)
     max_attempts = 5
     attempt = 0
-    clients_left = client_list
+    clients_left = client_list[:]
     clients_left.sort()
     while clients_left and attempt < max_attempts:
         nodes = {}
@@ -117,14 +117,14 @@ def ipmi_set_bootdev(bootdev, persist=False, client_list=None):
 
         for client in clients_set:
             clients_left.remove(client)
-            if not clients_left:
-                print('Successfully set {} client boot devices to {}'
-                      .format(len(client_list), bootdev))
+
         if attempt == max_attempts and clients_left:
             log.error('Failed to set boot device for some clients')
             log.debug(clients_left)
 
         del bmc_dict
+    log.info('Set boot device to {} on {} of {} client devices.'
+             .format(bootdev, len(client_list) - len(clients_left), len(client_list)))
 
 
 if __name__ == '__main__':
@@ -136,7 +136,7 @@ if __name__ == '__main__':
     logger.create()
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('boot_dev', default='none', nargs='?',
+    parser.add_argument('bootdev', default='none', nargs='?',
                         help='Boot device.  ie network or none...')
 
     parser.add_argument('--persist', action='store_true',
