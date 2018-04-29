@@ -117,9 +117,9 @@ def ipmi_set_power(state, client_list=None, max_attempts=5, wait=6):
         for client in clients_set:
             clients_left.remove(client)
             if not clients_left:
-                print('Successfully powered off all client devices')
+                print('Successfully powered {} all client devices'.format(state))
         if attempt == max_attempts:
-            log.error('Failed to power off some clients')
+            log.error('Failed to power {} some clients'.format(state))
             log.error(clients_left)
 
         del bmc_dict
@@ -127,6 +127,10 @@ def ipmi_set_power(state, client_list=None, max_attempts=5, wait=6):
     if state == 'off':
         print('Pausing 60 sec for client power off')
         time.sleep(60)
+
+    if clients_left:
+        return False
+    return True
 
 
 if __name__ == '__main__':
