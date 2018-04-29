@@ -117,8 +117,9 @@ def ipmi_set_power(state, client_list=None, max_attempts=5, wait=6):
         for client in clients_set:
             clients_left.remove(client)
             if not clients_left:
-                print('Successfully powered {} all client devices'.format(state))
-        if attempt == max_attempts:
+                print('Successfully powered {} {} client devices'
+                      .format(state, len(client_list)))
+        if attempt == max_attempts and clients_left:
             log.error('Failed to power {} some clients'.format(state))
             log.error(clients_left)
 

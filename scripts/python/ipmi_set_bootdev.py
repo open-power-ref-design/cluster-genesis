@@ -118,8 +118,9 @@ def ipmi_set_bootdev(bootdev, persist=False, client_list=None):
         for client in clients_set:
             clients_left.remove(client)
             if not clients_left:
-                print('Successfully set all client boot devices to {}'.format(bootdev))
-        if attempt == max_attempts:
+                print('Successfully set {} client boot devices to {}'
+                      .format(len(client_list), bootdev))
+        if attempt == max_attempts and clients_left:
             log.error('Failed to set boot device for some clients')
             log.debug(clients_left)
 
