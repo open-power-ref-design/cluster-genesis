@@ -70,8 +70,8 @@ def ipmi_set_power(state, client_list=None, max_attempts=5, wait=6):
                         userid=userid,
                         password=password)
                 except pyghmi_exception.IpmiException as error:
-                    log.error('IPMI login attempt {}, address {}\n{}'
-                              .format(i, ipv4, error.message))
+                    log.error('IPMI login attempt {}, address {}\nIPMI error'
+                              'message: {}'.format(i, ipv4, error.message))
                     time.sleep(1)
                 else:
                     break
@@ -87,7 +87,11 @@ def ipmi_set_power(state, client_list=None, max_attempts=5, wait=6):
                 except pyghmi_exception.IpmiException as error:
                     msg = ('set_power failed Rack: %s - IP: %s, \n%s' %
                            (nodes[client][0], nodes[client][1], str(error)))
-                    log.warning(msg)
+                    log.error(msg)
+                else:
+                    # Allow delay between turn on to limit power surge
+                    if state == 'on':
+                        time.sleep(0.5)
                 finally:
                     if 'error' in status:
                         log.error(status)
