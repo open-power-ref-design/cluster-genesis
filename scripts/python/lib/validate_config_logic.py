@@ -211,8 +211,8 @@ class ValidateConfigLogic(object):
         netprefix = self.cfg.get_depl_netw_mgmt_prefix()
         cont_ip = self.cfg.get_depl_netw_mgmt_cont_ip()
         br_ip = self.cfg.get_depl_netw_mgmt_brg_ip()
-        if cont_ip[0]:
-            for i, cip in enumerate(cont_ip):
+        for i, cip in enumerate(cont_ip):
+            if cip:
                 netp = netprefix[i]
                 bip = br_ip[i]
                 cidr_cip = IPNetwork(cip + '/' + str(netp))
