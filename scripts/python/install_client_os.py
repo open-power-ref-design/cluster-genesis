@@ -26,9 +26,8 @@ from subprocess import Popen, PIPE
 from time import sleep
 
 from cobbler_set_netboot_enabled import cobbler_set_netboot_enabled
-from ipmi_power_off import ipmi_power_off
 from ipmi_set_bootdev import ipmi_set_bootdev
-from ipmi_power_on import ipmi_power_on
+from ipmi_set_power import ipmi_set_power
 from lib.config import Config
 from lib.inventory import Inventory
 import lib.logger as logger
@@ -65,11 +64,11 @@ def _get_lists(latest_list, handled_list):
 def install_client_os(config_path=None):
     log = logger.getlogger()
     cobbler_set_netboot_enabled(True)
-    ipmi_power_off(POWER_TIME_OUT, POWER_WAIT, config_path)
+    ipmi_set_power('off', config_path, wait=POWER_WAIT)
     ipmi_set_bootdev('network', False, config_path)
-    ipmi_power_on(POWER_TIME_OUT, POWER_WAIT, config_path)
+    ipmi_set_power('on', config_path, wait=POWER_WAIT)
     cfg = Config(config_path)
-    inv = Inventory(cfg_file=config_path)
+    inv = Inventory(config_path)
 
     client_list = inv.get_nodes_ipmi_ipaddr(0)
     client_cnt = len(client_list)

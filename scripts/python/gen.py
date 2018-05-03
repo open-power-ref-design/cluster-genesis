@@ -37,9 +37,7 @@ import lib.genesis as gen
 from lib.db import DatabaseConfig
 from lib.exception import UserException, UserCriticalException
 from lib.switch_exception import SwitchException
-from ipmi_power_off import ipmi_power_off
-from ipmi_set_bootdev import ipmi_set_bootdev
-from ipmi_power_on import ipmi_power_on
+from ipmi_set_power import ipmi_set_power
 
 
 class Gen(object):
@@ -221,26 +219,26 @@ class Gen(object):
             print('Successfully validated cluster hardware.\n')
 
     def _create_inventory(self):
-        from lib.inventory import Inventory
-        log = logger.getlogger()
-        inv = Inventory(cfg_file=self.config_file_path)
-        node_count = len(inv.inv['nodes'])
-        if node_count > 0:
-            log.info("Inventory already exists!")
-            print("\nInventory already exists with {} nodes defined."
-                  "".format(node_count))
-            print("Press enter to continue using the existing inventory.")
-            print("Type 'C' to continue creating a new inventory. "
-                  "WARNING: Contents of current file will be overwritten!")
-            resp = raw_input("Type 'T' to terminate Cluster Genesis ")
-            if resp == 'T':
-                sys.exit('POWER-Up stopped at user request')
-            elif resp == 'C':
-                log.info("'{}' entered. Creating new inventory file."
-                         "".format(resp))
-            else:
-                log.info("Continuing with existing inventory.")
-                return
+        # from lib.inventory import Inventory
+        # log = logger.getlogger()
+        # inv = Inventory(cfg_file=self.config_file_path)
+        # node_count = len(inv.inv['nodes'])
+        # if node_count > 0:
+        #     log.info("Inventory already exists!")
+        #     print("\nInventory already exists with {} nodes defined."
+        #           "".format(node_count))
+        #     print("Press enter to continue using the existing inventory.")
+        #     print("Type 'C' to continue creating a new inventory. "
+        #           "WARNING: Contents of current file will be overwritten!")
+        #     resp = raw_input("Type 'T' to terminate Cluster Genesis ")
+        #     if resp == 'T':
+        #         sys.exit('POWER-Up stopped at user request')
+        #     elif resp == 'C':
+        #         log.info("'{}' entered. Creating new inventory file."
+        #                  "".format(resp))
+        #     else:
+        #         log.info("Continuing with existing inventory.")
+        #         return
 
         from lib.container import Container
 
@@ -367,11 +365,9 @@ class Gen(object):
             log.info("PXE ports MAC and IP addresses already in inventory")
             return
 
-        power_time_out = gen.get_power_time_out()
         power_wait = gen.get_power_wait()
-        ipmi_power_off(power_time_out, power_wait, self.config_file_path)
-        ipmi_set_bootdev('network', False, self.config_file_path)
-        ipmi_power_on(power_time_out, power_wait, self.config_file_path)
+        ipmi_set_power('off', self.config_file_path, wait=power_wait)
+        ipmi_set_power('on', self.config_file_path, wait=power_wait)
 
         dhcp_lease_file = '/var/lib/misc/dnsmasq.leases'
         from lib.container import Container
@@ -527,26 +523,28 @@ class Gen(object):
         cmd = None
         self.cont_config_file_path += self.args.config_file_name
 
-        if not os.path.isfile(self.args.config_file_name):
-            self.config_file_path += self.args.config_file_name
+        path = self.args.config_file_name
+        if os.path.dirname(self.args.config_file_name) == '':
+            path = os.curdir + self.args.config_file_name
+
+        if os.path.isfile(path):
+            self.config_file_path = path
         else:
-            self.config_file_path = self.args.config_file_name
+            self.config_file_path += self.args.config_file_name
 
         if not os.path.isfile(self.config_file_path):
             print('{} not found. Please specify a config file'.format(
                 self.config_file_path))
             sys.exit(1)
 
-        if 'config.yml' in self.config_file_path:
-            print('\nUsing {}'.format(self.config_file_path))
-            resp = raw_input('Enter to continue. "T" to terminate ')
-            if resp == 'T':
-                sys.exit('POWER-Up stopped at user request')
-
         # Determine which subcommand was specified
         try:
             if self.args.setup:
                 cmd = argparse_gen.Cmd.SETUP.value
+                print('\nUsing {}'.format(self.config_file_path))
+                resp = raw_input('Enter to continue. "T" to terminate ')
+                if resp == 'T':
+                    sys.exit('POWER-Up stopped at user request')
         except AttributeError:
             pass
         try:

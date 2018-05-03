@@ -27,48 +27,52 @@ from lib.inventory import Inventory
 import lib.logger as logger
 
 
-def ipmi_set_bootdev(bootdev, persist=False, config_path=None, client_list=None):
+def ipmi_set_power(state, config_path=None, client_list=None, max_attempts=5,
+                   wait=6):
+    """Set power on or off
+    Args:
+        state (str) : 'on' or 'off'
+        client_list (list of str): list of IP addresses
+    """
     log = logger.getlogger()
-    inv = Inventory(cfg_file=config_path)
+    inv = Inventory(config_path)
+    wait = float(wait)
+    max_attempts = int(max_attempts)
 
-    if type(persist) is not bool:
-        persist = (persist == 'True')
-
-    # if client list passed, then use the passed client list,
-    # otherwise use the entire inventory list. This allows a
-    # subset of nodes to have their bootdev updated during install
     if not client_list:
-        client_list = inv.get_nodes_pxe_ipaddr(0)
-    max_attempts = 5
-    attempt = 0
+        log.debug('Retrieving IPMI address list from inventory')
+        client_list = inv.get_nodes_ipmi_ipaddr(0)
+
     clients_left = client_list[:]
+
+    attempt = 0
     clients_left.sort()
     while clients_left and attempt < max_attempts:
         nodes = {}
         attempt += 1
         if attempt > 1:
-            print('Retrying set bootdev. Attempt {} of {}'.format(attempt, max_attempts))
+            print('Retrying set power {}. Attempt {} of {}'
+                  .format(state, attempt, max_attempts))
             print('Clients remaining: {}'.format(clients_left))
         clients_set = []
         bmc_dict = {}
         for index, hostname in enumerate(inv.yield_nodes_hostname()):
             ipv4 = inv.get_nodes_ipmi_ipaddr(0, index)
-            ipv4_pxe = inv.get_nodes_pxe_ipaddr(0, index)
-            if ipv4_pxe not in clients_left:
+            if ipv4 not in clients_left:
                 continue
             rack_id = inv.get_nodes_rack_id(index)
             userid = inv.get_nodes_ipmi_userid(index)
             password = inv.get_nodes_ipmi_password(index)
-            nodes[ipv4_pxe] = [rack_id, ipv4]
+            nodes[ipv4] = [rack_id, ipv4]
             for i in range(2):
                 try:
-                    bmc_dict[ipv4_pxe] = ipmi_command.Command(
+                    bmc_dict[ipv4] = ipmi_command.Command(
                         bmc=ipv4,
                         userid=userid,
                         password=password)
                 except pyghmi_exception.IpmiException as error:
-                    log.error('IPMI login try {}, address {} - {}'.
-                              format(i, ipv4, error.message))
+                    log.error('IPMI login attempt {}, address {}\nIPMI error'
+                              'message: {}'.format(i, ipv4, error.message))
                     time.sleep(1)
                 else:
                     break
@@ -76,39 +80,39 @@ def ipmi_set_bootdev(bootdev, persist=False, config_path=None, client_list=None)
         for client in clients_left:
             if client in bmc_dict:
                 try:
-                    status = bmc_dict[client].set_bootdev(bootdev, persist)
+                    log.debug('Setting power state to {}. Device: {}'
+                              .format(state, client))
+                    status = bmc_dict[client].set_power(state, wait)
                     if attempt in [2, 4, 8]:
                         print('{} - {}'.format(client, status))
                 except pyghmi_exception.IpmiException as error:
-                    msg = ('set_bootdev failed (device=%s persist=%s), '
-                           'Rack: %s - IP: %s, %s' %
-                           (bootdev, persist, nodes[client][0],
-                            nodes[client][1], str(error)))
-                    log.warning(msg)
+                    msg = ('set_power failed Rack: %s - IP: %s, \n%s' %
+                           (nodes[client][0], nodes[client][1], str(error)))
+                    log.error(msg)
+                else:
+                    # Allow delay between turn on to limit power surge
+                    if state == 'on':
+                        time.sleep(0.5)
                 finally:
                     if 'error' in status:
                         log.error(status)
 
-        time.sleep(2)
+        time.sleep(wait + attempt)
 
         for client in clients_left:
             if client in bmc_dict:
                 try:
-                    status = bmc_dict[client].get_bootdev()
+                    status = bmc_dict[client].get_power()
                     if attempt in [2, 4, 8]:
                         print('{} - {}'.format(client, status))
                 except pyghmi_exception.IpmiException as error:
-                    msg = (
-                        'get_bootdev failed - '
-                        'Rack: %s - IP: %s, %s' %
-                        (rack_id, ipv4, str(error)))
+                    msg = ('get_power failed - Rack: %s - IP: %s, %s' %
+                           (rack_id, ipv4, str(error)))
                     log.error(msg)
                 else:
-                    if status['bootdev'] == bootdev and str(status['persistent']) \
-                            == str(persist):
-                        log.debug('set_bootdev successful (device=%s persist=%s) - '
-                                  'Rack: %s - IP: %s' %
-                                  (bootdev, persist, nodes[client][0], nodes[client][1]))
+                    if status['powerstate'] == state:
+                        log.debug('set_power successful Rack: %s - IP: %s' %
+                                  (nodes[client][0], nodes[client][1]))
                         clients_set += [client]
                 finally:
                     if 'error' in status:
@@ -119,30 +123,29 @@ def ipmi_set_bootdev(bootdev, persist=False, config_path=None, client_list=None)
             clients_left.remove(client)
 
         if attempt == max_attempts and clients_left:
-            log.error('Failed to set boot device for some clients')
-            log.debug(clients_left)
+            log.error('Failed to power {} some clients'.format(state))
+            log.error(clients_left)
 
         del bmc_dict
-    log.info('Set boot device to {} on {} of {} client devices.'
-             .format(bootdev, len(client_list) - len(clients_left), len(client_list)))
+
+    log.info('Powered {} {} of {} client devices.'
+             .format(state, len(client_list) - len(clients_left), len(client_list)))
+
+    if state == 'off':
+        print('Pausing 60 sec for client power off')
+        time.sleep(60)
+
+    if clients_left:
+        return False
+    return True
 
 
 if __name__ == '__main__':
     """
-    Arg1: boot device
-    Arg2: persistence (boolean)
-    Arg3: client list (specify None to use the entire client list)
     """
     logger.create()
-
     parser = argparse.ArgumentParser()
-    parser.add_argument('bootdev', default='none', nargs='?',
-                        help='Boot device.  ie network or none...')
-
-    parser.add_argument('--persist', action='store_true',
-                        help='Persist this boot device setting.')
-
-    parser.add_argument('config_path', default='config.yml', nargs='?',
+    parser.add_argument('state', default='none', nargs='?',
                         help='Boot device.  ie network or none...')
 
     parser.add_argument('client_list', default='', nargs='*',
@@ -159,4 +162,4 @@ if __name__ == '__main__':
     if args.log_lvl_print == 'debug':
         print(args)
 
-    ipmi_set_bootdev(args.bootdev, args.persist, args.config_path, args.client_list)
+    ipmi_set_power(args.state, args.client_list)

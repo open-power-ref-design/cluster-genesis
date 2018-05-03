@@ -71,11 +71,10 @@ class Teardown(object):
                 self.config_file_path))
             sys.exit(1)
 
-        if 'config.yml' in self.config_file_path:
-            print('\nUsing {}'.format(self.config_file_path))
-            resp = raw_input('Enter to continue. "T" to terminate ')
-            if resp == 'T':
-                sys.exit('POWER-Up stopped at user request')
+        print('\nUsing {}'.format(self.config_file_path))
+        resp = raw_input('Enter to continue. "T" to terminate ')
+        if resp == 'T':
+            sys.exit('POWER-Up stopped at user request')
 
         # Determine which subcommand was specified
         try:
