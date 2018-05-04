@@ -9,9 +9,9 @@
 Document Preface and Scope
 ==========================
 
-This document is a User's guide for the OpenPOWER Cluster Genesis
+This document is a User's guide for the OpenPOWER POWER-Up
 toolkit. It is targeted at all users of the toolkit. Users are expected
-to have a working knowledge of Ethernet networking and Linux.
+to have a working knowledge of Linux and Ethernet networking.
 
 
 Document Control

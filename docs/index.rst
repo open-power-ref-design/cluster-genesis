@@ -1,15 +1,15 @@
-.. Cluster Genesis User Guide documentation master file, created by
+.. POWER-Up User Guide documentation master file, created by
    sphinx-quickstart on Wed Jan 04 15:13:29 2017.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Cluster POWER-Up User's Guide documentation!
+Welcome to POWER-Up User's Guide documentation!
 =======================================================
 
 :Version: 2.0
 :Date: 2018-03-26
 :Document Owner:
-    OpenPOWER Cluster Genesis Team
+    OpenPOWER POWER-Up Team
 :Authors:
     Irving Baysah,
     Rolf Brudeseth,
