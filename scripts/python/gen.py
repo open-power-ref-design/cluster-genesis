@@ -525,7 +525,7 @@ class Gen(object):
 
         path = self.args.config_file_name
         if os.path.dirname(self.args.config_file_name) == '':
-            path = os.curdir + self.args.config_file_name
+            path = os.path.join(os.getcwd(), self.args.config_file_name)
 
         if os.path.isfile(path):
             self.config_file_path = path
