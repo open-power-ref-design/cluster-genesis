@@ -31,11 +31,11 @@ import lib.logger as logger
 IPR = IPRoute()
 
 
-def teardown_deployer_network():
+def teardown_deployer_network(config_path=None):
     """Teardown the network elements on the deployer.
     This function is idempotent.
     """
-    cfg = Config()
+    cfg = Config(config_path)
     global LOG
     LOG = logger.getlogger()
     LOG.debug('----------------------------------------')

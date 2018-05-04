@@ -61,15 +61,21 @@ class Teardown(object):
 
     def launch(self):
         """Launch actions"""
-        if not os.path.isfile(self.args.config_file_name):
-            self.config_file_path += self.args.config_file_name
+        path = self.args.config_file_name
+        if os.path.dirname(self.args.config_file_name) == '':
+            path = os.curdir + self.args.config_file_name
+
+        if os.path.isfile(path):
+            self.config_file_path = path
         else:
-            self.config_file_path = self.args.config_file_name
+            self.config_file_path += self.args.config_file_name
 
         if not os.path.isfile(self.config_file_path):
             print('{} not found. Please specify a config file'.format(
                 self.config_file_path))
             sys.exit(1)
+
+        self.config_file_path = os.path.abspath(self.config_file_path)
 
         print('\nUsing {}'.format(self.config_file_path))
         resp = raw_input('Enter to continue. "T" to terminate ')
