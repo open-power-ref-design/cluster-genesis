@@ -537,14 +537,12 @@ class Gen(object):
                 self.config_file_path))
             sys.exit(1)
 
+        self.config_file_path = os.path.abspath(self.config_file_path)
+
         # Determine which subcommand was specified
         try:
             if self.args.setup:
                 cmd = argparse_gen.Cmd.SETUP.value
-                print('\nUsing {}'.format(self.config_file_path))
-                resp = raw_input('Enter to continue. "T" to terminate ')
-                if resp == 'T':
-                    sys.exit('POWER-Up stopped at user request')
         except AttributeError:
             pass
         try:
@@ -555,6 +553,10 @@ class Gen(object):
         try:
             if self.args.validate:
                 cmd = argparse_gen.Cmd.VALIDATE.value
+                print('\nUsing {}'.format(self.config_file_path))
+                resp = raw_input('Enter to continue. "T" to terminate ')
+                if resp == 'T':
+                    sys.exit('POWER-Up stopped at user request')
         except AttributeError:
             pass
         try:
