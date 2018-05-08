@@ -1,6 +1,6 @@
 .. highlight:: none
 
-Running the POWER-Up Cluster Configuration Software
+Running the POWER-Up Cluster Deployment Software
 ====================================================
 
 Installing and Running the POWER-Up code. Step by Step Instructions

@@ -27,6 +27,7 @@ Welcome to POWER-Up User's Guide documentation!
    Front-Matter
    Release-Table
    Intro-Setup
+   Installing.rst
    Create-Config-File
    Run-Cluster-Genesis
    Config-Specification

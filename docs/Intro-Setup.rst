@@ -125,7 +125,7 @@ Other Mellanox switches may work but have not been tested
 Lenovo G8264 has not been tested
 Other Cisco NX-OS based switches may work but have not been tested
 
-Prerequisite hardware setup
+Prerequisite Hardware Setup
 ============================
 
 Hardware initialization
@@ -389,27 +389,35 @@ particular, note that it is not usually possible to acquire complete MAC address
 information once vPC (AKA MLAG or VLAG) has been configured on the data
 switches.
 
+.. _setup-deployer:
+
 Setting up the Deployer Node
 ----------------------------
 
 It is recommended that the deployer node have at least one available core of a
-XEON class processor, 16 GB of memory free and 64 GB available disk space. For
-larger cluster deployments, additional cores, memory and disk space are
-recommended. A 4 core XEON class processor with 32 GB memory and 320 GB disk
-space is generally adequate for installations up to several racks.
+XEON class processor, 16 GB of memory free and 64 GB available disk space. When
+using the POWER-Up software installation capabilities, it is recommended that 300 GB
+of disk space be available. For larger cluster deployments, additional cores,
+memory and disk space are recommended. A 4 core XEON class processor with 32 GB
+memory and 320 GB disk space is generally adequate for cluster deployments up
+to several racks.
 
-The deployer node requires internet access. This can be achieved through the
-interface used for connection to the management switch (assuming the management
-switch has a connection to the internet) or through another interface.
+The deployer node requires internet access for setup and installation of the POWER-UP
+software and setup of any repositories needed for software installation.
+This can be achieved through the interface used for connection to the management
+switch (assuming the management switch has a connection to the internet) or through
+another interface. Internet access is not required when running POWER-Up software
+installation functions, but is required when running cluster deployments.
+
 
 **Operating Sytem and Package setup of the Deployer Node**
 
 - Deployer OS Requirements:
-    - Ubuntu
+    - Ubuntu (Software installation is not yet supported under Ubuntu)
         - Release 14.04LTS or 16.04LTS
         - SSH login enabled
         - sudo privileges
-    - RHEL
+    - RHEL (Software installation is supported with POWER-Up vs 2.1. Cluster deployment is not yet supported under RHEL)
         - Release 7.2 or later
         - Extra Packages for Enterprise Linux (EPEL) repository enabled
           (https://fedoraproject.org/wiki/EPEL)
