@@ -128,6 +128,12 @@ def cobbler_install():
                        'https://cobbler.github.io',
                        'http://cobbler.github.io')
 
+    # Disable 'manage_genders'
+    original = '    \"manage_dns\"                          \: \[0,\"bool\"\],'
+    replace = ('    "manage_dns"                          : [0,"bool"],\n'
+               '    "manage_genders"                      : [0,"bool"],')
+    util.replace_regex(COBBLER_SETTINGS_PY, original, replace)
+
     # Run cobbler make install
     util.bash_cmd('cd %s; make install' % install_dir)
 
