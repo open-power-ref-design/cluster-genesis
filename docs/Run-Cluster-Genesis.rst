@@ -89,8 +89,9 @@ Installing and Running the POWER-Up code. Step by Step Instructions
       $ pup deploy
 
    *Note*: If running with passive management switch(es) follow special
-   instructions in :ref:`deploy-passive <deploy-passive>` instead. (NOTE:
+   instructions in :ref:`deploy-passive` instead. (NOTE:
    passive management switches are not yet supported in POWER-Up 2.0)
+
 
 #. This will create the management networks, install the container that runs most of the POWER-Up
    functions and then optionally launch the introspection OS and then install OS's on the cluster nodes.
@@ -211,10 +212,10 @@ If data switches are configured with MLAG verify that;
     acquired, which will prevent network configuration)
 
 
+.. _deploy-passive:
+
 Passive Switch Mode Special Instructions
 ----------------------------------------
-
-.. _deploy-passive:
 
 **Deploying operating systems to your cluster nodes with passive management
 switches**

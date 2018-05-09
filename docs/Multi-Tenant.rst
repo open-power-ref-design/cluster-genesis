@@ -25,7 +25,7 @@ where n is the number of the pxe vlan for the group.
 
 As an example, the figure above shows a basic cluster with four nodes. To configure
 these into two groups of two nodes, create a config file for each group. Edit the
-deployer section of the config file and under the client subsection, specify a
+deployer section of each config file and under the client subsection, specify a
 unique container_ipaddr, bridge_ipaddr and vlan for the ipmi and pxe networks
 for each group of nodes.
 
@@ -77,7 +77,7 @@ Group 2::
                   vlan: 41
 
 
-Next, edit the switch ports list in the node_templates section of the config file;
+Next, edit the switch ports list in the node_templates section of each config file;
 
 Group 1::
 
@@ -161,27 +161,26 @@ For a complete config file for a basic cluster, See :ref:`Appendix-D <appendix_d
 Assuming your two config files are named config-T1.yml and config.T2.yml and
 residing in the power-up directory, to deploy the two groups::
 
-    cp config-T1.yml config.yml
-    pup deploy
+    pup deploy config-T1.yml
 
 After the first deploy completes::
 
-    cp config-T2.yml config.yml
-    pup deploy
+    pup deploy config-T2.yml
 
-Note that if you remove a node from an already deployed group, it can take up to
-one hour for it's IPMI IP lease to expire. If the node is moved to a new subnet
-before the lease expires you will not be able to access the nodes IPMI system
-until it renews it's IP lease in the new subnet. To avoid this, you can manually
-power cycle the node.  Alternately, you can make your new config file the active
-config file::
+**Note**
 
-    cp config-my-new-group.yml config.yml
+POWER-Up does not currently support the execution of two deploys at the same time.
+When deploying multiple groups of nodes, the goups must be deployed sequentially.
 
-then use ipmitool to reset the BMC::
+Note that if you move a node from an already deployed group to a new group,
+it can take up to one hour for it's IPMI IP lease to expire. If the node is
+moved to a new subnet before the lease expires you will not be able to access
+the nodes IPMI system until it renews it's IP lease in the new subnet.
+To avoid this, you can manually cycle power to the node.  Alternately, you can use
+the ipmitool to reset the BMC of the node to be moved::
 
     ipmitool -I lanplus -H 192.168.30.21 -U ADMIN -P admin mc reset cold
 
 then immediately run::
 
-    pup config --mgmt-switches
+    pup config --mgmt-switches new-group-config.yml
