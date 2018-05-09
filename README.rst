@@ -17,7 +17,7 @@ For additional instructions and developer resources:
 * `Release Table <docs/Release-Table.rst>`_
 * `User's Guide <http://power-up.readthedocs.io>`_ at 'Read the Docs'
 * `Developer's Guide <docs/Dev-Guide.rst>`_
-* Gitter: https://gitter.im/open-power-ref-design-toolkit/power-up
+* IRC: `#cluster-genesis channel on freenode.net <http://webchat.freenode.net/?channels=%23power-up&uio=d4>`_
 
 
 Authors
