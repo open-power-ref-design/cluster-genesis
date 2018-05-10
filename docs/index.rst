@@ -32,6 +32,7 @@ Welcome to POWER-Up User's Guide documentation!
    Create-Config-File
    Run-Cluster-Genesis
    Run-Software-Install
+   Creating-Software-Install-Modules
    Config-Specification
    Inventory-Specification
    Multi-Tenant
