@@ -412,7 +412,7 @@ the cluster as::
 
     ssh root@a.b.c.d
 
-where a.b.c.d is the IP address of the port used for pxe install. These
+Where a.b.c.d is the IP address of the port used for pxe install. These
 addresses are stored under the key name *ipv4-pxe* in the inventory file.
 The inventory file is stored on every node in the cluster at
 /var/oprc/inventory.yml. The inventory file is also stored on the

@@ -64,7 +64,7 @@ For bare metal deploy, POWER-Up goes through the following steps when you enter 
 
 After installing the operating systems, POWER-Up will pause and wait for input
 before executing the last 3 steps above. This provides a convenient place to
-check on the cluster hardware before proceding. If desired, you can stop
+check on the cluster hardware before proceeding. If desired, you can stop
 POWER-Up at that point and re-start later by entering 'pup post-deploy'.
 
 It is sometimes useful when first bringing up the cluster hardware to be able to
@@ -76,7 +76,7 @@ individually run / re-run the first four steps above::
     pup config --mgmt-switches [config-file-name]
     pup validate --cluster-hardware [config-file-name]
 
-Note that the above steps must initially be run in order. After succesfully
+Note that the above steps must initially be run in order. After successfully
 completing the above steps in order, they can be re-run individually. When isolating
 cluster hardware issues, it is useful to be able to re-run pup validate
 --cluster-hardware.  pup validate --config-file may be run any time as often as

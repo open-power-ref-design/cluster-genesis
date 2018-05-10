@@ -170,7 +170,7 @@ After the first deploy completes::
 **Note**
 
 POWER-Up does not currently support the execution of two deploys at the same time.
-When deploying multiple groups of nodes, the goups must be deployed sequentially.
+When deploying multiple groups of nodes, the groups must be deployed sequentially.
 
 Note that if you move a node from an already deployed group to a new group,
 it can take up to one hour for it's IPMI IP lease to expire. If the node is
