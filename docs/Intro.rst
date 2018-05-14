@@ -4,16 +4,20 @@ Introduction
 ============
 
 Cluster POWER-Up enables greatly simplified configuration of clusters of
-bare metal OpenPOWER servers running Linux. It leverages widely used open
+bare metal OpenPOWER servers running Linux and/or installation of software
+to clusters of servers. It leverages widely used open
 source tools such as Cobbler, Ansible and Python. Because it relies
 solely on industry standard protocols such as IPMI and PXE boot, hybrid
 clusters of OpenPOWER and x86 nodes can readily be supported. Currently
-Cluster POWER-Up supports Ethernet networking. Cluster POWER-Up can
+Cluster POWER-Up supports Ethernet networking. POWER-Up can
 configure simple flat networks for typical HPC
 environments or more advanced networks with VLANS and bridges for
 OpenStack environments. Complex heterogeneous clusters can be easily deployed
-using POWER-Up's interface and node templates. Cluster POWER-Up configures
-the switches in the cluster with support for multiple switch vendors.
+using POWER-Up's interface and node templates. POWER-Up configures
+the switches in the cluster with support for multiple switch vendors. Software
+installation allows for 'pluggable' software install modules which can be user
+created. Utilities are provided to facilitate the creation of repositories
+and installation of the nginx web server.
 
 Overview
 --------
