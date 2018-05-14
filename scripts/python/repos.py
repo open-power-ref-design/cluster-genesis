@@ -20,11 +20,14 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 
 import argparse
 import os
+import time
+import yaml
+
 import lib.logger as logger
 from lib.utilities import sub_proc_display, sub_proc_exec
 # import code
 
-# from lib.genesis import GEN_SOFTWARE_PATH
+from lib.genesis import GEN_SOFTWARE_PATH
 
 
 class remote_nginx_repo(object):
@@ -57,10 +60,22 @@ class remote_nginx_repo(object):
 class local_epel_repo(object):
 
     def __init__(self, repo_name='epel-ppc64le', arch='ppc64le', rhel_ver='7'):
+        repo_name = 'epel-ppc64le' if repo_name is None else repo_name
+        print(repo_name)
         self.repo_name = repo_name.lower()
         self.arch = arch
         self.rhel_ver = str(rhel_ver)
         self.log = logger.getlogger()
+        try:
+            self.software_vars = yaml.load(open(GEN_SOFTWARE_PATH + 'repo-vars.yml'))
+        except IOError:
+            self.software_vars = {}
+            self.software_vars['init-time'] = time.ctime()
+        print(self.software_vars)
+
+    def __del__(self):
+        with open(GEN_SOFTWARE_PATH + 'repo-vars.yml', 'w') as f:
+            yaml.dump(self.software_vars, f, default_flow_style=False)
 
     def yum_create_local(self):
         """Create the /etc/yum.repos.d/
@@ -129,8 +144,10 @@ class local_epel_repo(object):
         with open(repo_link_path, 'w') as f:
             f.write('[{}]\n'.format(self.repo_name))
             f.write('name=Extra Packages for Enterprise Linux {} - {}\n'.format(self.rhel_ver, self.arch))
-            f.write('#baseurl=http://download.fedoraproject.org/pub/epel/{}/{}\n'.format(self.rhel_ver, self.arch))
-            f.write('metalink=https://mirrors.fedoraproject.org/metalink?repo=epel-{}&arch={}\n'.format(self.rhel_ver, self.arch))
+            # f.write('#baseurl=http://download.fedoraproject.org/pub/epel/{}/{}\n'.format(self.rhel_ver, self.arch))
+            self.software_vars[self.repo_name + '-baseurl'] = 'http://9.3.210.46/repos/epel/'
+            f.write('baseurl=http://9.3.210.46/repos/epel/{}/epel-{}\n'.format(self.rhel_ver, self.arch))
+            # f.write('metalink=https://mirrors.fedoraproject.org/metalink?repo=epel-{}&arch={}\n'.format(self.rhel_ver, self.arch))
             f.write('failovermethod=priority\n')
             f.write('enabled=1\n')
             f.write('gpgcheck=1\n')
@@ -182,7 +199,7 @@ if __name__ == '__main__':
     """ setup reposities. sudo env "PATH=$PATH" python repo.py
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('repo_name', nargs=1,
+    parser.add_argument('repo_name', nargs='?',
                         help='repository name')
 
     parser.add_argument('--print', '-p', dest='log_lvl_print',
@@ -192,7 +209,7 @@ if __name__ == '__main__':
                         help='file log level', default='info')
 
     args = parser.parse_args()
-    args.repo_name = args.repo_name[0]
+    # args.repo_name = args.repo_name[0]
 
     if args.log_lvl_print == 'debug':
         print(args)
@@ -203,11 +220,11 @@ if __name__ == '__main__':
 #    nginx_repo.yum_create_remote()
 #
     repo = local_epel_repo(args.repo_name)
-#    repo.yum_create_remote()
-#    repo.create_dirs()
-#    repo.sync()
-#    repo.create()
-#    repo.yum_create_local()
+    repo.yum_create_remote()
+    repo.create_dirs()
+    repo.sync()
+    repo.create()
+    repo.yum_create_local()
     client_file = repo.get_yum_client_powerup()
     print(client_file['filename'])
     print(client_file['content'].format(host='192.168.1.2'))

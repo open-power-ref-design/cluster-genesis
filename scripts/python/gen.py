@@ -522,23 +522,27 @@ class Gen(object):
         """Launch actions"""
 
         cmd = None
-        self.cont_config_file_path += self.args.config_file_name
+        try:
+            if not self.args.software:
+                self.cont_config_file_path += self.args.config_file_name
 
-        path = self.args.config_file_name
-        if os.path.dirname(self.args.config_file_name) == '':
-            path = os.path.join(os.getcwd(), self.args.config_file_name)
+                path = self.args.config_file_name
+                if os.path.dirname(self.args.config_file_name) == '':
+                    path = os.path.join(os.getcwd(), self.args.config_file_name)
 
-        if os.path.isfile(path):
-            self.config_file_path = path
-        else:
-            self.config_file_path += self.args.config_file_name
+                if os.path.isfile(path):
+                    self.config_file_path = path
+                else:
+                    self.config_file_path += self.args.config_file_name
 
-        if not os.path.isfile(self.config_file_path):
-            print('{} not found. Please specify a config file'.format(
-                self.config_file_path))
-            sys.exit(1)
+                if not os.path.isfile(self.config_file_path):
+                    print('{} not found. Please specify a config file'.format(
+                        self.config_file_path))
+                    sys.exit(1)
 
-        self.config_file_path = os.path.abspath(self.config_file_path)
+                self.config_file_path = os.path.abspath(self.config_file_path)
+        except AttributeError:
+            pass
 
         # Determine which subcommand was specified
         try:

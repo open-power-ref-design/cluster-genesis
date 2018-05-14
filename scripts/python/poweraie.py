@@ -75,7 +75,7 @@ class software(object):
 
         repo.yum_create_remote()
         repo.create_dirs()
-        repo.sync()
+        # repo.sync()
         repo.create_meta()
         repo.yum_create_local()
         self.yum_powerup_repo_files.append(repo.get_yum_client_powerup())
