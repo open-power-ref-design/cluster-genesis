@@ -266,7 +266,8 @@ class Gen(object):
                 os.unlink(symlink_path)
 
         # If inventory is an empty file delete it
-        if os.stat(deployer_inv_file).st_size == 0:
+        if (os.path.isfile(deployer_inv_file) and
+                os.stat(deployer_inv_file).st_size == 0):
             os.remove(deployer_inv_file)
 
         # Create a sym link on deployer to inventory inside container
