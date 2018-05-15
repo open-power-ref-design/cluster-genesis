@@ -22,6 +22,7 @@ import re
 import sys
 import subprocess
 import fileinput
+import readline
 from shutil import copy2
 from subprocess import Popen, PIPE
 
@@ -158,7 +159,7 @@ def sub_proc_exec(cmd, stdout=PIPE, stderr=PIPE):
     """
     proc = Popen(cmd.split(), stdout=stdout, stderr=stderr)
     stdout, stderr = proc.communicate()
-    return stdout.decode('utf-8'), proc.returncode
+    return stdout.decode('utf-8'), stderr.decode('utf-8'), proc.returncode
 
 
 def sub_proc_display(cmd, stdout=None, stderr=None):

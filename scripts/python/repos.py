@@ -20,14 +20,11 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 
 import argparse
 import os
+import re
 import time
-import yaml
 
 import lib.logger as logger
-from lib.utilities import sub_proc_display, sub_proc_exec, heading1
-# import code
-
-from lib.genesis import GEN_SOFTWARE_PATH
+from lib.utilities import sub_proc_display, sub_proc_exec, heading1, rlinput
 
 
 class remote_nginx_repo(object):
@@ -67,16 +64,6 @@ class local_epel_repo(object):
         self.arch = arch
         self.rhel_ver = str(rhel_ver)
         self.log = logger.getlogger()
-        try:
-            self.software_vars = yaml.load(open(GEN_SOFTWARE_PATH + 'repo-vars.yml'))
-        except IOError:
-            self.software_vars = {}
-            self.software_vars['init-time'] = time.ctime()
-        print(self.software_vars)
-
-    def __del__(self):
-        with open(GEN_SOFTWARE_PATH + 'repo-vars.yml', 'w') as f:
-            yaml.dump(self.software_vars, f, default_flow_style=False)
 
     def yum_create_local(self):
         """Create the /etc/yum.repos.d/
@@ -131,7 +118,7 @@ class local_epel_repo(object):
         else:
             self.log.info('Repo {} already created'.format(self.repo_name))
 
-    def yum_create_remote(self):
+    def yum_create_remote(self, repo_url=None):
         self.log.info('Registering remote repo {} with yum.'.format(self.repo_name))
 
         repo_link_path = '/etc/yum.repos.d/{}.repo'.format(self.repo_name)
@@ -142,13 +129,46 @@ class local_epel_repo(object):
 
         self.log.info('Creating remote repo link.')
         self.log.info(repo_link_path)
+
+        src = ' '
+        while src not in 'pi':
+            src = rlinput('Use public mirror or internal web site (p/i): ', 'p')[0]
+
+        if src == 'i':
+            if not repo_url:
+                repo_url = f'http://9.3.210.46/repos/epel/{self.rhel_ver}/epel-{self.arch}'
+
+            response = False
+            while not response:
+                resp = rlinput('Enter EPEL URL (S to skip): ', repo_url)
+                if resp == 'S':
+                    return repo_url
+                repo_url = resp
+                try:
+                    cmd = f'curl -I {repo_url}/'
+                    resp, err, rc = sub_proc_exec(cmd)
+                except:
+                    pass
+                else:
+                    response = re.search(r'HTTP\/\d+.\d+\s+200\s+ok', resp, re.IGNORECASE)
+                    if response:
+                        print(response.group(0))
+                        time.sleep(1.5)
+                        response = True
+                    else:
+                        err = re.search('curl: .+', err)
+                        if err:
+                            print(err.group(0))
+
         with open(repo_link_path, 'w') as f:
             f.write('[{}]\n'.format(self.repo_name))
             f.write('name=Extra Packages for Enterprise Linux {} - {}\n'.format(self.rhel_ver, self.arch))
-            # f.write('#baseurl=http://download.fedoraproject.org/pub/epel/{}/{}\n'.format(self.rhel_ver, self.arch))
-            self.software_vars[self.repo_name + '-baseurl'] = 'http://9.3.210.46/repos/epel/'
-            f.write('baseurl=http://9.3.210.46/repos/epel/{}/epel-{}\n'.format(self.rhel_ver, self.arch))
-            # f.write('metalink=https://mirrors.fedoraproject.org/metalink?repo=epel-{}&arch={}\n'.format(self.rhel_ver, self.arch))
+            if src == 'i':
+                f.write(f'baseurl={repo_url}\n')
+                f.write(f'#metalink=https://mirrors.fedoraproject.org/metalink?repo=epel-{self.rhel_ver}&arch={self.arch}\n')
+            else:
+                f.write('#baseurl=http://download.fedoraproject.org/pub/epel/{}/{}\n'.format(self.rhel_ver, self.arch))
+                f.write(f'metalink=https://mirrors.fedoraproject.org/metalink?repo=epel-{self.rhel_ver}&arch={self.arch}\n')
             f.write('failovermethod=priority\n')
             f.write('enabled=1\n')
             f.write('gpgcheck=1\n')
@@ -171,6 +191,7 @@ class local_epel_repo(object):
             f.write('enabled=0\n')
             f.write('gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-{}\n'.format(self.rhel_ver))
             f.write('gpgcheck=1\n')
+            return repo_url
 
     def get_yum_client_powerup(self):
         """Generate the yum.repo file for the powerup remote client. The file

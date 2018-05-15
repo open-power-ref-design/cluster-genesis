@@ -21,11 +21,14 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 import argparse
 import os
 import sys
-
+import time
+import yaml
+import code
 import lib.logger as logger
 from repos import local_epel_repo, remote_nginx_repo
 from software_hosts import get_ansible_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec
+from lib.genesis import GEN_SOFTWARE_PATH
 
 
 class software(object):
@@ -37,6 +40,27 @@ class software(object):
     def __init__(self):
         self.log = logger.getlogger()
         self.yum_powerup_repo_files = []
+        try:
+            self.sw_vars = yaml.load(open(GEN_SOFTWARE_PATH + 'software-vars.yml'))
+        except IOError:
+            self.log.info('Creating software vars yaml file')
+            self.sw_vars = {}
+            self.sw_vars['init-time'] = time.ctime()
+        else:
+            if not isinstance(self.sw_vars, dict):
+                self.sw_vars = {}
+        self.epel_repo_name = 'epel-ppc64le'
+        self.sw_vars['epel_repo_name'] = self.epel_repo_name
+        self.rhel_ver = '7'
+        self.sw_vars['rhel_ver'] = self.rhel_ver
+        self.arch = 'ppc64le'
+        self.sw_vars['arch'] = self.arch
+
+        self.log.debug(f'software variables: {self.sw_vars}')
+
+    def __del__(self):
+        with open(GEN_SOFTWARE_PATH + 'software-vars.yml', 'w') as f:
+            yaml.dump(self.sw_vars, f, default_flow_style=False)
 
     def setup(self):
         # Get Anaconda
@@ -74,14 +98,16 @@ class software(object):
         r = ' '
         if os.path.isfile('/etc/yum.repos.d/epel-ppc64le.repo'):
             print('\nDo you want to sync the local EPEL repository at this time')
-            print('This can take a few minutes.  (Enter "f" to sync and force recreation of yum .repo files)')
+            print('This can take a few minutes.  (Enter "f" to sync and force'
+                  'recreation of yum .repo files)')
             while r not in 'Ynf':
                 r = input('Enter Y/n/f: ')
 
             if r in 'Yf':
                 repo = local_epel_repo()
                 if r == 'f':
-                    repo.yum_create_remote()
+                    repo_url = repo.yum_create_remote()
+                    self.sw_vars['epel_repo_url'] = repo_url
                     repo.create_dirs()
 
                 repo.sync()
@@ -111,29 +137,29 @@ class software(object):
         # Setup firewall to allow http
         fw_err = 0
         cmd = 'systemctl status firewalld.service'
-        resp, err = sub_proc_exec(cmd)
+        resp, err, rc = sub_proc_exec(cmd)
         if 'Active: active (running)' in resp.splitlines()[2]:
             self.log.debug('Firewall is running')
         else:
             cmd = 'systemctl enable firewalld.service'
-            resp, err = sub_proc_exec(cmd)
-            if err != 0:
+            resp, err, rc = sub_proc_exec(cmd)
+            if rc != 0:
                 fw_err += 1
                 self.log.error('Failed to enable firewall')
 
             cmd = 'systemctl start firewalld.service'
-            resp, err = sub_proc_exec(cmd)
-            if err != 0:
+            resp, err, rc = sub_proc_exec(cmd)
+            if rc != 0:
                 fw_err += 10
                 self.log.error('Failed to start firewall')
         cmd = 'firewall-cmd --permanent --add-service=http'
-        resp, rc = sub_proc_exec(cmd)
+        resp, err, rc = sub_proc_exec(cmd)
         if rc != 0:
             fw_err += 100
             self.log.error('Failed to enable http service on firewall')
 
         cmd = 'firewall-cmd --reload'
-        resp, err = sub_proc_exec(cmd)
+        resp, err, rc = sub_proc_exec(cmd)
         if 'success' not in resp:
             fw_err += 1000
             self.log.error('Error attempting to restart firewall')
@@ -146,27 +172,27 @@ class software(object):
         # Check if nginx installed. Install if necessary.
         cmd = 'nginx -v'
         try:
-            resp, rc = sub_proc_exec(cmd)
+            resp, err, rc = sub_proc_exec(cmd)
             print('nginx is installed:\n{}'.format(resp))
         except OSError:
             # if 'nginx version' in err:
             cmd = 'yum -y install nginx'
-            resp, err = sub_proc_exec(cmd)
-            if err != 0:
+            resp, err, rc = sub_proc_exec(cmd)
+            if rc != 0:
                 self.log.error('Failed installing nginx')
                 self.log.error(resp)
                 sys.exit(1)
             else:
                 # Fire it up
                 cmd = 'nginx'
-                resp, err = sub_proc_exec(cmd)
-                if err != 0:
+                resp, err, rc = sub_proc_exec(cmd)
+                if rc != 0:
                     self.log.error('Failed starting nginx')
                     self.log.error('resp: {}'.format(resp))
                     self.log.error('err: {}'.format(err))
 
         cmd = 'curl -I 127.0.0.1'
-        resp, err = sub_proc_exec(cmd)
+        resp, err, rc = sub_proc_exec(cmd)
         if 'HTTP/1.1 200 OK' in resp:
             self.log.info('nginx is running:\n')
 
@@ -174,7 +200,7 @@ class software(object):
 
     def install(self):
         cmd = 'ansible-playbook -i {} /home/user/power-up/playbooks/install_software.yml'.format(get_ansible_inventory())
-        resp, err = sub_proc_exec(cmd)
+        resp, err, rc = sub_proc_exec(cmd)
         print(resp)
         cmd = 'ssh -t -i ~/.ssh/gen root@10.0.20.22 /opt/DL/license/bin/accept-powerai-license.sh'
         resp = sub_proc_display(cmd)
