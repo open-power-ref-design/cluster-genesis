@@ -522,27 +522,24 @@ class Gen(object):
         """Launch actions"""
 
         cmd = None
-        try:
-            if not self.args.software:
-                self.cont_config_file_path += self.args.config_file_name
+        if not hasattr(self.args, 'software'):
+            self.cont_config_file_path += self.args.config_file_name
 
-                path = self.args.config_file_name
-                if os.path.dirname(self.args.config_file_name) == '':
-                    path = os.path.join(os.getcwd(), self.args.config_file_name)
+            path = self.args.config_file_name
+            if os.path.dirname(self.args.config_file_name) == '':
+                path = os.path.join(os.getcwd(), self.args.config_file_name)
 
-                if os.path.isfile(path):
-                    self.config_file_path = path
-                else:
-                    self.config_file_path += self.args.config_file_name
+            if os.path.isfile(path):
+                self.config_file_path = path
+            else:
+                self.config_file_path += self.args.config_file_name
 
-                if not os.path.isfile(self.config_file_path):
-                    print('{} not found. Please specify a config file'.format(
-                        self.config_file_path))
-                    sys.exit(1)
+            if not os.path.isfile(self.config_file_path):
+                print('{} not found. Please specify a config file'.format(
+                    self.config_file_path))
+                sys.exit(1)
 
-                self.config_file_path = os.path.abspath(self.config_file_path)
-        except AttributeError:
-            pass
+            self.config_file_path = os.path.abspath(self.config_file_path)
 
         # Determine which subcommand was specified
         try:
@@ -559,7 +556,7 @@ class Gen(object):
             if self.args.validate:
                 cmd = argparse_gen.Cmd.VALIDATE.value
                 print('\nUsing {}'.format(self.config_file_path))
-                resp = raw_input('Enter to continue. "T" to terminate ')
+                resp = input('Enter to continue. "T" to terminate ')
                 if resp == 'T':
                     sys.exit('POWER-Up stopped at user request')
         except AttributeError:

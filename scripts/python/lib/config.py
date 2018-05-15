@@ -1683,13 +1683,13 @@ class Config(object):
         if index is None:
             list_ = []
             for member in self.cfg.node_templates:
-                if self.CfgKey.HOSTNAME_PREFIX in member.os.iterkeys():
+                if self.CfgKey.HOSTNAME_PREFIX in iter(member.os.keys()):
                     list_.append(member.os.hostname_prefix)
                 else:
                     list_.append(None)
             return list_
         if (self.CfgKey.HOSTNAME_PREFIX in
-                self.cfg.node_templates[index].os.iterkeys()):
+                iter(self.cfg.node_templates[index].os.keys())):
             return self.cfg.node_templates[index].os.hostname_prefix
 
     def yield_ntmpl_os_hostname_prefix(self):

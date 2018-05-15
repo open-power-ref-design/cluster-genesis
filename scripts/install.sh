@@ -15,13 +15,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+sudo yum install python36
 set -e
+sudo python36 -m ensurepip --default-pip
 source /etc/os-release
 
 if [[ $ID == "ubuntu" ]]; then
-
+    # Needs update for Python36
     sudo apt-get update
     sudo apt-get -y install python-pip python-dev libffi-dev libssl-dev \
+    # sudo apt-get -y install python36-dev libffi-dev libssl-dev \
         python-netaddr ipmitool aptitude lxc vim vlan bridge-utils gcc cpp \
         python-tabulate fping g++ make unzip libncurses5 libncurses5-dev
 
@@ -32,25 +35,22 @@ if [[ $ID == "ubuntu" ]]; then
     fi
 
 elif [[ $ID == "rhel" ]]; then
-    sudo yum -y install python-pip python-devel libffi-devel openssl-devel \
-        python-netaddr ipmitool lxc lxc-devel lxc-extra lxc-templates libvirt \
+    sudo yum -y install python36-devel libffi-devel openssl-devel \
+        lxc lxc-devel lxc-extra lxc-templates libvirt ipmitool\
         debootstrap gcc vim vlan bridge-utils cpp flex bison unzip cmake \
         fping gcc-c++ patch perl-ExtUtils-MakeMaker perl-Thread-Queue \
-        python-tabulate ncurses-devel
+        ncurses-devel bash-completion
     sudo systemctl start lxc.service
     sudo systemctl start libvirtd
+
 
 else
     echo "Unsupported OS"
     exit 1
 fi
 
-sudo -E -H pip install --upgrade pip
 sudo -E -H pip install --upgrade setuptools
 sudo -E -H pip install --upgrade wheel
-if [[ $VERSION_ID == "14.04" || $ID == "rhel" ]]; then
-    sudo -E -H pip install --upgrade lxc-python2
-fi
 
 /bin/bash "${BASH_SOURCE%/*}/venv_install.sh"
 

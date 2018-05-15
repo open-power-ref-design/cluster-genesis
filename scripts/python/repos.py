@@ -24,7 +24,7 @@ import time
 import yaml
 
 import lib.logger as logger
-from lib.utilities import sub_proc_display, sub_proc_exec
+from lib.utilities import sub_proc_display, sub_proc_exec, heading1
 # import code
 
 from lib.genesis import GEN_SOFTWARE_PATH
@@ -60,6 +60,7 @@ class remote_nginx_repo(object):
 class local_epel_repo(object):
 
     def __init__(self, repo_name='epel-ppc64le', arch='ppc64le', rhel_ver='7'):
+        heading1('Local EPEL repository')
         repo_name = 'epel-ppc64le' if repo_name is None else repo_name
         print(repo_name)
         self.repo_name = repo_name.lower()
@@ -98,7 +99,7 @@ class local_epel_repo(object):
             f.write('gpgcheck=0')
 
     def sync(self):
-        self.log.info('Syncing remote repository {}'.format(self.repo_name))
+        self.log.info('Syncing repository {}'.format(self.repo_name))
         self.log.info('This can take many minutes or hours for large repositories\n')
         cmd = 'reposync -a {} -r {} -p /srv/repos/epel/{} -l -m'.format(
             self.arch, self.repo_name, self.rhel_ver)
@@ -135,7 +136,7 @@ class local_epel_repo(object):
 
         repo_link_path = '/etc/yum.repos.d/{}.repo'.format(self.repo_name)
         if os.path.isfile(repo_link_path):
-            self.log.info('Remote linkage for repo {} already exists.'
+            self.log.info('Remote linkage for repo {} already exists. Rewriting'
                           .format(self.repo_name))
             self.log.info(repo_link_path)
 

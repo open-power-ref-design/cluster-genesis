@@ -71,14 +71,39 @@ class software(object):
         else:
             self.log.info('PowerAI base already downloaded')
 
-        repo = local_epel_repo()
+        r = ' '
+        if os.path.isfile('/etc/yum.repos.d/epel-ppc64le.repo'):
+            print('\nDo you want to sync the local EPEL repository at this time')
+            print('This can take a few minutes.  (Enter "f" to sync and force recreation of yum .repo files)')
+            while r not in 'Ynf':
+                r = input('Enter Y/n/f: ')
 
-        repo.yum_create_remote()
-        repo.create_dirs()
-        # repo.sync()
-        repo.create_meta()
-        repo.yum_create_local()
-        self.yum_powerup_repo_files.append(repo.get_yum_client_powerup())
+            if r in 'Yf':
+                repo = local_epel_repo()
+                if r == 'f':
+                    repo.yum_create_remote()
+                    repo.create_dirs()
+
+                repo.sync()
+
+                if r == 'f':
+                    repo.create_meta()
+                    repo.yum_create_local()
+                    self.yum_powerup_repo_files.append(repo.get_yum_client_powerup())
+
+        if not os.path.isfile('/etc/yum.repos.d/epel-ppc64le.repo'):
+            print('\nDo you want to create a local EPEL repsoitory at this time?')
+            print('This can take a significant amount of time')
+            while r not in 'Yn':
+                r = input('Enter Y/n: ')
+            if r == 'Y':
+                repo = local_epel_repo()
+                repo.yum_create_remote()
+                repo.create_dirs()
+                repo.sync()
+                repo.create_meta()
+                repo.yum_create_local()
+                self.yum_powerup_repo_files.append(repo.get_yum_client_powerup())
 
         # self.log.debug(self.yum_powerup_repo_files[0]['filename'])
         # self.log.debug(self.yum_powerup_repo_files[0]['content'])
