@@ -267,6 +267,9 @@ def cobbler_install(config_path=None):
     # Set Apache2 'ServerName'
     util.append_line(APACHE2_CONF, "ServerName localhost")
 
+    # Enable 'cobblerd' service
+    util.bash_cmd('update-rc.d cobblerd defaults')
+
     # Restart services
     _restart_service('ntp')
     _restart_service('cobblerd')
@@ -292,7 +295,7 @@ def cobbler_install(config_path=None):
 
 
 def _restart_service(service):
-    util.bash_cmd('service %s restart' % service)
+    util.bash_cmd('systemctl restart %s' % service)
 
 
 def _service_start_on_boot(service):
