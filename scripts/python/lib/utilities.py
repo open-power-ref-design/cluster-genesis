@@ -17,6 +17,7 @@
 from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
+import glob
 import os
 import re
 import sys
@@ -229,10 +230,14 @@ def rlinput(prompt, prefill=''):
         readline.set_startup_hook()
 
 
-def get_url(url='http://'):
+def get_url(url='http://', name=''):
+    """Input a URL from user. The URL is checked for validity using curl
+    and the user can continue modifying it indefinitely until a response
+    is obtained or he can enter 'S' to skip (stop) entry.
+    """
     response = False
     while not response:
-        resp = rlinput('Enter EPEL URL (S to skip): ', url)
+        resp = rlinput(f'Enter {name} URL (S to skip): ', url)
         if resp == 'S':
             return None
         url = resp
@@ -289,3 +294,47 @@ def get_selection(choices, prompt='Selection'):
     return choice
 
 
+def setup_source_file(src_name, _dir, name=None):
+    """Interactive selection of a source file and copy it to the /srv/<_dir>
+    directory
+    """
+    log = logger.getlogger()
+    if not name:
+        name = _dir.capitalize()
+    if not os.path.exists(f'/srv/{_dir}'):
+        os.mkdir(f'/srv/{_dir}')
+    g = glob.glob(f'/srv/{_dir}/{src_name}')
+    r = 'yes'
+    if g:
+        print(f'\n{name} already set up: ')
+        for item in g:
+            print(item)
+        print()
+        r = get_yesno(f'Do you wish to update {name}', 'yes/no/n')
+    if r == 'yes':
+        print()
+        log.info(f'Searching for {name} source file')
+        resp = ''
+        cmd = (f'find /home -name {src_name}')
+        while not resp:
+            resp, err, rc = sub_proc_exec(cmd)
+            if not resp:
+                cmd = (f'find / -name {src_name}')
+                print(f'{name} source file {src_name} not found')
+                r = get_yesno('Search again', 'y/n')
+                if r == 'n':
+                    break
+        if not resp:
+            log.error(f'{name} source file {src_name} not found.\n {name} is not'
+                      ' setup.')
+        else:
+            src_path = get_selection(resp, 'Select a source file')
+            log.info(f'Using {name} source file: {src_path}')
+            cmd = f'cp {src_path} /srv/{_dir}/'
+            resp, err, rc = sub_proc_exec(cmd)
+            if rc != 0:
+                log.error(f'Failed copying {name} source to /srv '
+                          'directory. \n{err}')
+            else:
+                log.info(f'Successfully set up {name}')
+                return True

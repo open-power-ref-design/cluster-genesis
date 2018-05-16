@@ -29,7 +29,7 @@ import lib.logger as logger
 from repos import local_epel_repo, remote_nginx_repo
 from software_hosts import get_ansible_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, \
-    get_selection, get_yesno
+    get_selection, get_yesno, setup_source_file
 from lib.genesis import GEN_SOFTWARE_PATH
 
 
@@ -70,66 +70,17 @@ class software(object):
     def setup(self):
         # Get Anaconda
         ana_src = 'Anaconda2-5.[1-9]*-Linux-ppc64le.sh'
+        # root dir is /srv/
+        ana_dir = 'anaconda'
         heading1('Setting up Anaconda repository')
-        if not os.path.exists('/srv/anaconda'):
-            os.mkdir('/srv/anaconda')
-        g = glob.glob(f'/srv/anaconda/{ana_src}')
-        r = 'Y'
-        if g:
-            print('\nAnaconda already set up: ')
-            for item in g:
-                print(item)
-            print()
-            r = get_yesno('Do you wish to update Anaconda', 'yes/n')
-        if r == 'yes':
-            print()
-            self.log.info('Searching for Anaconda source file')
-            resp = ''
-            cmd = (f'find /home -name {ana_src}')
-            while not resp:
-                #cmd = ('wget https://repo.continuum.io/archive/Anaconda2-5.1.0-Linux-'
-                #       'ppc64le.sh --directory-prefix=/srv/anaconda/')
-                #stat = sub_proc_display(cmd)
-                resp, err, rc = sub_proc_exec(cmd)
-                if not resp:
-                    cmd = (f'find / -name {ana_src}')
-                    print(f'Anaconda source file {ana_src} not found')
-                    r = input('Search again? (y/n) ')
-                    if r == 'n':
-                        break
-            if not resp:
-                self.log.error(f'Anaconda source file {ana_src} not found.\n Anaconda is not'
-                               ' setup.')
-            else:
-                src_path = get_selection(resp, 'Select a source file')
-                #code.interact(banner='Anaconda resp', local=dict(globals(), **locals()))
-                self.log.info(f'Using Anaconda source file: {src_path}')
-                cmd = f'cp {src_path} /srv/anaconda/'
-                resp, err, rc = sub_proc_exec(cmd)
-                if rc != 0:
-                    self.log.error(f'Failed copying Anaconda source to /srv '
-                                   'directory. \n{err}')
-                else:
-                    self.log.info('Successfully set up Anaconda')
-
-        sys.exit('Bye from Anaconda')
+        setup_source_file(ana_src, ana_dir)
 
         # Get PowerAI base
-        if not os.path.exists('/srv/powerai-rpm'):
-            os.mkdir('/srv/powerai-rpm')
-        if not os.path.isfile('/srv/powerai-rpm/mldl-repo-local-5.1.0-201804110899'
-                              '.fd91856.ppc64le.rpm'):
-            self.log.info('Downloading PowerAI base')
-            cmd = ('wget --directory-prefix=/srv/powerai-rpm http://ausgsa.ibm.com'
-                   '/projects/m/mldl-repo/releases/v1r5m1/rhel/mldl-repo-local-5.1.'
-                   '0-201804110899.fd91856.ppc64le.rpm')
-            stat = sub_proc_display(cmd)
-            if stat == 0:
-                self.log.info('PowerAI base downloaded succesfully')
-            else:
-                self.log.error('Failed to download PowerAI base')
-        else:
-            self.log.info('PowerAI base already downloaded')
+        heading1('Setting up the PowerAI base repository')
+        pai_src = 'mldl-repo-local-5.[1-9]*.ppc64le.rpm'
+        pai_dir = 'powerai-rpm'
+        res = setup_source_file(pai_src, pai_dir, 'PowerAI')
+        sys.exit('Bye from powerai')
 
         # Setup EPEL repo
         heading1('Local EPEL repository')
@@ -153,7 +104,7 @@ class software(object):
                     self.sw_vars['epel_repo_url'] = repo_url
                     repo.create_dirs()
 
-                #repo.sync()
+                # repo.sync()
 
                 if r == 'f':
                     repo.create_meta()

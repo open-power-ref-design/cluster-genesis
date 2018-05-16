@@ -21,7 +21,6 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 import argparse
 import os
 import re
-#import time
 
 import lib.logger as logger
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, rlinput, get_url
@@ -143,7 +142,7 @@ class local_epel_repo(object):
         if src == 'i':
             if not repo_url:
                 repo_url = f'http://9.3.210.46/repos/epel/{self.rhel_ver}/epel-{self.arch}'
-            tmp = get_url(repo_url)
+            tmp = get_url(repo_url, 'EPEL')
             if tmp is None:
                 return repo_url
             else:
