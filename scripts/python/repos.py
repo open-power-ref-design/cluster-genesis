@@ -57,9 +57,7 @@ class remote_nginx_repo(object):
 class local_epel_repo(object):
 
     def __init__(self, repo_name='epel-ppc64le', arch='ppc64le', rhel_ver='7'):
-        heading1('Local EPEL repository')
         repo_name = 'epel-ppc64le' if repo_name is None else repo_name
-        print(repo_name)
         self.repo_name = repo_name.lower()
         self.arch = arch
         self.rhel_ver = str(rhel_ver)
@@ -97,6 +95,8 @@ class local_epel_repo(object):
             self.log.info('EPEL sync finished successfully')
 
     def create_dirs(self):
+        """Create directories to be used to hold the repository
+        """
         if not os.path.exists('/srv/repos/epel/{}'.format(self.rhel_ver)):
             self.log.info('creating directory /srv/repos/epel/{}'.format(self.rhel_ver))
             os.makedirs('/srv/repos/epel/{}'.format(self.rhel_ver))
@@ -109,16 +109,21 @@ class local_epel_repo(object):
             self.log.info('Creating repository metadata and databases')
             cmd = 'createrepo -v -g comps.xml /srv/repos/epel/{}/{}'.format(
                 self.rhel_ver, self.repo_name)
-            print(cmd)
             proc, rc = sub_proc_exec(cmd)
             if rc != 0:
                 self.log.error('Repo creation error: {}'.format(rc))
             else:
                 self.log.info('Repo create process finished succesfully')
         else:
-            self.log.info('Repo {} already created'.format(self.repo_name))
+            self.log.debug(f'Repo {self.repo_name} already exists. Skipping metadata'
+                           'creation.')
 
     def yum_create_remote(self, repo_url=None):
+        """Creates the .repo file in /etc/yum.repos.d used as the external source
+        for syncing the local repo.
+        Inputs:
+            repo_url: (str) URL for the external repo source
+        """
         self.log.info('Registering remote repo {} with yum.'.format(self.repo_name))
 
         repo_link_path = '/etc/yum.repos.d/{}.repo'.format(self.repo_name)
@@ -131,8 +136,8 @@ class local_epel_repo(object):
         self.log.info(repo_link_path)
 
         src = ' '
-        while src not in 'pi':
-            src = rlinput('Use public mirror or internal web site (p/i): ', 'p')[0]
+        while len(src) != 1 or src not in 'pi':
+            src = rlinput('Use public mirror or internal web site (p/i)? ', 'p')
 
         if src == 'i':
             if not repo_url:
@@ -193,7 +198,7 @@ class local_epel_repo(object):
             f.write('gpgcheck=1\n')
             return repo_url
 
-    def get_yum_client_powerup(self):
+    def get_yum_powerup_client(self):
         """Generate the yum.repo file for the powerup remote client. The file
         content is stored in a dictionary with two key value pairs. The first pair
         is the filename. 'filename':'name of repofile'. The filename needs to end
@@ -210,7 +215,7 @@ class local_epel_repo(object):
         repo_file = {'filename': self.repo_name + '-powerup.repo', 'content': '[{}'
                      .format(self.repo_name) + '-powerup]\n'}
         repo_file['content'] += 'name={}'.format(self.repo_name) + '-powerup\n'
-        repo_file['content'] += 'baseurl=http://{host}' + '/epel/{}/{}/\n'.format(
+        repo_file['content'] += 'baseurl=http://{host}' + '/epel/{}/{}\n'.format(
             self.rhel_ver, self.repo_name)
         repo_file['content'] += 'enabled=1\n'
         repo_file['content'] += 'gpgcheck=0\n'

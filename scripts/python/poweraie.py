@@ -27,7 +27,7 @@ import code
 import lib.logger as logger
 from repos import local_epel_repo, remote_nginx_repo
 from software_hosts import get_ansible_inventory
-from lib.utilities import sub_proc_display, sub_proc_exec
+from lib.utilities import sub_proc_display, sub_proc_exec, heading1
 from lib.genesis import GEN_SOFTWARE_PATH
 
 
@@ -49,6 +49,8 @@ class software(object):
         else:
             if not isinstance(self.sw_vars, dict):
                 self.sw_vars = {}
+        if 'yum_powerup_repo_files' not in self.sw_vars:
+            self.sw_vars['yum_powerup_repo_files'] = []
         self.epel_repo_name = 'epel-ppc64le'
         self.sw_vars['epel_repo_name'] = self.epel_repo_name
         self.rhel_ver = '7'
@@ -95,18 +97,25 @@ class software(object):
         else:
             self.log.info('PowerAI base already downloaded')
 
+        # External repo URL used for sync source
+        heading1('Local EPEL repository')
+        if 'epel_repo_url' in self.sw_vars:
+            repo_url = self.sw_vars['epel_repo_url']
+        else:
+            repo_url = None
+
         r = ' '
         if os.path.isfile('/etc/yum.repos.d/epel-ppc64le.repo'):
-            print('\nDo you want to sync the local EPEL repository at this time')
-            print('This can take a few minutes.  (Enter "f" to sync and force'
-                  'recreation of yum .repo files)')
+            print('\nDo you want to sync the local EPEL repository at this time?')
+            print('This can take a few minutes.  (Enter "f" to sync and force\n'
+                  'recreation of yum .repo files)\n')
             while r not in 'Ynf':
                 r = input('Enter Y/n/f: ')
 
             if r in 'Yf':
                 repo = local_epel_repo()
                 if r == 'f':
-                    repo_url = repo.yum_create_remote()
+                    repo_url = repo.yum_create_remote(repo_url)
                     self.sw_vars['epel_repo_url'] = repo_url
                     repo.create_dirs()
 
@@ -115,7 +124,9 @@ class software(object):
                 if r == 'f':
                     repo.create_meta()
                     repo.yum_create_local()
-                    self.yum_powerup_repo_files.append(repo.get_yum_client_powerup())
+                    tmp = repo.get_yum_powerup_client()
+                    if tmp not in self.sw_vars['yum_powerup_repo_files']:
+                        self.sw_vars['yum_powerup_repo_files'].append(tmp)
 
         if not os.path.isfile('/etc/yum.repos.d/epel-ppc64le.repo'):
             print('\nDo you want to create a local EPEL repsoitory at this time?')
@@ -124,17 +135,18 @@ class software(object):
                 r = input('Enter Y/n: ')
             if r == 'Y':
                 repo = local_epel_repo()
-                repo.yum_create_remote()
+                repo_url = repo.yum_create_remote(repo_url)
+                self.sw_vars['epel_repo_url'] = repo_url
                 repo.create_dirs()
                 repo.sync()
                 repo.create_meta()
                 repo.yum_create_local()
-                self.yum_powerup_repo_files.append(repo.get_yum_client_powerup())
-
-        # self.log.debug(self.yum_powerup_repo_files[0]['filename'])
-        # self.log.debug(self.yum_powerup_repo_files[0]['content'])
+                tmp = repo.get_yum_powerup_client()
+                if tmp not in self.sw_vars['yum_powerup_repo_files']:
+                    self.sw_vars['yum_powerup_repo_files'].append(tmp)
 
         # Setup firewall to allow http
+        heading1('Setting up firewall')
         fw_err = 0
         cmd = 'systemctl status firewalld.service'
         resp, err, rc = sub_proc_exec(cmd)
@@ -170,6 +182,7 @@ class software(object):
         nginx_repo.yum_create_remote()
 
         # Check if nginx installed. Install if necessary.
+        heading1('Nginx')
         cmd = 'nginx -v'
         try:
             resp, err, rc = sub_proc_exec(cmd)
