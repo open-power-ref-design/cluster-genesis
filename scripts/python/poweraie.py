@@ -19,6 +19,7 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
 import argparse
+import glob
 import os
 import sys
 import time
@@ -27,7 +28,8 @@ import code
 import lib.logger as logger
 from repos import local_epel_repo, remote_nginx_repo
 from software_hosts import get_ansible_inventory
-from lib.utilities import sub_proc_display, sub_proc_exec, heading1
+from lib.utilities import sub_proc_display, sub_proc_exec, heading1, \
+    get_selection, get_yesno
 from lib.genesis import GEN_SOFTWARE_PATH
 
 
@@ -49,6 +51,7 @@ class software(object):
         else:
             if not isinstance(self.sw_vars, dict):
                 self.sw_vars = {}
+                self.sw_vars['init-time'] = time.ctime()
         if 'yum_powerup_repo_files' not in self.sw_vars:
             self.sw_vars['yum_powerup_repo_files'] = []
         self.epel_repo_name = 'epel-ppc64le'
@@ -66,19 +69,50 @@ class software(object):
 
     def setup(self):
         # Get Anaconda
+        ana_src = 'Anaconda2-5.[1-9]*-Linux-ppc64le.sh'
+        heading1('Setting up Anaconda repository')
         if not os.path.exists('/srv/anaconda'):
             os.mkdir('/srv/anaconda')
-        if not os.path.isfile('/srv/anaconda/Anaconda2-5.1.0-Linux-ppc64le.sh'):
-            self.log.info('Downloading Anaconda')
-            cmd = ('wget https://repo.continuum.io/archive/Anaconda2-5.1.0-Linux-'
-                   'ppc64le.sh --directory-prefix=/srv/anaconda/')
-            stat = sub_proc_display(cmd)
-            if stat == 0:
-                self.log.info('Anaconda downloaded succesfully')
+        g = glob.glob(f'/srv/anaconda/{ana_src}')
+        r = 'Y'
+        if g:
+            print('\nAnaconda already set up: ')
+            for item in g:
+                print(item)
+            print()
+            r = get_yesno('Do you wish to update Anaconda', 'yes/n')
+        if r == 'yes':
+            print()
+            self.log.info('Searching for Anaconda source file')
+            resp = ''
+            cmd = (f'find /home -name {ana_src}')
+            while not resp:
+                #cmd = ('wget https://repo.continuum.io/archive/Anaconda2-5.1.0-Linux-'
+                #       'ppc64le.sh --directory-prefix=/srv/anaconda/')
+                #stat = sub_proc_display(cmd)
+                resp, err, rc = sub_proc_exec(cmd)
+                if not resp:
+                    cmd = (f'find / -name {ana_src}')
+                    print(f'Anaconda source file {ana_src} not found')
+                    r = input('Search again? (y/n) ')
+                    if r == 'n':
+                        break
+            if not resp:
+                self.log.error(f'Anaconda source file {ana_src} not found.\n Anaconda is not'
+                               ' setup.')
             else:
-                self.log.error('Failed to download Anaconda')
-        else:
-            self.log.info('Anaconda already downloaded')
+                src_path = get_selection(resp, 'Select a source file')
+                #code.interact(banner='Anaconda resp', local=dict(globals(), **locals()))
+                self.log.info(f'Using Anaconda source file: {src_path}')
+                cmd = f'cp {src_path} /srv/anaconda/'
+                resp, err, rc = sub_proc_exec(cmd)
+                if rc != 0:
+                    self.log.error(f'Failed copying Anaconda source to /srv '
+                                   'directory. \n{err}')
+                else:
+                    self.log.info('Successfully set up Anaconda')
+
+        sys.exit('Bye from Anaconda')
 
         # Get PowerAI base
         if not os.path.exists('/srv/powerai-rpm'):
@@ -97,7 +131,7 @@ class software(object):
         else:
             self.log.info('PowerAI base already downloaded')
 
-        # External repo URL used for sync source
+        # Setup EPEL repo
         heading1('Local EPEL repository')
         if 'epel_repo_url' in self.sw_vars:
             repo_url = self.sw_vars['epel_repo_url']
@@ -119,7 +153,7 @@ class software(object):
                     self.sw_vars['epel_repo_url'] = repo_url
                     repo.create_dirs()
 
-                repo.sync()
+                #repo.sync()
 
                 if r == 'f':
                     repo.create_meta()

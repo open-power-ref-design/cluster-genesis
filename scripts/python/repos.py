@@ -21,10 +21,10 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 import argparse
 import os
 import re
-import time
+#import time
 
 import lib.logger as logger
-from lib.utilities import sub_proc_display, sub_proc_exec, heading1, rlinput
+from lib.utilities import sub_proc_display, sub_proc_exec, heading1, rlinput, get_url
 
 
 class remote_nginx_repo(object):
@@ -49,7 +49,8 @@ class remote_nginx_repo(object):
         with open(repo_link_path, 'w') as f:
             f.write('[nginx]\n')
             f.write('name={}\n'.format(self.repo_name))
-            f.write('baseurl=http://nginx.org/packages/mainline/rhel/{}/{}\n'.format(self.rhel_ver, self.arch))
+            f.write(f'baseurl=http://nginx.org/packages/mainline/rhel/'
+                    '{self.rhel_ver}/{self.arch}\n')
             f.write('gpgcheck=0\n')
             f.write('enabled=1\n')
 
@@ -90,18 +91,18 @@ class local_epel_repo(object):
             self.arch, self.repo_name, self.rhel_ver)
         rc = sub_proc_display(cmd)
         if rc != 0:
-            self.log.error('Failed EPEL repo sync. {}'.format(rc))
+            self.log.error(f'Failed EPEL repo sync. {rc}')
         else:
             self.log.info('EPEL sync finished successfully')
 
     def create_dirs(self):
         """Create directories to be used to hold the repository
         """
-        if not os.path.exists('/srv/repos/epel/{}'.format(self.rhel_ver)):
-            self.log.info('creating directory /srv/repos/epel/{}'.format(self.rhel_ver))
+        if not os.path.exists(f'/srv/repos/epel/{self.rhel_ver}'):
+            self.log.info(f'creating directory /srv/repos/epel/{self.rhel_ver}')
             os.makedirs('/srv/repos/epel/{}'.format(self.rhel_ver))
         else:
-            self.log.info('Directory /srv/repos/epel/{} already exists'.format(self.rhel_ver))
+            self.log.info(f'Directory /srv/repos/epel/{self.rhel_ver} already exists')
 
     def create_meta(self):
         if not os.path.exists('/srv/repos/epel/{}/{}/repodata'.format(
@@ -137,33 +138,16 @@ class local_epel_repo(object):
 
         src = ' '
         while len(src) != 1 or src not in 'pi':
-            src = rlinput('Use public mirror or internal web site (p/i)? ', 'p')
+            src = input('Use public mirror or internal web site (p/i)? ')
 
         if src == 'i':
             if not repo_url:
                 repo_url = f'http://9.3.210.46/repos/epel/{self.rhel_ver}/epel-{self.arch}'
-
-            response = False
-            while not response:
-                resp = rlinput('Enter EPEL URL (S to skip): ', repo_url)
-                if resp == 'S':
-                    return repo_url
-                repo_url = resp
-                try:
-                    cmd = f'curl -I {repo_url}/'
-                    resp, err, rc = sub_proc_exec(cmd)
-                except:
-                    pass
-                else:
-                    response = re.search(r'HTTP\/\d+.\d+\s+200\s+ok', resp, re.IGNORECASE)
-                    if response:
-                        print(response.group(0))
-                        time.sleep(1.5)
-                        response = True
-                    else:
-                        err = re.search('curl: .+', err)
-                        if err:
-                            print(err.group(0))
+            tmp = get_url(repo_url)
+            if tmp is None:
+                return repo_url
+            else:
+                repo_url = tmp
 
         with open(repo_link_path, 'w') as f:
             f.write('[{}]\n'.format(self.repo_name))

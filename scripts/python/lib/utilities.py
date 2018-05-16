@@ -20,6 +20,7 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 import os
 import re
 import sys
+import time
 import subprocess
 import fileinput
 import readline
@@ -226,3 +227,65 @@ def rlinput(prompt, prefill=''):
         return input(prompt)
     finally:
         readline.set_startup_hook()
+
+
+def get_url(url='http://'):
+    response = False
+    while not response:
+        resp = rlinput('Enter EPEL URL (S to skip): ', url)
+        if resp == 'S':
+            return None
+        url = resp
+        try:
+            cmd = f'curl -I {url}/'
+            reply, err, rc = sub_proc_exec(cmd)
+        except:
+            pass
+        else:
+            response = re.search(r'HTTP\/\d+.\d+\s+200\s+ok', reply, re.IGNORECASE)
+            if response:
+                print(response.group(0))
+                time.sleep(1.5)
+                response = True
+                return url
+            else:
+                err = re.search('curl: .+', err)
+                if err:
+                    print(err.group(0))
+                tmp = re.search(r'HTTP\/\d+.\d+\s+.+', reply)
+                if tmp:
+                    print(tmp.group(0))
+
+
+def get_yesno(prompt='', yesno='Y/n'):
+    r = ' '
+    yn = yesno.split('/')
+    while r not in yn:
+        r = input(f'{prompt} ({yesno})? ')
+    return r
+
+
+def get_selection(choices, prompt='Selection'):
+    if not isinstance(choices, list):
+        choices = choices.splitlines()
+    if len(choices) == 1:
+        return choices[0]
+    print()
+    for i, item in enumerate(choices):
+        print(f'{i + 1} - {item}')
+    ch = 0
+    while ch < 1 or ch > len(choices):
+        ch = input(f'{prompt} (1 - {len(choices)}): ')
+        try:
+            ch = int(ch)
+        except ValueError:
+            print(f'Enter an integer between 1 and {len(choices)}')
+            ch = 0
+        if ch < 1 or ch > len(choices):
+            print(f'Enter an integer between 1 and {len(choices)}')
+            ch = 0
+
+    choice = choices[ch - 1]
+    return choice
+
+
