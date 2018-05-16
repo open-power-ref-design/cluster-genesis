@@ -36,6 +36,7 @@ import lib.logger as logger
 
 URL = 'https://github.com/cobbler/cobbler.git'
 BRANCH = 'release28'
+COMMIT = '7fd4b8cae9af665e318406f6b0bb9686fab813a6'
 
 TFTPBOOT = '/tftpboot'
 DNSMASQ_TEMPLATE = '/etc/cobbler/dnsmasq.template'
@@ -109,6 +110,8 @@ def cobbler_install(config_path=None):
     log.info(
         "Cobbler branch \'%s\' cloned into \'%s\'" %
         (repo.active_branch, repo.working_dir))
+    repo.head.reference = repo.commit(COMMIT)
+    log.debug("Checkout Cobbler commit \'%s\'" % COMMIT)
 
     # Modify Cobbler scrpit that write DHCP reservations so that the
     #   lease time is included.
