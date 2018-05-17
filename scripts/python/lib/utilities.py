@@ -262,7 +262,7 @@ def get_url(url='http://', name=''):
                     print(tmp.group(0))
 
 
-def get_yesno(prompt='', yesno='Y/n'):
+def get_yesno(prompt='', yesno='yes/n'):
     r = ' '
     yn = yesno.split('/')
     while r not in yn:
@@ -270,9 +270,10 @@ def get_yesno(prompt='', yesno='Y/n'):
     return r
 
 
-def get_selection(choices, prompt='Selection'):
+def get_selection(choices, prompt='Selection', sep='\n'):
     if not isinstance(choices, list):
-        choices = choices.splitlines()
+        choices = choices.rstrip('\n')
+        choices = choices.split(sep)
     if len(choices) == 1:
         return choices[0]
     print()
@@ -306,35 +307,44 @@ def setup_source_file(src_name, _dir, name=None):
     g = glob.glob(f'/srv/{_dir}/{src_name}')
     r = 'yes'
     if g:
-        print(f'\n{name} already set up: ')
+        print(f'\n{name} source file already exists in the \n'
+              'POWER-Up software server directory')
         for item in g:
             print(item)
         print()
-        r = get_yesno(f'Do you wish to update {name}', 'yes/no/n')
+        r = get_yesno(f'Do you wish to update the {name} source file', 'yes/n')
     if r == 'yes':
         print()
         log.info(f'Searching for {name} source file')
-        resp = ''
+        # Search home directories first
         cmd = (f'find /home -name {src_name}')
+        resp, err, rc = sub_proc_exec(cmd)
         while not resp:
+            # Expand search to entire file system
+            cmd = (f'find / -name {src_name}')
             resp, err, rc = sub_proc_exec(cmd)
             if not resp:
-                cmd = (f'find / -name {src_name}')
                 print(f'{name} source file {src_name} not found')
-                r = get_yesno('Search again', 'y/n')
+                r = get_yesno('Search again', 'y/no')
                 if r == 'n':
-                    break
-        if not resp:
-            log.error(f'{name} source file {src_name} not found.\n {name} is not'
-                      ' setup.')
+                    log.error(f'{name} source file {src_name} not found.\n {name} is not'
+                              ' setup.')
+                    return False, None
+
+        src_path = get_selection(resp, 'Select a source file')
+        log.info(f'Using {name} source file: {src_path}')
+        if f'/srv/{_dir}/' in src_path:
+            print(f'Skipping copy. \n{src_path} already \nin /srv/{_dir}/')
+            return True, src_path
+
+        cmd = f'cp {src_path} /srv/{_dir}/'
+        resp, err, rc = sub_proc_exec(cmd)
+        if rc != 0:
+            log.error(f'Failed copying {name} source to /srv '
+                      'directory. \n{err}')
+            return False, src_path
         else:
-            src_path = get_selection(resp, 'Select a source file')
-            log.info(f'Using {name} source file: {src_path}')
-            cmd = f'cp {src_path} /srv/{_dir}/'
-            resp, err, rc = sub_proc_exec(cmd)
-            if rc != 0:
-                log.error(f'Failed copying {name} source to /srv '
-                          'directory. \n{err}')
-            else:
-                log.info(f'Successfully set up {name}')
-                return True
+            log.info(f'Successfully installed {name} source file')
+            return True, src_path
+    else:
+        return True, None

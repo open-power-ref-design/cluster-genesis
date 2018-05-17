@@ -79,7 +79,53 @@ class software(object):
         heading1('Setting up the PowerAI base repository')
         pai_src = 'mldl-repo-local-5.[1-9]*.ppc64le.rpm'
         pai_dir = 'powerai-rpm'
-        res = setup_source_file(pai_src, pai_dir, 'PowerAI')
+        src_installed, src_path = setup_source_file(pai_src, pai_dir, 'PowerAI')
+        self.log.debug(f'PowerAI source path: {src_path}')
+
+        cmd = f'rpm -ihv --test --ignorearch {src_path}'
+        resp1, err1, rc = sub_proc_exec(cmd)
+        cmd = 'diff /opt/DL/repo/rpms/repodata/ /srv/repos/DL/repo/rpms/repodata/'
+        resp2, err2, rc = sub_proc_exec(cmd)
+        if 'is already installed' in err1 and resp2 == '':
+            repo_installed = True
+
+        # Create the repo and copy it to /srv directory
+        if src_path:
+            # First check if already installed
+            if repo_installed:
+                print(f'\nRepository for {src_path} already exists')
+                print('in the POWER-Up software server.\n')
+                r = get_yesno('Do you wish to recreate the repository')
+
+            if not repo_installed or r == 'yes':
+                cmd = f'rpm -ihv  --force --ignorearch {src_path}'
+                rc = sub_proc_display(cmd)
+                if rc != 0:
+                    self.log.info('Failed creating PowerAI repository')
+                    self.log.info(f'Failing cmd: {cmd}')
+                else:
+                    cmd = 'sudo cp -r /opt/DL /srv/repos'
+                    resp, err, rc = sub_proc_exec(cmd)
+                    if rc == 0:
+                        self.log.info('Successfully created PowerAI repository')
+        else:
+            if src_installed:
+                self.log.debug('PowerAI source file already in place and no '
+                               'update requested')
+            else:
+                self.log.error('PowerAI base was not installed.')
+
+        if repo_installed:
+            dot_repo = {}
+            dot_repo['filename'] = 'powerai-5.repo'
+            dot_repo['content'] = ('[powerai-5]\n'
+                                   'name=PowerAI-5-powerup\n'
+                                   'baseurl=http://{host}/repos/DL\n'
+                                   'enabled=1\n'
+                                   'gpgcheck=0\n')
+            if dot_repo not in self.sw_vars['yum_powerup_repo_files']:
+                self.sw_vars['yum_powerup_repo_files'].append(dot_repo)
+
         sys.exit('Bye from powerai')
 
         # Setup EPEL repo
