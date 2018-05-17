@@ -29,6 +29,7 @@ import enable_deployer_networks
 import enable_deployer_gateway
 import validate_cluster_hardware
 import configure_mgmt_switches
+import remove_client_host_keys
 from lib.utilities import scan_ping_network
 import download_os_images
 import lxc_conf
@@ -423,6 +424,8 @@ class Gen(object):
 
     def _install_client_os(self):
         from lib.container import Container
+
+        remove_client_host_keys.remove_client_host_keys(self.config_file_path)
 
         cont = Container(self.config_file_path)
         cmd = []
