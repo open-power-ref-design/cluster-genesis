@@ -25,7 +25,7 @@ import time
 import subprocess
 import fileinput
 import readline
-from shutil import copy2
+from shutil import copy2, Error
 from subprocess import Popen, PIPE
 
 import lib.logger as logger
@@ -287,25 +287,37 @@ def get_selection(choices, prompt='Selection', sep='\n'):
         except ValueError:
             print(f'Enter an integer between 1 and {len(choices)}')
             ch = 0
-        if ch < 1 or ch > len(choices):
-            print(f'Enter an integer between 1 and {len(choices)}')
-            ch = 0
+        else:
+            if ch < 1 or ch > len(choices):
+                print(f'Enter an integer between 1 and {len(choices)}')
+                ch = 0
 
     choice = choices[ch - 1]
     return choice
 
 
-def setup_source_file(src_name, _dir, name=None):
-    """Interactive selection of a source file and copy it to the /srv/<_dir>
-    directory
+def setup_source_file(src_name, dest, name=None):
+    """Interactive selection of a source file and copy it to the /srv/<dest>
+    directory. The source file can include file globs. Searching starts in the
+    /home directory and then expands to the entire file system if no matches
+    found in any home directory.
+    Inputs:
+        src_name (str): Source file name to look for. Can include file globs
+        dest (str) : destination directory. Will be created if necessary under
+            /srv/
+        name (str): Name for the source. Used only for display and prompts.
+    Returns:
+        state (bool) : State is True/False to indicate that a file
+            matching the src_name exists or was copied to the dest directory.
+        src_path (str) : The path for the file found / chosen by the user. If
+            only a single match is found it is used without choice and returned.
     """
     log = logger.getlogger()
     if not name:
-        name = _dir.capitalize()
-    if not os.path.exists(f'/srv/{_dir}'):
-        os.mkdir(f'/srv/{_dir}')
-    g = glob.glob(f'/srv/{_dir}/{src_name}')
-    r = 'yes'
+        name = dest.capitalize()
+    if not os.path.exists(f'/srv/{dest}'):
+        os.mkdir(f'/srv/{dest}')
+    g = glob.glob(f'/srv/{dest}/{src_name}')
     if g:
         print(f'\n{name} source file already exists in the \n'
               'POWER-Up software server directory')
@@ -313,6 +325,8 @@ def setup_source_file(src_name, _dir, name=None):
             print(item)
         print()
         r = get_yesno(f'Do you wish to update the {name} source file', 'yes/n')
+    else:
+        r = 'yes'
     if r == 'yes':
         print()
         log.info(f'Searching for {name} source file')
@@ -333,18 +347,19 @@ def setup_source_file(src_name, _dir, name=None):
 
         src_path = get_selection(resp, 'Select a source file')
         log.info(f'Using {name} source file: {src_path}')
-        if f'/srv/{_dir}/' in src_path:
-            print(f'Skipping copy. \n{src_path} already \nin /srv/{_dir}/')
+        if f'/srv/{dest}/' in src_path:
+            print(f'Skipping copy. \n{src_path} already \nin /srv/{dest}/')
             return True, src_path
 
-        cmd = f'cp {src_path} /srv/{_dir}/'
-        resp, err, rc = sub_proc_exec(cmd)
-        if rc != 0:
-            log.error(f'Failed copying {name} source to /srv '
-                      'directory. \n{err}')
-            return False, src_path
+        try:
+            copy2(f'{src_path}', f'/srv/{dest}/')
+        except Error as err:
+            self.log.debug(f'Failed copying {name} source to /srv/{dest}/ '
+                           f'directory. \n{err}')
+            return False, None
         else:
-            log.info(f'Successfully installed {name} source file')
+            log.info(f'Successfully installed {name} source file '
+                     'into the POWER-Up software server.')
             return True, src_path
     else:
         return True, None

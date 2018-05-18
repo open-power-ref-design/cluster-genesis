@@ -21,15 +21,18 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 import argparse
 import glob
 import os
+import re
 import sys
+import shutil
 import time
 import yaml
 import code
+
 import lib.logger as logger
 from repos import local_epel_repo, remote_nginx_repo
 from software_hosts import get_ansible_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, \
-    get_selection, get_yesno, setup_source_file
+    get_selection, get_yesno, setup_source_file, rlinput
 from lib.genesis import GEN_SOFTWARE_PATH
 
 
@@ -69,28 +72,43 @@ class software(object):
 
     def setup(self):
         # Get Anaconda
-        ana_src = 'Anaconda2-5.[1-9]*-Linux-ppc64le.sh'
+        ana_src = 'Anaconda2-[56].[1-9]*-Linux-ppc64le.sh'
         # root dir is /srv/
         ana_dir = 'anaconda'
         heading1('Setting up Anaconda repository')
         setup_source_file(ana_src, ana_dir)
 
+        # Get CUDA
+        pkg_name = 'CUDA'
+        pkg_file = 'cuda-repo-rhel7-9-[2-9]-local-9.[2-9]*.ppc64le.rpm'
+        dest_dir = 'cuda-repo-9-2-local'
+        src_dir = '/var/cuda-repo-9-{ver1}-local'
+        web = 'https://developer.nvidia.com/compute/cuda/9.2/Prod/local_installers/cuda-repo-rhel7-9-2-local-9.2.88-1.ppc64le'
+        create_repo_from_rpm_pkg(pkg_name, pkg_file, dest_dir, src_dir)
+        sys.exit('Bye from CUDA')
+
         # Get PowerAI base
         heading1('Setting up the PowerAI base repository')
-        pai_src = 'mldl-repo-local-5.[1-9]*.ppc64le.rpm'
+        pai_src = 'mldl-repo-local-[56].[1-9]*.ppc64le.rpm'
         pai_dir = 'powerai-rpm'
+        ver = ''
         src_installed, src_path = setup_source_file(pai_src, pai_dir, 'PowerAI')
+        ver = re.search(r'\d+\.\d+\.\d+', src_path).group(0) if src_path else ''
         self.log.debug(f'PowerAI source path: {src_path}')
-
         cmd = f'rpm -ihv --test --ignorearch {src_path}'
         resp1, err1, rc = sub_proc_exec(cmd)
-        cmd = 'diff /opt/DL/repo/rpms/repodata/ /srv/repos/DL/repo/rpms/repodata/'
+        cmd = f'diff /opt/DL/repo/rpms/repodata/ /srv/repos/DL-{ver}/repo/rpms/repodata/'
         resp2, err2, rc = sub_proc_exec(cmd)
-        if 'is already installed' in err1 and resp2 == '':
+        if 'is already installed' in err1 and resp2 == '' and rc == 0:
             repo_installed = True
+        else:
+            repo_installed = False
 
         # Create the repo and copy it to /srv directory
         if src_path:
+            if not ver:
+                self.log.error('Unable to find the version in {src_path}')
+                ver = rlinput('Enter a version to use (x.y.z): ', '5.1.0')
             # First check if already installed
             if repo_installed:
                 print(f'\nRepository for {src_path} already exists')
@@ -104,9 +122,12 @@ class software(object):
                     self.log.info('Failed creating PowerAI repository')
                     self.log.info(f'Failing cmd: {cmd}')
                 else:
-                    cmd = 'sudo cp -r /opt/DL /srv/repos'
-                    resp, err, rc = sub_proc_exec(cmd)
-                    if rc == 0:
+                    shutil.rmtree(f'/srv/repos/DL-{ver}', ignore_errors=True)
+                    try:
+                        shutil.copytree('/opt/DL', f'/srv/repos/DL-{ver}')
+                    except shutil.Error as exc:
+                        print(f'Copy error: {exc}')
+                    else:
                         self.log.info('Successfully created PowerAI repository')
         else:
             if src_installed:
@@ -115,13 +136,16 @@ class software(object):
             else:
                 self.log.error('PowerAI base was not installed.')
 
-        if repo_installed:
+        if ver:
             dot_repo = {}
-            dot_repo['filename'] = 'powerai-5.repo'
-            dot_repo['content'] = ('[powerai-5]\n'
-                                   'name=PowerAI-5-powerup\n'
-                                   'baseurl=http://{host}/repos/DL\n'
+            dot_repo['filename'] = f'powerai-{ver}.repo'
+            dot_repo['content'] = (f'[powerai-{ver}]\n'
+                                   f'name=PowerAI-{ver}-powerup\n'
+                                   'baseurl=http://{host}/repos/'
+                                   f'DL-{ver}/repo/rpms\n'
                                    'enabled=1\n'
+                                   'gpgkey=http://{host}/repos/'
+                                   f'DL-{ver}/repo/mldl-public-key.asc\n'
                                    'gpgcheck=0\n')
             if dot_repo not in self.sw_vars['yum_powerup_repo_files']:
                 self.sw_vars['yum_powerup_repo_files'].append(dot_repo)
