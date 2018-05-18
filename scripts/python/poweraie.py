@@ -29,10 +29,10 @@ import yaml
 import code
 
 import lib.logger as logger
-from repos import local_epel_repo, remote_nginx_repo
+from repos import local_epel_repo, powerup_repo, remote_nginx_repo, setup_source_file
 from software_hosts import get_ansible_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, \
-    get_selection, get_yesno, setup_source_file, rlinput
+    get_selection, get_yesno, rlinput
 from lib.genesis import GEN_SOFTWARE_PATH
 
 
@@ -79,13 +79,66 @@ class software(object):
         setup_source_file(ana_src, ana_dir)
 
         # Get CUDA
-        pkg_name = 'CUDA'
-        pkg_file = 'cuda-repo-rhel7-9-[2-9]-local-9.[2-9]*.ppc64le.rpm'
-        dest_dir = 'cuda-repo-9-2-local'
-        src_dir = '/var/cuda-repo-9-{ver1}-local'
-        web = 'https://developer.nvidia.com/compute/cuda/9.2/Prod/local_installers/cuda-repo-rhel7-9-2-local-9.2.88-1.ppc64le'
-        create_repo_from_rpm_pkg(pkg_name, pkg_file, dest_dir, src_dir)
+        baseurl = 'http://developer.download.nvidia.com/compute/cuda/repos/rhel7/ppc64le'
+        gpgkey = f'{baseurl}/7fa2af80.pub'
+        repo_name = 'cuda'
+        prompt_name = 'CUDA'
+
+        heading1('Local CUDA repository')
+        if 'cuda_repo_url' in self.sw_vars:
+            repo_url = self.sw_vars['cuda_repo_url']
+        else:
+            repo_url = None
+
+        r = ' '
+        if os.path.isfile(f'/etc/yum.repos.d/{repo_name}.repo'):
+            print('\nDo you want to sync the local CUDA repository at this time?')
+            print('This can take a few minutes.\n')
+            descs = 'Yes,no,Sync repository and Force recreation of yum ".repo" files'
+            ch = get_selection('Y,n,F', descs, sep=',')
+
+            if ch in 'YF':
+                url = repo_url if repo_url else baseurl
+                repo = powerup_repo(repo_name, prompt_name, url, gpgkey)
+                if ch == 'F':
+                    repo_url = repo.yum_create_remote()
+                    self.sw_vars[f'{repo_name}_repo_url'] = repo_url
+                    repo.create_dirs()
+
+                repo.sync()
+
+                if ch == 'F':
+                    repo.create_meta()
+                    repo.yum_create_local()
+                    tmp = repo.get_yum_powerup_client()
+                    if tmp not in self.sw_vars['yum_powerup_repo_files']:
+                        self.sw_vars['yum_powerup_repo_files'].append(tmp)
+
+        else:
+            print('\nDo you want to create a local CUDA repository at this time?')
+            print('This can take a significant amount of time')
+            r = get_yesno('yes/n')
+            if r == 'yes':
+                repo = local_epel_repo()
+                repo_url = repo.yum_create_remote(repo_url)
+                self.sw_vars['cuda_repo_url'] = repo_url
+                repo.create_dirs()
+                repo.sync()
+                repo.create_meta()
+                repo.yum_create_local()
+                tmp = repo.get_yum_powerup_client()
+                if tmp not in self.sw_vars['yum_powerup_repo_files']:
+                    self.sw_vars['yum_powerup_repo_files'].append(tmp)
+
         sys.exit('Bye from CUDA')
+        # pkg_name = 'CUDA'
+        # pkg_file = 'cuda-repo-rhel7-9-[2-9]-local-9.[2-9]*.ppc64le.rpm'
+        # dest_dir = 'cuda-repo-9-2-local'
+        # src_dir = '/var/cuda-repo-9-{ver1}-local'
+        # web = 'https://developer.nvidia.com/compute/cuda/9.2/Prod/local_installers'
+        #       '/cuda-repo-rhel7-9-2-local-9.2.88-1.ppc64le'
+        # create_repo_from_rpm_pkg(pkg_name, pkg_file, dest_dir, src_dir)
+        # sys.exit('Bye from CUDA')
 
         # Get PowerAI base
         heading1('Setting up the PowerAI base repository')
@@ -184,7 +237,7 @@ class software(object):
                         self.sw_vars['yum_powerup_repo_files'].append(tmp)
 
         if not os.path.isfile('/etc/yum.repos.d/epel-ppc64le.repo'):
-            print('\nDo you want to create a local EPEL repsoitory at this time?')
+            print('\nDo you want to create a local EPEL repository at this time?')
             print('This can take a significant amount of time')
             while r not in 'Yn':
                 r = input('Enter Y/n: ')
@@ -194,7 +247,7 @@ class software(object):
                 self.sw_vars['epel_repo_url'] = repo_url
                 repo.create_dirs()
                 repo.sync()
-                repo.create_meta()
+                # repo.create_meta()
                 repo.yum_create_local()
                 tmp = repo.get_yum_powerup_client()
                 if tmp not in self.sw_vars['yum_powerup_repo_files']:

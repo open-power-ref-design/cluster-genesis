@@ -17,7 +17,6 @@
 from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
-import glob
 import os
 import re
 import sys
@@ -222,6 +221,10 @@ def heading1(text='-', width=79):
     print(f'\n{text1: <{width + 8}}')
 
 
+def bold(text):
+    return Color.bold + text + Color.endc
+
+
 def rlinput(prompt, prefill=''):
     readline.set_startup_hook(lambda: readline.insert_text(prefill))
     try:
@@ -270,96 +273,39 @@ def get_yesno(prompt='', yesno='yes/n'):
     return r
 
 
-def get_selection(choices, prompt='Selection', sep='\n'):
-    if not isinstance(choices, list):
-        choices = choices.rstrip('\n')
+def get_selection(choices, descs, sep='\n', prompt='Enter a selection: '):
+    """Prompt user to select a choice. Choice can be a member of choices or
+    descs, but a member of choices is always returned.
+    Inputs:
+        choices (str or list or tuple): Choices
+        choices_only (bool) : Set to false to allow descs as valid choices
+        descs (str or list or tuple): Description of choices
+    returns:
+        One of the elements in choices or descs
+    """
+    if not isinstance(choices, (list, tuple)):
+        choices = choices.rstrip(sep)
         choices = choices.split(sep)
+    if not isinstance(descs, (list, tuple)):
+        descs = descs.rstrip(sep)
+        descs = descs.split(sep)
     if len(choices) == 1:
         return choices[0]
+    maxw = 1
+    for ch in choices:
+        maxw = max(maxw, len(ch))
     print()
-    for i, item in enumerate(choices):
-        print(f'{i + 1} - {item}')
-    ch = 0
-    while ch < 1 or ch > len(choices):
-        ch = input(f'{prompt} (1 - {len(choices)}): ')
-        try:
-            ch = int(ch)
-        except ValueError:
-            print(f'Enter an integer between 1 and {len(choices)}')
-            ch = 0
-        else:
-            if ch < 1 or ch > len(choices):
-                print(f'Enter an integer between 1 and {len(choices)}')
-                ch = 0
-
-    choice = choices[ch - 1]
-    return choice
-
-
-def setup_source_file(src_name, dest, name=None):
-    """Interactive selection of a source file and copy it to the /srv/<dest>
-    directory. The source file can include file globs. Searching starts in the
-    /home directory and then expands to the entire file system if no matches
-    found in any home directory.
-    Inputs:
-        src_name (str): Source file name to look for. Can include file globs
-        dest (str) : destination directory. Will be created if necessary under
-            /srv/
-        name (str): Name for the source. Used only for display and prompts.
-    Returns:
-        state (bool) : State is True/False to indicate that a file
-            matching the src_name exists or was copied to the dest directory.
-        src_path (str) : The path for the file found / chosen by the user. If
-            only a single match is found it is used without choice and returned.
-    """
-    log = logger.getlogger()
-    if not name:
-        name = dest.capitalize()
-    if not os.path.exists(f'/srv/{dest}'):
-        os.mkdir(f'/srv/{dest}')
-    g = glob.glob(f'/srv/{dest}/{src_name}')
-    if g:
-        print(f'\n{name} source file already exists in the \n'
-              'POWER-Up software server directory')
-        for item in g:
-            print(item)
-        print()
-        r = get_yesno(f'Do you wish to update the {name} source file', 'yes/n')
-    else:
-        r = 'yes'
-    if r == 'yes':
-        print()
-        log.info(f'Searching for {name} source file')
-        # Search home directories first
-        cmd = (f'find /home -name {src_name}')
-        resp, err, rc = sub_proc_exec(cmd)
-        while not resp:
-            # Expand search to entire file system
-            cmd = (f'find / -name {src_name}')
-            resp, err, rc = sub_proc_exec(cmd)
-            if not resp:
-                print(f'{name} source file {src_name} not found')
-                r = get_yesno('Search again', 'y/no')
-                if r == 'n':
-                    log.error(f'{name} source file {src_name} not found.\n {name} is not'
-                              ' setup.')
-                    return False, None
-
-        src_path = get_selection(resp, 'Select a source file')
-        log.info(f'Using {name} source file: {src_path}')
-        if f'/srv/{dest}/' in src_path:
-            print(f'Skipping copy. \n{src_path} already \nin /srv/{dest}/')
-            return True, src_path
-
-        try:
-            copy2(f'{src_path}', f'/srv/{dest}/')
-        except Error as err:
-            self.log.debug(f'Failed copying {name} source to /srv/{dest}/ '
-                           f'directory. \n{err}')
-            return False, None
-        else:
-            log.info(f'Successfully installed {name} source file '
-                     'into the POWER-Up software server.')
-            return True, src_path
-    else:
-        return True, None
+    for i in range(min(len(choices), len(descs))):
+        print(f'{bold(choices[i]): <{maxw}}' + ' - ' + descs[i])
+    print()
+    ch = ' '
+    while not (ch in choices or ch in descs):
+        ch = input(f'{Color.bold}{prompt}{Color.endc}')
+        if not (ch in choices or ch in descs):
+            print('Not a valid selection')
+            print(f'Choose from {choices}')
+            ch = ' '
+    if ch not in choices:
+        # not in choices so it must be in descs
+        ch = choices[descs.index(ch)]
+    return ch
