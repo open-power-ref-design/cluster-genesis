@@ -26,7 +26,7 @@ import fileinput
 import readline
 from shutil import copy2, Error
 from subprocess import Popen, PIPE
-
+import code
 import lib.logger as logger
 
 PATTERN_MAC = '[\da-fA-F]{2}:){5}[\da-fA-F]{2}'
@@ -233,14 +233,14 @@ def rlinput(prompt, prefill=''):
         readline.set_startup_hook()
 
 
-def get_url(url='http://', name=''):
+def get_url(url='http://', prompt_name=''):
     """Input a URL from user. The URL is checked for validity using curl
     and the user can continue modifying it indefinitely until a response
     is obtained or he can enter 'S' to skip (stop) entry.
     """
     response = False
     while not response:
-        resp = rlinput(f'Enter {name} URL (S to skip): ', url)
+        resp = rlinput(f'Enter {prompt_name} URL (S to skip): ', url)
         if resp == 'S':
             return None
         url = resp
@@ -273,39 +273,46 @@ def get_yesno(prompt='', yesno='yes/n'):
     return r
 
 
-def get_selection(choices, descs, sep='\n', prompt='Enter a selection: '):
-    """Prompt user to select a choice. Choice can be a member of choices or
-    descs, but a member of choices is always returned.
+def get_selection(items, choices=None, sep='\n', prompt='Enter a selection: '):
+    """Prompt user to select a choice. Entered choice can be a member of choices or
+    items, but a member of choices is always returned as choice. If choices is not
+    specified a numeric list is generated. Note that if choices or items is a string
+    it will be 'split' using sep. If you wish to include sep in the displayed
+    choices or items, an alternate seperator can be specified.
     Inputs:
         choices (str or list or tuple): Choices
         choices_only (bool) : Set to false to allow descs as valid choices
         descs (str or list or tuple): Description of choices
     returns:
-        One of the elements in choices or descs
+       ch (str): One of the elements in choices
+       item (str): mathing item from items
     """
+    if not isinstance(items, (list, tuple)):
+        items = items.rstrip(sep)
+        items = items.split(sep)
+    if not choices:
+        choices = [str(i) for i in range(1, 1 + len(items))]
     if not isinstance(choices, (list, tuple)):
         choices = choices.rstrip(sep)
         choices = choices.split(sep)
-    if not isinstance(descs, (list, tuple)):
-        descs = descs.rstrip(sep)
-        descs = descs.split(sep)
     if len(choices) == 1:
         return choices[0]
     maxw = 1
     for ch in choices:
         maxw = max(maxw, len(ch))
     print()
-    for i in range(min(len(choices), len(descs))):
-        print(f'{bold(choices[i]): <{maxw}}' + ' - ' + descs[i])
+    for i in range(min(len(choices), len(items))):
+        print(f'{bold(choices[i]): <{maxw}}' + ' - ' + items[i])
     print()
     ch = ' '
-    while not (ch in choices or ch in descs):
+    while not (ch in choices or ch in items):
         ch = input(f'{Color.bold}{prompt}{Color.endc}')
-        if not (ch in choices or ch in descs):
+        if not (ch in choices or ch in items):
             print('Not a valid selection')
             print(f'Choose from {choices}')
             ch = ' '
     if ch not in choices:
-        # not in choices so it must be in descs
-        ch = choices[descs.index(ch)]
-    return ch
+        # not in choices so it must be in items
+        ch = choices[items.index(ch)]
+    item = items[choices.index(ch)]
+    return ch, item

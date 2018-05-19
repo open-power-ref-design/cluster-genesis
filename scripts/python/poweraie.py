@@ -29,7 +29,7 @@ import yaml
 import code
 
 import lib.logger as logger
-from repos import local_epel_repo, powerup_repo, remote_nginx_repo, setup_source_file
+from repos import PowerupRepo, PowerupRepoEpel, RemoteNginxRepo, setup_source_file
 from software_hosts import get_ansible_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, \
     get_selection, get_yesno, rlinput
@@ -75,70 +75,94 @@ class software(object):
         ana_src = 'Anaconda2-[56].[1-9]*-Linux-ppc64le.sh'
         # root dir is /srv/
         ana_dir = 'anaconda'
-        heading1('Setting up Anaconda repository')
+        heading1('Set up Anaconda repository')
         setup_source_file(ana_src, ana_dir)
 
-        # Get CUDA
+        # Setup EPEL
+        heading1('Set up ppc64le EPEL repository')
+        baseurl = 'https://mirrors.fedoraproject.org/metalink?repo=epel-7&arch=ppc64le'
+        gpgkey = 'file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-7'
+        repo_id = 'epel-ppc64le'
+        repo_name = 'Extra Packages for Enterprise Linux 7 - ppc64le'
+        if 'epel_alt_url' in self.sw_vars:
+            alt_url = self.sw_vars['epel_alt_url']
+        else:
+            alt_url = None
+
+        new = True
+        if os.path.isfile(f'/etc/yum.repos.d/{repo_id}.repo'):
+            new = False
+            print(f'\nDo you want to sync the {repo_name}\nrepository at this time?')
+            print('This can take a few minutes.\n')
+            items = 'Yes,no,Sync repository and Force recreation of yum ".repo" files'
+            ch, item = get_selection(items, 'Y,n,F', sep=',')
+        else:
+            print('\nDo you want to create the {repo_name} repository at this time?')
+            print('This can take a significant amount of time')
+            ch = get_yesno(yesno='Y/n')
+
+        if ch in 'YF':
+            #url = repo_url if repo_url else baseurl
+            repo = PowerupRepo(repo_id, repo_name, baseurl, alt_url, gpgkey)
+            if new or ch == 'F':
+                alt_url = repo.yum_create_remote(metalink=True)
+                self.sw_vars[f'{repo_id}_alt_url'] = alt_url
+                repo.create_dirs()
+
+            repo.sync()
+            repo.create_meta()
+
+            if new or ch == 'F':
+                repo.yum_create_local()
+                tmp = repo.get_yum_powerup_client()
+                if tmp not in self.sw_vars['yum_powerup_repo_files']:
+                    self.sw_vars['yum_powerup_repo_files'].append(tmp)
+
+        sys.exit('Bye from EPEL')
+
+
+        # Setup CUDA
+        heading1('Set up CUDA Toolkit repository')
+
         baseurl = 'http://developer.download.nvidia.com/compute/cuda/repos/rhel7/ppc64le'
         gpgkey = f'{baseurl}/7fa2af80.pub'
-        repo_name = 'cuda'
-        prompt_name = 'CUDA'
-
-        heading1('Local CUDA repository')
-        if 'cuda_repo_url' in self.sw_vars:
-            repo_url = self.sw_vars['cuda_repo_url']
+        repo_id = 'cuda'
+        repo_name = 'CUDA Toolkit'
+        if 'cuda_alt_url' in self.sw_vars:
+            alt_url = self.sw_vars['cuda_alt_url']
         else:
-            repo_url = None
+            alt_url = None
 
-        r = ' '
-        if os.path.isfile(f'/etc/yum.repos.d/{repo_name}.repo'):
+        new = True
+        if os.path.isfile(f'/etc/yum.repos.d/{repo_id}.repo'):
+            new = False
             print('\nDo you want to sync the local CUDA repository at this time?')
             print('This can take a few minutes.\n')
-            descs = 'Yes,no,Sync repository and Force recreation of yum ".repo" files'
-            ch = get_selection('Y,n,F', descs, sep=',')
-
-            if ch in 'YF':
-                url = repo_url if repo_url else baseurl
-                repo = powerup_repo(repo_name, prompt_name, url, gpgkey)
-                if ch == 'F':
-                    repo_url = repo.yum_create_remote()
-                    self.sw_vars[f'{repo_name}_repo_url'] = repo_url
-                    repo.create_dirs()
-
-                repo.sync()
-
-                if ch == 'F':
-                    repo.create_meta()
-                    repo.yum_create_local()
-                    tmp = repo.get_yum_powerup_client()
-                    if tmp not in self.sw_vars['yum_powerup_repo_files']:
-                        self.sw_vars['yum_powerup_repo_files'].append(tmp)
-
+            items = 'Yes,no,Sync repository and Force recreation of yum ".repo" files'
+            ch, item = get_selection(items, 'Y,n,F', sep=',')
         else:
             print('\nDo you want to create a local CUDA repository at this time?')
             print('This can take a significant amount of time')
-            r = get_yesno('yes/n')
-            if r == 'yes':
-                repo = local_epel_repo()
-                repo_url = repo.yum_create_remote(repo_url)
-                self.sw_vars['cuda_repo_url'] = repo_url
+            ch = get_yesno(yesno='Y/n')
+
+        if ch in 'YF':
+            #url = repo_url if repo_url else baseurl
+            repo = PowerupRepo(repo_id, repo_name, baseurl, alt_url, gpgkey)
+            if new or ch == 'F':
+                alt_url = repo.yum_create_remote()
+                self.sw_vars[f'{repo_id}_alt_url'] = alt_url
                 repo.create_dirs()
-                repo.sync()
-                repo.create_meta()
+
+            repo.sync()
+            repo.create_meta()
+
+            if new or ch == 'F':
                 repo.yum_create_local()
                 tmp = repo.get_yum_powerup_client()
                 if tmp not in self.sw_vars['yum_powerup_repo_files']:
                     self.sw_vars['yum_powerup_repo_files'].append(tmp)
 
         sys.exit('Bye from CUDA')
-        # pkg_name = 'CUDA'
-        # pkg_file = 'cuda-repo-rhel7-9-[2-9]-local-9.[2-9]*.ppc64le.rpm'
-        # dest_dir = 'cuda-repo-9-2-local'
-        # src_dir = '/var/cuda-repo-9-{ver1}-local'
-        # web = 'https://developer.nvidia.com/compute/cuda/9.2/Prod/local_installers'
-        #       '/cuda-repo-rhel7-9-2-local-9.2.88-1.ppc64le'
-        # create_repo_from_rpm_pkg(pkg_name, pkg_file, dest_dir, src_dir)
-        # sys.exit('Bye from CUDA')
 
         # Get PowerAI base
         heading1('Setting up the PowerAI base repository')
@@ -286,11 +310,11 @@ class software(object):
         if fw_err == 0:
             self.log.info('Firewall is running and configured for http')
 
-        nginx_repo = remote_nginx_repo()
+        nginx_repo = RemoteNginxRepo()
         nginx_repo.yum_create_remote()
 
         # Check if nginx installed. Install if necessary.
-        heading1('Nginx')
+        heading1('Set up Nginx')
         cmd = 'nginx -v'
         try:
             resp, err, rc = sub_proc_exec(cmd)

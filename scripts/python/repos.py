@@ -22,7 +22,7 @@ import argparse
 import glob
 import os
 import re
-
+import code
 import lib.logger as logger
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, rlinput, \
     get_url, get_yesno, get_selection
@@ -77,7 +77,7 @@ def setup_source_file(src_name, dest, name=None):
                               ' setup.')
                     return False, None
 
-        src_path = get_selection(resp, 'Select a source file')
+        ch, src_path = get_selection(resp, prompt='Select a source file: ')
         log.info(f'Using {name} source file: {src_path}')
         if f'/srv/{dest}/' in src_path:
             print(f'Skipping copy. \n{src_path} already \nin /srv/{dest}/')
@@ -96,31 +96,31 @@ def setup_source_file(src_name, dest, name=None):
     else:
         return True, None
 
-
-class powerup_repo(object):
+class PowerupRepo(object):
     """Sets up a yum repository for access by POWER-Up software clients.
     The repo is first sync'ed locally from the internet or a user specified
     URL which should reside on another host.
     """
-    def __init__(self, repo_name, prompt_name, baseurl, gpgkey, gpgcheck=1,
+    def __init__(self, repo_id, repo_name, baseurl, alt_url, gpgkey, gpgcheck=1,
                  arch='ppc64le', rhel_ver='7'):
-        self.repo_name = repo_name.lower()
-        self.prompt_name = prompt_name
+        self.repo_id = repo_id
+        self.repo_name = repo_name
         self.repo_url = baseurl
+        self.alt_url = alt_url
         self.gpgkey = gpgkey
         self.gpgcheck = gpgcheck
         self.arch = arch
         self.rhel_ver = str(rhel_ver)
         self.log = logger.getlogger()
 
-    def yum_create_remote(self):
+    def yum_create_remote(self, metalink=False):
         """Creates the .repo file in /etc/yum.repos.d used as the external source
         for syncing the local repo.
         Inputs:
             repo_url: (str) URL for the external repo source
         """
         self.log.info(f'Registering remote repo {self.repo_name} with yum.')
-        repo_link_path = f'/etc/yum.repos.d/{self.repo_name}.repo'
+        repo_link_path = f'/etc/yum.repos.d/{self.repo_id}.repo'
         if os.path.isfile(repo_link_path):
             self.log.debug('Remote linkage for repo {self.repo_name} already exists.\n'
                            'Rewriting')
@@ -129,41 +129,55 @@ class powerup_repo(object):
         self.log.debug('Creating remote repo link.')
         self.log.debug(repo_link_path)
 
-        src = get_selection('p.i', 'Public mirror.Internal web site', 'Select source: ')
+        ch, item = get_selection('Public mirror.Alternate web site', 'pub.alt', '.',
+                            'Select source: ')
 
-        if src == 'i':
-            self.repo_url = f'http://9.3.210.46/repos/{self.repo_name}'
-            tmp = get_url(self.repo_url, self.repo_name)
+        if ch == 'alt':
+            metalink = False
+            if not self.alt_url:
+                self.alt_url = f'http://host/repos/{self.repo_id}/'
+            tmp = get_url(self.alt_url, prompt_name=self.repo_name)
             if tmp is None:
-                return self.repo_url
+                return self.alt_url
             else:
-                self.repo_url = tmp
-        print(f'self.repo_url: {self.repo_url}')
+                if tmp[-1] != '/':
+                    tmp = tmp + '/'
+                self.alt_url = tmp
+        self.log.debug(f'self.repo_url: {self.repo_url}')
+        self.log.debug(f'self.alt_url: {self.alt_url}')
+        url = self.alt_url if ch == 'alt' else self.repo_url
+        self._write_remote_yum_dot_repo_file(repo_link_path, url, metalink)
+        return self.alt_url
+
+    def _write_remote_yum_dot_repo_file(self, repo_link_path, url, metalink):
         with open(repo_link_path, 'w') as f:
-            f.write(f'[{self.repo_name}]\n')
-            f.write('name=cuda\n')
-            f.write(f'baseurl={self.repo_url}\n')
+            f.write(f'[{self.repo_id}]\n')
+            f.write(f'name={self.repo_name}\n')
+            if metalink:
+                f.write(f'metalink={url}\n')
+                f.write('failovermethod=priority\n')
+            else:
+                f.write(f'baseurl={url}\n')
             f.write('enabled=1\n')
             f.write(f'gpgcheck={self.gpgcheck}\n')
             f.write(f'gpgkey={self.gpgkey}')
-        return self.repo_url
 
     def create_dirs(self, pad_dir=''):
         """Create directories to be used to hold the repository
         inputs:
             pad_dir (str)
         """
-        if not os.path.exists(f'/srv/repos/{self.repo_name}'):
-            self.log.debug(f'creating directory /srv/repos/{self.repo_name}')
-            os.makedirs('/srv/repos/{self.repo_name}')
+        if not os.path.exists(f'/srv/repos/{self.repo_id}/{self.rhel_ver}'):
+            self.log.debug(f'creating directory /srv/repos/{self.repo_id}/{self.rhel_ver}')
+            os.makedirs(f'/srv/repos/{self.repo_name}/{self.rhel_ver}')
         else:
-            self.log.debug(f'Directory /srv/repos/{self.repo_name} already exists')
+            self.log.debug(f'Directory /srv/repos/{self.repo_id}/{self.rhel_ver} already exists')
 
     def sync(self):
-        self.log.info(f'Syncing {self.repo_name} repository')
+        self.log.info(f'Syncing {self.repo_name}')
         self.log.info('This can take many minutes or hours for large repositories\n')
-        cmd = f'reposync -a {self.arch} -r {self.repo_name} -p \
-            /srv/repos/{self.repo_name} -l -m'
+        cmd = f'reposync -a {self.arch} -r {self.repo_id} -p \
+            /srv/repos/{self.repo_id}/{self.rhel_ver} -l -m'
         rc = sub_proc_display(cmd)
         if rc != 0:
             self.log.error(f'Failed {self.repo_name} repo sync. {rc}')
@@ -171,12 +185,12 @@ class powerup_repo(object):
             self.log.info(f'{self.repo_name} sync finished successfully')
 
     def create_meta(self):
-        if not os.path.exists('/srv/repos/{self.repo_name}/repodata'):
+        if not os.path.exists(f'/srv/repos/{self.repo_id}/repodata'):
             self.log.info('Creating repository metadata and databases')
         else:
             self.log.info('Updating repository metadata and databases')
         print('This may take a few minutes.')
-        cmd = f'createrepo -v /srv/repos/{self.repo_name}'
+        cmd = f'createrepo -v /srv/repos/{self.repo_id}'
         resp, err, rc = sub_proc_exec(cmd)
         if rc != 0:
             self.log.error(f'Repo creation error: rc: {rc} stderr: {err}')
@@ -187,7 +201,7 @@ class powerup_repo(object):
         """Create the /etc/yum.repos.d/
         """
         self.log.info(f'Registering local repo {self.repo_name} with yum.')
-        repo_link_path = f'/etc/yum.repos.d/{self.repo_name}-local.repo'
+        repo_link_path = f'/etc/yum.repos.d/{self.repo_id}-local.repo'
         if os.path.isfile(repo_link_path):
             self.log.debug('Remote linkage for repo {self.repo_name} already exists.')
             self.log.debug(repo_link_path)
@@ -195,11 +209,11 @@ class powerup_repo(object):
         self.log.info('Creating local repo link.')
         self.log.debug(repo_link_path)
         with open(repo_link_path, 'w') as f:
-            f.write(f'[{self.repo_name}-local]\n')
-            f.write(f'name={self.repo_name}_local_repo\n')
+            f.write(f'[{self.repo_id}-local]\n')
+            f.write(f'name={self.repo_name} local\n')
             # f.write(f'baseurl=file:///srv/repos/epel/{self.rhel_ver}/epel-'
             #         f'{self.arch}/\n')
-            f.write(f'baseurl=file:///srv/repos/{self.repo_name}\n')
+            f.write(f'baseurl=file:///srv/repos/{self.repo_id}/{self.rhel_ver}\n')
             f.write('Enabled=1\n')
             f.write(f'gpgcheck={self.gpgcheck}')
 
@@ -216,41 +230,18 @@ class powerup_repo(object):
         """
         self.log.debug(f'Creating powerup client {self.repo_name} repo file content')
 
-        repo_file = {'filename': self.repo_name + '-powerup.repo',
-                     'content': f'[{self.repo_name}-powerup]\n'}
+        repo_file = {'filename': self.repo_id + '-powerup.repo',
+                     'content': f'[{self.repo_id}-powerup]\n'}
         repo_file['content'] += f'name={self.repo_name}-powerup\n'
-        repo_file['content'] += 'baseurl=http://{host}/repos/' + f'{self.repo_name}\n'
+        repo_file['content'] += 'baseurl=http://{host}/repos/' + f'{self.repo_id}\n'
         repo_file['content'] += 'enabled=1\n'
         repo_file['content'] += 'gpgcheck=0\n'
         return repo_file
 
 
-class remote_nginx_repo(object):
-    def __init__(self, arch='ppc64le', rhel_ver='7'):
-        self.repo_name = 'nginx repo'
-        self.arch = arch
-        self.rhel_ver = str(rhel_ver)
-        self.log = logger.getlogger()
-
-    def yum_create_remote(self):
-        """Create the /etc/yum.repos.d/
-        """
-        self.log.info('Registering remote repo {} with yum.'.format(self.repo_name))
-        repo_link_path = '/etc/yum.repos.d/nginx.repo'
-        if os.path.isfile(repo_link_path):
-            self.log.info('Remote linkage for repo {} already exists.'
-                          .format(self.repo_name))
-            self.log.info(repo_link_path)
-
-        self.log.info('Creating remote repo link.')
-        self.log.info(repo_link_path)
-        with open(repo_link_path, 'w') as f:
-            f.write('[nginx]\n')
-            f.write('name={}\n'.format(self.repo_name))
-            f.write(f'baseurl=http://nginx.org/packages/mainline/rhel/'
-                    '{self.rhel_ver}/{self.arch}\n')
-            f.write('gpgcheck=0\n')
-            f.write('enabled=1\n')
+class PowerupRepoEpel(PowerupRepo):
+    def __init__(self, repo_id, repo_name, baseurl, alt_url, gpgkey, gpgcheck=1, arch='ppc64le', rhel_ver='7'):
+        super(PowerupRepoEpel, self).__init__(repo_id, repo_name, baseurl, alt_url, gpgkey, gpgcheck, arch, rhel_ver)
 
 
 class local_epel_repo(object):
@@ -467,6 +458,34 @@ def create_repo_from_rpm_pkg(pkg_name, pkg_file, dest_dir, src_dir, web=None):
                                    'gpgcheck=0\n')
             if dot_repo not in self.sw_vars['yum_powerup_repo_files']:
                 self.sw_vars['yum_powerup_repo_files'].append(dot_repo)
+
+
+class RemoteNginxRepo(object):
+    def __init__(self, arch='ppc64le', rhel_ver='7'):
+        self.repo_name = 'nginx repo'
+        self.arch = arch
+        self.rhel_ver = str(rhel_ver)
+        self.log = logger.getlogger()
+
+    def yum_create_remote(self):
+        """Create the /etc/yum.repos.d/
+        """
+        self.log.info('Registering remote repo {} with yum.'.format(self.repo_name))
+        repo_link_path = '/etc/yum.repos.d/nginx.repo'
+        if os.path.isfile(repo_link_path):
+            self.log.info('Remote linkage for repo {} already exists.'
+                          .format(self.repo_name))
+            self.log.info(repo_link_path)
+
+        self.log.info('Creating remote repo link.')
+        self.log.info(repo_link_path)
+        with open(repo_link_path, 'w') as f:
+            f.write('[nginx]\n')
+            f.write('name={}\n'.format(self.repo_name))
+            f.write(f'baseurl=http://nginx.org/packages/mainline/rhel/'
+                    '{self.rhel_ver}/{self.arch}\n')
+            f.write('gpgcheck=0\n')
+            f.write('enabled=1\n')
 
 
 if __name__ == '__main__':
