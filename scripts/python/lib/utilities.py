@@ -48,7 +48,7 @@ def bash_cmd(cmd):
     command = ['bash', '-c', cmd]
     log.debug('Run subprocess: %s' % ' '.join(command))
     output = subprocess.check_output(command, universal_newlines=True,
-                                     stderr=subprocess.STDOUT).decode('utf-8')
+                                     stderr=subprocess.STDOUT)
     log.debug(output)
 
     return output

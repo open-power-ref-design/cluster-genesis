@@ -58,6 +58,7 @@ CFG_FILE = GEN_PATH + CFG_FILE_NAME
 INV_FILE_NAME = 'inventory.yml'
 INV_FILE = GEN_PATH + INV_FILE_NAME
 LXC_DIR = os.path.expanduser('~/.local/share/lxc/')
+ANSIBLE = 'ansible'
 ANSIBLE_PLAYBOOK = 'ansible-playbook'
 POWER_TIME_OUT = 60
 POWER_WAIT = 5
@@ -203,6 +204,10 @@ def get_python_path():
     if is_container():
         return get_container_python_path()
     return os.path.join(GEN_PATH, SCRIPTS_DIR, PYTHON_DIR)
+
+
+def get_ansible_path():
+    return os.path.join(get_venv_path(), 'bin', ANSIBLE)
 
 
 def get_ansible_playbook_path():

@@ -34,7 +34,8 @@ from repos import PowerupRepo, PowerupRepoFromDir, PowerupRepoFromRepo, \
 from software_hosts import get_ansible_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, \
     get_selection, get_yesno, get_dir, get_file_path, rlinput
-from lib.genesis import GEN_SOFTWARE_PATH
+from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path, \
+    get_playbooks_path
 from lib.exception import UserException
 
 
@@ -378,17 +379,10 @@ class software(object):
 
     def install(self):
         ansible_inventory = get_ansible_inventory()
-        cmd = ('ansible -i {} -m ping all'.format(ansible_inventory))
-        resp, err, rc = sub_proc_exec(cmd)
-        if str(rc) != "0":
-            self.log.error('Ansible ping failed!')
-            self.log.error(resp)
-            sys.exit(1)
-        else:
-            print('Ansible ping passed!')
-        cmd = ('ansible-playbook -i {} '
-               '/home/user/power-up/playbooks/install_software.yml'
-               .format(ansible_inventory))
+        cmd = ('{} -i {} '
+               '{}/install_software.yml'
+               .format(get_ansible_playbook_path(), ansible_inventory,
+                       get_playbooks_path()))
         resp, err, rc = sub_proc_exec(cmd)
         print(resp)
         cmd = ('ssh -t -i ~/.ssh/gen root@10.0.20.22 '

@@ -15,24 +15,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-sudo -E -H pip install --upgrade virtualenv
-virtualenv -p /usr/bin/python36 --no-wheel --system-site-packages ${1}pup-venv
+python3.6 -m venv ${1}pup-venv
 source ${1}pup-venv/bin/activate
-sudo python36 -m pip install \
-    'ansible' \
-    'orderedattrdict' \
-    'pyroute2' \
-    'jsonschema' \
-    'jsl' \
-    'pyghmi' \
-    'wget' \
-    'pyasn1' \
-    'pysnmp' \
-    'pyaml' \
-    'pylxd' \
-    'paramiko' \
-    'tabulate' \
-    'gitpython' \
-    'netaddr' \
-    'click'
+pip install --upgrade pip
+pip install \
+    'ansible==2.5.2' \
+    'orderedattrdict==1.5' \
+    'pyroute2==0.5.0' \
+    'jsonschema==2.6.0' \
+    'jsl==0.2.4' \
+    'pyghmi==1.0.42' \
+    'wget==3.2' \
+    'pyasn1==0.4.2' \
+    'pysnmp==4.4.4' \
+    'pyaml==17.12.1' \
+    'paramiko==2.4.1' \
+    'tabulate==0.8.2' \
+    'gitpython==2.1.9' \
+    'netaddr==0.7.19' \
+    'click==6.7'
 deactivate
