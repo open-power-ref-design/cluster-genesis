@@ -269,7 +269,7 @@ def get_yesno(prompt='', yesno='yes/n'):
     r = ' '
     yn = yesno.split('/')
     while r not in yn:
-        r = input(f'{prompt} ({yesno})? ')
+        r = input(f'{prompt}({yesno})? ')
     return r
 
 
@@ -279,6 +279,8 @@ def get_selection(items, choices=None, sep='\n', prompt='Enter a selection: '):
     specified a numeric list is generated. Note that if choices or items is a string
     it will be 'split' using sep. If you wish to include sep in the displayed
     choices or items, an alternate seperator can be specified.
+    ex: ch, item = get_selection('Apple pie\nChocolate cake')
+    ex: ch, item = get_selection('Apple pie.Chocolate cake', 'Item 1.Item 2', sep='.')
     Inputs:
         choices (str or list or tuple): Choices
         choices_only (bool) : Set to false to allow descs as valid choices
