@@ -273,6 +273,54 @@ def get_yesno(prompt='', yesno='yes/n'):
     return r
 
 
+def get_dir():
+    """Interactive selection of a source dir. Searching starts in the cwd.
+    Returns:
+        path (str or None) : Selected path
+    """
+    log = logger.getlogger()
+    path = os.path.abspath('.')
+    # path = os.getcwd()
+    while True:
+        path = rlinput(f'Enter an absolute directory location (S to skip): ', path)
+        if path == 'S':
+            return None
+        if os.path.exists(path):
+            print()
+            top, dirs, files = next(os.walk(path))
+            files.sort()
+            cnt = 0
+            rpm_cnt = 0
+            for f in files:
+                if f.endswith('.rpm'):
+                    rpm_cnt += 1
+                    if rpm_cnt <= 10:
+                        print(f)
+            if rpm_cnt > 0:
+                print(bold(f'{rpm_cnt} rpm files found'))
+                print(f'including the {min(10, rpm_cnt)} files above.\n')
+            else:
+                print(bold('No rpm files found\n'))
+            for f in files:
+                if cnt + rpm_cnt >= 10:
+                    break
+                if not f.endswith('.rpm') and not f.startswith('.'):
+                    print(f)
+                    cnt += 1
+            if cnt > 0:
+                print(f'{cnt} non-rpm files found')
+                print(f'including the {min(10, cnt)} files above.')
+            else:
+                print('No non rpm files found')
+            print(f'\nThe entered path was: {top}')
+            r = get_yesno('Use the entered path? ')
+            if r == 'yes':
+                return path
+            print('Sub directories of the entered directory: ')
+            dirs.sort()
+            print(dirs)
+
+
 def get_selection(items, choices=None, sep='\n', prompt='Enter a selection: '):
     """Prompt user to select a choice. Entered choice can be a member of choices or
     items, but a member of choices is always returned as choice. If choices is not

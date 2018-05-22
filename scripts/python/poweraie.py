@@ -29,10 +29,11 @@ import yaml
 import code
 
 import lib.logger as logger
-from repos import PowerupRepo, RemoteNginxRepo, setup_source_file
+from repos import PowerupRepoFromRepo, RemoteNginxRepo, setup_source_file, \
+    PowerupRepoFromDir
 from software_hosts import get_ansible_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, \
-    get_selection, get_yesno, rlinput
+    get_selection, get_yesno, get_dir, rlinput
 from lib.genesis import GEN_SOFTWARE_PATH
 
 
@@ -71,10 +72,13 @@ class software(object):
             yaml.dump(self.sw_vars, f, default_flow_style=False)
 
     def setup(self):
-        # epel test
-        #repo = local_epel_repo()
-        #repo.yum_create_remote()
-        #sys.exit('epel test')
+        # repo_id = 'testrepo'
+        # repo_name ='A Power-Up test repo from a dir'
+        # src_dir = get_dir()
+        # repo = PowerupRepoFromDir(repo_id, repo_name)
+        # dest_dir = repo.copy_dirs(src_dir)
+        # repo.create_meta()
+        # sys.exit(f'bye setup source dir: {dest_dir}')
 
         # Setup EPEL
         repo_id = 'epel-ppc64le'
@@ -87,7 +91,7 @@ class software(object):
         else:
             alt_url = None
 
-        repo = PowerupRepo(repo_id, repo_name)
+        repo = PowerupRepoFromRepo(repo_id, repo_name)
 
         ch, new = repo.get_action()
         if ch in 'YF':
@@ -98,8 +102,8 @@ class software(object):
                 content = repo.get_yum_dotrepo_content(url, gpgkey, metalink=True)
                 repo.write_yum_dot_repo_file(content)
 
-            #repo.sync()
-            #repo.create_meta()
+            repo.sync()
+            repo.create_meta()
 
             if new or ch == 'F':
                 content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
@@ -121,7 +125,7 @@ class software(object):
         else:
             alt_url = None
 
-        repo = PowerupRepo(repo_id, repo_name)
+        repo = PowerupRepoFromRepo(repo_id, repo_name)
 
         ch, new = repo.get_action()
         if ch in 'YF':
@@ -143,7 +147,7 @@ class software(object):
                 filename = repo_id + '-powerup.repo'
                 self.sw_vars['yum_powerup_repo_files'][filename] = content
 
-        #sys.exit('bye cuda')
+        sys.exit('bye cuda')
 
         # Get Anaconda
         ana_src = 'Anaconda2-[56].[1-9]*-Linux-ppc64le.sh'
@@ -164,9 +168,10 @@ class software(object):
         self.log.debug(f'PowerAI source path: {src_path}')
         cmd = f'rpm -ihv --test --ignorearch {src_path}'
         resp1, err1, rc = sub_proc_exec(cmd)
-        cmd = f'diff /opt/DL/repo/rpms/repodata/ /srv/repos/DL-{ver}/repo/rpms/repodata/'
+        cmd = f'diff /opt/DL/ /srv/repos/DL-{ver}/'
         resp2, err2, rc = sub_proc_exec(cmd)
-        if 'is already installed' in err1 and resp2 == '' and rc == 0:
+        if 'is already installed' in err1 and 'Common subdirectories:' in resp2 \
+                and rc == 0:
             repo_installed = True
         else:
             repo_installed = False
@@ -195,7 +200,7 @@ class software(object):
                 else:
                     shutil.rmtree(repo_path, ignore_errors=True)
                     try:
-                        shutil.copytree('/opt/DL', repo_path)
+                        shutil.copytree('/opt/DL', repo_path + '/' + repo_id)
                     except shutil.Error as exc:
                         print(f'Copy error: {exc}')
                     else:
@@ -214,8 +219,6 @@ class software(object):
 
         sys.exit('Bye from powerai')
 
-
-###########################################33
         # Get PowerAI base
 #        heading1('Setting up the PowerAI base repository')
 #        pai_src = 'mldl-repo-local-[56].[1-9]*.ppc64le.rpm'
