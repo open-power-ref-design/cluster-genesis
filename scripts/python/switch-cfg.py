@@ -411,8 +411,8 @@ def main(_class, host):
         cfg['vlans'] = rlinput("Enter vlans (ex: '4' or '4,6' or '2-5'): ",
                                str(cfg['vlans']))
         try:
-            sw.allowed_vlans_mlag_port_channel(cfg['lag_ifc'],
-                allow_op[cfg['operation']], cfg['vlans'].split())
+            sw.allowed_vlans_mlag_port_channel(cfg['lag_ifc'], allow_op[cfg['operation']],
+                                               cfg['vlans'].split())
             print('{} vlans {} to port channel interface {}'.format(cfg['operation'],
                   cfg['vlans'], cfg['lag_ifc']))
         except SwitchException as exc:
