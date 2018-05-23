@@ -68,6 +68,8 @@ class software(object):
         self.log.debug(f'software variables: {self.sw_vars}')
 
     def __del__(self):
+        if not os.path.exists(GEN_SOFTWARE_PATH):
+            os.mkdir(GEN_SOFTWARE_PATH)
         with open(GEN_SOFTWARE_PATH + 'software-vars.yml', 'w') as f:
             yaml.dump(self.sw_vars, f, default_flow_style=False)
 
@@ -96,14 +98,19 @@ class software(object):
         ch, new = repo.get_action()
         if ch in 'YF':
             if new or ch == 'F':
-                url = repo.get_repo_url(baseurl)
+                url = repo.get_repo_url(baseurl, alt_url)
                 if not url == baseurl:
                     self.sw_vars[f'{repo_id}_alt_url'] = url
-                content = repo.get_yum_dotrepo_content(url, gpgkey, metalink=True)
+                    content = repo.get_yum_dotrepo_content(url, gpgkey)
+                else:
+                    content = repo.get_yum_dotrepo_content(url, gpgkey, metalink=True)
                 repo.write_yum_dot_repo_file(content)
 
             repo.sync()
-            repo.create_meta()
+            if new:
+                repo.create_meta()
+            else:
+                repo.create_meta(update=True)
 
             if new or ch == 'F':
                 content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
@@ -138,7 +145,10 @@ class software(object):
                 repo.write_yum_dot_repo_file(content)
 
             repo.sync()
-            repo.create_meta()
+            if new:
+                repo.create_meta()
+            else:
+                repo.create_meta(update=True)
 
             if new or ch == 'F':
                 content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
@@ -147,7 +157,7 @@ class software(object):
                 filename = repo_id + '-powerup.repo'
                 self.sw_vars['yum_powerup_repo_files'][filename] = content
 
-        sys.exit('bye cuda')
+        #sys.exit('bye cuda')
 
         # Get Anaconda
         ana_src = 'Anaconda2-[56].[1-9]*-Linux-ppc64le.sh'
@@ -219,121 +229,6 @@ class software(object):
 
         sys.exit('Bye from powerai')
 
-        # Get PowerAI base
-#        heading1('Setting up the PowerAI base repository')
-#        pai_src = 'mldl-repo-local-[56].[1-9]*.ppc64le.rpm'
-#        pai_dir = 'powerai-rpm'
-#        ver = ''
-#        src_installed, src_path = setup_source_file(pai_src, pai_dir, 'PowerAI')
-#        ver = re.search(r'\d+\.\d+\.\d+', src_path).group(0) if src_path else ''
-#        self.log.debug(f'PowerAI source path: {src_path}')
-#        cmd = f'rpm -ihv --test --ignorearch {src_path}'
-#        resp1, err1, rc = sub_proc_exec(cmd)
-#        cmd = f'diff /opt/DL/repo/rpms/repodata/ /srv/repos/DL-{ver}/repo/rpms/repodata/'
-#        resp2, err2, rc = sub_proc_exec(cmd)
-#        if 'is already installed' in err1 and resp2 == '' and rc == 0:
-#            repo_installed = True
-#        else:
-#            repo_installed = False
-#
-#        # Create the repo and copy it to /srv directory
-#        if src_path:
-#            if not ver:
-#                self.log.error('Unable to find the version in {src_path}')
-#                ver = rlinput('Enter a version to use (x.y.z): ', '5.1.0')
-#            repo_id = f'DL-{ver}'
-#            repo_name = f'PowerAI-{ver}'
-#            # First check if already installed
-#            if repo_installed:
-#                print(f'\nRepository for {src_path} already exists')
-#                print('in the POWER-Up software server.\n')
-#                r = get_yesno('Do you wish to recreate the repository')
-#
-#            if not repo_installed or r == 'yes':
-#                cmd = f'rpm -ihv  --force --ignorearch {src_path}'
-#                rc = sub_proc_display(cmd)
-#                if rc != 0:
-#                    self.log.info('Failed creating PowerAI repository')
-#                    self.log.info(f'Failing cmd: {cmd}')
-#                else:
-#                    shutil.rmtree(f'/srv/repos/DL-{ver}', ignore_errors=True)
-#                    try:
-#                        shutil.copytree('/opt/DL', f'/srv/repos/DL-{ver}')
-#                    except shutil.Error as exc:
-#                        print(f'Copy error: {exc}')
-#                    else:
-#                        self.log.info('Successfully created PowerAI repository')
-#        else:
-#            if src_installed:
-#                self.log.debug('PowerAI source file already in place and no '
-#                               'update requested')
-#            else:
-#                self.log.error('PowerAI base was not installed.')
-#
-#        if ver:
-#            dot_repo = {}
-#            dot_repo['filename'] = f'powerai-{ver}.repo'
-#            dot_repo['content'] = (f'[powerai-{ver}]\n'
-#                                   f'name=PowerAI-{ver}-powerup\n'
-#                                   'baseurl=http://{host}/repos/'
-#                                   f'DL-{ver}/repo/rpms\n'
-#                                   'enabled=1\n'
-#                                   'gpgkey=http://{host}/repos/'
-#                                   f'DL-{ver}/repo/mldl-public-key.asc\n'
-#                                   'gpgcheck=0\n')
-#            if dot_repo not in self.sw_vars['yum_powerup_repo_files']:
-#                self.sw_vars['yum_powerup_repo_files'].append(dot_repo)
-#
-#        sys.exit('Bye from powerai')
-
-        # Setup EPEL repo
-#        heading1('Local EPEL repository')
-#        if 'epel_repo_url' in self.sw_vars:
-#            repo_url = self.sw_vars['epel_repo_url']
-#        else:
-#            repo_url = None
-#
-#        r = ' '
-#        if os.path.isfile('/etc/yum.repos.d/epel-ppc64le.repo'):
-#            print('\nDo you want to sync the local EPEL repository at this time?')
-#            print('This can take a few minutes.  (Enter "f" to sync and force\n'
-#                  'recreation of yum .repo files)\n')
-#            while r not in 'Ynf':
-#                r = input('Enter Y/n/f: ')
-#
-#            if r in 'Yf':
-#                repo = local_epel_repo()
-#                if r == 'f':
-#                    repo_url = repo.yum_create_remote(repo_url)
-#                    self.sw_vars['epel_repo_url'] = repo_url
-#                    repo.create_dirs()
-#
-#                # repo.sync()
-#
-#                if r == 'f':
-#                    repo.create_meta()
-#                    repo.yum_create_local()
-#                    tmp = repo.get_yum_powerup_client()
-#                    if tmp not in self.sw_vars['yum_powerup_repo_files']:
-#                        self.sw_vars['yum_powerup_repo_files'].append(tmp)
-#
-#        if not os.path.isfile('/etc/yum.repos.d/epel-ppc64le.repo'):
-#            print('\nDo you want to create a local EPEL repository at this time?')
-#            print('This can take a significant amount of time')
-#            while r not in 'Yn':
-#                r = input('Enter Y/n: ')
-#            if r == 'Y':
-#                repo = local_epel_repo()
-#                repo_url = repo.yum_create_remote(repo_url)
-#                self.sw_vars['epel_repo_url'] = repo_url
-#                repo.create_dirs()
-#                repo.sync()
-#                # repo.create_meta()
-#                repo.yum_create_local()
-#                tmp = repo.get_yum_powerup_client()
-#                if tmp not in self.sw_vars['yum_powerup_repo_files']:
-#                    self.sw_vars['yum_powerup_repo_files'].append(tmp)
-
         # Setup firewall to allow http
         heading1('Setting up firewall')
         fw_err = 0
@@ -401,10 +296,22 @@ class software(object):
         print('Good to go')
 
     def install(self):
-        cmd = 'ansible-playbook -i {} /home/user/power-up/playbooks/install_software.yml'.format(get_ansible_inventory())
+        ansible_inventory = get_ansible_inventory()
+        cmd = ('ansible -i {} -m ping all'.format(ansible_inventory))
+        resp, err, rc = sub_proc_exec(cmd)
+        if str(rc) != "0":
+            self.log.error('Ansible ping failed!')
+            self.log.error(resp)
+            sys.exit(1)
+        else:
+            print('Ansible ping passed!')
+        cmd = ('ansible-playbook -i {} '
+               '/home/user/power-up/playbooks/install_software.yml'
+               .format(ansible_inventory))
         resp, err, rc = sub_proc_exec(cmd)
         print(resp)
-        cmd = 'ssh -t -i ~/.ssh/gen root@10.0.20.22 /opt/DL/license/bin/accept-powerai-license.sh'
+        cmd = ('ssh -t -i ~/.ssh/gen root@10.0.20.22 '
+               '/opt/DL/license/bin/accept-powerai-license.sh')
         resp = sub_proc_display(cmd)
         print(resp)
         print('All done')

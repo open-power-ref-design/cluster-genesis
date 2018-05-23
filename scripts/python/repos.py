@@ -158,7 +158,7 @@ class PowerupRepoFromRepo(object):
         self.repo_name = repo_name
         self.arch = arch
         self.rhel_ver = str(rhel_ver)
-        self.repo_path = f'/srv/repos/{self.repo_id}/{self.rhel_ver}'
+        self.repo_dir = f'/srv/repos/{self.repo_id}/rhel{self.rhel_ver}'
         self.log = logger.getlogger()
 
     def get_repo_path(self):
@@ -167,7 +167,7 @@ class PowerupRepoFromRepo(object):
     def get_action(self):
         new = True
         if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id}.repo') and \
-                os.path.exists(self.repo_path + f'/{self.repo_id}'):
+                os.path.exists(self.repo_dir + f'/{self.repo_id}'):
             new = False
             print(f'\nDo you want to sync the local {self.repo_name} repository'
                   ' at this time?\n')
@@ -200,10 +200,9 @@ class PowerupRepoFromRepo(object):
 
         # repo url
         if local:
-            #content += f'baseurl=file:///srv/repos/{self.repo_id}/{self.rhel_ver}/\n'
-            content += f'baseurl=file:///srv/repos/{self.repo_id}/{self.rhel_ver}/{self.repo_id}/\n'
+            content += f'baseurl=file://{self.repo_dir}/{self.repo_id}/\n'
         elif client:
-            content += 'baseurl=http://{host}/repos/' + f'{self.repo_id}\n'
+            content += 'baseurl=http://{host}/repos/' + f'{self.repo_id}/\n'
         elif metalink:
             content += f'metalink={url}\n'
             content += 'failovermethod=priority\n'
@@ -225,7 +224,6 @@ class PowerupRepoFromRepo(object):
 
         ch, item = get_selection('Public mirror.Alternate web site', 'pub.alt', '.',
                                  'Select source: ')
-
         if ch == 'alt':
             if not alt_url:
                 alt_url = f'http://host/repos/{self.repo_id}/'
@@ -253,33 +251,32 @@ class PowerupRepoFromRepo(object):
         inputs:
             pad_dir (str)
         """
-        if not os.path.exists(f'/srv/repos/{self.repo_id}/{self.rhel_ver}'):
-            self.log.debug(f'creating directory /srv/repos/{self.repo_id}/rhel{self.rhel_ver}')
-            os.makedirs(f'/srv/repos/{self.repo_name}/rhel{self.rhel_ver}')
+        if not os.path.exists(self.repo_dir):
+            self.log.debug(self.repo_dir)
+            os.makedirs(self.repo_dir)
         else:
-            self.log.debug(f'Directory /srv/repos/{self.repo_id}/{self.rhel_ver}'
-                           ' already exists')
+            self.log.debug(f'Directory {self.repo_dir} already exists')
 
     def sync(self):
         self.log.info(f'Syncing {self.repo_name}')
         self.log.info('This can take many minutes or hours for large repositories\n')
-        cmd = f'reposync -a {self.arch} -r {self.repo_id} -p \
-            /srv/repos/{self.repo_id}/rhel{self.rhel_ver} -l -m'
+        cmd = f'reposync -a {self.arch} -r {self.repo_id} -p {self.repo_dir} -l -m'
         rc = sub_proc_display(cmd)
         if rc != 0:
             self.log.error(f'Failed {self.repo_name} repo sync. {rc}')
         else:
             self.log.info(f'{self.repo_name} sync finished successfully')
 
-    def create_meta(self):
-        if not os.path.exists(f'/srv/repos/{self.repo_id}/rhel{self.rhel_ver}/'
-                              f'{self.repo_id}/repodata'):
+    def create_meta(self, update=False):
+        if not os.path.exists(f'{self.repo_dir}/{self.repo_id}/repodata'):
             self.log.info('Creating repository metadata and databases')
         else:
             self.log.info('Updating repository metadata and databases')
         print('This may take a few minutes.')
-        #cmd = f'createrepo -v /srv/repos/{self.repo_id}/{self.rhel_ver}'
-        cmd = f'createrepo -v /srv/repos/{self.repo_id}/rhel{self.rhel_ver}/{self.repo_id}'
+        if not update:
+            cmd = f'createrepo -v {self.repo_dir}/{self.repo_id}'
+        else:
+            cmd = f'createrepo -v --update {self.repo_dir}/{self.repo_id}'
         resp, err, rc = sub_proc_exec(cmd)
         if rc != 0:
             self.log.error(f'Repo creation error: rc: {rc} stderr: {err}')

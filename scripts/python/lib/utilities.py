@@ -238,14 +238,14 @@ def get_url(url='http://', prompt_name=''):
     and the user can continue modifying it indefinitely until a response
     is obtained or he can enter 'S' to skip (stop) entry.
     """
-    response = False
-    while not response:
-        resp = rlinput(f'Enter {prompt_name} URL (S to skip): ', url)
-        if resp == 'S':
+    #response = False
+    while True:
+        url = rlinput(f'Enter {prompt_name} URL (S to skip): ', url)
+        if url == 'S':
             return None
-        url = resp
+        url = url if url.endswith('/') else url + '/'
         try:
-            cmd = f'curl -I {url}/'
+            cmd = f'curl --max-time 2 -I {url}/'
             reply, err, rc = sub_proc_exec(cmd)
         except:
             pass
@@ -253,9 +253,10 @@ def get_url(url='http://', prompt_name=''):
             response = re.search(r'HTTP\/\d+.\d+\s+200\s+ok', reply, re.IGNORECASE)
             if response:
                 print(response.group(0))
-                time.sleep(1.5)
-                response = True
-                return url
+                #time.sleep(1.5)
+                r = get_yesno('Use the specified URL? ')
+                if r == 'yes':
+                    return url
             else:
                 err = re.search('curl: .+', err)
                 if err:
@@ -346,7 +347,7 @@ def get_selection(items, choices=None, sep='\n', prompt='Enter a selection: '):
         choices = choices.rstrip(sep)
         choices = choices.split(sep)
     if len(choices) == 1:
-        return choices[0]
+        return choices[0], items[0]
     maxw = 1
     for ch in choices:
         maxw = max(maxw, len(ch))
