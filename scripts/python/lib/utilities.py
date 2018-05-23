@@ -26,7 +26,8 @@ import fileinput
 import readline
 from shutil import copy2, Error
 from subprocess import Popen, PIPE
-import code
+from tabulate import tabulate
+# import code
 import lib.logger as logger
 
 PATTERN_MAC = '[\da-fA-F]{2}:){5}[\da-fA-F]{2}'
@@ -238,7 +239,6 @@ def get_url(url='http://', prompt_name=''):
     and the user can continue modifying it indefinitely until a response
     is obtained or he can enter 'S' to skip (stop) entry.
     """
-    #response = False
     while True:
         url = rlinput(f'Enter {prompt_name} URL (S to skip): ', url)
         if url == 'S':
@@ -253,7 +253,6 @@ def get_url(url='http://', prompt_name=''):
             response = re.search(r'HTTP\/\d+.\d+\s+200\s+ok', reply, re.IGNORECASE)
             if response:
                 print(response.group(0))
-                #time.sleep(1.5)
                 r = get_yesno('Use the specified URL? ')
                 if r == 'yes':
                     return url
@@ -274,52 +273,65 @@ def get_yesno(prompt='', yesno='yes/n'):
     return r
 
 
-def get_dir():
+def get_dir(src_dir):
     """Interactive selection of a source dir. Searching starts in the cwd.
     Returns:
         path (str or None) : Selected path
     """
+    rows = 10
     log = logger.getlogger()
-    path = os.path.abspath('.')
+    if not src_dir:
+        path = os.path.abspath('.')
+    else:
+        path = src_dir
     # path = os.getcwd()
     while True:
         path = rlinput(f'Enter an absolute directory location (S to skip): ', path)
         if path == 'S':
             return None
         if os.path.exists(path):
+            rpm_filelist = []
+            non_rpm_filelist = []
             print()
             top, dirs, files = next(os.walk(path))
             files.sort()
-            cnt = 0
             rpm_cnt = 0
+            non_rpm_cnt = 0
             for f in files:
                 if f.endswith('.rpm'):
+                    rpm_filelist.append(f)
                     rpm_cnt += 1
-                    if rpm_cnt <= 10:
-                        print(f)
+                else:
+                    non_rpm_filelist.append(f)
+                    non_rpm_cnt += 1
+            cnt = min(10, max(rpm_cnt, non_rpm_cnt))
+            rpm_filelist += rows * ['']
+            list1 = rpm_filelist[:cnt]
+            non_rpm_filelist += rows * ['']
+            list2 = non_rpm_filelist[:cnt]
+            print('\n' + bold(path))
+            print(tabulate(list(zip(list1, list2)), headers=[bold('RPM Files'),
+                  bold('Other files')], tablefmt='psql'))
+
             if rpm_cnt > 0:
                 print(bold(f'{rpm_cnt} rpm files found'))
                 print(f'including the {min(10, rpm_cnt)} files above.\n')
             else:
                 print(bold('No rpm files found\n'))
-            for f in files:
-                if cnt + rpm_cnt >= 10:
-                    break
-                if not f.endswith('.rpm') and not f.startswith('.'):
-                    print(f)
-                    cnt += 1
-            if cnt > 0:
-                print(f'{cnt} non-rpm files found')
-                print(f'including the {min(10, cnt)} files above.')
+            if non_rpm_cnt > 0:
+                print(bold(f'{non_rpm_cnt} other files found'))
+                print(f'including the {min(10, non_rpm_cnt)} files above.')
             else:
-                print('No non rpm files found')
+                print(bold('No non rpm files found'))
+
+            print('\nSub directories of the entered directory: ')
+            dirs.sort()
+            print(dirs)
+
             print(f'\nThe entered path was: {top}')
             r = get_yesno('Use the entered path? ')
             if r == 'yes':
                 return path
-            print('Sub directories of the entered directory: ')
-            dirs.sort()
-            print(dirs)
 
 
 def get_selection(items, choices=None, sep='\n', prompt='Enter a selection: '):

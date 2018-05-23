@@ -74,13 +74,27 @@ class software(object):
             yaml.dump(self.sw_vars, f, default_flow_style=False)
 
     def setup(self):
-        # repo_id = 'testrepo'
-        # repo_name ='A Power-Up test repo from a dir'
-        # src_dir = get_dir()
-        # repo = PowerupRepoFromDir(repo_id, repo_name)
-        # dest_dir = repo.copy_dirs(src_dir)
-        # repo.create_meta()
-        # sys.exit(f'bye setup source dir: {dest_dir}')
+        repo_id = input('Enter a repo id (yum short name): ')
+        repo_name = input('Enter a repo name (Descriptive name): ')
+        repo = PowerupRepoFromDir(repo_id, repo_name)
+
+        if f'{repo_id}_src_dir' in self.sw_vars:
+            src_dir = self.sw_vars[f'{repo_id}_src_dir']
+        else:
+            src_dir = None
+        src_dir, dest_dir = repo.copy_dirs(src_dir)
+        if src_dir:
+            self.sw_vars[f'{repo_id}_src_dir'] = src_dir
+
+        if src_dir:
+            repo.create_meta()
+            content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+            repo.write_yum_dot_repo_file(content)
+            content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
+            filename = repo_id + '-powerup.repo'
+            self.sw_vars['yum_powerup_repo_files'][filename] = content
+
+        sys.exit(f'bye setup source dir: {dest_dir}')
 
         # Setup EPEL
         repo_id = 'epel-ppc64le'
@@ -141,7 +155,6 @@ class software(object):
                 if not url == baseurl:
                     self.sw_vars[f'{repo_id}_alt_url'] = url
                 content = repo.get_yum_dotrepo_content(url, gpgkey)
-                print(f'Remote content: {content}')
                 repo.write_yum_dot_repo_file(content)
 
             repo.sync()

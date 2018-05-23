@@ -27,56 +27,7 @@ import code
 
 import lib.logger as logger
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, rlinput, \
-    get_url, get_yesno, get_selection, bold
-
-
-#def setup_source_dir():
-#    """Interactive selection of a source dir. Searching starts in the cwd.
-#    Returns:
-#        path (str or None) : Selected path
-#    """
-#    log = logger.getlogger()
-#    path = os.path.abspath('.')
-#    while True:
-#        path = rlinput(f'Enter an absolute directory location (S to skip): ', path)
-#        if path == 'S':
-#            return None
-#        if os.path.exists(path):
-#            print()
-#            #listdir = os.listdir(path) #.sort()
-#            #code.interact(banner='here', local=dict(globals(), **locals()))
-#            top, dirs, files = next(os.walk(path))
-#            files.sort()
-#            cnt = 0
-#            rpm_cnt = 0
-#            for f in files:
-#                if f.endswith('.rpm'):
-#                    rpm_cnt += 1
-#                    if rpm_cnt <= 10:
-#                        print(f)
-#            if rpm_cnt >0:
-#                print(bold(f'{rpm_cnt} rpm files found'))
-#                print(f'including the {min(10, rpm_cnt)} files above.\n')
-#            else:
-#                print(bold('No rpm files found\n'))
-#            for f in files:
-#                if cnt + rpm_cnt >= 10:
-#                    break
-#                if not f.endswith('.rpm') and not f.startswith('.'):
-#                    print(f)
-#                    cnt += 1
-#            if cnt >0:
-#                print(f'{cnt} non-rpm files found')
-#                print(f'including the {min(10, cnt)} files above.')
-#            else:
-#                print('No non rpm files found')
-#            print(f'\nThe entered path was: {top}')
-#            r = get_yesno('Use the entered path? ')
-#            if r == 'yes':
-#                return path
-#            print('Sub directories of the entered directory: ')
-#            dirs.sort()
-#            print(dirs)
+    get_url, get_dir, get_yesno, get_selection, bold
 
 
 def setup_source_file(src_name, dest, name=None):
@@ -123,7 +74,7 @@ def setup_source_file(src_name, dest, name=None):
             if not resp:
                 print(f'{name} source file {src_name} not found')
                 r = get_yesno('Search again', 'y/no')
-                if r == 'n':
+                if r == 'no':
                     log.error(f'{name} source file {src_name} not found.\n {name} is not'
                               ' setup.')
                     return False, None
@@ -146,6 +97,84 @@ def setup_source_file(src_name, dest, name=None):
             return True, src_path
     else:
         return True, None
+
+
+class PowerupRepo(object):
+    """Base class for creating a yum repository for access by POWER-Up software
+     clients.
+    """
+    def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7'):
+        self.repo_id = repo_id
+        self.repo_name = repo_name
+        self.arch = arch
+        self.rhel_ver = str(rhel_ver)
+        self.repo_dir = f'/srv/repos/{self.repo_id}/rhel{self.rhel_ver}'
+        self.log = logger.getlogger()
+
+    def get_repo_path(self):
+        return self.repo_path
+
+    def get_yum_dotrepo_content(self, url=None, gpgkey=None, gpgcheck=1,
+                                metalink=False, local=False, client=False):
+        """creates the content for a yum '.repo' file.
+        """
+        self.log.info(f'Creating yum ". repo" file for {self.repo_name}')
+        content = ''
+        # repo id
+        if client:
+            content += f'[{self.repo_id}-powerup]\n'
+        elif local:
+            content += f'[{self.repo_id}-local]\n'
+        else:
+            content = f'[{self.repo_id}]\n'
+
+        # name
+        content += f'name={self.repo_name}\n'
+
+        # repo url
+        if local:
+            content += f'baseurl=file://{self.repo_dir}/{self.repo_id}/\n'
+        elif client:
+            d = self.repo_dir.lstrip('/')
+            d = d.lstrip('srv')
+            content += 'baseurl=http://{host}' + f'{d}/{self.repo_id}/\n'
+        elif metalink:
+            content += f'metalink={url}\n'
+            content += 'failovermethod=priority\n'
+        elif url:
+            content += f'baseurl={url}\n'
+        else:
+            self.log.error('No ".repo" link type was specified')
+        content += 'enabled=1\n'
+        content += f'gpgcheck={gpgcheck}\n'
+        if gpgcheck:
+            content += f'gpgkey={gpgkey}'
+        return content
+
+    def write_yum_dot_repo_file(self, content, repo_link_path=None):
+        if repo_link_path is None:
+            if f'{self.repo_id}-local' in content:
+                repo_link_path = f'/etc/yum.repos.d/{self.repo_id}-local.repo'
+            else:
+                repo_link_path = f'/etc/yum.repos.d/{self.repo_id}.repo'
+        with open(repo_link_path, 'w') as f:
+            f.write(content)
+
+    def create_meta(self, update=False):
+        if not os.path.exists(f'{self.repo_dir}/{self.repo_id}/repodata'):
+            self.log.info('Creating repository metadata and databases')
+        else:
+            self.log.info('Updating repository metadata and databases')
+        print('This may take a few minutes.')
+        if not update:
+            cmd = f'createrepo -v {self.repo_dir}/{self.repo_id}'
+        else:
+            cmd = f'createrepo -v --update {self.repo_dir}/{self.repo_id}'
+        resp, err, rc = sub_proc_exec(cmd)
+        if rc != 0:
+            self.log.error(f'Repo creation error: rc: {rc} stderr: {err}')
+        else:
+            self.log.info('Repo create process finished succesfully')
 
 
 class PowerupRepoFromRepo(object):
@@ -246,17 +275,6 @@ class PowerupRepoFromRepo(object):
         with open(repo_link_path, 'w') as f:
             f.write(content)
 
-    def create_dirs(self, pad_dir=''):
-        """Create directories to be used to hold the repository
-        inputs:
-            pad_dir (str)
-        """
-        if not os.path.exists(self.repo_dir):
-            self.log.debug(self.repo_dir)
-            os.makedirs(self.repo_dir)
-        else:
-            self.log.debug(f'Directory {self.repo_dir} already exists')
-
     def sync(self):
         self.log.info(f'Syncing {self.repo_name}')
         self.log.info('This can take many minutes or hours for large repositories\n')
@@ -284,45 +302,31 @@ class PowerupRepoFromRepo(object):
             self.log.info('Repo create process finished succesfully')
 
 
-class PowerupRepoFromDir(object):
+class PowerupRepoFromDir(PowerupRepo):
     def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7'):
-        self.repo_id = repo_id
-        self.repo_name = repo_name
-        self.arch = arch
-        self.rhel_ver = rhel_ver
-        self.repo_dir = f'/srv/repos/{self.repo_id}/rhel{self.rhel_ver}/{self.repo_id}'
-        self.log = logger.getlogger()
+        super(PowerupRepoFromDir, self).__init__(repo_id, repo_name, arch, rhel_ver)
 
-    def copy_dirs(self, src_dir):
+    def copy_dirs(self, src_dir=None):
         if os.path.exists(self.repo_dir):
             r = get_yesno(f'Directory {self.repo_dir} already exists. OK to replace it? ')
             if r == 'yes':
-                rmtree(self.repo_dir, ignore_errors=True)
+                rmtree(os.path.dirname(self.repo_dir), ignore_errors=True)
             else:
                 self.log.info('Directory not created')
-                return None
+                return None, None
+
+        src_dir = get_dir(src_dir)
+        if not src_dir:
+            return None, None
+
         try:
-            copytree(src_dir, self.repo_dir)
+            dest_dir = os.path.join(self.repo_dir, self.repo_id)
+            copytree(src_dir, dest_dir)
         except Error as exc:
             print(f'Copy error: {exc}')
-            return None
+            return None, dest_dir
         else:
-            return self.repo_dir
-
-    def create_meta(self):
-        if not os.path.exists(f'/srv/repos/{self.repo_id}/{self.rhel_ver}/'
-                              f'{self.repo_id}/repodata'):
-            self.log.info('Creating repository metadata and databases')
-        else:
-            self.log.info('Updating repository metadata and databases')
-        print('This may take a few minutes.')
-        #cmd = f'createrepo -v /srv/repos/{self.repo_id}/{self.rhel_ver}'
-        cmd = f'createrepo -v /srv/repos/{self.repo_id}/rhel{self.rhel_ver}/{self.repo_id}'
-        resp, err, rc = sub_proc_exec(cmd)
-        if rc != 0:
-            self.log.error(f'Repo creation error: rc: {rc} stderr: {err}')
-        else:
-            self.log.info('Repo create process finished succesfully')
+            return src_dir, dest_dir
 
 
 def create_repo_from_rpm_pkg(pkg_name, pkg_file, src_dir, dst_dir, web=None):
@@ -444,7 +448,7 @@ if __name__ == '__main__':
 #
     repo = local_epel_repo(args.repo_name)
     repo.yum_create_remote()
-    repo.create_dirs()
+    #repo.create_dirs()
     repo.sync()
     repo.create()
     repo.yum_create_local()
