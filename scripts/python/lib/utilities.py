@@ -17,6 +17,7 @@
 from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
+from glob import glob
 import os
 import re
 import sys
@@ -154,12 +155,14 @@ def sub_proc_launch(cmd, stdout=PIPE, stderr=PIPE):
     return proc
 
 
-def sub_proc_exec(cmd, stdout=PIPE, stderr=PIPE):
+def sub_proc_exec(cmd, stdout=PIPE, stderr=PIPE, shell=False):
     """Launch a subprocess wait for the process to finish.
     Returns stdout from the process
     This is blocking
     """
-    proc = Popen(cmd.split(), stdout=stdout, stderr=stderr)
+    if not shell:
+        cmd = cmd.split()
+    proc = Popen(cmd, stdout=stdout, stderr=stderr, shell=shell)
     stdout, stderr = proc.communicate()
     return stdout.decode('utf-8'), stderr.decode('utf-8'), proc.returncode
 
@@ -265,7 +268,7 @@ def get_url(url='http://', prompt_name=''):
                     print(tmp.group(0))
 
 
-def get_yesno(prompt='', yesno='yes/n'):
+def get_yesno(prompt='', yesno='y/n'):
     r = ' '
     yn = yesno.split('/')
     while r not in yn:
@@ -350,6 +353,8 @@ def get_selection(items, choices=None, sep='\n', prompt='Enter a selection: '):
        ch (str): One of the elements in choices
        item (str): mathing item from items
     """
+    if not items:
+        return None, None
     if not isinstance(items, (list, tuple)):
         items = items.rstrip(sep)
         items = items.split(sep)
@@ -379,3 +384,35 @@ def get_selection(items, choices=None, sep='\n', prompt='Enter a selection: '):
         ch = choices[items.index(ch)]
     item = items[choices.index(ch)]
     return ch, item
+
+
+def get_file_path(filename='/home'):
+    """Interactive search and selection of a file path
+    """
+    print(bold('\nFile search hints:'))
+    print('/home/user1/abc.*         will search for abc.* under home/user1/')
+    print('/home/user1/**/abc.*      will search for abc.* under /home/user1/')
+    print('                          or subdirectories of /home/user1/ recursively')
+    print('/home/user1/myfile[56].2  will search for myfile5.2 or myfile6.2')
+    print('                          under /home/user1/')
+    print('/home/user1/*/            will list directories under /home/user1')
+    print()
+    while True:
+        filename = rlinput(bold("Enter a file name to search for ('L' to leave): "),
+                           filename)
+        if filename == 'L' or filename == "'L'":
+            return None
+        f = glob(filename, recursive=True)
+        if f and len(f) < 51:
+            f.append('Search again')
+            f.append('Leave without selecting')
+            ch, item = get_selection(f, prompt='Choose a file: ')
+            print(item)
+            if item is not None and os.path.isfile(item):
+                    return item
+            elif item == 'Leave without selecting':
+                return None
+            if item != 'Search again':
+                filename = item
+        elif f:
+            print('Search returned more than 50 items. Please refine your search')

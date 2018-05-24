@@ -28,6 +28,7 @@ import code
 import lib.logger as logger
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, rlinput, \
     get_url, get_dir, get_yesno, get_selection, bold
+from lib.exception import UserException
 
 
 def setup_source_file(src_name, dest, name=None):
@@ -111,8 +112,8 @@ class PowerupRepo(object):
         self.repo_dir = f'/srv/repos/{self.repo_id}/rhel{self.rhel_ver}'
         self.log = logger.getlogger()
 
-    def get_repo_path(self):
-        return self.repo_path
+    def get_repo_dir(self):
+        return self.repo_dir
 
     def get_yum_dotrepo_content(self, url=None, gpgkey=None, gpgcheck=1,
                                 metalink=False, local=False, client=False):
@@ -177,21 +178,13 @@ class PowerupRepo(object):
             self.log.info('Repo create process finished succesfully')
 
 
-class PowerupRepoFromRepo(object):
+class PowerupRepoFromRepo(PowerupRepo):
     """Sets up a yum repository for access by POWER-Up software clients.
     The repo is first sync'ed locally from the internet or a user specified
     URL which should reside on another host.
     """
     def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7'):
-        self.repo_id = repo_id
-        self.repo_name = repo_name
-        self.arch = arch
-        self.rhel_ver = str(rhel_ver)
-        self.repo_dir = f'/srv/repos/{self.repo_id}/rhel{self.rhel_ver}'
-        self.log = logger.getlogger()
-
-    def get_repo_path(self):
-        return self.repo_path
+        super(PowerupRepoFromRepo, self).__init__(repo_id, repo_name, arch, rhel_ver)
 
     def get_action(self):
         new = True
@@ -209,41 +202,6 @@ class PowerupRepoFromRepo(object):
             print('This can take a significant amount of time')
             ch = get_yesno(prompt='Create Repo? ', yesno='Y/n')
         return ch, new
-
-    def get_yum_dotrepo_content(self, url=None, gpgkey=None, gpgcheck=1,
-                                metalink=False, local=False, client=False):
-        """creates the content for a yum '.repo' file.
-        """
-        self.log.info(f'Creating yum ". repo" file for {self.repo_name}')
-        content = ''
-        # repo id
-        if client:
-            content += f'[{self.repo_id}-powerup]\n'
-        elif local:
-            content += f'[{self.repo_id}-local]\n'
-        else:
-            content = f'[{self.repo_id}]\n'
-
-        # name
-        content += f'name={self.repo_name}\n'
-
-        # repo url
-        if local:
-            content += f'baseurl=file://{self.repo_dir}/{self.repo_id}/\n'
-        elif client:
-            content += 'baseurl=http://{host}/repos/' + f'{self.repo_id}/\n'
-        elif metalink:
-            content += f'metalink={url}\n'
-            content += 'failovermethod=priority\n'
-        elif url:
-            content += f'baseurl={url}\n'
-        else:
-            self.log.error('No ".repo" link type was specified')
-        content += 'enabled=1\n'
-        content += f'gpgcheck={gpgcheck}\n'
-        if gpgcheck:
-            content += f'gpgkey={gpgkey}'
-        return content
 
     def get_repo_url(self, url, alt_url=None):
         """Allows the user to choose the default url or enter an alternate
@@ -266,40 +224,16 @@ class PowerupRepoFromRepo(object):
         url = alt_url if ch == 'alt' else url
         return url
 
-    def write_yum_dot_repo_file(self, content, repo_link_path=None):
-        if repo_link_path is None:
-            if f'{self.repo_id}-local' in content:
-                repo_link_path = f'/etc/yum.repos.d/{self.repo_id}-local.repo'
-            else:
-                repo_link_path = f'/etc/yum.repos.d/{self.repo_id}.repo'
-        with open(repo_link_path, 'w') as f:
-            f.write(content)
-
     def sync(self):
         self.log.info(f'Syncing {self.repo_name}')
         self.log.info('This can take many minutes or hours for large repositories\n')
         cmd = f'reposync -a {self.arch} -r {self.repo_id} -p {self.repo_dir} -l -m'
         rc = sub_proc_display(cmd)
         if rc != 0:
-            self.log.error(f'Failed {self.repo_name} repo sync. {rc}')
+            self.log.error(bold(f'\nFailed {self.repo_name} repo sync. {rc}'))
+            raise UserException
         else:
             self.log.info(f'{self.repo_name} sync finished successfully')
-
-    def create_meta(self, update=False):
-        if not os.path.exists(f'{self.repo_dir}/{self.repo_id}/repodata'):
-            self.log.info('Creating repository metadata and databases')
-        else:
-            self.log.info('Updating repository metadata and databases')
-        print('This may take a few minutes.')
-        if not update:
-            cmd = f'createrepo -v {self.repo_dir}/{self.repo_id}'
-        else:
-            cmd = f'createrepo -v --update {self.repo_dir}/{self.repo_id}'
-        resp, err, rc = sub_proc_exec(cmd)
-        if rc != 0:
-            self.log.error(f'Repo creation error: rc: {rc} stderr: {err}')
-        else:
-            self.log.info('Repo create process finished succesfully')
 
 
 class PowerupRepoFromDir(PowerupRepo):
@@ -392,34 +326,6 @@ def create_repo_from_rpm_pkg(pkg_name, pkg_file, src_dir, dst_dir, web=None):
                                    'gpgcheck=0\n')
             if dot_repo not in self.sw_vars['yum_powerup_repo_files']:
                 self.sw_vars['yum_powerup_repo_files'].append(dot_repo)
-
-
-class RemoteNginxRepo(object):
-    def __init__(self, arch='ppc64le', rhel_ver='7'):
-        self.repo_name = 'nginx repo'
-        self.arch = arch
-        self.rhel_ver = str(rhel_ver)
-        self.log = logger.getlogger()
-
-    def yum_create_remote(self):
-        """Create the /etc/yum.repos.d/
-        """
-        self.log.info('Registering remote repo {} with yum.'.format(self.repo_name))
-        repo_link_path = '/etc/yum.repos.d/nginx.repo'
-        if os.path.isfile(repo_link_path):
-            self.log.info('Remote linkage for repo {} already exists.'
-                          .format(self.repo_name))
-            self.log.info(repo_link_path)
-
-        self.log.info('Creating remote repo link.')
-        self.log.info(repo_link_path)
-        with open(repo_link_path, 'w') as f:
-            f.write('[nginx]\n')
-            f.write('name={}\n'.format(self.repo_name))
-            f.write(f'baseurl=http://nginx.org/packages/mainline/rhel/'
-                    '{self.rhel_ver}/{self.arch}\n')
-            f.write('gpgcheck=0\n')
-            f.write('enabled=1\n')
 
 
 if __name__ == '__main__':

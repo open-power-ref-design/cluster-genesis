@@ -29,12 +29,13 @@ import yaml
 import code
 
 import lib.logger as logger
-from repos import PowerupRepoFromRepo, RemoteNginxRepo, setup_source_file, \
-    PowerupRepoFromDir
+from repos import PowerupRepo, PowerupRepoFromDir, PowerupRepoFromRepo, \
+    setup_source_file
 from software_hosts import get_ansible_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, \
-    get_selection, get_yesno, get_dir, rlinput
+    get_selection, get_yesno, get_dir, get_file_path, rlinput
 from lib.genesis import GEN_SOFTWARE_PATH
+from lib.exception import UserException
 
 
 class software(object):
@@ -74,27 +75,51 @@ class software(object):
             yaml.dump(self.sw_vars, f, default_flow_style=False)
 
     def setup(self):
-        repo_id = input('Enter a repo id (yum short name): ')
-        repo_name = input('Enter a repo name (Descriptive name): ')
-        repo = PowerupRepoFromDir(repo_id, repo_name)
+        r = get_yesno('Would you like to create a custom repository? ')
+        if r == 'y':
+            ch, item = get_selection('Directory.RPM file', 'dir.rpm', '.',
+                                     'Custom repository from a directory or RPM file? ')
+            repo_id = input('Enter a repo id (yum short name): ')
+            repo_name = input('Enter a repo name (Descriptive name): ')
+            if ch == 'rpm':
+                fpath = get_file_path('/home/**/*.rpm')
+                #print(fpath)
+                if fpath:
+                    if not os.path.exists(f'/srv/{repo_id}'):
+                        os.mkdir(f'/srv/{repo_id}')
+                sys.exit('Leaving make repo from rpm')
+            elif ch == 'dir':
+                repo = PowerupRepoFromDir(repo_id, repo_name)
 
-        if f'{repo_id}_src_dir' in self.sw_vars:
-            src_dir = self.sw_vars[f'{repo_id}_src_dir']
-        else:
-            src_dir = None
-        src_dir, dest_dir = repo.copy_dirs(src_dir)
-        if src_dir:
-            self.sw_vars[f'{repo_id}_src_dir'] = src_dir
+                if f'{repo_id}_src_dir' in self.sw_vars:
+                    src_dir = self.sw_vars[f'{repo_id}_src_dir']
+                else:
+                    src_dir = None
+                src_dir, dest_dir = repo.copy_dirs(src_dir)
+                if src_dir:
+                    self.sw_vars[f'{repo_id}_src_dir'] = src_dir
 
-        if src_dir:
-            repo.create_meta()
-            content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
-            repo.write_yum_dot_repo_file(content)
-            content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
-            filename = repo_id + '-powerup.repo'
-            self.sw_vars['yum_powerup_repo_files'][filename] = content
+                if src_dir:
+                    repo.create_meta()
+                    content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+                    repo.write_yum_dot_repo_file(content)
+                    content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
+                    filename = repo_id + '-powerup.repo'
+                    self.sw_vars['yum_powerup_repo_files'][filename] = content
 
-        sys.exit(f'bye setup source dir: {dest_dir}')
+                sys.exit(f'bye setup source dir: {dest_dir}')
+
+#        cwd = os.getcwd()
+#        print(f'CWD: {cwd}')
+#        fpath = get_file_path()
+#        print(f'Path {fpath}')
+#        sys.exit('Bye')
+#        cmd = 'ls -l | grep scripts'
+#        resp, err, rc = sub_proc_exec(cmd, shell=True)
+#        cmd = 'repoquery nginx --qf "%{name} %{ver} %{arch} %{repoid}"'
+#        resp, err, rc = sub_proc_exec(cmd)
+#        print(resp)
+#        sys.exit(f'test cpio')
 
         # Setup EPEL
         repo_id = 'epel-ppc64le'
@@ -157,7 +182,23 @@ class software(object):
                 content = repo.get_yum_dotrepo_content(url, gpgkey)
                 repo.write_yum_dot_repo_file(content)
 
-            repo.sync()
+            while True:
+                try:
+                    repo.sync()
+                    r = 'S'
+                except UserException as exc:
+                    r, item = get_selection('Retry cuda repository sync\n'
+                                            'Skip cuda repository sync\n'
+                                            'Exit POWER-Up software installer',
+                                            'R\nS\nE')
+                    if r == 'S':
+                        break
+                    elif r == 'E':
+                        self.log.info('Leaving POWER-Up at user request')
+                        sys.exit()
+
+                if r == 'S':
+                    break
             if new:
                 repo.create_meta()
             else:
@@ -207,7 +248,7 @@ class software(object):
             repo_id = f'DL-{ver}'
             repo_name = f'PowerAI-{ver}'
             repo = PowerupRepo(repo_id, repo_name)
-            repo_path = repo.get_repo_path()
+            repo_path = repo.get_repo_dir()
             # First check if already installed
             if repo_installed:
                 print(f'\nRepository for {src_path} already exists')
@@ -240,7 +281,7 @@ class software(object):
             else:
                 self.log.error('PowerAI base was not installed.')
 
-        sys.exit('Bye from powerai')
+        #sys.exit('Bye from powerai')
 
         # Setup firewall to allow http
         heading1('Setting up firewall')
@@ -275,8 +316,15 @@ class software(object):
         if fw_err == 0:
             self.log.info('Firewall is running and configured for http')
 
-        nginx_repo = RemoteNginxRepo()
-        nginx_repo.yum_create_remote()
+#        nginx_repo = RemoteNginxRepo()
+#        nginx_repo.yum_create_remote()
+        baseurl = 'http://nginx.org/packages/mainline/rhel/7/ppc64le'
+        repo_id = 'nginx'
+        repo_name = 'nginx.org public'
+        heading1(f'Set up {repo_name} repository')
+        repo = PowerupRepo(repo_id, repo_name)
+        content = repo.get_yum_dotrepo_content(baseurl, gpgcheck=0)
+        repo.write_yum_dot_repo_file(content)
 
         # Check if nginx installed. Install if necessary.
         heading1('Set up Nginx')
@@ -285,7 +333,6 @@ class software(object):
             resp, err, rc = sub_proc_exec(cmd)
             print('nginx is installed:\n{}'.format(resp))
         except OSError:
-            # if 'nginx version' in err:
             cmd = 'yum -y install nginx'
             resp, err, rc = sub_proc_exec(cmd)
             if rc != 0:
@@ -305,6 +352,27 @@ class software(object):
         resp, err, rc = sub_proc_exec(cmd)
         if 'HTTP/1.1 200 OK' in resp:
             self.log.info('nginx is running:\n')
+
+        if os.path.isfile('/etc/nginx/conf.d/default.conf'):
+            try:
+                os.rename('/etc/nginx/conf.d/default.conf',
+                          '/etc/nginx/conf.d/default.conf.bak')
+            except OSError:
+                self.log.warning('Failed renaming /etc/nginx/conf.d/default.conf')
+        with open('/etc/nginx/conf.d/server1.conf', 'w') as f:
+            f.write('server {\n')
+            f.write('    listen       80;\n')
+            f.write('    server_name  powerup;\n\n')
+            f.write('    location / {\n')
+            f.write('        root   /srv;\n')
+            f.write('        autoindex on;\n')
+            f.write('    }\n')
+            f.write('}\n')
+
+        cmd = 'nginx -s reload'
+        _, _, rc = sub_proc_exec(cmd)
+        if rc != 0:
+            self.log.warning('Failed reloading nginx configuration')
 
         print('Good to go')
 
