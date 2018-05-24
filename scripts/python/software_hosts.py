@@ -251,15 +251,14 @@ def _validate_inventory_count(software_hosts_file_path):
     return host_list
 
 
-def _validate_host_list_network(host_list, subnet=None):
-    """Validate all hosts in list are pingable on single subnet
+def _validate_host_list_network(host_list):
+    """Validate all hosts in list are pingable
 
     Args:
         host_list (list): List of hostnames or IP addresses
-        subnet (str, optional): Subnet to validate against
 
     Returns:
-        bool: True if all hosts are pingable and in single subnet
+        bool: True if all hosts are pingable
 
     Raises:
         UserException: If list item will not resolve or ping
