@@ -44,8 +44,15 @@ def ipmi_set_power(state, config_path=None, client_list=None, max_attempts=5,
         client_list = inv.get_nodes_ipmi_ipaddr(0)
 
     clients_left = client_list[:]
-
     attempt = 0
+
+    none_cnt = 0
+    for client in client_list:
+        if client is None:
+            none_cnt += 1
+            log.warning('client node ip address is "None"')
+            clients_left.remove(None)
+
     clients_left.sort()
     while clients_left and attempt < max_attempts:
         nodes = {}
@@ -58,7 +65,7 @@ def ipmi_set_power(state, config_path=None, client_list=None, max_attempts=5,
         bmc_dict = {}
         for index, hostname in enumerate(inv.yield_nodes_hostname()):
             ipv4 = inv.get_nodes_ipmi_ipaddr(0, index)
-            if ipv4 not in clients_left:
+            if ipv4 is None or ipv4 not in clients_left:
                 continue
             rack_id = inv.get_nodes_rack_id(index)
             userid = inv.get_nodes_ipmi_userid(index)
@@ -129,7 +136,8 @@ def ipmi_set_power(state, config_path=None, client_list=None, max_attempts=5,
         del bmc_dict
 
     log.info('Powered {} {} of {} client devices.'
-             .format(state, len(client_list) - len(clients_left), len(client_list)))
+             .format(state, len(client_list) - (len(clients_left) + none_cnt),
+                     len(client_list)))
 
     if state == 'off':
         print('Pausing 60 sec for client power off')
