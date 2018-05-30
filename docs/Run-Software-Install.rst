@@ -8,9 +8,8 @@ branch of POWER-Up. Development of this function is in the dev-software-install
 branch.**
 
 -  Verify that all the steps in :ref:`installing` have been executed.
--  Copy or download the software install module to be used.
--  Copy the tar files, binaries and other files needed to be installed or gather
-   the necessary web links where files can be accessed.
+-  Copy or download the software install module to be used to the power-up/software directory. POWER-Up currently ships with the installer module for PowerAI Enterprise vs 5.2. (paie52)
+-  Consult the README for the specific software install module for the names of any tar files, binaries or other files needed for the specific software installation. Copy these to the installer node before running the software install module. Installation files can be copied anywhere on the installer node but will be located more quickly if located in directories under a /home directory.
 
 Run the prep phase::
 

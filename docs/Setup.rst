@@ -30,14 +30,23 @@ Operating Sytem and Package setup of the Deployer Node
 - Deployer OS Requirements:
     - Ubuntu (Software installation is not yet supported under Ubuntu)
         - Release 14.04LTS or 16.04LTS
-        - SSH login enabled
+        - SSH login enabled if the deployer node needs to be accessed remotely
         - sudo privileges
     - RHEL (Software installation is supported with POWER-Up vs 2.1. Cluster deployment is not yet supported under RHEL)
         - Release 7.2 or later
         - Extra Packages for Enterprise Linux (EPEL) repository enabled
           (https://fedoraproject.org/wiki/EPEL)
-        - SSH login enabled
+        - SSH login enabled if the deployer node needs to be accessed remotely
         - sudo privileges
+        - Enable Red Hat 'optional' and 'extra' repository channels or enable the repository on the RHEL installation iso if available. (https://access.redhat.com/solutions/1355683) (required only if using the POWER-Up software installer)
+            - Power8:
+                - $ sudo subscription-manager repos --enable=rhel-7-for-power-le-optional-rpms
+                - $ sudo subscription-manager repos --enable=rhel-7-for-power-le-extras-rpms
+
+            - Power9:
+                - $ sudo subscription-manager repos --enable=rhel-7-for-power-9-optional-rpms
+                - $ sudo subscription-manager repos --enable=rhel-7-for-power-9-extras-rpms
+
 
 - Optionally, assign a static, public ip address to the BMC port to allow
   external control of the deployer node.
