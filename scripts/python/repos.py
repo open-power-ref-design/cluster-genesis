@@ -27,20 +27,22 @@ import code
 
 import lib.logger as logger
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, rlinput, \
-    get_url, get_dir, get_yesno, get_selection, get_file_path, bold
+    get_url, get_dir, get_yesno, get_selection, get_file_path, get_src_path, bold
 from lib.exception import UserException
 
 
-def setup_source_file(src_name, dest, name=None):
+def setup_source_file(name, src_glob, url='http://', alt_url='http://',
+                      dest=None):
     """Interactive selection of a source file and copy it to the /srv/<dest>
-    directory. The source file can include file globs. Searching starts in the
+    directory. The source file can include file globs and can come from a URL
+    or the local disk. Local disk searching starts in the
     /home directory and then expands to the entire file system if no matches
     found in any home directory.
     Inputs:
-        src_name (str): Source file name to look for. Can include file globs
+        src_glob (str): Source file name to look for. Can include file globs
         dest (str) : destination directory. Will be created if necessary under
             /srv/
-        name (str): Name for the source. Used only for display and prompts.
+        name (str): Name for the source. Used for prompts and dest dir (/srv/{name}).
     Returns:
         state (bool) : state is True if a file matching the src_name exists
             in the dest directory or was succesfully copied there. state is
@@ -50,56 +52,100 @@ def setup_source_file(src_name, dest, name=None):
             only a single match is found it is used without choice and returned.
     """
     log = logger.getlogger()
-    if not name:
-        name = dest.capitalize()
-    if not os.path.exists(f'/srv/{dest}'):
-        os.mkdir(f'/srv/{dest}')
-    g = glob.glob(f'/srv/{dest}/{src_name}')
-    if g:
-        print(f'\n{name} source file already exists in the \n'
-              'POWER-Up software server directory')
-        for item in g:
-            print(item)
-        print()
+    exists = glob.glob(f'/srv/{name}/**/{src_glob}', recursive=True)
+    if exists:
+        log.info(f'The {name.capitalize()} source file exists already in the POWER-Up server '
+                 'directory')
+    if get_yesno(f'Copy the {name.capitalize()} source file to the POWER-Up server? '):
+        ch, item = get_selection('Copy from URL\nSearch local Disk', 'U\nD', allow_none=True)
+        if ch == 'U':
+            ch, item = get_selection('Public mirror.Alternate web site', 'P.A', '.', 'Select source: ')
+            if ch == 'P':
+                _url = url
+            elif ch == 'A':
+                _url = alt_url if alt_url else 'http://'
+            good_url = False
+            while not good_url and _url is not None:
+                _url = get_url(url, type='file')
+                if _url:
+                    regex = src_glob.replace('*', '.+')
+                    if re.search(regex, url):
+                        good_url = True
+                        if not os.path.exists(f'/srv/{name}'):
+                            os.mkdir(f'/srv/{name}')
+                        os.chdir(f'/srv/{name}')
+                        cmd = f'curl -O {_url}'
+                        rc = sub_proc_display(cmd)
+                        if rc != 0:
+                            log.error(f'Failed downloading {name} source to /srv/{name}/ '
+                                      f'directory. \n{err}')
+                        else:
+                            return _url, True
+                    else:
+                        log.error(f'Invalid url. {regex} not found in url.')
+                else:
+                    return None, False
+            else:
+                return _url, True
 
-    if get_yesno(f'Do you wish to update the {name} source file', 'yes/n'):
-        print()
-        log.info(f'Searching for {name} source file')
-        # Search home directories first
-        cmd = (f'find /home -name {src_name}')
-        resp, err, rc = sub_proc_exec(cmd)
-        while not resp:
-            # Expand search to entire file system
-            cmd = (f'find / -name {src_name}')
-            resp, err, rc = sub_proc_exec(cmd)
-            if not resp:
-                print(f'{name} source file {src_name} not found')
-
-                if not get_yesno('Search again', 'y/no', default='y'):
-                    log.error(f'{name} source file {src_name} not found.\n {name} is not'
-                              ' setup.')
+        elif ch == 'D':
+            src_path = get_src_path(src_glob)
+            if src_path:
+                if not os.path.exists(f'/srv/{name}'):
+                    os.mkdir(f'/srv/{name}')
+                try:
+                    copy2(f'{src_path}', f'/srv/{name}/')
+                except Error as err:
+                    log.debug(f'Failed copying {name} source file to /srv/{name}/ '
+                              f'directory. \n{err}')
                     return False, None
-
-        ch, src_path = get_selection(resp, prompt='Select a source file: ')
-        log.info(f'Using {name} source file: {src_path}')
-        if f'/srv/{dest}/' in src_path:
-            print(f'Skipping copy. \n{src_path} already \nin /srv/{dest}/')
-            return True, src_path
-
-        try:
-            copy2(f'{src_path}', f'/srv/{dest}/')
-        except Error as err:
-            self.log.debug(f'Failed copying {name} source to /srv/{dest}/ '
-                           f'directory. \n{err}')
-            return False, None
+                else:
+                    log.info(f'Successfully installed {name} source file '
+                             'into the POWER-Up software server.')
+                    return src_path, True
         else:
-            log.info(f'Successfully installed {name} source file '
-                     'into the POWER-Up software server.')
-            return True, src_path
-    elif g:
-        return True, None
+            log.info(f'No {name.capitalize()} source file copied to POWER-Up server directory')
+            if exists:
+                return None, True
+            else:
+                return None, False
     else:
-        return False, None
+        log.info(f'No {name.capitalize()} source file copied to POWER-Up server directory')
+        if exists:
+            return None, True
+        else:
+            return None, False
+
+
+def PowerupFileFromDisk(name, file_glob):
+        heading1(f'Set up {name.title()} \n')
+        exists = glob.glob(f'/srv/{name}/**/{file_glob}', recursive=True)
+        if exists:
+            print(f'The following file(s) exist in the POWER-Up server already')
+            for item in exists:
+                print(item)
+            print()
+
+        if not exists or get_yesno(f'Copy a new {name.title()} file? '):
+            src_path = get_src_path(file_glob)
+            if src_path:
+                if not os.path.exists(f'/srv/{name}'):
+                    os.mkdir(f'/srv/{name}')
+                try:
+                    copy2(f'{src_path}', f'/srv/{name}/')
+                except Error as err:
+                    log.debug(f'Failed copying {name} source file to /srv/{name}/ '
+                              f'directory. \n{err}')
+                    return None, False
+                else:
+                    log.info(f'Successfully installed {name} source file '
+                             'into the POWER-Up software server.')
+                    return src_path, True
+        else:
+            if exists:
+                return None, True
+            else:
+                return None, False
 
 
 class PowerupRepo(object):
@@ -116,31 +162,6 @@ class PowerupRepo(object):
 
     def get_repo_dir(self):
         return self.repo_dir
-
-    def get_src_path(self, src_name):
-        """Search for src_name and allow interactive selection if more than one match
-        """
-        while True:
-            cmd = (f'find /home -name {src_name}')
-            resp, err, rc = sub_proc_exec(cmd)
-            if rc != 0:
-                self.log.error(f'Error searching for {src_name}')
-                return None
-            if not resp:
-                cmd = (f'find / -name {src_name}')
-                resp, err, rc = sub_proc_exec(cmd)
-                if rc != 0:
-                    self.log.error(f'Error searching for {src_name}')
-                    return None
-                if not resp:
-                    print(f'{name} source file {src_name} not found')
-                    if not get_yesno('Search again', 'y/no', default='y'):
-                        log.error(f'{name} source file {src_name} not found.\n {name} is not'
-                                  ' setup.')
-                        return None
-            else:
-                ch, src_path = get_selection(resp, prompt='Select a source file: ')
-                return src_path
 
     def copy_to_srv(self, src_path, dst):
         dst_dir = f'/srv/{dst}'
@@ -243,36 +264,44 @@ class PowerupRepoFromRpm(PowerupRepo):
             else:
                 return None
 
-    def get_src_path(self, src_name):
-        """Search for src_name and allow interactive selection if more than one match
-        """
-        while True:
-            cmd = (f'find /home -name {src_name}')
-            resp, err, rc = sub_proc_exec(cmd)
-            if rc != 0:
-                self.log.error(f'Error searching for {src_name}')
-                return None
-            if not resp:
-                cmd = (f'find / -name {src_name}')
-                resp, err, rc = sub_proc_exec(cmd)
-                if rc != 0:
-                    self.log.error(f'Error searching for {src_name}')
-                    return None
-                if not resp:
-                    print(f'{name} source file {src_name} not found')
-                    if not get_yesno('Search again', 'y/no', default='y'):
-                        log.error(f'{name} source file {src_name} not found.\n {name} is not'
-                                  ' setup.')
-                        return None
-            else:
-                ch, self.rpm_path = get_selection(resp, prompt='Select a source file: ')
-                return self.rpm_path
+#    def get_src_path(self, src_name):
+#        """Search for src_name and allow interactive selection if more than one
+#        match. Searching starts recursively in the /home directory and expands to
+#        entire file system if no match in /home.
+#        """
+#        while True:
+#            # start search under the /home directories
+#            cmd = (f'find /home -name {src_name}')
+#            resp, err, rc = sub_proc_exec(cmd)
+#            if rc != 0:
+#                self.log.error(f'Error searching for {src_name}')
+#                return None
+#            if not resp:
+#                # expand search to entire filesystem
+#                cmd = (f'find / -name {src_name}')
+#                resp, err, rc = sub_proc_exec(cmd)
+#                if rc != 0:
+#                    self.log.error(f'Error searching for {src_name}')
+#                    return None
+#                if not resp:
+#                    print(f'{name} source file {src_name} not found')
+#                    if not get_yesno('Search again', 'y/no', default='y'):
+#                        log.error(f'{name} source file {src_name} not found.\n {name} is not'
+#                                  ' setup.')
+#                        return None
+#                else:
+#                    ch, self.rpm_path = get_selection(resp, prompt='Select a source file: ')
+#                    return self.rpm_path
+#            else:
+#                ch, self.rpm_path = get_selection(resp, prompt='Select a source file: ')
+#                return self.rpm_path
 
-    def copy_rpm(self):
+    def copy_rpm(self, src_path):
         """copy the selected rpm file (self.rpm_path) to the /srv/{self.repo_id}
         directory.
         The directory is created if it does not exist.
         """
+        self.rpm_path = src_path
         dst_dir = f'/srv/{self.repo_id}'
         if not os.path.exists(dst_dir):
             os.mkdir(dst_dir)
@@ -286,7 +315,6 @@ class PowerupRepoFromRpm(PowerupRepo):
         Outputs:
             repodata_dir : absolute path to repodata directory
         """
-        #extract_dir = os.path.join(self.repo_dir, self.repo_id)
         extract_dir = self.repo_dir
         if not os.path.exists(extract_dir):
             os.makedirs(extract_dir)
@@ -334,7 +362,6 @@ class PowerupRepoFromRepo(PowerupRepo):
         new = True
         if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id}.repo') and \
                 os.path.exists(self.repo_dir):
-                #os.path.exists(self.repo_dir + f'/{self.repo_id}'):
             new = False
             print(f'\nDo you want to sync the local {self.repo_name}\nrepository'
                   ' at this time?\n')
@@ -354,9 +381,9 @@ class PowerupRepoFromRepo(PowerupRepo):
             repo_url: (str) URL or metalink for the external repo source
         """
 
-        ch, item = get_selection('Public mirror.Alternate web site', 'pub.alt', '.',
+        ch, item = get_selection('Public mirror.Alternate web site', 'P.A', '.',
                                  'Select source: ')
-        if ch == 'alt':
+        if ch == 'A':
             if not alt_url:
                 alt_url = f'http://host/repos/{self.repo_id}/'
             tmp = get_url(alt_url, prompt_name=self.repo_name, repo_chk=True)
@@ -366,7 +393,7 @@ class PowerupRepoFromRepo(PowerupRepo):
                 if tmp[-1] != '/':
                     tmp = tmp + '/'
                 alt_url = tmp
-        url = alt_url if ch == 'alt' else url
+        url = alt_url if ch == 'A' else url
         return url
 
     def sync(self):
@@ -400,7 +427,6 @@ class PowerupRepoFromDir(PowerupRepo):
             return None, None
 
         try:
-            #dest_dir = os.path.join(self.repo_dir, self.repo_id)
             dest_dir = self.repo_dir
             copytree(src_dir, dest_dir)
         except Error as exc:
