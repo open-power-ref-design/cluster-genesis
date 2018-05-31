@@ -686,18 +686,19 @@ class Gen(object):
             if not argparse_gen.is_arg_present(self.args.prep) and not \
                     argparse_gen.is_arg_present(self.args.install):
                 self.args.all = True
+            if gen.GEN_SOFTWARE_PATH not in sys.path:
+                sys.path.append(gen.GEN_SOFTWARE_PATH)
             try:
                 software_module = importlib.import_module(self.args.name)
             except ImportError as exc:
                 print(exc)
                 sys.exit(1)
-            try:
-                soft = software_module.software()
-            except AttributeError as exc:
-                print(exc.message)
-                print('Software installation modules need to implement a '
-                      'class named "software"')
+            if 'software' not in dir(software_module):
+                self.log.error('Software installation modules need to implement a '
+                               'class named "software"')
                 sys.exit(1)
+            else:
+                soft = software_module.software()
             if self.args.prep is True or self.args.all is True:
                 try:
                     soft.setup()

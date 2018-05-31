@@ -286,7 +286,6 @@ class PowerupRepoFromRpm(PowerupRepo):
         Outputs:
             repodata_dir : absolute path to repodata directory
         """
-        #extract_dir = os.path.join(self.repo_dir, self.repo_id)
         extract_dir = self.repo_dir
         if not os.path.exists(extract_dir):
             os.makedirs(extract_dir)
@@ -334,7 +333,6 @@ class PowerupRepoFromRepo(PowerupRepo):
         new = True
         if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id}.repo') and \
                 os.path.exists(self.repo_dir):
-                #os.path.exists(self.repo_dir + f'/{self.repo_id}'):
             new = False
             print(f'\nDo you want to sync the local {self.repo_name}\nrepository'
                   ' at this time?\n')
@@ -400,7 +398,6 @@ class PowerupRepoFromDir(PowerupRepo):
             return None, None
 
         try:
-            #dest_dir = os.path.join(self.repo_dir, self.repo_id)
             dest_dir = self.repo_dir
             copytree(src_dir, dest_dir)
         except Error as exc:

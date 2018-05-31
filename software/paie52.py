@@ -21,6 +21,7 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 import argparse
 import glob
 import os
+import platform
 import re
 import sys
 import shutil
@@ -326,7 +327,8 @@ class software(object):
 
 #        nginx_repo = RemoteNginxRepo()
 #        nginx_repo.yum_create_remote()
-        baseurl = 'http://nginx.org/packages/mainline/rhel/7/ppc64le'
+        baseurl = 'http://nginx.org/packages/mainline/rhel/7/' + \
+                  platform.machine()
         repo_id = 'nginx'
         repo_name = 'nginx.org public'
         heading1(f'Set up {repo_name} repository')
