@@ -237,22 +237,38 @@ def rlinput(prompt, prefill=''):
         readline.set_startup_hook()
 
 
+<<<<<<< Updated upstream
 def get_url(url='http://', prompt_name='', repo_chk=False):
     """Input a URL from user. The URL is checked for validity using curl
     and the user can continue modifying it indefinitely until a response
     is obtained or he can enter 'S' to skip (stop) entry.
+=======
+def get_url(url='http://', type='directory', prompt_name='', repo_chk=False):
+    """Input a URL from user. Valid URLs are http:, https:, and file:.
+    The URL is checked for validity using curl and the user can continue
+    modifying it indefinitely until a response is obtained or he can enter
+    'S' to skip (stop) entry.
+>>>>>>> Stashed changes
     """
     while True:
         url = rlinput(f'Enter {prompt_name} URL (S to skip): ', url)
         if url == 'S':
+<<<<<<< Updated upstream
             return None
         url = url if url.endswith('/') else url + '/'
+=======
+            url = None
+            break
+        if type == 'directory':
+            url = url if url.endswith('/') else url + '/'
+>>>>>>> Stashed changes
         try:
             cmd = f'curl --max-time 2 -I {url}'
             reply, err, rc = sub_proc_exec(cmd)
         except:
             pass
         else:
+<<<<<<< Updated upstream
             response = re.search(r'HTTP\/\d+.\d+\s+200\s+ok', reply, re.IGNORECASE)
             if response:
                 print(response.group(0))
@@ -276,6 +292,54 @@ def get_url(url='http://', prompt_name='', repo_chk=False):
                 tmp = re.search(r'HTTP\/\d+.\d+\s+.+', reply)
                 if tmp:
                     print(tmp.group(0))
+=======
+            if 'http:' in url or 'https:' in url:
+                response = re.search(r'HTTP\/\d+.\d+\s+200\s+ok', reply, re.IGNORECASE)
+                if response:
+                    print(response.group(0))
+                    if repo_chk:
+                        cmd = f'curl -G {url}'
+                        reply, err, rc = sub_proc_exec(cmd)
+                        repodata = re.search(r'href=["\']repodata\/["\']', reply)
+                        if repodata:
+                            print('Repository data found.')
+                            if get_yesno('Use the specified URL? '):
+                                break
+                        else:
+                            print('Not a valid repository')
+                else:
+                    print('Invalid url')
+                    err = re.search('curl: .+', err)
+                    if err:
+                        print(err.group(0))
+                    tmp = re.search(r'HTTP\/\d+.\d+\s+.+', reply)
+                    if tmp:
+                        print(tmp.group(0))
+
+            elif 'file:///' in url:
+                response = re.search(r'Content-Length:\s+\d+', reply)
+                if response:
+                    try:
+                        cmd = f'curl --max-time 2 -I {url}/repodata'
+                        reply, err, rc = sub_proc_exec(cmd)
+                    except:
+                        pass
+                    else:
+                        response = re.search(r'Content-Length:\s+\d+', reply)
+                        if response:
+                            print('Repository data found.')
+                            if get_yesno('Use the specified URL? '):
+                                break
+                        else:
+                            print('Not a valid repository')
+
+            elif 'file:' in url:
+                print('Proper file url format: "file:///path/to/file')
+                response = ''
+            else:
+                response = ''
+    return url
+>>>>>>> Stashed changes
 
 
 def get_yesno(prompt='', yesno='y/n', default=''):
@@ -348,7 +412,12 @@ def get_dir(src_dir):
                 return path
 
 
+<<<<<<< Updated upstream
 def get_selection(items, choices=None, sep='\n', prompt='Enter a selection: '):
+=======
+def get_selection(items, choices=None, prompt='Enter a selection: ', sep='\n',
+                  allow_none=False, allow_retry=False):
+>>>>>>> Stashed changes
     """Prompt user to select a choice. Entered choice can be a member of choices or
     items, but a member of choices is always returned as choice. If choices is not
     specified a numeric list is generated. Note that if choices or items is a string

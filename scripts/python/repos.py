@@ -50,6 +50,7 @@ def setup_source_file(src_name, dest, name=None):
             only a single match is found it is used without choice and returned.
     """
     log = logger.getlogger()
+<<<<<<< Updated upstream
     if not name:
         name = dest.capitalize()
     if not os.path.exists(f'/srv/{dest}'):
@@ -78,6 +79,55 @@ def setup_source_file(src_name, dest, name=None):
                 if not get_yesno('Search again', 'y/no', default='y'):
                     log.error(f'{name} source file {src_name} not found.\n {name} is not'
                               ' setup.')
+=======
+    exists = glob.glob(f'/srv/{name}/**/{src_glob}', recursive=True)
+    if exists:
+        log.info(f'The {name.capitalize()} source file exists already in the POWER-Up server '
+                 'directory')
+    if get_yesno(f'Copy the {name.capitalize()} source file to the POWER-Up server? '):
+        ch, item = get_selection('Copy from URL\nSearch local Disk', 'U\nD', allow_none=True)
+        if ch == 'U':
+            ch, item = get_selection('Public mirror.Alternate web site', 'P.A',
+                                     'Select source: ', '.')
+            if ch == 'P':
+                _url = url
+            elif ch == 'A':
+                _url = alt_url if alt_url else 'http://'
+            good_url = False
+            while not good_url and _url is not None:
+                _url = get_url(url, type='file')
+                if _url:
+                    regex = src_glob.replace('*', '.+')
+                    if re.search(regex, url):
+                        good_url = True
+                        if not os.path.exists(f'/srv/{name}'):
+                            os.mkdir(f'/srv/{name}')
+                        os.chdir(f'/srv/{name}')
+                        cmd = f'curl -O {_url}'
+                        rc = sub_proc_display(cmd)
+                        if rc != 0:
+                            log.error(f'Failed downloading {name} source to /srv/{name}/ '
+                                      f'directory. \n{err}')
+                        else:
+                            return _url, True
+                    else:
+                        log.error(f'Invalid url. {regex} not found in url.')
+                else:
+                    return None, False
+            else:
+                return _url, True
+
+        elif ch == 'D':
+            src_path = get_src_path(src_glob)
+            if src_path:
+                if not os.path.exists(f'/srv/{name}'):
+                    os.mkdir(f'/srv/{name}')
+                try:
+                    copy2(f'{src_path}', f'/srv/{name}/')
+                except Error as err:
+                    log.debug(f'Failed copying {name} source file to /srv/{name}/ '
+                              f'directory. \n{err}')
+>>>>>>> Stashed changes
                     return False, None
 
         ch, src_path = get_selection(resp, prompt='Select a source file: ')
@@ -352,9 +402,15 @@ class PowerupRepoFromRepo(PowerupRepo):
             repo_url: (str) URL or metalink for the external repo source
         """
 
+<<<<<<< Updated upstream
         ch, item = get_selection('Public mirror.Alternate web site', 'pub.alt', '.',
                                  'Select source: ')
         if ch == 'alt':
+=======
+        ch, item = get_selection('Public mirror.Alternate web site', 'P.A',
+                                 'Select source: ', '.')
+        if ch == 'A':
+>>>>>>> Stashed changes
             if not alt_url:
                 alt_url = f'http://host/repos/{self.repo_id}/'
             tmp = get_url(alt_url, prompt_name=self.repo_name, repo_chk=True)
