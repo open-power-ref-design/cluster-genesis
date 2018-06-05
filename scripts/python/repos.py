@@ -133,10 +133,11 @@ class PowerupRepo(object):
                     self.log.error(f'Error searching for {src_name}')
                     return None
                 if not resp:
-                    print(f'{name} source file {src_name} not found')
+                    print(f'{self.repo_name} source file {src_name} not found')
                     if not get_yesno('Search again', 'y/no', default='y'):
-                        log.error(f'{name} source file {src_name} not found.\n {name} is not'
-                                  ' setup.')
+                        self.log.error(f'{self.repo_name} source file '
+                                       '{src_name} not found.\n '
+                                       '{self.repo_name} is not setup.')
                         return None
             else:
                 ch, src_path = get_selection(resp, prompt='Select a source file: ')
@@ -259,10 +260,11 @@ class PowerupRepoFromRpm(PowerupRepo):
                     self.log.error(f'Error searching for {src_name}')
                     return None
                 if not resp:
-                    print(f'{name} source file {src_name} not found')
+                    print(f'{self.repo_name} source file {src_name} not found')
                     if not get_yesno('Search again', 'y/no', default='y'):
-                        log.error(f'{name} source file {src_name} not found.\n {name} is not'
-                                  ' setup.')
+                        self.log.error(f'{self.repo_name} source file '
+                                       '{src_name} not found.\n '
+                                       '{self.repo_name} is not setup.')
                         return None
             else:
                 ch, self.rpm_path = get_selection(resp, prompt='Select a source file: ')
