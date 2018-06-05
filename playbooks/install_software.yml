@@ -3,7 +3,19 @@
   hosts: all
   vars_files:
     - /home/user/power-up/playbooks/poweraie_software.yml
+    - /home/user/power-up/software/software-vars.yml
   tasks:
+    - name: Get route to client
+      shell: "ip route get to {{ ansible_default_ipv4.address }} | awk '/src/ {print $5}'"
+      delegate_to: localhost
+      register: host_ip
+
+    - name: Add yum repo "{{ item.key }}"
+      copy:
+        content: "{{ item.value }}"
+        dest: "/etc/yum.repos.d/{{ item.key }}"
+      with_dict: "{{ yum_powerup_repo_files }}"
+
     - name: install "{{ item }}"
       package:
         name: "{{ item }}"

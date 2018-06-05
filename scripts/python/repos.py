@@ -178,7 +178,7 @@ class PowerupRepo(object):
         elif client:
             d = repo_dir.lstrip('/')
             d = d.lstrip('srv')
-            content += 'baseurl=http://{host}' + f'{d}/\n'
+            content += 'baseurl=http://{{ host_ip.stdout }}' + f'{d}/\n'
         elif metalink:
             content += f'metalink={url}\n'
             content += 'failovermethod=priority\n'
@@ -462,7 +462,7 @@ def create_repo_from_rpm_pkg(pkg_name, pkg_file, src_dir, dst_dir, web=None):
             dot_repo['filename'] = f'powerai-{ver}.repo'
             dot_repo['content'] = (f'[powerai-{ver}]\n'
                                    f'name=PowerAI-{ver}-powerup\n'
-                                   'baseurl=http://{host}/repos/'
+                                   'baseurl=http://{host}}/repos/'
                                    f'DL-{ver}/repo/rpms\n'
                                    'enabled=1\n'
                                    'gpgkey=http://{host}/repos/'
