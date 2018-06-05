@@ -237,62 +237,25 @@ def rlinput(prompt, prefill=''):
         readline.set_startup_hook()
 
 
-<<<<<<< Updated upstream
-def get_url(url='http://', prompt_name='', repo_chk=False):
-    """Input a URL from user. The URL is checked for validity using curl
-    and the user can continue modifying it indefinitely until a response
-    is obtained or he can enter 'S' to skip (stop) entry.
-=======
 def get_url(url='http://', type='directory', prompt_name='', repo_chk=False):
     """Input a URL from user. Valid URLs are http:, https:, and file:.
     The URL is checked for validity using curl and the user can continue
     modifying it indefinitely until a response is obtained or he can enter
     'S' to skip (stop) entry.
->>>>>>> Stashed changes
     """
     while True:
         url = rlinput(f'Enter {prompt_name} URL (S to skip): ', url)
         if url == 'S':
-<<<<<<< Updated upstream
-            return None
-        url = url if url.endswith('/') else url + '/'
-=======
             url = None
             break
         if type == 'directory':
             url = url if url.endswith('/') else url + '/'
->>>>>>> Stashed changes
         try:
             cmd = f'curl --max-time 2 -I {url}'
             reply, err, rc = sub_proc_exec(cmd)
         except:
             pass
         else:
-<<<<<<< Updated upstream
-            response = re.search(r'HTTP\/\d+.\d+\s+200\s+ok', reply, re.IGNORECASE)
-            if response:
-                print(response.group(0))
-                if repo_chk:
-                    cmd = f'curl -G {url}'
-                    reply, err, rc = sub_proc_exec(cmd)
-                    repodata = re.search(r'href=["\']repodata\/["\']', reply)
-                    if repodata:
-                        print('Repository data found.')
-                        if get_yesno('Use the specified URL? '):
-                            return url
-                    else:
-                        print('Not a valid repository')
-                else:
-                    if get_yesno('Use the specified URL? '):
-                        return url
-            else:
-                err = re.search('curl: .+', err)
-                if err:
-                    print(err.group(0))
-                tmp = re.search(r'HTTP\/\d+.\d+\s+.+', reply)
-                if tmp:
-                    print(tmp.group(0))
-=======
             if 'http:' in url or 'https:' in url:
                 response = re.search(r'HTTP\/\d+.\d+\s+200\s+ok', reply, re.IGNORECASE)
                 if response:
@@ -339,7 +302,6 @@ def get_url(url='http://', type='directory', prompt_name='', repo_chk=False):
             else:
                 response = ''
     return url
->>>>>>> Stashed changes
 
 
 def get_yesno(prompt='', yesno='y/n', default=''):
@@ -412,12 +374,8 @@ def get_dir(src_dir):
                 return path
 
 
-<<<<<<< Updated upstream
-def get_selection(items, choices=None, sep='\n', prompt='Enter a selection: '):
-=======
 def get_selection(items, choices=None, prompt='Enter a selection: ', sep='\n',
                   allow_none=False, allow_retry=False):
->>>>>>> Stashed changes
     """Prompt user to select a choice. Entered choice can be a member of choices or
     items, but a member of choices is always returned as choice. If choices is not
     specified a numeric list is generated. Note that if choices or items is a string
@@ -427,7 +385,6 @@ def get_selection(items, choices=None, prompt='Enter a selection: ', sep='\n',
     ex: ch, item = get_selection('Apple pie.Chocolate cake', 'Item 1.Item 2', sep='.')
     Inputs:
         choices (str or list or tuple): Choices
-        choices_only (bool) : Set to false to allow descs as valid choices
         items (str or list or tuple): Description of choices or items to select
     returns:
        ch (str): One of the elements in choices
@@ -443,11 +400,18 @@ def get_selection(items, choices=None, prompt='Enter a selection: ', sep='\n',
     if not isinstance(choices, (list, tuple)):
         choices = choices.rstrip(sep)
         choices = choices.split(sep)
+    if allow_none:
+        choices.append('N')
+        items.append('Return without making a selection.')
+    if allow_retry:
+        choices.append('R')
+        items.append('Retry the search.')
     if len(choices) == 1:
         return choices[0], items[0]
     maxw = 1
     for ch in choices:
         maxw = max(maxw, len(ch))
+    print()
     for i in range(min(len(choices), len(items))):
         print(bold(f'{choices[i]: <{maxw}}') + ' - ' + items[i])
     print()
@@ -462,7 +426,46 @@ def get_selection(items, choices=None, prompt='Enter a selection: ', sep='\n',
         # not in choices so it must be in items
         ch = choices[items.index(ch)]
     item = items[choices.index(ch)]
+    if item == 'Return without making a selection.':
+        item = None
+    print()
     return ch, item
+
+
+def get_src_path(src_name):
+    """Search local disk for src_name and allow interactive selection if more than
+    one match. Note that the user is not given the option to change the search
+    criteria. Searching starts recursively in the /home directory and expands to
+    entire file system if no match in /home.
+    """
+    while True:
+        cmd = (f'find /home -name {src_name}')
+        resp, err, rc = sub_proc_exec(cmd)
+        if rc != 0:
+            self.log.error(f'Error searching for {src_name}')
+            return None
+        if not resp:
+            cmd = (f'find / -name {src_name}')
+            resp, err, rc = sub_proc_exec(cmd)
+            if rc != 0:
+                self.log.error(f'Error searching for {src_name}')
+                return None
+            if not resp:
+                print(f'Source file {src_name} not found')
+                if not get_yesno('Search again', 'y/no', default='y'):
+                    log.error(f'Source file {src_name} not found.\n {src_name} is not'
+                              ' setup in the POWER-Up software server.')
+                    return None
+            else:
+                ch, src_path = get_selection(resp, prompt='Select a source file: ',
+                                             allow_none=True, allow_retry=True)
+                if ch != 'R':
+                    return src_path
+        else:
+            ch, src_path = get_selection(resp, prompt='Select a source file: ',
+                                         allow_none=True, allow_retry=True)
+            if ch != 'R':
+                return src_path
 
 
 def get_file_path(filename='/home'):

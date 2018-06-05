@@ -24,17 +24,17 @@ import os
 import platform
 import re
 import sys
-import shutil
+from shutil import copy2, Error
 import time
 import yaml
 import code
 
 import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupRepoFromRepo, \
-    PowerupRepoFromRpm, setup_source_file
+    PowerupRepoFromRpm, setup_source_file, PowerupFileFromDisk
 from software_hosts import get_ansible_inventory
-from lib.utilities import sub_proc_display, sub_proc_exec, heading1, \
-    get_selection, get_yesno, get_dir, get_file_path, rlinput
+from lib.utilities import sub_proc_display, sub_proc_exec, heading1, get_url, \
+    get_selection, get_yesno, get_dir, get_file_path, get_src_path, rlinput
 from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path, \
     get_playbooks_path
 from lib.exception import UserException
@@ -101,7 +101,7 @@ class software(object):
 
         # Setup EPEL
         repo_id = 'epel-ppc64le'
-        repo_name = 'Extra Packages for Enterprise Linux 7 - ppc64le'
+        repo_name = 'Extra Packages for Enterprise Linux 7 (EPEL) - ppc64le'
         baseurl = 'https://mirrors.fedoraproject.org/metalink?repo=epel-7&arch=ppc64le'
         gpgkey = 'file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-7'
         heading1(f'Set up {repo_name} repository')
@@ -141,7 +141,7 @@ class software(object):
         repo_name = 'CUDA Toolkit'
         baseurl = 'http://developer.download.nvidia.com/compute/cuda/repos/rhel7/ppc64le'
         gpgkey = f'{baseurl}/7fa2af80.pub'
-        heading1(f'Set up {repo_name} repository')
+        heading1(f'Set up {repo_name} repository\n')
         if f'{repo_id}_alt_url' in self.sw_vars:
             alt_url = self.sw_vars[f'{repo_id}_alt_url']
         else:
@@ -160,30 +160,6 @@ class software(object):
                 content = repo.get_yum_dotrepo_content(url, gpgkey=gpgkey)
             repo.write_yum_dot_repo_file(content)
 
-<<<<<<< Updated upstream
-            if new or ch == 'F':
-                content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
-                repo.write_yum_dot_repo_file(content)
-                content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
-                filename = repo_id + '-powerup.repo'
-                self.sw_vars['yum_powerup_repo_files'][filename] = content
-
-            # Get cudnn tar file
-            dst = 'cudnn'
-            cudnn_src_path = repo.get_src_path('cudnn-9.[1-9]-linux-ppc64le-v7.1.tgz')
-
-            if cudnn_src_path:
-                exists_cudnn = glob.glob(f'/srv/**/{os.path.basename(cudnn_src_path)}',
-                                         recursive=True)
-                if exists_cudnn:
-                    print(f'The cudnn src file already exists in the POWER-Up server')
-                if not exists_cudnn or get_yesno(f'Recopy the {dst} file? '):
-                    self.log.info(f'Copying {cudnn_src_path} to the POWER-Up software'
-                                  ' server directory')
-                    repo.copy_to_srv(cudnn_src_path, dst)
-            else:
-                self.log.warning('No cudnn source file found')
-=======
         try:
             repo.sync()
         except UserException as exc:
@@ -216,17 +192,25 @@ class software(object):
                 repo.copy_to_srv(cudnn_src_path, dst)
         else:
             self.log.warning('No cudnn source file found')
->>>>>>> Stashed changes
 
         # Get Anaconda
         ana_src = 'Anaconda2-[56].[1-9]*-Linux-ppc64le.sh'
         # root dir is /srv/
-        ana_dir = 'anaconda'
-        heading1('Set up Anaconda repository')
-        setup_source_file(ana_src, ana_dir)
+        ana_name = 'anaconda'
+        ana_url = 'https://repo.continuum.io/archive/Anaconda2-5.1.0-Linux-ppc64le.sh'
+        if f'{ana_name}_alt_url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{ana_name}_alt_url']
+        else:
+            alt_url = 'http://'
+
+        heading1('Set up Anaconda \n')
+        src, state = setup_source_file(ana_name, ana_src, ana_url, alt_url=alt_url)
+
+        if src is not None and src != ana_src and 'http' in src:
+            self.sw_vars[f'{ana_name}_alt_url'] = src
 
         # Get PowerAI base
-        heading1('Setting up the PowerAI base repository')
+        heading1('Setting up the PowerAI base repository\n')
         pai_src = 'mldl-repo-local-5.[1-9]*.ppc64le.rpm'
         repo_id = 'power-ai'
         repo_name = 'IBM PowerAI Base'
@@ -236,10 +220,10 @@ class software(object):
             r = get_yesno(f'Recreate the {repo_id} repository? ')
         if not exists or r:
             repo = PowerupRepoFromRpm(repo_id, repo_name)
-            src_path = repo.get_src_path(pai_src)
+            src_path = get_src_path(pai_src)
             print(src_path)
             if src_path:
-                repo.copy_rpm()
+                repo.copy_rpm(src_path)
                 repodata_dir = repo.extract_rpm()
                 if repodata_dir:
                     content = repo.get_yum_dotrepo_content(repo_dir=repodata_dir,
@@ -257,9 +241,19 @@ class software(object):
             else:
                 self.log.info('No source selected. Skipping PowerAI repository creation.')
 
+        # Get Spectrum Conductor
+        spc_src = 'conductor2.[3-9].[0-9].[0-9]_ppc64le.bin'
+        name = 'spectrum-conductor'
+        src_path, status = PowerupFileFromDisk(name, spc_src)
+
+        # Get Spectrum DLI
+        spdli_src = 'dli-1.[1-9].[0-9].[0-9]_ppc64le.bin'
+        name = 'spectrum-dli'
+        src_path, status = PowerupFileFromDisk(name, spdli_src)
+
         # Create custom repositories
         heading1('Create custom repositories')
-        if get_yesno('Would you like to create a custom repository? ', default='y'):
+        if get_yesno('Would you like to create a custom repository? ', default='n'):
             repo_id = input('Enter a repo id (yum short name): ')
             repo_name = input('Enter a repo name (Descriptive name): ')
 
