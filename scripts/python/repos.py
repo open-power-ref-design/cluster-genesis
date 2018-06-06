@@ -78,7 +78,7 @@ def setup_source_file(name, src_glob, url='http://', alt_url='http://',
                         rc = sub_proc_display(cmd)
                         if rc != 0:
                             log.error(f'Failed downloading {name} source to /srv/{name}/ '
-                                      f'directory. \n{err}')
+                                      f'directory. \n{rc}')
                         else:
                             return _url, True
                     else:
@@ -118,6 +118,7 @@ def setup_source_file(name, src_glob, url='http://', alt_url='http://',
 
 
 def PowerupFileFromDisk(name, file_glob):
+        log = logger.getlogger()
         heading1(f'Set up {name.title()} \n')
         exists = glob.glob(f'/srv/{name}/**/{file_glob}', recursive=True)
         if exists:
