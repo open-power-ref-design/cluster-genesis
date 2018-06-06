@@ -160,21 +160,21 @@ class software(object):
                 content = repo.get_yum_dotrepo_content(url, gpgkey=gpgkey)
             repo.write_yum_dot_repo_file(content)
 
-        try:
-            repo.sync()
-        except UserException as exc:
-            self.log.error(f'Repo sync error: {exc}')
-        if new:
-            repo.create_meta()
-        else:
-            repo.create_meta(update=True)
+            try:
+                repo.sync()
+            except UserException as exc:
+                self.log.error(f'Repo sync error: {exc}')
+            if new:
+                repo.create_meta()
+            else:
+                repo.create_meta(update=True)
 
-        if new or ch == 'F':
-            content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
-            repo.write_yum_dot_repo_file(content)
-            content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
-            filename = repo_id + '-powerup.repo'
-            self.sw_vars['yum_powerup_repo_files'][filename] = content
+            if new or ch == 'F':
+                content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+                repo.write_yum_dot_repo_file(content)
+                content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
+                filename = repo_id + '-powerup.repo'
+                self.sw_vars['yum_powerup_repo_files'][filename] = content
 
         # Get cudnn tar file
         dst = 'cudnn'

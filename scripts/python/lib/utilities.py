@@ -270,6 +270,8 @@ def get_url(url='http://', type='directory', prompt_name='', repo_chk=False):
                                 break
                         else:
                             print('Not a valid repository')
+                    else:
+                        break
                 else:
                     print('Invalid url')
                     err = re.search('curl: .+', err)
