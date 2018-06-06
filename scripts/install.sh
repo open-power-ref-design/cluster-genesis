@@ -39,7 +39,7 @@ elif [[ $ID == "rhel" ]]; then
         lxc lxc-devel lxc-extra lxc-templates libvirt ipmitool\
         debootstrap gcc vim vlan bridge-utils cpp flex bison unzip cmake \
         fping gcc-c++ patch perl-ExtUtils-MakeMaker perl-Thread-Queue \
-        ncurses-devel bash-completion
+        ncurses-devel bash-completion createrepo
     sudo systemctl start lxc.service
     sudo systemctl start libvirtd
 
