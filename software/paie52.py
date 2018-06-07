@@ -90,12 +90,9 @@ class software(object):
             self.log.error(f'yum error: {yum_err.group(0)}')
         if rc or yum_err:
             self.log.error('There is a problem with yum or one or more of the yum '
-                           'repositories. \nCheck for valid ".repo" files in'
-                           '/etc/yum.repos.d')
-            sys.exit('Exiting')
-        if '!' in resp:
+                           'repositories. \n')
+            self.log.info('Trying clean of yum caches')
             cmd = 'yum clean all'
-            self.log.info('Cleaning yum repository caches')
             resp, err, rc = sub_proc_exec(cmd)
             if rc != 0:
                 sys.log.error('An error occurred while cleaning the yum repositories\n'
@@ -153,15 +150,20 @@ class software(object):
         repo = PowerupRepoFromRepo(repo_id, repo_name)
 
         ch, new = repo.get_action()
-        if ch in 'YF':
-            if new or ch == 'F':
-                url = repo.get_repo_url(baseurl)
-                if not url == baseurl:
-                    self.sw_vars[f'{repo_id}_alt_url'] = url
-                content = repo.get_yum_dotrepo_content(url, gpgkey)
-                repo.write_yum_dot_repo_file(content)
 
-            repo.sync()
+        if new or ch in 'YF':
+            url = repo.get_repo_url(baseurl)
+            if not url == baseurl:
+                self.sw_vars[f'{repo_id}_alt_url'] = url
+                content = repo.get_yum_dotrepo_content(url, gpgcheck=0)
+            else:
+                content = repo.get_yum_dotrepo_content(url, gpgkey=gpgkey)
+            repo.write_yum_dot_repo_file(content)
+
+            try:
+                repo.sync()
+            except UserException as exc:
+                self.log.error(f'Repo sync error: {exc}')
             if new:
                 repo.create_meta()
             else:
@@ -174,22 +176,22 @@ class software(object):
                 filename = repo_id + '-powerup.repo'
                 self.sw_vars['yum_powerup_repo_files'][filename] = content
 
-            # Get cudnn tar file
-            dst = 'cudnn'
-            heading1(f'Set up {dst}\n')
-            cudnn_src_path = get_src_path('cudnn-9.[1-9]-linux-ppc64le-v7.1.tgz')
+        # Get cudnn tar file
+        dst = 'cudnn'
+        heading1(f'Set up {dst}\n')
+        cudnn_src_path = get_src_path('cudnn-9.[1-9]-linux-ppc64le-v7.1.tgz')
 
-            if cudnn_src_path:
-                exists_cudnn = glob.glob(f'/srv/**/{os.path.basename(cudnn_src_path)}',
-                                         recursive=True)
-                if exists_cudnn:
-                    print(f'The cudnn src file already exists in the POWER-Up server')
-                if not exists_cudnn or get_yesno(f'Recopy the {dst} file? '):
-                    self.log.info(f'Copying {cudnn_src_path} to the POWER-Up software'
-                                  ' server directory')
-                    repo.copy_to_srv(cudnn_src_path, dst)
-            else:
-                self.log.warning('No cudnn source file found')
+        if cudnn_src_path:
+            exists_cudnn = glob.glob(f'/srv/**/{os.path.basename(cudnn_src_path)}',
+                                     recursive=True)
+            if exists_cudnn:
+                print(f'The cudnn src file already exists in the POWER-Up server')
+            if not exists_cudnn or get_yesno(f'Recopy the {dst} file? '):
+                self.log.info(f'Copying {cudnn_src_path} to the POWER-Up software'
+                              ' server directory')
+                repo.copy_to_srv(cudnn_src_path, dst)
+        else:
+            self.log.warning('No cudnn source file found')
 
         # Get Anaconda
         ana_src = 'Anaconda2-[56].[1-9]*-Linux-ppc64le.sh'
@@ -255,9 +257,11 @@ class software(object):
             repo_id = input('Enter a repo id (yum short name): ')
             repo_name = input('Enter a repo name (Descriptive name): ')
 
-            ch, item = get_selection('Create from files in a directory.'
-                                     'Create from an RPM file', 'dir.rpm', '.',
-                                     'Custom repository from a directory or RPM file? ')
+            ch, item = get_selection('Create from files in a directory\n'
+                                     'Create from an RPM file\n'
+                                     'Create from an existing repository',
+                                     'dir\nrpm\nrepo',
+                                     'Repository source? ')
             if ch == 'rpm':
 
                 repo = PowerupRepoFromRpm(repo_id, repo_name)
@@ -289,10 +293,6 @@ class software(object):
                 else:
                     self.log.info('No path chosen. Skipping create custom repository.')
 
-                sys.exit('setup repo from rpm')
-
-                sys.exit('Leaving make repo from rpm')
-
             elif ch == 'dir':
                 repo = PowerupRepoFromDir(repo_id, repo_name)
 
@@ -309,8 +309,43 @@ class software(object):
                     content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
                     filename = repo_id + '-powerup.repo'
                     self.sw_vars['yum_powerup_repo_files'][filename] = content
+            elif ch == 'repo':
+                baseurl = 'http://'
 
-                sys.exit(f'bye setup source dir: {dest_dir}')
+                if f'{repo_id}_alt_url' in self.sw_vars:
+                    alt_url = self.sw_vars[f'{repo_id}_alt_url']
+                else:
+                    alt_url = None
+
+                repo = PowerupRepoFromRepo(repo_id, repo_name)
+
+                new = True
+                if os.path.isfile(f'/etc/yum.repos.d/{repo_id}.repo') and \
+                        os.path.exists(repo.get_repo_dir()):
+                    new = False
+
+                url = repo.get_repo_url(baseurl)
+                if not url == baseurl:
+                    self.sw_vars[f'{repo_id}_alt_url'] = url
+                # Set up access to the repo
+                content = repo.get_yum_dotrepo_content(url, gpgcheck=0)
+                repo.write_yum_dot_repo_file(content)
+
+                repo.sync()
+
+                if new:
+                    repo.create_meta()
+                else:
+                    repo.create_meta(update=True)
+
+                # Setup local access to the new repo copy in /srv/repo/
+                content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+                repo.write_yum_dot_repo_file(content)
+                # Prep setup of POWER-Up client access to the repo copy
+                content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
+                filename = repo_id + '-powerup.repo'
+                self.sw_vars['yum_powerup_repo_files'][filename] = content
+            self.log.info('Repository setup complete')
 
         # Setup firewall to allow http
         heading1('Setting up firewall')

@@ -238,15 +238,17 @@ def rlinput(prompt, prefill=''):
 
 
 def get_url(url='http://', type='directory', prompt_name='', repo_chk=False):
-    """Input a URL from user. The URL is checked for validity using curl
-    and the user can continue modifying it indefinitely until a response
-    is obtained or he can enter 'S' to skip (stop) entry.
+    """Input a URL from user. Valid URLs are http:, https:, and file:.
+    The URL is checked for validity using curl and the user can continue
+    modifying it indefinitely until a response is obtained or he can enter
+    'S' to skip (stop) entry.
     """
     while True:
         url = rlinput(f'Enter {prompt_name} URL (S to skip): ', url)
         if url == 'S':
-            return None
-        if type == 'dir':
+            url = None
+            break
+        if type == 'directory':
             url = url if url.endswith('/') else url + '/'
         try:
             cmd = f'curl --max-time 2 -I {url}'
@@ -256,37 +258,52 @@ def get_url(url='http://', type='directory', prompt_name='', repo_chk=False):
         else:
             if 'http:' in url or 'https:' in url:
                 response = re.search(r'HTTP\/\d+.\d+\s+200\s+ok', reply, re.IGNORECASE)
+                if response:
+                    print(response.group(0))
+                    if repo_chk:
+                        cmd = f'curl -G {url}'
+                        reply, err, rc = sub_proc_exec(cmd)
+                        repodata = re.search(r'href=["\']repodata\/["\']', reply)
+                        if repodata:
+                            print('Repository data found.')
+                            if get_yesno('Use the specified URL? '):
+                                break
+                        else:
+                            print('Not a valid repository')
+                    else:
+                        break
+                else:
+                    print('Invalid url')
+                    err = re.search('curl: .+', err)
+                    if err:
+                        print(err.group(0))
+                    tmp = re.search(r'HTTP\/\d+.\d+\s+.+', reply)
+                    if tmp:
+                        print(tmp.group(0))
+
             elif 'file:///' in url:
                 response = re.search(r'Content-Length:\s+\d+', reply)
+                if response:
+                    try:
+                        cmd = f'curl --max-time 2 -I {url}/repodata'
+                        reply, err, rc = sub_proc_exec(cmd)
+                    except:
+                        pass
+                    else:
+                        response = re.search(r'Content-Length:\s+\d+', reply)
+                        if response:
+                            print('Repository data found.')
+                            if get_yesno('Use the specified URL? '):
+                                break
+                        else:
+                            print('Not a valid repository')
+
             elif 'file:' in url:
                 print('Proper file url format: "file:///path/to/file')
                 response = ''
             else:
                 response = ''
-            if response:
-                print(response.group(0))
-                if repo_chk:
-                    cmd = f'curl -G {url}'
-                    reply, err, rc = sub_proc_exec(cmd)
-                    repodata = re.search(r'href=["\']repodata\/["\']', reply)
-                    if repodata:
-                        print('Repository data found.')
-                        if get_yesno('Use the specified URL? '):
-                            return url
-                    else:
-                        print('Not a valid repository')
-                else:
-                    if get_yesno('Use the specified URL? '):
-                        return url
-            else:
-                if not response:
-                    print('Invalid url')
-                err = re.search('curl: .+', err)
-                if err:
-                    print(err.group(0))
-                tmp = re.search(r'HTTP\/\d+.\d+\s+.+', reply)
-                if tmp:
-                    print(tmp.group(0))
+    return url
 
 
 def get_yesno(prompt='', yesno='y/n', default=''):
@@ -359,7 +376,7 @@ def get_dir(src_dir):
                 return path
 
 
-def get_selection(items, choices=None, sep='\n', prompt='Enter a selection: ',
+def get_selection(items, choices=None, prompt='Enter a selection: ', sep='\n',
                   allow_none=False, allow_retry=False):
     """Prompt user to select a choice. Entered choice can be a member of choices or
     items, but a member of choices is always returned as choice. If choices is not
