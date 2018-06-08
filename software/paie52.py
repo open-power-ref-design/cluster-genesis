@@ -33,8 +33,8 @@ import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupRepoFromRepo, \
     PowerupRepoFromRpm, setup_source_file, PowerupFileFromDisk
 from software_hosts import get_ansible_inventory
-from lib.utilities import sub_proc_display, sub_proc_exec, heading1, get_url, \
-    get_selection, get_yesno, get_dir, get_file_path, get_src_path, rlinput
+from lib.utilities import sub_proc_display, sub_proc_exec, heading1, get_url, Color, \
+    get_selection, get_yesno, get_dir, get_file_path, get_src_path, rlinput, bold
 from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path, \
     get_playbooks_path
 from lib.exception import UserException
@@ -55,6 +55,8 @@ class software(object):
             self.log.info('Creating software vars yaml file')
             self.sw_vars = {}
             self.sw_vars['init-time'] = time.ctime()
+            self.about()
+            _ = input('\nPress enter to continue')
         else:
             if not isinstance(self.sw_vars, dict):
                 self.sw_vars = {}
@@ -67,6 +69,15 @@ class software(object):
         self.sw_vars['rhel_ver'] = self.rhel_ver
         self.arch = 'ppc64le'
         self.sw_vars['arch'] = self.arch
+        self.status = {'EPEL Repository': '-',
+                       'CUDA Toolkit Repository': '-',
+                       'PowerAI Base Repository': '-',
+                       'CUDA dnn content': '-',
+                       'Anaconda content': '-',
+                       'Spectrum conductor content': '-',
+                       'Spectrum DLI content': '-',
+                       'Nginx Web Server': '-',
+                       'Firewall': '-'}
 
         self.log.debug(f'software variables: {self.sw_vars}')
 
@@ -75,6 +86,16 @@ class software(object):
             os.mkdir(GEN_SOFTWARE_PATH)
         with open(GEN_SOFTWARE_PATH + 'software-vars.yml', 'w') as f:
             yaml.dump(self.sw_vars, f, default_flow_style=False)
+
+    def about(self):
+        text = ('\nPowerAI 5.2 software installer module'
+                '\nThis module installs the PowerAI Enterprise software '
+                'To a cluster of OpenPOWER nodes.\n'
+                'Before beiginning, the following files should be copied\n'
+                'onto this node;\n'
+                '- mldl-repo-local-5.1.0-201804110899.fd91856.ppc64le.rpm\n'
+                '- cudnn-9.1-linux-ppc64le-v7.1.tgz')
+        print(text)
 
     def setup(self):
         # Basic check of the state of yum repos
@@ -113,6 +134,8 @@ class software(object):
         repo = PowerupRepoFromRepo(repo_id, repo_name)
 
         ch, new = repo.get_action()
+        if not new:
+            self.status['EPEL Repository'] = 'Setup'
         if ch in 'YF':
             if new or ch == 'F':
                 url = repo.get_repo_url(baseurl, alt_url)
@@ -379,6 +402,7 @@ class software(object):
             self.log.error('Error attempting to restart firewall')
         if fw_err == 0:
             self.log.info('Firewall is running and configured for http')
+            self.status['Firewall'] = 'Configured'
 
 #        nginx_repo = RemoteNginxRepo()
 #        nginx_repo.yum_create_remote()
@@ -417,6 +441,7 @@ class software(object):
         resp, err, rc = sub_proc_exec(cmd)
         if 'HTTP/1.1 200 OK' in resp:
             self.log.info('nginx is running:\n')
+            self.status['Nginx Web Server'] = 'Setup and running'
 
         if os.path.isfile('/etc/nginx/conf.d/default.conf'):
             try:
@@ -439,7 +464,15 @@ class software(object):
         if rc != 0:
             self.log.warning('Failed reloading nginx configuration')
 
-        print('Good to go')
+        heading1('Preparation Summary')
+        for item in self.status:
+            print(f'{item:>30} : ' + self.status[item])
+
+        gtg = 'Preparation complete'
+        for item in self.status.values():
+            if item == '-':
+                gtg = f'{Color.red}Preparation incomplete{Color.endc}'
+        print(f'\n{bold(gtg)}\n')
 
     def install(self):
         ansible_inventory = get_ansible_inventory()
