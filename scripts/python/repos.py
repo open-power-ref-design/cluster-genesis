@@ -123,7 +123,7 @@ def PowerupFileFromDisk(name, file_glob):
         heading1(f'Set up {name.title()} \n')
         exists = glob.glob(f'/srv/{name}/**/{file_glob}', recursive=True)
         if exists:
-            print(f'The following file(s) exist in the POWER-Up server already')
+            print(f'The following {name} file(s) exist in the POWER-Up server already')
             for item in exists:
                 print(item)
             print()
@@ -138,16 +138,14 @@ def PowerupFileFromDisk(name, file_glob):
                 except Error as err:
                     log.debug(f'Failed copying {name} source file to /srv/{name}/ '
                               f'directory. \n{err}')
-                    return None, False
                 else:
                     log.info(f'Successfully installed {name} source file '
                              'into the POWER-Up software server.')
                     return src_path, True
+        if exists:
+            return None, True
         else:
-            if exists:
-                return None, True
-            else:
-                return None, False
+            return None, False
 
 
 class PowerupRepo(object):
@@ -216,11 +214,32 @@ class PowerupRepo(object):
         return content
 
     def write_yum_dot_repo_file(self, content, repo_link_path=None):
+        """Writes '.repo' files to /etc/yum.repos.d/. If the .repo file already
+        exists and the new content is different than the existing content, any
+        existing yum cache data and any repodata for that repository is erased.
+        """
         if repo_link_path is None:
             if f'{self.repo_id}-local' in content:
                 repo_link_path = f'/etc/yum.repos.d/{self.repo_id}-local.repo'
             else:
                 repo_link_path = f'/etc/yum.repos.d/{self.repo_id}.repo'
+                if os.path.exists(repo_link_path):
+                    with open(repo_link_path, 'r') as f:
+                        curr_content = f.read()
+                        if curr_content != content:
+                            cache_dir = f'/var/cache/yum/{self.arch}/7Server/{self.repo_id}'
+                            if os.path.exists(cache_dir):
+                                self.log.info(f'Removing existing cache directory {cache_dir}')
+                                rmtree(cache_dir)
+                            if os.path.exists(cache_dir + '-local'):
+                                self.log.info(f'Removing existing cache directory {cache_dir}-local')
+                                rmtree(cache_dir + '-local')
+                            if os.path.exists(f'{self.repo_dir}/repodata'):
+                                self.log.info(f'Removing existing repodata for {self.repo_id}')
+                                rmtree(f'{self.repo_dir}/repodata')
+                            if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id}-local.repo'):
+                                self.log.info(f'Removing existing local .repo for {self.repo_id}-local')
+                                os.remove(f'/etc/yum.repos.d/{self.repo_id}-local.repo')
         with open(repo_link_path, 'w') as f:
             f.write(content)
 

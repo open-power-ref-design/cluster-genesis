@@ -120,46 +120,160 @@ class software(object):
                               'POWER-Up is unable to continue.')
                 sys.exit('Exiting')
 
-        # Setup EPEL
-        repo_id = 'epel-ppc64le'
-        repo_name = 'Extra Packages for Enterprise Linux 7 (EPEL) - ppc64le'
-        baseurl = 'https://mirrors.fedoraproject.org/metalink?repo=epel-7&arch=ppc64le'
-        gpgkey = 'file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-7'
-        heading1(f'Set up {repo_name} repository')
-        if f'{repo_id}_alt_url' in self.sw_vars:
-            alt_url = self.sw_vars[f'{repo_id}_alt_url']
+        # Setup firewall to allow http
+        heading1('Setting up firewall')
+        fw_err = 0
+        cmd = 'systemctl status firewalld.service'
+        resp, err, rc = sub_proc_exec(cmd)
+        if 'Active: active (running)' in resp.splitlines()[2]:
+            self.log.debug('Firewall is running')
         else:
-            alt_url = None
+            cmd = 'systemctl enable firewalld.service'
+            resp, err, rc = sub_proc_exec(cmd)
+            if rc != 0:
+                fw_err += 1
+                self.log.error('Failed to enable firewall')
 
-        repo = PowerupRepoFromRepo(repo_id, repo_name)
+            cmd = 'systemctl start firewalld.service'
+            resp, err, rc = sub_proc_exec(cmd)
+            if rc != 0:
+                fw_err += 10
+                self.log.error('Failed to start firewall')
+        cmd = 'firewall-cmd --permanent --add-service=http'
+        resp, err, rc = sub_proc_exec(cmd)
+        if rc != 0:
+            fw_err += 100
+            self.log.error('Failed to enable http service on firewall')
 
-        ch, new = repo.get_action()
-        if not new:
-            self.status['EPEL Repository'] = 'Setup'
-        if ch in 'YF':
-            if new or ch == 'F':
-                url = repo.get_repo_url(baseurl, alt_url)
-                if not url == baseurl:
-                    self.sw_vars[f'{repo_id}_alt_url'] = url
-                    content = repo.get_yum_dotrepo_content(url, gpgkey=gpgkey)
-                else:
-                    content = repo.get_yum_dotrepo_content(url, gpgkey=gpgkey, metalink=True)
-                repo.write_yum_dot_repo_file(content)
+        cmd = 'firewall-cmd --reload'
+        resp, err, rc = sub_proc_exec(cmd)
+        if 'success' not in resp:
+            fw_err += 1000
+            self.log.error('Error attempting to restart firewall')
+        if fw_err == 0:
+            self.log.info('Firewall is running and configured for http')
+            self.status['Firewall'] = 'Configured'
 
-            repo.sync()
-            if new:
-                repo.create_meta()
+        baseurl = 'http://nginx.org/packages/mainline/rhel/7/' + \
+                  platform.machine()
+        repo_id = 'nginx'
+        repo_name = 'nginx.org public'
+        heading1(f'Set up {repo_name} repository')
+        repo = PowerupRepo(repo_id, repo_name)
+        content = repo.get_yum_dotrepo_content(baseurl, gpgcheck=0)
+        repo.write_yum_dot_repo_file(content)
+
+        # Check if nginx installed. Install if necessary.
+        heading1('Set up Nginx')
+        cmd = 'nginx -v'
+        try:
+            resp, err, rc = sub_proc_exec(cmd)
+        except OSError:
+            cmd = 'yum -y install nginx'
+            resp, err, rc = sub_proc_exec(cmd)
+            if rc != 0:
+                self.log.error('Failed installing nginx')
+                self.log.error(resp)
+                sys.exit(1)
             else:
-                repo.create_meta(update=True)
+                # Fire it up
+                cmd = 'nginx'
+                resp, err, rc = sub_proc_exec(cmd)
+                if rc != 0:
+                    self.log.error('Failed starting nginx')
+                    self.log.error('resp: {}'.format(resp))
+                    self.log.error('err: {}'.format(err))
 
-            if new or ch == 'F':
-                content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+        cmd = 'curl -I 127.0.0.1'
+        resp, err, rc = sub_proc_exec(cmd)
+        if 'HTTP/1.1 200 OK' in resp:
+            self.log.info('nginx is running:\n')
+            self.status['Nginx Web Server'] = 'Configured and running'
+
+        if os.path.isfile('/etc/nginx/conf.d/default.conf'):
+            try:
+                os.rename('/etc/nginx/conf.d/default.conf',
+                          '/etc/nginx/conf.d/default.conf.bak')
+            except OSError:
+                self.log.warning('Failed renaming /etc/nginx/conf.d/default.conf')
+        with open('/etc/nginx/conf.d/server1.conf', 'w') as f:
+            f.write('server {\n')
+            f.write('    listen       80;\n')
+            f.write('    server_name  powerup;\n\n')
+            f.write('    location / {\n')
+            f.write('        root   /srv;\n')
+            f.write('        autoindex on;\n')
+            f.write('    }\n')
+            f.write('}\n')
+
+        cmd = 'nginx -s reload'
+        _, _, rc = sub_proc_exec(cmd)
+        if rc != 0:
+            self.log.warning('Failed reloading nginx configuration')
+
+        # Get PowerAI base
+        heading1('Setting up the PowerAI base repository\n')
+        pai_src = 'mldl-repo-local-5.[1-9]*.ppc64le.rpm'
+        repo_id = 'power-ai'
+        repo_name = 'IBM PowerAI Base'
+        exists = glob.glob(f'/srv/repos/{repo_id}/**/repodata', recursive=True)
+        if exists:
+            self.log.info(f'The {repo_id} repository exists already in the POWER-Up server')
+            r = get_yesno(f'Recreate the {repo_id} repository? ')
+        if not exists or r:
+            repo = PowerupRepoFromRpm(repo_id, repo_name)
+            src_path = get_src_path(pai_src)
+            if src_path:
+                repo.copy_rpm(src_path)
+                repodata_dir = repo.extract_rpm()
+                if repodata_dir:
+                    content = repo.get_yum_dotrepo_content(repo_dir=repodata_dir,
+                                                           gpgcheck=0, local=True)
+                else:
+                    content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+                    repo.create_meta()
                 repo.write_yum_dot_repo_file(content)
-                content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
+                content = repo.get_yum_dotrepo_content(repo_dir=repodata_dir,
+                                                       gpgcheck=0, client=True)
                 filename = repo_id + '-powerup.repo'
                 self.sw_vars['yum_powerup_repo_files'][filename] = content
+            else:
+                self.log.info('No source selected. Skipping PowerAI repository creation.')
 
-        # Setup CUDA and cudnn
+        # Get Anaconda
+        ana_src = 'Anaconda2-[56].[1-9]*-Linux-ppc64le.sh'
+        # root dir is /srv/
+        ana_name = 'anaconda'
+        ana_url = 'https://repo.continuum.io/archive/Anaconda2-5.1.0-Linux-ppc64le.sh'
+        if f'{ana_name}_alt_url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{ana_name}_alt_url']
+        else:
+            alt_url = 'http://'
+
+        heading1('Set up Anaconda \n')
+        src, state = setup_source_file(ana_name, ana_src, ana_url, alt_url=alt_url)
+
+        if src is not None and src != ana_src and 'http' in src:
+            self.sw_vars[f'{ana_name}_alt_url'] = src
+
+        # Get Spectrum Conductor
+        spc_src = 'conductor2.[3-9].[0-9].[0-9]_ppc64le.bin'
+        name = 'spectrum-conductor'
+        src_path, status = PowerupFileFromDisk(name, spc_src)
+
+        # Get Spectrum DLI
+        spdli_src = 'dli-1.[1-9].[0-9].[0-9]_ppc64le.bin'
+        name = 'spectrum-dli'
+        src_path, status = PowerupFileFromDisk(name, spdli_src)
+
+
+
+        # Get cudnn tar file
+        cudnn_src = 'cudnn-9.[1-9]-linux-ppc64le-v7.1.tgz'
+        name = 'cudnn'
+        src_path, status = PowerupFileFromDisk(name, cudnn_src)
+
+        # Setup CUDA
         repo_id = 'cuda'
         repo_name = 'CUDA Toolkit'
         baseurl = 'http://developer.download.nvidia.com/compute/cuda/repos/rhel7/ppc64le'
@@ -175,7 +289,7 @@ class software(object):
         ch, new = repo.get_action()
 
         if new or ch in 'YF':
-            url = repo.get_repo_url(baseurl)
+            url = repo.get_repo_url(baseurl, alt_url)
             if not url == baseurl:
                 self.sw_vars[f'{repo_id}_alt_url'] = url
                 content = repo.get_yum_dotrepo_content(url, gpgcheck=0)
@@ -199,84 +313,46 @@ class software(object):
                 filename = repo_id + '-powerup.repo'
                 self.sw_vars['yum_powerup_repo_files'][filename] = content
 
-        # Get cudnn tar file
-        dst = 'cudnn'
-        heading1(f'Set up {dst}\n')
-        cudnn_src_path = get_src_path('cudnn-9.[1-9]-linux-ppc64le-v7.1.tgz')
-
-        if cudnn_src_path:
-            exists_cudnn = glob.glob(f'/srv/**/{os.path.basename(cudnn_src_path)}',
-                                     recursive=True)
-            if exists_cudnn:
-                print(f'The cudnn src file already exists in the POWER-Up server')
-            if not exists_cudnn or get_yesno(f'Recopy the {dst} file? '):
-                self.log.info(f'Copying {cudnn_src_path} to the POWER-Up software'
-                              ' server directory')
-                repo.copy_to_srv(cudnn_src_path, dst)
+        # Setup EPEL
+        repo_id = 'epel-ppc64le'
+        repo_name = 'Extra Packages for Enterprise Linux 7 (EPEL) - ppc64le'
+        baseurl = 'https://mirrors.fedoraproject.org/metalink?repo=epel-7&arch=ppc64le'
+        gpgkey = 'file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-7'
+        heading1(f'Set up {repo_name} repository')
+        if f'{repo_id}_alt_url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{repo_id}_alt_url']
         else:
-            self.log.warning('No cudnn source file found')
+            alt_url = None
 
-        # Get Anaconda
-        ana_src = 'Anaconda2-[56].[1-9]*-Linux-ppc64le.sh'
-        # root dir is /srv/
-        ana_name = 'anaconda'
-        ana_url = 'https://repo.continuum.io/archive/Anaconda2-5.1.0-Linux-ppc64le.sh'
-        if f'{ana_name}_alt_url' in self.sw_vars:
-            alt_url = self.sw_vars[f'{ana_name}_alt_url']
-        else:
-            alt_url = 'http://'
+        repo = PowerupRepoFromRepo(repo_id, repo_name)
 
-        heading1('Set up Anaconda \n')
-        src, state = setup_source_file(ana_name, ana_src, ana_url, alt_url=alt_url)
-
-        if src is not None and src != ana_src and 'http' in src:
-            self.sw_vars[f'{ana_name}_alt_url'] = src
-
-        # Get PowerAI base
-        heading1('Setting up the PowerAI base repository\n')
-        pai_src = 'mldl-repo-local-5.[1-9]*.ppc64le.rpm'
-        repo_id = 'power-ai'
-        repo_name = 'IBM PowerAI Base'
-        exists = glob.glob(f'/srv/repos/{repo_id}/**/repodata', recursive=True)
-        if exists:
-            print(f'The {repo_id} repository exists in the POWER-Up server already')
-            r = get_yesno(f'Recreate the {repo_id} repository? ')
-        if not exists or r:
-            repo = PowerupRepoFromRpm(repo_id, repo_name)
-            src_path = get_src_path(pai_src)
-            print(src_path)
-            if src_path:
-                repo.copy_rpm(src_path)
-                repodata_dir = repo.extract_rpm()
-                if repodata_dir:
-                    content = repo.get_yum_dotrepo_content(repo_dir=repodata_dir,
-                                                           gpgcheck=0, local=True)
+        ch, new = repo.get_action()
+        if ch in 'YF':
+            if new or ch == 'F':
+                url = repo.get_repo_url(baseurl, alt_url)
+                if not url == baseurl:
+                    self.sw_vars[f'{repo_id}_alt_url'] = url
+                    content = repo.get_yum_dotrepo_content(url, gpgkey=gpgkey)
                 else:
-                    content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
-                    repo.create_meta()
-                print(content)
+                    content = repo.get_yum_dotrepo_content(url, gpgkey=gpgkey, metalink=True)
                 repo.write_yum_dot_repo_file(content)
-                content = repo.get_yum_dotrepo_content(repo_dir=repodata_dir,
-                                                       gpgcheck=0, client=True)
-                print(content)
+
+            repo.sync()
+            if new:
+                repo.create_meta()
+            else:
+                repo.create_meta(update=True)
+
+            if new or ch == 'F':
+                content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+                repo.write_yum_dot_repo_file(content)
+                content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
                 filename = repo_id + '-powerup.repo'
                 self.sw_vars['yum_powerup_repo_files'][filename] = content
-            else:
-                self.log.info('No source selected. Skipping PowerAI repository creation.')
-
-        # Get Spectrum Conductor
-        spc_src = 'conductor2.[3-9].[0-9].[0-9]_ppc64le.bin'
-        name = 'spectrum-conductor'
-        src_path, status = PowerupFileFromDisk(name, spc_src)
-
-        # Get Spectrum DLI
-        spdli_src = 'dli-1.[1-9].[0-9].[0-9]_ppc64le.bin'
-        name = 'spectrum-dli'
-        src_path, status = PowerupFileFromDisk(name, spdli_src)
 
         # Create custom repositories
         heading1('Create custom repositories')
-        if get_yesno('Would you like to create a custom repository? ', default='n'):
+        if get_yesno('Would you like to create a custom repository? '):
             repo_id = input('Enter a repo id (yum short name): ')
             repo_name = input('Enter a repo name (Descriptive name): ')
 
@@ -295,7 +371,6 @@ class software(object):
                     # default is to search recursively under all /home/ directories
                     src_path = '/home/**/*.rpm'
                 rpm_path = repo.get_rpm_path(src_path)
-                print(rpm_path)
                 if rpm_path:
                     self.sw_vars[f'{repo_id}_src_rpm_dir'] = rpm_path
                     repo.copy_rpm()
@@ -306,11 +381,9 @@ class software(object):
                     else:
                         content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
                         repo.create_meta()
-                    print(content)
                     repo.write_yum_dot_repo_file(content)
                     content = repo.get_yum_dotrepo_content(repo_dir=repodata_dir,
                                                            gpgcheck=0, client=True)
-                    print(content)
                     filename = repo_id + '-powerup.repo'
                     self.sw_vars['yum_powerup_repo_files'][filename] = content
                 else:
@@ -369,100 +442,6 @@ class software(object):
                 filename = repo_id + '-powerup.repo'
                 self.sw_vars['yum_powerup_repo_files'][filename] = content
             self.log.info('Repository setup complete')
-
-        # Setup firewall to allow http
-        heading1('Setting up firewall')
-        fw_err = 0
-        cmd = 'systemctl status firewalld.service'
-        resp, err, rc = sub_proc_exec(cmd)
-        if 'Active: active (running)' in resp.splitlines()[2]:
-            self.log.debug('Firewall is running')
-        else:
-            cmd = 'systemctl enable firewalld.service'
-            resp, err, rc = sub_proc_exec(cmd)
-            if rc != 0:
-                fw_err += 1
-                self.log.error('Failed to enable firewall')
-
-            cmd = 'systemctl start firewalld.service'
-            resp, err, rc = sub_proc_exec(cmd)
-            if rc != 0:
-                fw_err += 10
-                self.log.error('Failed to start firewall')
-        cmd = 'firewall-cmd --permanent --add-service=http'
-        resp, err, rc = sub_proc_exec(cmd)
-        if rc != 0:
-            fw_err += 100
-            self.log.error('Failed to enable http service on firewall')
-
-        cmd = 'firewall-cmd --reload'
-        resp, err, rc = sub_proc_exec(cmd)
-        if 'success' not in resp:
-            fw_err += 1000
-            self.log.error('Error attempting to restart firewall')
-        if fw_err == 0:
-            self.log.info('Firewall is running and configured for http')
-            self.status['Firewall'] = 'Configured'
-
-#        nginx_repo = RemoteNginxRepo()
-#        nginx_repo.yum_create_remote()
-        baseurl = 'http://nginx.org/packages/mainline/rhel/7/' + \
-                  platform.machine()
-        repo_id = 'nginx'
-        repo_name = 'nginx.org public'
-        heading1(f'Set up {repo_name} repository')
-        repo = PowerupRepo(repo_id, repo_name)
-        content = repo.get_yum_dotrepo_content(baseurl, gpgcheck=0)
-        repo.write_yum_dot_repo_file(content)
-
-        # Check if nginx installed. Install if necessary.
-        heading1('Set up Nginx')
-        cmd = 'nginx -v'
-        try:
-            resp, err, rc = sub_proc_exec(cmd)
-            print('nginx is installed:\n{}'.format(resp))
-        except OSError:
-            cmd = 'yum -y install nginx'
-            resp, err, rc = sub_proc_exec(cmd)
-            if rc != 0:
-                self.log.error('Failed installing nginx')
-                self.log.error(resp)
-                sys.exit(1)
-            else:
-                # Fire it up
-                cmd = 'nginx'
-                resp, err, rc = sub_proc_exec(cmd)
-                if rc != 0:
-                    self.log.error('Failed starting nginx')
-                    self.log.error('resp: {}'.format(resp))
-                    self.log.error('err: {}'.format(err))
-
-        cmd = 'curl -I 127.0.0.1'
-        resp, err, rc = sub_proc_exec(cmd)
-        if 'HTTP/1.1 200 OK' in resp:
-            self.log.info('nginx is running:\n')
-            self.status['Nginx Web Server'] = 'Setup and running'
-
-        if os.path.isfile('/etc/nginx/conf.d/default.conf'):
-            try:
-                os.rename('/etc/nginx/conf.d/default.conf',
-                          '/etc/nginx/conf.d/default.conf.bak')
-            except OSError:
-                self.log.warning('Failed renaming /etc/nginx/conf.d/default.conf')
-        with open('/etc/nginx/conf.d/server1.conf', 'w') as f:
-            f.write('server {\n')
-            f.write('    listen       80;\n')
-            f.write('    server_name  powerup;\n\n')
-            f.write('    location / {\n')
-            f.write('        root   /srv;\n')
-            f.write('        autoindex on;\n')
-            f.write('    }\n')
-            f.write('}\n')
-
-        cmd = 'nginx -s reload'
-        _, _, rc = sub_proc_exec(cmd)
-        if rc != 0:
-            self.log.warning('Failed reloading nginx configuration')
 
         heading1('Preparation Summary')
         for item in self.status:
