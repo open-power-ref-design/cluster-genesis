@@ -94,8 +94,35 @@ class software(object):
                 'Before beiginning, the following files should be copied\n'
                 'onto this node;\n'
                 '- mldl-repo-local-5.1.0-201804110899.fd91856.ppc64le.rpm\n'
-                '- cudnn-9.1-linux-ppc64le-v7.1.tgz')
+                '- cudnn-9.1-linux-ppc64le-v7.1.tgz\n'
+                '- conductor2.3.0.0_ppc64le.bin\n'
+                '- dli-1.1.0.0_ppc64le.bin\n')
         print(text)
+
+    def status_prep(self, which='all', repo_id=None):
+        # Firewall status
+        if which == 'all' or which == 'Firewall':
+            cmd = 'firewall-cmd --list-all'
+            resp, err, rc = sub_proc_exec(cmd)
+            status = re.search(r'services:\s+.+http', resp)
+            if status:
+                self.status['Firewall'] = 'Firewall is running and configured for http'
+        # Nginx web server status
+        if which == 'all' or which == 'Nginx Web Server':
+            cmd = 'curl -I 127.0.0.1'
+            resp, err, rc = sub_proc_exec(cmd)
+            if 'HTTP/1.1 200 OK' in resp:
+                self.status['Nginx Web Server'] = 'Nginx is configured and running'
+
+        if which == 'all' or which == 'PowerAI Base Repository':
+            exists = glob.glob(f'/srv/repos/{repo_id}/**/repodata', recursive=True)
+            if exists:
+                self.status['PowerAI Base Repository'] = 'PowerAI base repository is setup'
+
+        if which == 'all':
+            heading1('Preparation Summary')
+            for item in self.status:
+                print(f'{item:>30} : ' + self.status[item])
 
     def setup(self):
         # Basic check of the state of yum repos
@@ -150,21 +177,24 @@ class software(object):
         if 'success' not in resp:
             fw_err += 1000
             self.log.error('Error attempting to restart firewall')
-        if fw_err == 0:
-            self.log.info('Firewall is running and configured for http')
-            self.status['Firewall'] = 'Configured'
 
+        self.status_prep(which='Firewall')
+        if self.status['Firewall'] == '-':
+            self.log.info('Failed to configure firewall')
+        else:
+            self.log.info(self.status['Firewall'])
+
+        # nginx setup
+        heading1('Set up Nginx')
         baseurl = 'http://nginx.org/packages/mainline/rhel/7/' + \
                   platform.machine()
         repo_id = 'nginx'
         repo_name = 'nginx.org public'
-        heading1(f'Set up {repo_name} repository')
         repo = PowerupRepo(repo_id, repo_name)
         content = repo.get_yum_dotrepo_content(baseurl, gpgcheck=0)
         repo.write_yum_dot_repo_file(content)
 
         # Check if nginx installed. Install if necessary.
-        heading1('Set up Nginx')
         cmd = 'nginx -v'
         try:
             resp, err, rc = sub_proc_exec(cmd)
@@ -184,11 +214,17 @@ class software(object):
                     self.log.error('resp: {}'.format(resp))
                     self.log.error('err: {}'.format(err))
 
-        cmd = 'curl -I 127.0.0.1'
-        resp, err, rc = sub_proc_exec(cmd)
-        if 'HTTP/1.1 200 OK' in resp:
-            self.log.info('nginx is running:\n')
-            self.status['Nginx Web Server'] = 'Configured and running'
+#        cmd = 'curl -I 127.0.0.1'
+#        resp, err, rc = sub_proc_exec(cmd)
+#        if 'HTTP/1.1 200 OK' in resp:
+#            self.log.info('nginx is running:\n')
+#            self.status['Nginx Web Server'] = 'Configured and running'
+
+        self.status_prep(which='Nginx Web Server')
+        if self.status['Nginx Web Server'] == '-':
+            self.log.info('nginx web server is not running')
+        else:
+            self.log.info(self.status['Nginx Web Server'])
 
         if os.path.isfile('/etc/nginx/conf.d/default.conf'):
             try:
@@ -216,11 +252,11 @@ class software(object):
         pai_src = 'mldl-repo-local-5.[1-9]*.ppc64le.rpm'
         repo_id = 'power-ai'
         repo_name = 'IBM PowerAI Base'
-        exists = glob.glob(f'/srv/repos/{repo_id}/**/repodata', recursive=True)
-        if exists:
+        self.status_prep(which='PowerAI Base Repository', repo_id=repo_id)
+        if self.status['PowerAI Base Repository'] != '-':
             self.log.info(f'The {repo_id} repository exists already in the POWER-Up server')
             r = get_yesno(f'Recreate the {repo_id} repository? ')
-        if not exists or r:
+        if self.status['PowerAI Base Repository'] == '-' or r:
             repo = PowerupRepoFromRpm(repo_id, repo_name)
             src_path = get_src_path(pai_src)
             if src_path:
@@ -237,6 +273,7 @@ class software(object):
                                                        gpgcheck=0, client=True)
                 filename = repo_id + '-powerup.repo'
                 self.sw_vars['yum_powerup_repo_files'][filename] = content
+                self.status_prep(which='PowerAI Base Repository')
             else:
                 self.log.info('No source selected. Skipping PowerAI repository creation.')
 

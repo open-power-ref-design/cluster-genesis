@@ -335,6 +335,12 @@ def get_args(parser_args=False):
         help='Display software install module help')
 
     parser_software.add_argument(
+        '--status-prep',
+        default=ABSENT,
+        action='store_true',
+        help='Display software install module preparation status')
+
+    parser_software.add_argument(
         '-a', '--all',
         action='store_true',
         help='Run all software prep and install steps')
@@ -418,8 +424,8 @@ def _check_post_deploy(args, subparser):
 def _check_software(args, subparser):
     if not args.setup and not args.install and not args.name and not args.about \
             and not args.all:
-        subparser.error(
-            'one of the arguments --about --prep --install -a/--all is required')
+        subparser.error('one of the arguments --about --prep --status-prep'
+                        '--install -a/--all is required')
 
 
 def is_arg_present(arg):
