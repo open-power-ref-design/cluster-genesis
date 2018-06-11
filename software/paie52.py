@@ -266,8 +266,6 @@ class software(object):
         name = 'spectrum-dli'
         src_path, status = PowerupFileFromDisk(name, spdli_src)
 
-
-
         # Get cudnn tar file
         cudnn_src = 'cudnn-9.[1-9]-linux-ppc64le-v7.1.tgz'
         name = 'cudnn'
