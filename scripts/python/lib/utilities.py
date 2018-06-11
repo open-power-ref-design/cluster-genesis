@@ -440,17 +440,18 @@ def get_src_path(src_name):
     criteria. Searching starts recursively in the /home directory and expands to
     entire file system if no match in /home.
     """
+    log = logger.getlogger()
     while True:
         cmd = (f'find /home -name {src_name}')
         resp, err, rc = sub_proc_exec(cmd)
         if rc != 0:
-            self.log.error(f'Error searching for {src_name}')
+            log.error(f'Error searching for {src_name}')
             return None
         if not resp:
             cmd = (f'find / -name {src_name}')
             resp, err, rc = sub_proc_exec(cmd)
             if rc != 0:
-                self.log.error(f'Error searching for {src_name}')
+                log.error(f'Error searching for {src_name}')
                 return None
             if not resp:
                 print(f'Source file {src_name} not found')
