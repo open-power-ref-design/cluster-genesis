@@ -69,6 +69,7 @@ class software(object):
         self.sw_vars['rhel_ver'] = self.rhel_ver
         self.arch = 'ppc64le'
         self.sw_vars['arch'] = self.arch
+        self.repo_dir = '/srv/repos/{repo_id}/rhel' + self.rhel_ver + '/{repo_id}'
         self.status = {'EPEL Repository': '-',
                        'CUDA Toolkit Repository': '-',
                        'PowerAI Base Repository': '-',
@@ -78,6 +79,13 @@ class software(object):
                        'Spectrum DLI content': '-',
                        'Nginx Web Server': '-',
                        'Firewall': '-'}
+        self.repo_id = {'EPEL Repository': 'epel-ppc64le',
+                        'CUDA Toolkit Repository': 'cuda',
+                        'PowerAI Base Repository': 'power-ai'}
+        self.files = {'anaconda': 'Anaconda2-[56].[1-9]*-Linux-ppc64le.sh',
+                      'cudnn': 'cudnn-9.[1-9]-linux-ppc64le-v7.1.tgz',
+                      'spectrum-conductor': 'conductor2.[3-9].[0-9].[0-9]_ppc64le.bin',
+                      'spectrum-dli': 'dli-1.[1-9].[0-9].[0-9]_ppc64le.bin'}
 
         self.log.debug(f'software variables: {self.sw_vars}')
 
@@ -90,16 +98,24 @@ class software(object):
     def about(self):
         text = ('\nPowerAI 5.2 software installer module'
                 '\nThis module installs the PowerAI Enterprise software '
-                'To a cluster of OpenPOWER nodes.\n'
+                'to a cluster of OpenPOWER nodes.\n\n'
+                'PowerAI Enterprise installation involves three steps;\n'
+                '   1 - Preparation. Prepares the installer node software server.\n'
+                '       The preparation phase may be run multiple times if needed.\n'
+                '       usage: pup software --prep paie52\n'
+                '   2 - Installation. Install software on the client nodes\n'
+                '       usage: pup software --install paie52\n\n'
                 'Before beiginning, the following files should be copied\n'
                 'onto this node;\n'
                 '- mldl-repo-local-5.1.0-201804110899.fd91856.ppc64le.rpm\n'
                 '- cudnn-9.1-linux-ppc64le-v7.1.tgz\n'
                 '- conductor2.3.0.0_ppc64le.bin\n'
-                '- dli-1.1.0.0_ppc64le.bin\n')
+                '- dli-1.1.0.0_ppc64le.bin\n\n'
+                'For status of the preparation phase: pup software --status-prep paie52\n'
+                'For status of the install phase: pup software --status-install paie52\n\n')
         print(text)
 
-    def status_prep(self, which='all', repo_id=None):
+    def status_prep(self, which='all'):
         # Firewall status
         if which == 'all' or which == 'Firewall':
             cmd = 'firewall-cmd --list-all'
@@ -114,15 +130,66 @@ class software(object):
             if 'HTTP/1.1 200 OK' in resp:
                 self.status['Nginx Web Server'] = 'Nginx is configured and running'
 
-        if which == 'all' or which == 'PowerAI Base Repository':
-            exists = glob.glob(f'/srv/repos/{repo_id}/**/repodata', recursive=True)
+        # Anaconda status
+        if which == 'all' or which == 'anaconda':
+            exists = glob.glob(f'/srv/anaconda/**/{self.files["anaconda"]}', recursive=True)
             if exists:
-                self.status['PowerAI Base Repository'] = 'PowerAI base repository is setup'
+                self.status['Anaconda content'] = 'Anaconda is present in the POWER-Up server'
+        # cudnn status
+        if which == 'all' or which == 'cudnn':
+            exists = glob.glob(f'/srv/cudnn/**/{self.files["cudnn"]}', recursive=True)
+            if exists:
+                self.status['CUDA dnn content'] = 'CUDA DNN is present in the POWER-Up server'
+
+        # Spectrum conductor status
+        if which == 'all' or which == 'spectrum-conductor':
+            exists = glob.glob(f'/srv/spectrum-conductor/**/{self.files["spectrum-conductor"]}', recursive=True)
+            if exists:
+                self.status['Spectrum conductor content'] = 'Spectrum Conductor is present in the POWER-Up server'
+
+        # Spectrum DLI status
+        if which == 'all' or which == 'spectrum-dli':
+            exists = glob.glob(f'/srv/spectrum-dli/**/{self.files["spectrum-dli"]}', recursive=True)
+            if exists:
+                self.status['Spectrum DLI content'] = 'Spectrum DLI is present in the POWER-Up server'
+
+        # PowerAI status
+        s = 'PowerAI Base Repository'
+        if which == 'all' or which == s:
+            exists_repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[s]) +
+                                        '/**/repodata', recursive=True)
+            if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[s]}-local.repo') \
+                    and exists_repodata:
+                self.status[s] = s + ' is setup'
+
+        # CUDA status
+        s = 'CUDA Toolkit Repository'
+        if which == 'all' or which == s:
+            exists_repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[s]) +
+                                        '/**/repodata', recursive=True)
+            if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[s]}-local.repo') \
+                    and exists_repodata:
+                self.status[s] = s + ' is setup'
+
+        # EPEL status
+        s = 'EPEL Repository'
+        if which == 'all' or which == s:
+            exists_repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[s]) +
+                                        '/**/repodata', recursive=True)
+            if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[s]}-local.repo') \
+                    and exists_repodata:
+                self.status[s] = s + ' is setup'
 
         if which == 'all':
             heading1('Preparation Summary')
             for item in self.status:
                 print(f'{item:>30} : ' + self.status[item])
+
+            gtg = 'Preparation complete'
+            for item in self.status.values():
+                if item == '-':
+                    gtg = f'{Color.red}Preparation incomplete{Color.endc}'
+            print(f'\n{bold(gtg)}\n')
 
     def setup(self):
         # Basic check of the state of yum repos
@@ -214,12 +281,6 @@ class software(object):
                     self.log.error('resp: {}'.format(resp))
                     self.log.error('err: {}'.format(err))
 
-#        cmd = 'curl -I 127.0.0.1'
-#        resp, err, rc = sub_proc_exec(cmd)
-#        if 'HTTP/1.1 200 OK' in resp:
-#            self.log.info('nginx is running:\n')
-#            self.status['Nginx Web Server'] = 'Configured and running'
-
         self.status_prep(which='Nginx Web Server')
         if self.status['Nginx Web Server'] == '-':
             self.log.info('nginx web server is not running')
@@ -252,7 +313,8 @@ class software(object):
         pai_src = 'mldl-repo-local-5.[1-9]*.ppc64le.rpm'
         repo_id = 'power-ai'
         repo_name = 'IBM PowerAI Base'
-        self.status_prep(which='PowerAI Base Repository', repo_id=repo_id)
+
+        self.status_prep(which='PowerAI Base Repository')
         if self.status['PowerAI Base Repository'] != '-':
             self.log.info(f'The {repo_id} repository exists already in the POWER-Up server')
             r = get_yesno(f'Recreate the {repo_id} repository? ')
@@ -278,14 +340,15 @@ class software(object):
                 self.log.info('No source selected. Skipping PowerAI repository creation.')
 
         # Get Anaconda
-        ana_src = 'Anaconda2-[56].[1-9]*-Linux-ppc64le.sh'
-        # root dir is /srv/
         ana_name = 'anaconda'
+        ana_src = self.files[ana_name]
         ana_url = 'https://repo.continuum.io/archive/Anaconda2-5.1.0-Linux-ppc64le.sh'
         if f'{ana_name}_alt_url' in self.sw_vars:
             alt_url = self.sw_vars[f'{ana_name}_alt_url']
         else:
             alt_url = 'http://'
+
+        self.status_prep(ana_name)
 
         heading1('Set up Anaconda \n')
         src, state = setup_source_file(ana_name, ana_src, ana_url, alt_url=alt_url)
@@ -294,19 +357,34 @@ class software(object):
             self.sw_vars[f'{ana_name}_alt_url'] = src
 
         # Get Spectrum Conductor
-        spc_src = 'conductor2.[3-9].[0-9].[0-9]_ppc64le.bin'
         name = 'spectrum-conductor'
-        src_path, status = PowerupFileFromDisk(name, spc_src)
+        heading1(f'Set up {name.title()} \n')
+        spc_src = self.files[name]
+        self.status_prep(name)
+        exists = False if self.status['Spectrum conductor content'] == '-' else True
+
+        if exists and get_yesno(f'Copy a new {name.title()} file? '):
+            src_path = PowerupFileFromDisk(name, spc_src)
 
         # Get Spectrum DLI
-        spdli_src = 'dli-1.[1-9].[0-9].[0-9]_ppc64le.bin'
         name = 'spectrum-dli'
-        src_path, status = PowerupFileFromDisk(name, spdli_src)
+        heading1(f'Set up {name.title()} \n')
+        spdli_src = self.files[name]
+        self.status_prep(name)
+        exists = False if self.status['Spectrum DLI content'] == '-' else True
+
+        if exists and get_yesno(f'Copy a new {name.title()} file? '):
+            src_path = PowerupFileFromDisk(name, spdli_src)
 
         # Get cudnn tar file
-        cudnn_src = 'cudnn-9.[1-9]-linux-ppc64le-v7.1.tgz'
         name = 'cudnn'
-        src_path, status = PowerupFileFromDisk(name, cudnn_src)
+        heading1(f'Set up {name.title()} \n')
+        cudnn_src = self.files[name]
+        self.status_prep(name)
+        exists = False if self.status['CUDA dnn content'] == '-' else True
+
+        if exists and get_yesno(f'Copy a new {name.title()} file? '):
+            src_path = PowerupFileFromDisk(name, cudnn_src)
 
         # Setup CUDA
         repo_id = 'cuda'
@@ -319,9 +397,15 @@ class software(object):
         else:
             alt_url = None
 
+        self.status_prep(which='CUDA Toolkit Repository')
+        new = self.status['CUDA Toolkit Repository'] == '-'
+        if new:
+            self.log.info('The CUDA Toolkit Repository exists already'
+                          ' in the POWER-Up server')
+
         repo = PowerupRepoFromRepo(repo_id, repo_name)
 
-        ch, new = repo.get_action()
+        ch = repo.get_action(new)
 
         if new or ch in 'YF':
             url = repo.get_repo_url(baseurl, alt_url)
@@ -359,9 +443,12 @@ class software(object):
         else:
             alt_url = None
 
+        self.status_prep(which='EPEL Repository')
+        new = self.status['EPEL Repository'] == '-'
+
         repo = PowerupRepoFromRepo(repo_id, repo_name)
 
-        ch, new = repo.get_action()
+        ch = repo.get_action(new)
         if ch in 'YF':
             if new or ch == 'F':
                 url = repo.get_repo_url(baseurl, alt_url)

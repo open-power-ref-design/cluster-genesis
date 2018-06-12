@@ -120,32 +120,20 @@ def setup_source_file(name, src_glob, url='http://', alt_url='http://',
 
 def PowerupFileFromDisk(name, file_glob):
         log = logger.getlogger()
-        heading1(f'Set up {name.title()} \n')
-        exists = glob.glob(f'/srv/{name}/**/{file_glob}', recursive=True)
-        if exists:
-            print(f'The following {name} file(s) exist in the POWER-Up server already')
-            for item in exists:
-                print(item)
-            print()
-
-        if not exists or get_yesno(f'Copy a new {name.title()} file? '):
-            src_path = get_src_path(file_glob)
-            if src_path:
-                if not os.path.exists(f'/srv/{name}'):
-                    os.mkdir(f'/srv/{name}')
-                try:
-                    copy2(f'{src_path}', f'/srv/{name}/')
-                except Error as err:
-                    log.debug(f'Failed copying {name} source file to /srv/{name}/ '
-                              f'directory. \n{err}')
-                else:
-                    log.info(f'Successfully installed {name} source file '
-                             'into the POWER-Up software server.')
-                    return src_path, True
-        if exists:
-            return None, True
-        else:
-            return None, False
+        src_path = get_src_path(file_glob)
+        if src_path:
+            if not os.path.exists(f'/srv/{name}'):
+                os.mkdir(f'/srv/{name}')
+            try:
+                copy2(f'{src_path}', f'/srv/{name}/')
+            except Error as err:
+                log.debug(f'Failed copying {name} source file to /srv/{name}/ '
+                          f'directory. \n{err}')
+            else:
+                log.info(f'Successfully installed {name} source file '
+                         'into the POWER-Up software server.')
+                return src_path
+        return None
 
 
 class PowerupRepo(object):
@@ -328,22 +316,19 @@ class PowerupRepoFromRepo(PowerupRepo):
     def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7'):
         super(PowerupRepoFromRepo, self).__init__(repo_id, repo_name, arch, rhel_ver)
 
-    def get_action(self):
-        new = True
-        if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id}.repo') and \
-                os.path.exists(self.repo_dir):
-            new = False
+    def get_action(self, new):
+        if new:
+            print(f'\nDo you want to create a local {self.repo_name}\n repository'
+                  ' at this time?\n')
+            print('This can take a significant amount of time')
+            ch = 'Y' if get_yesno(prompt='Create Repo? ', yesno='Y/n') else 'n'
+        else:
             print(f'\nDo you want to sync the local {self.repo_name}\nrepository'
                   ' at this time?\n')
             print('This can take a few minutes.\n')
             items = 'Yes,no,Sync repository and Force recreation of yum ".repo" files'
             ch, item = get_selection(items, 'Y,n,F', sep=',')
-        else:
-            print(f'\nDo you want to create a local {self.repo_name}\n repository'
-                  ' at this time?\n')
-            print('This can take a significant amount of time')
-            ch = 'Y' if get_yesno(prompt='Create Repo? ', yesno='Y/n') else 'n'
-        return ch, new
+        return ch
 
     def get_repo_url(self, url, alt_url=None):
         """Allows the user to choose the default url or enter an alternate
