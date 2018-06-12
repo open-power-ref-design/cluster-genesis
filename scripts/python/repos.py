@@ -67,7 +67,7 @@ def setup_source_file(name, src_glob, url='http://', alt_url='http://',
                 _url = alt_url if alt_url else 'http://'
             good_url = False
             while not good_url and _url is not None:
-                _url = get_url(url, type='file')
+                _url = get_url(_url, type='file')
                 if _url:
                     regex = src_glob.replace('*', '.+')
                     if re.search(regex, url):

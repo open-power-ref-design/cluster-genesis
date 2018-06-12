@@ -263,7 +263,10 @@ def get_url(url='http://', type='directory', prompt_name='', repo_chk=False):
                     if repo_chk:
                         cmd = f'curl -G {url}'
                         reply, err, rc = sub_proc_exec(cmd)
-                        repodata = re.search(r'href=["\']repodata\/["\']', reply)
+                        if rc == 0:
+                            repodata = re.search(r'href=["\']repodata\/["\']', reply)
+                        else:
+                            repodata = ''
                         if repodata:
                             print('Repository data found.')
                             if get_yesno('Use the specified URL? '):
@@ -271,7 +274,14 @@ def get_url(url='http://', type='directory', prompt_name='', repo_chk=False):
                         else:
                             print('Not a valid repository')
                     else:
-                        break
+                        # file
+                        response = re.search(r'Content-Length:\s+[1-9]\d+', reply)
+                        if response:
+                            print(response.group(0))
+                            if get_yesno('Use the specified URL? '):
+                                break
+                        else:
+                            print('Content has no length')
                 else:
                     print('Invalid url')
                     err = re.search('curl: .+', err)
@@ -440,17 +450,18 @@ def get_src_path(src_name):
     criteria. Searching starts recursively in the /home directory and expands to
     entire file system if no match in /home.
     """
+    log = logger.getlogger()
     while True:
         cmd = (f'find /home -name {src_name}')
         resp, err, rc = sub_proc_exec(cmd)
         if rc != 0:
-            self.log.error(f'Error searching for {src_name}')
+            log.error(f'Error searching for {src_name}')
             return None
         if not resp:
             cmd = (f'find / -name {src_name}')
             resp, err, rc = sub_proc_exec(cmd)
             if rc != 0:
-                self.log.error(f'Error searching for {src_name}')
+                log.error(f'Error searching for {src_name}')
                 return None
             if not resp:
                 print(f'Source file {src_name} not found')

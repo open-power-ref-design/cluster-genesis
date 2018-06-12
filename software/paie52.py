@@ -363,7 +363,10 @@ class software(object):
         self.status_prep(name)
         exists = False if self.status['Spectrum conductor content'] == '-' else True
 
-        if exists and get_yesno(f'Copy a new {name.title()} file? '):
+        if exists:
+            self.log.info('Spectrum conductor content exists already in the POWER-Up server')
+
+        if not exists or (exists and get_yesno(f'Copy a new {name.title()} file? ')):
             src_path = PowerupFileFromDisk(name, spc_src)
 
         # Get Spectrum DLI
@@ -373,7 +376,10 @@ class software(object):
         self.status_prep(name)
         exists = False if self.status['Spectrum DLI content'] == '-' else True
 
-        if exists and get_yesno(f'Copy a new {name.title()} file? '):
+        if exists:
+            self.log.info('Spectrum DLI content exists already in the POWER-Up server')
+
+        if not exists or (exists and get_yesno(f'Copy a new {name.title()} file? ')):
             src_path = PowerupFileFromDisk(name, spdli_src)
 
         # Get cudnn tar file
@@ -383,7 +389,10 @@ class software(object):
         self.status_prep(name)
         exists = False if self.status['CUDA dnn content'] == '-' else True
 
-        if exists and get_yesno(f'Copy a new {name.title()} file? '):
+        if exists:
+            self.log.info('CUDA dnn content exists already in the POWER-Up server')
+
+        if not exists or (exists and get_yesno(f'Copy a new {name.title()} file? ')):
             src_path = PowerupFileFromDisk(name, cudnn_src)
 
         # Setup CUDA
@@ -406,8 +415,7 @@ class software(object):
         repo = PowerupRepoFromRepo(repo_id, repo_name)
 
         ch = repo.get_action(new)
-
-        if new or ch in 'YF':
+        if ch in 'YF':
             url = repo.get_repo_url(baseurl, alt_url)
             if not url == baseurl:
                 self.sw_vars[f'{repo_id}_alt_url'] = url
@@ -564,16 +572,8 @@ class software(object):
                 filename = repo_id + '-powerup.repo'
                 self.sw_vars['yum_powerup_repo_files'][filename] = content
             self.log.info('Repository setup complete')
-
-        heading1('Preparation Summary')
-        for item in self.status:
-            print(f'{item:>30} : ' + self.status[item])
-
-        gtg = 'Preparation complete'
-        for item in self.status.values():
-            if item == '-':
-                gtg = f'{Color.red}Preparation incomplete{Color.endc}'
-        print(f'\n{bold(gtg)}\n')
+        # Display status
+        self.status_prep()
 
     def install(self):
         ansible_inventory = get_ansible_inventory()
