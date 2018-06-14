@@ -2,12 +2,16 @@
 POWER-Up
 ========
 
+|ppc64le| |x86_64| 
+
 POWER-Up automates deployment of baremetal OpenPOWER and x86 server
 clusters. It leverages open source tools such as Cobbler, Ansible,
 Python, IPMI and dnsmasq. Supported OS distributions are Ubuntu, CentOS,
 and RHEL. POWER-Up also facilitates advanced client and switch network
 configuration.
 
+.. |ppc64le| image:: https://img.shields.io/badge/ppc64le-supported-brightgreen.svg
+.. |x86_64| image:: https://img.shields.io/badge/x86__64-supported-brightgreen.svg
 
 Resources
 =========
