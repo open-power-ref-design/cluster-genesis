@@ -132,26 +132,33 @@ class software(object):
 
         # Anaconda status
         if which == 'all' or which == 'anaconda':
-            exists = glob.glob(f'/srv/anaconda/**/{self.files["anaconda"]}', recursive=True)
+            exists = glob.glob(f'/srv/anaconda/**/{self.files["anaconda"]}',
+                               recursive=True)
             if exists:
-                self.status['Anaconda content'] = 'Anaconda is present in the POWER-Up server'
+                self.status['Anaconda content'] = 'Anaconda is present in the\
+                    POWER-Up server'
         # cudnn status
         if which == 'all' or which == 'cudnn':
             exists = glob.glob(f'/srv/cudnn/**/{self.files["cudnn"]}', recursive=True)
             if exists:
-                self.status['CUDA dnn content'] = 'CUDA DNN is present in the POWER-Up server'
+                self.status['CUDA dnn content'] = 'CUDA DNN is present in the\
+                    POWER-Up server'
 
         # Spectrum conductor status
         if which == 'all' or which == 'spectrum-conductor':
-            exists = glob.glob(f'/srv/spectrum-conductor/**/{self.files["spectrum-conductor"]}', recursive=True)
+            exists = glob.glob(f'/srv/spectrum-conductor/**/'
+                               f'{self.files["spectrum-conductor"]}', recursive=True)
             if exists:
-                self.status['Spectrum conductor content'] = 'Spectrum Conductor is present in the POWER-Up server'
+                self.status['Spectrum conductor content'] = 'Spectrum Conductor is\
+                     present in the POWER-Up server'
 
         # Spectrum DLI status
         if which == 'all' or which == 'spectrum-dli':
-            exists = glob.glob(f'/srv/spectrum-dli/**/{self.files["spectrum-dli"]}', recursive=True)
+            exists = glob.glob(f'/srv/spectrum-dli/**/{self.files["spectrum-dli"]}',
+                               recursive=True)
             if exists:
-                self.status['Spectrum DLI content'] = 'Spectrum DLI is present in the POWER-Up server'
+                self.status['Spectrum DLI content'] = 'Spectrum DLI is present in\
+                     the POWER-Up server'
 
         # PowerAI status
         s = 'PowerAI Base Repository'
@@ -381,6 +388,25 @@ class software(object):
 
         if not exists or (exists and get_yesno(f'Copy a new {name.title()} file? ')):
             src_path = PowerupFileFromDisk(name, spdli_src)
+
+        # Setup repository for dependent packages
+        dep_list = 'bzip2 opencv'
+        heading1('Setup repository for dependent packages')
+        repo_id = 'dependencies'
+        repo_name = 'Dependencies'
+        repo = PowerupRepo(repo_id, repo_name)
+        repo_dir = repo.get_repo_dir()
+        cmd = f'yumdownloader --resolve --destdir {repo_dir} {dep_list}'
+        resp, err, rc = sub_proc_exec(cmd)
+        if rc != 0:
+            self.log.error('An error occurred while downloading dependent packages\n'
+                           f'{err}')
+        repo.create_meta()
+        content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+        repo.write_yum_dot_repo_file(content)
+        content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
+        filename = repo_id + '-powerup.repo'
+        self.sw_vars['yum_powerup_repo_files'][filename] = content
 
         # Get cudnn tar file
         name = 'cudnn'
