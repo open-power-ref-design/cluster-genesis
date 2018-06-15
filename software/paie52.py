@@ -107,9 +107,9 @@ class software(object):
                 '       usage: pup software --install paie52\n\n'
                 'Before beiginning, the following files should be copied\n'
                 'onto this node;\n'
-                '- mldl-repo-local-5.1.0-201804110899.fd91856.ppc64le.rpm\n'
+                '- mldl-repo-local-5.2.0-201804110899.fd91856.ppc64le.rpm\n'
                 '- cudnn-9.1-linux-ppc64le-v7.1.tgz\n'
-                '- conductor2.3.0.0_ppc64le.bin\n'
+                '- cws-2.2.0.0_ppc64le.bin\n'
                 '- dli-1.1.0.0_ppc64le.bin\n\n'
                 'For status of the preparation phase: pup software --status-prep paie52\n'
                 'For status of the install phase: pup software --status-install paie52\n\n')
