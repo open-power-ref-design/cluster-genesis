@@ -55,7 +55,7 @@ class software(object):
             self.log.info('Creating software vars yaml file')
             self.sw_vars = {}
             self.sw_vars['init-time'] = time.ctime()
-            self.about()
+            self.README()
             _ = input('\nPress enter to continue')
         else:
             if not isinstance(self.sw_vars, dict):
