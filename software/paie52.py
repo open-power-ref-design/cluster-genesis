@@ -84,7 +84,7 @@ class software(object):
                         'PowerAI Base Repository': 'power-ai'}
         self.files = {'anaconda': 'Anaconda2-[56].[1-9]*-Linux-ppc64le.sh',
                       'cudnn': 'cudnn-9.[1-9]-linux-ppc64le-v7.1.tgz',
-                      'spectrum-conductor': 'conductor2.[3-9].[0-9].[0-9]_ppc64le.bin',
+                      'spectrum-conductor': 'cws-2.[2-9].[0-9].[0-9]_ppc64le.bin',
                       'spectrum-dli': 'dli-1.[1-9].[0-9].[0-9]_ppc64le.bin'}
 
         self.log.debug(f'software variables: {self.sw_vars}')
@@ -356,7 +356,7 @@ class software(object):
         if src is not None and src != ana_src and 'http' in src:
             self.sw_vars[f'{ana_name}_alt_url'] = src
 
-        # Get Spectrum Conductor
+        # Get Spectrum Conductor with Spark
         name = 'spectrum-conductor'
         heading1(f'Set up {name.title()} \n')
         spc_src = self.files[name]
