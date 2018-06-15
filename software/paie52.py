@@ -201,7 +201,7 @@ class software(object):
         if which == 'all':
             heading1('Preparation Summary')
             for item in self.status:
-                print(f'{item:>30} : ' + self.status[item])
+                print(f'  {item:<30} : ' + self.status[item])
 
             gtg = 'Preparation complete'
             for item in self.status.values():
@@ -402,23 +402,31 @@ class software(object):
 
         # Setup repository for dependent packages
         dep_list = 'bzip2 opencv'
-        heading1('Setup repository for dependent packages')
-        repo_id = 'dependencies'
-        repo_name = 'Dependencies'
-        repo = PowerupRepo(repo_id, repo_name)
-        repo_dir = repo.get_repo_dir()
-        cmd = (f'yumdownloader --resolve --archlist={self.arch} --destdir '
-               f'{repo_dir} {dep_list}')
-        resp, err, rc = sub_proc_exec(cmd)
-        if rc != 0:
-            self.log.error('An error occurred while downloading dependent packages\n'
-                           f'{err}')
-        repo.create_meta()
-        content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
-        repo.write_yum_dot_repo_file(content)
-        content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
-        filename = repo_id + '-powerup.repo'
-        self.sw_vars['yum_powerup_repo_files'][filename] = content
+        heading1('Setup repository for dependent packages\n')
+        self.status_prep(which='Dependent Packages Repository')
+        new = self.status['Dependent Packages Repository'] == '-'
+        if not new:
+            self.log.info('The Dependent Packages Repository exists already'
+                          ' in the POWER-Up server.')
+            resp = get_yesno('Do you wish to recreate the dependent '
+                             'packages repository?')
+        if new or resp:
+            repo_id = 'dependencies'
+            repo_name = 'Dependencies'
+            repo = PowerupRepo(repo_id, repo_name)
+            repo_dir = repo.get_repo_dir()
+            cmd = (f'yumdownloader --resolve --archlist={self.arch} --destdir '
+                   f'{repo_dir} {dep_list}')
+            resp, err, rc = sub_proc_exec(cmd)
+            if rc != 0:
+                self.log.error('An error occurred while downloading dependent packages\n'
+                               f'{err}')
+            repo.create_meta()
+            content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+            repo.write_yum_dot_repo_file(content)
+            content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
+            filename = repo_id + '-powerup.repo'
+            self.sw_vars['yum_powerup_repo_files'][filename] = content
 
         # Get cudnn tar file
         name = 'cudnn'
@@ -446,7 +454,7 @@ class software(object):
 
         self.status_prep(which='CUDA Toolkit Repository')
         new = self.status['CUDA Toolkit Repository'] == '-'
-        if new:
+        if not new:
             self.log.info('The CUDA Toolkit Repository exists already'
                           ' in the POWER-Up server')
 
@@ -491,6 +499,9 @@ class software(object):
 
         self.status_prep(which='EPEL Repository')
         new = self.status['EPEL Repository'] == '-'
+        if not new:
+            self.log.info('The EPEL Repository exists already'
+                          ' in the POWER-Up server')
 
         repo = PowerupRepoFromRepo(repo_id, repo_name)
 
