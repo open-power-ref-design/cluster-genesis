@@ -73,6 +73,7 @@ class software(object):
         self.status = {'EPEL Repository': '-',
                        'CUDA Toolkit Repository': '-',
                        'PowerAI Base Repository': '-',
+                       'Dependent Packages Repository': '-',
                        'CUDA dnn content': '-',
                        'Anaconda content': '-',
                        'Spectrum conductor content': '-',
@@ -81,7 +82,8 @@ class software(object):
                        'Firewall': '-'}
         self.repo_id = {'EPEL Repository': 'epel-ppc64le',
                         'CUDA Toolkit Repository': 'cuda',
-                        'PowerAI Base Repository': 'power-ai'}
+                        'PowerAI Base Repository': 'power-ai',
+                        'Dependent Packages Repository': 'dependencies'}
         self.files = {'anaconda': 'Anaconda2-[56].[1-9]*-Linux-ppc64le.sh',
                       'cudnn': 'cudnn-9.[1-9]-linux-ppc64le-v7.1.tgz',
                       'spectrum-conductor': 'conductor2.[3-9].[0-9].[0-9]_ppc64le.bin',
@@ -135,30 +137,30 @@ class software(object):
             exists = glob.glob(f'/srv/anaconda/**/{self.files["anaconda"]}',
                                recursive=True)
             if exists:
-                self.status['Anaconda content'] = 'Anaconda is present in the\
-                    POWER-Up server'
+                self.status['Anaconda content'] = ('Anaconda is present in the '
+                                                   'POWER-Up server')
         # cudnn status
         if which == 'all' or which == 'cudnn':
             exists = glob.glob(f'/srv/cudnn/**/{self.files["cudnn"]}', recursive=True)
             if exists:
-                self.status['CUDA dnn content'] = 'CUDA DNN is present in the\
-                    POWER-Up server'
+                self.status['CUDA dnn content'] = ('CUDA DNN is present in the '
+                                                   'POWER-Up server')
 
         # Spectrum conductor status
         if which == 'all' or which == 'spectrum-conductor':
             exists = glob.glob(f'/srv/spectrum-conductor/**/'
                                f'{self.files["spectrum-conductor"]}', recursive=True)
             if exists:
-                self.status['Spectrum conductor content'] = 'Spectrum Conductor is\
-                     present in the POWER-Up server'
+                self.status['Spectrum conductor content'] = \
+                    'Spectrum Conductor is present in the POWER-Up server'
 
         # Spectrum DLI status
         if which == 'all' or which == 'spectrum-dli':
             exists = glob.glob(f'/srv/spectrum-dli/**/{self.files["spectrum-dli"]}',
                                recursive=True)
             if exists:
-                self.status['Spectrum DLI content'] = 'Spectrum DLI is present in\
-                     the POWER-Up server'
+                self.status['Spectrum DLI content'] = ('Spectrum DLI is present in '
+                                                       'the POWER-Up server')
 
         # PowerAI status
         s = 'PowerAI Base Repository'
@@ -180,6 +182,15 @@ class software(object):
 
         # EPEL status
         s = 'EPEL Repository'
+        if which == 'all' or which == s:
+            exists_repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[s]) +
+                                        '/**/repodata', recursive=True)
+            if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[s]}-local.repo') \
+                    and exists_repodata:
+                self.status[s] = s + ' is setup'
+
+        # Dependent Packages status
+        s = 'Dependent Packages Repository'
         if which == 'all' or which == s:
             exists_repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[s]) +
                                         '/**/repodata', recursive=True)
@@ -396,7 +407,8 @@ class software(object):
         repo_name = 'Dependencies'
         repo = PowerupRepo(repo_id, repo_name)
         repo_dir = repo.get_repo_dir()
-        cmd = f'yumdownloader --resolve --destdir {repo_dir} {dep_list}'
+        cmd = (f'yumdownloader --resolve --archlist={self.arch} --destdir '
+               f'{repo_dir} {dep_list}')
         resp, err, rc = sub_proc_exec(cmd)
         if rc != 0:
             self.log.error('An error occurred while downloading dependent packages\n'
