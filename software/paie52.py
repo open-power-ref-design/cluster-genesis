@@ -71,14 +71,14 @@ class software(object):
         self.sw_vars['arch'] = self.arch
         self.repo_dir = '/srv/repos/{repo_id}/rhel' + self.rhel_ver + '/{repo_id}'
         self.state = {'EPEL Repository': '-',
-                       'CUDA Toolkit Repository': '-',
-                       'PowerAI Base Repository': '-',
-                       'CUDA dnn content': '-',
-                       'Anaconda content': '-',
-                       'Spectrum conductor content': '-',
-                       'Spectrum DLI content': '-',
-                       'Nginx Web Server': '-',
-                       'Firewall': '-'}
+                      'CUDA Toolkit Repository': '-',
+                      'PowerAI Base Repository': '-',
+                      'CUDA dnn content': '-',
+                      'Anaconda content': '-',
+                      'Spectrum conductor content': '-',
+                      'Spectrum DLI content': '-',
+                      'Nginx Web Server': '-',
+                      'Firewall': '-'}
         self.repo_id = {'EPEL Repository': 'epel-ppc64le',
                         'CUDA Toolkit Repository': 'cuda',
                         'PowerAI Base Repository': 'power-ai'}
@@ -96,8 +96,8 @@ class software(object):
             yaml.dump(self.sw_vars, f, default_flow_style=False)
 
     def README(self):
-        text = ('\nPowerAI 5.2 software installer module'
-                '\nThis module installs the PowerAI Enterprise software '
+        print(bold('\nPowerAI 5.2 software installer module'))
+        text = ('\nThis module installs the PowerAI Enterprise software '
                 'to a cluster of OpenPOWER nodes.\n\n'
                 'PowerAI Enterprise installation involves three steps;\n'
                 '   1 - Preparation. Prepares the installer node software server.\n'
@@ -111,8 +111,8 @@ class software(object):
                 '- cudnn-9.1-linux-ppc64le-v7.1.tgz\n'
                 '- conductor2.3.0.0_ppc64le.bin\n'
                 '- dli-1.1.0.0_ppc64le.bin\n\n'
-                'For status of the preparation phase: pup software --status-prep paie52\n'
-                'For status of the install phase: pup software --status-install paie52\n\n')
+                'For installation status: pup software --status paie52\n'
+                'To redisplay this README: pup software --README paie52\n\n')
         print(text)
 
     def status(self, which='all'):
@@ -137,24 +137,28 @@ class software(object):
         if which == 'all' or which == 'anaconda':
             exists = glob.glob(f'/srv/anaconda/**/{self.files["anaconda"]}', recursive=True)
             if exists:
-                self.state['Anaconda content'] = 'Anaconda is present in the POWER-Up server'
+                self.state['Anaconda content'] = ('Anaconda is present in the '
+                                                  'POWER-Up server')
         # cudnn status
         if which == 'all' or which == 'cudnn':
             exists = glob.glob(f'/srv/cudnn/**/{self.files["cudnn"]}', recursive=True)
             if exists:
-                self.state['CUDA dnn content'] = 'CUDA DNN is present in the POWER-Up server'
+                self.state['CUDA dnn content'] = ('CUDA DNN is present in the '
+                                                  'POWER-Up server')
 
         # Spectrum conductor status
         if which == 'all' or which == 'spectrum-conductor':
             exists = glob.glob(f'/srv/spectrum-conductor/**/{self.files["spectrum-conductor"]}', recursive=True)
             if exists:
-                self.state['Spectrum conductor content'] = 'Spectrum Conductor is present in the POWER-Up server'
+                self.state['Spectrum conductor content'] = \
+                    'Spectrum Conductor is present in the POWER-Up server'
 
         # Spectrum DLI status
         if which == 'all' or which == 'spectrum-dli':
             exists = glob.glob(f'/srv/spectrum-dli/**/{self.files["spectrum-dli"]}', recursive=True)
             if exists:
-                self.state['Spectrum DLI content'] = 'Spectrum DLI is present in the POWER-Up server'
+                self.state['Spectrum DLI content'] = ('Spectrum DLI is present in the '
+                                                      'POWER-Up server')
 
         # PowerAI status
         s = 'PowerAI Base Repository'
@@ -186,7 +190,7 @@ class software(object):
         if which == 'all':
             heading1('Preparation Summary')
             for item in self.state:
-                print(f'{item:>30} : ' + self.state[item])
+                print(f'  {item:<30} : ' + self.state[item])
 
             gtg = 'Preparation complete'
             for item in self.state.values():
