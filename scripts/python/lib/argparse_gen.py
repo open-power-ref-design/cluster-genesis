@@ -329,13 +329,13 @@ def get_args(parser_args=False):
         help='Install the specified software to cluster nodes')
 
     parser_software.add_argument(
-        '--about',
+        '--README',
         default=ABSENT,
         action='store_true',
         help='Display software install module help')
 
     parser_software.add_argument(
-        '--status-prep',
+        '--status',
         default=ABSENT,
         action='store_true',
         help='Display software install module preparation status')
@@ -422,9 +422,9 @@ def _check_post_deploy(args, subparser):
 
 
 def _check_software(args, subparser):
-    if not args.setup and not args.install and not args.name and not args.about \
-            and not args.all:
-        subparser.error('one of the arguments --about --prep --status-prep'
+    if not args.setup and not args.install and not args.name and not args.README \
+            and not args.status and not args.all:
+        subparser.error('one of the arguments --README --prep --status'
                         '--install -a/--all is required')
 
 
