@@ -74,6 +74,7 @@ class software(object):
                        'CUDA Toolkit Repository': '-',
                        'PowerAI Base Repository': '-',
                        'CUDA dnn content': '-',
+                       'CUDA nccl2 content': '-',
                        'Anaconda content': '-',
                        'Spectrum conductor content': '-',
                        'Spectrum DLI content': '-',
@@ -84,6 +85,7 @@ class software(object):
                         'PowerAI Base Repository': 'power-ai'}
         self.files = {'anaconda': 'Anaconda2-[56].[1-9]*-Linux-ppc64le.sh',
                       'cudnn': 'cudnn-9.[1-9]-linux-ppc64le-v7.1.tgz',
+                      'nccl2': 'nccl_2.2.1[2-9]-1+cuda9.[2-9]_ppc64le.tgz',
                       'spectrum-conductor': 'cws-2.[2-9].[0-9].[0-9]_ppc64le.bin',
                       'spectrum-dli': 'dli-1.[1-9].[0-9].[0-9]_ppc64le.bin'}
 
@@ -141,17 +143,28 @@ class software(object):
             if exists:
                 self.status['CUDA dnn content'] = 'CUDA DNN is present in the POWER-Up server'
 
+        # cuda nccl2 status
+        if which == 'all' or which == 'nccl2':
+            exists = glob.glob(f'/srv/nccl2/**/{self.files["nccl2"]}', recursive=True)
+            if exists:
+                self.status['CUDA nccl2 content'] = ('CUDA nccl2 is present in the '
+                                                     'POWER-Up server')
+
         # Spectrum conductor status
         if which == 'all' or which == 'spectrum-conductor':
-            exists = glob.glob(f'/srv/spectrum-conductor/**/{self.files["spectrum-conductor"]}', recursive=True)
+            exists = glob.glob(f'/srv/spectrum-conductor/**/'
+                               f'{self.files["spectrum-conductor"]}', recursive=True)
             if exists:
-                self.status['Spectrum conductor content'] = 'Spectrum Conductor is present in the POWER-Up server'
+                self.status['Spectrum conductor content'] = \
+                    'Spectrum Conductor is present in the POWER-Up server'
 
         # Spectrum DLI status
         if which == 'all' or which == 'spectrum-dli':
-            exists = glob.glob(f'/srv/spectrum-dli/**/{self.files["spectrum-dli"]}', recursive=True)
+            exists = glob.glob(f'/srv/spectrum-dli/**/{self.files["spectrum-dli"]}',
+                               recursive=True)
             if exists:
-                self.status['Spectrum DLI content'] = 'Spectrum DLI is present in the POWER-Up server'
+                self.status['Spectrum DLI content'] = ('Spectrum DLI is present in the '
+                                                       'POWER-Up server')
 
         # PowerAI status
         s = 'PowerAI Base Repository'
@@ -394,6 +407,19 @@ class software(object):
 
         if not exists or (exists and get_yesno(f'Copy a new {name.title()} file? ')):
             src_path = PowerupFileFromDisk(name, cudnn_src)
+
+        # Get cuda nccl2 tar file
+        name = 'nccl2'
+        heading1(f'Set up {name.title()} \n')
+        nccl2_src = self.files[name]
+        self.status_prep(name)
+        exists = False if self.status['CUDA nccl2 content'] == '-' else True
+
+        if exists:
+            self.log.info('CUDA nccl2 content exists already in the POWER-Up server')
+
+        if not exists or (exists and get_yesno(f'Copy a new {name.title()} file? ')):
+            src_path = PowerupFileFromDisk(name, nccl2_src)
 
         # Setup CUDA
         repo_id = 'cuda'
