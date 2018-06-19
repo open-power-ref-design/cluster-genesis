@@ -1,0 +1,7 @@
+---
+- name: Install the cuDNN v7.1.2 packages
+  shell: "curl -G http://10.0.20.21/cudnn/cudnn-9.2-linux-ppc64le-v7.1.tgz \
+  | tar -C /usr/local --no-same-owner -xzv"
+  args:
+    warn: no
+  become: yes

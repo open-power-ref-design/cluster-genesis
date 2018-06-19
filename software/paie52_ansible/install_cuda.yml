@@ -1,0 +1,9 @@
+---
+- name: Install cuda software package
+  yum:
+    name: cuda
+    state: latest
+  become: yes
+  notify: Reboot
+
+- meta: flush_handlers

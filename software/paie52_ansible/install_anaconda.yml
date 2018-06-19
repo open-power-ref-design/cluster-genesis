@@ -1,0 +1,14 @@
+---
+- name: Download Anaconda
+  get_url:
+    owner: "{{ ansible_user_id }}"
+    group: "{{ ansible_user_id }}"
+    mode: 0744
+    checksum: md5:e894dcc547a1c7d67deb04f6bba7223a
+    url: http://10.0.20.21/anaconda/Anaconda2-5.1.0-Linux-ppc64le.sh
+    dest: "{{ ansible_env.HOME }}"
+
+- name: Install Anaconda
+  shell: ~/Anaconda2-5.1.0-Linux-ppc64le.sh -b -p ~/Anaconda/
+  args:
+    executable: /bin/bash

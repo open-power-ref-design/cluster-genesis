@@ -1,6 +1,0 @@
----
-all:
-  packages:
-    - git
-    - most
-    - powerai-license

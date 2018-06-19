@@ -1,0 +1,6 @@
+---
+- hosts: all
+  handlers:
+    - import_tasks: reboot.yml
+  tasks:
+    - include_tasks: "{{ task_file }}"

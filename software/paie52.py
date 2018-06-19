@@ -237,7 +237,7 @@ class software(object):
             cmd = 'yum clean all'
             resp, err, rc = sub_proc_exec(cmd)
             if rc != 0:
-                sys.log.error('An error occurred while cleaning the yum repositories\n'
+                self.log.error('An error occurred while cleaning the yum repositories\n'
                               'POWER-Up is unable to continue.')
                 sys.exit('Exiting')
 
@@ -687,9 +687,9 @@ class software(object):
     def init_clients(self):
         ansible_inventory = get_ansible_inventory()
         cmd = ('{} -i {} '
-               '{}/init_clients.yml'
+               '{}/init_clients.yml --ask-become-pass'
                .format(get_ansible_playbook_path(), ansible_inventory,
-                       get_playbooks_path()))
+                       GEN_SOFTWARE_PATH))
         resp, err, rc = sub_proc_exec(cmd)
         # cmd = ('ssh -t -i ~/.ssh/gen root@10.0.20.22 '
         #        '/opt/DL/license/bin/accept-powerai-license.sh')
@@ -699,12 +699,37 @@ class software(object):
 
     def install(self):
         ansible_inventory = get_ansible_inventory()
-        cmd = ('{} -i {} '
-               '{}/install_software.yml'
-               .format(get_ansible_playbook_path(), ansible_inventory,
-                       get_playbooks_path()))
-        resp, err, rc = sub_proc_exec(cmd)
+        install_tasks = yaml.load(open(GEN_SOFTWARE_PATH +
+                                       'paie52_install_procedure.yml'))
+        for task in install_tasks:
+            heading1(f"Client Node Action: {task['description']}")
+            if _run_ansible_tasks(task['tasks'], ansible_inventory):
+                self.log.error('POWER-Up is unable to continue.')
+                sys.exit('Exiting')
+
         print('Done')
+
+
+def _run_ansible_tasks(tasks_path, ansible_inventory, extra_args=''):
+    log = logger.getlogger()
+    log.info(f'Running Ansible tasks found in \'{tasks_path}\' ...')
+    if 'become:' in open(f'{GEN_SOFTWARE_PATH}{tasks_path}').read():
+        extra_args += ' --ask-become-pass'
+    cmd = ('{0} -i {1} '
+           '{2}paie52_ansible/run.yml --extra-vars "task_file={2}{3}" {4}'
+           .format(get_ansible_playbook_path(), ansible_inventory,
+                   GEN_SOFTWARE_PATH, tasks_path, extra_args))
+    resp, err, rc = sub_proc_exec(cmd, shell=True)
+    log.debug(f"cmd: {cmd}\nresp: {resp}\nerr: {err}\nrc: {rc}")
+    if rc != 0:
+        log.warning("Ansible tasks failed!")
+        if resp != '':
+            print(f"stdout:\n{resp}\n")
+        if err != '':
+            print(f"stderr:\n{err}\n")
+    else:
+        log.info("Ansible tasks ran successfully")
+    return rc
 
 
 if __name__ == '__main__':
