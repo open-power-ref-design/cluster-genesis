@@ -401,7 +401,25 @@ class software(object):
             src_path = PowerupFileFromDisk(name, spdli_src)
 
         # Setup repository for dependent packages
-        dep_list = 'bzip2 opencv'
+        dep_list = ('bzip2 opencv kernel kernel-tools kernel-tools-libs '
+                    'kernel-bootwrapper kernel-devel kernel-headers gcc gcc-c++ '
+                    'libXdmcp elfutils-libelf-devel java-1.8.0-openjdk libmpc '
+                    'libatomic glibc-devel glibc-headers mpfr kernel-headers '
+                    'zlib-devel boost-system libgfortran boost-python boost-thread '
+                    'boost-filesystem java-1.8.0-openjdk-devel')
+        file_more = GEN_SOFTWARE_PATH + 'dependent-packages.list'
+        if os.path.isfile(file_more):
+            try:
+                with open(file_more, 'r') as f:
+                    more = f.read()
+            except:
+                self.log.error('Error reading {file_more}')
+                more = ''
+            else:
+                more.replace(',', ' ')
+                more.replace('\n', ' ')
+        else:
+            more = ''
         heading1('Setup repository for dependent packages\n')
         self.status_prep(which='Dependent Packages Repository')
         new = self.status['Dependent Packages Repository'] == '-'
@@ -415,12 +433,8 @@ class software(object):
             repo_name = 'Dependencies'
             repo = PowerupRepo(repo_id, repo_name)
             repo_dir = repo.get_repo_dir()
-            cmd = (f'yumdownloader --resolve --archlist={self.arch} --destdir '
-                   f'{repo_dir} {dep_list}')
-            resp, err, rc = sub_proc_exec(cmd)
-            if rc != 0:
-                self.log.error('An error occurred while downloading dependent packages\n'
-                               f'{err}')
+            self._add_dependent_packages(repo_dir, dep_list)
+            self._add_dependent_packages(repo_dir, more)
             repo.create_meta()
             content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
             repo.write_yum_dot_repo_file(content)
@@ -623,6 +637,30 @@ class software(object):
             self.log.info('Repository setup complete')
         # Display status
         self.status_prep()
+
+    def _add_dependent_packages(self, repo_dir, dep_list):
+        cmd = (f'yumdownloader --resolve --archlist={self.arch} --destdir '
+               f'{repo_dir} {dep_list}')
+        resp, err, rc = sub_proc_exec(cmd)
+        if rc != 0:
+            self.log.error('An error occurred while downloading dependent packages\n'
+                           f'rc: {rc} err: {err}')
+        resp = resp.splitlines()
+        for item in resp:
+            if 'No Match' in item:
+                self.log.error(f'Dependent packages download error. {item}')
+
+        cmd = 'yum clean packages expire-cache'
+        resp, err, rc = sub_proc_exec(cmd)
+        if rc != 0:
+            self.log.error('An error occurred while cleaning the yum cache\n'
+                           f'rc: {rc} err: {err}')
+
+        cmd = 'yum makecache fast'
+        resp, err, rc = sub_proc_exec(cmd)
+        if rc != 0:
+            self.log.error('An error occurred while making the yum cache\n'
+                           f'rc: {rc} err: {err}')
 
     def install(self):
         ansible_inventory = get_ansible_inventory()
