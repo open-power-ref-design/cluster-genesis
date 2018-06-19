@@ -684,6 +684,7 @@ class Gen(object):
 
         if cmd == argparse_gen.Cmd.SOFTWARE.value:
             if not argparse_gen.is_arg_present(self.args.prep) and not \
+                    argparse_gen.is_arg_present(self.args.init_clients) and not \
                     argparse_gen.is_arg_present(self.args.install) and not \
                     argparse_gen.is_arg_present(self.args.about) and not \
                     argparse_gen.is_arg_present(self.args.status_prep):
@@ -708,6 +709,13 @@ class Gen(object):
                     print(exc.message)
                     print('The software class needs to implement a '
                           'method named "setup"')
+            if self.args.init_clients is True or self.args.all is True:
+                try:
+                    soft.init_clients()
+                except AttributeError as exc:
+                    print(exc.message)
+                    print('The software class needs to implement a '
+                          'method named "init_clients"')
             if self.args.install is True or self.args.all is True:
                 try:
                     soft.install()

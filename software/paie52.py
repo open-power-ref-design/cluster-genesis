@@ -575,6 +575,20 @@ class software(object):
         # Display status
         self.status_prep()
 
+    def init_clients(self):
+        ansible_inventory = get_ansible_inventory()
+        cmd = ('{} -i {} '
+               '{}/init_clients.yml'
+               .format(get_ansible_playbook_path(), ansible_inventory,
+                       get_playbooks_path()))
+        resp, err, rc = sub_proc_exec(cmd)
+        print(resp)
+        # cmd = ('ssh -t -i ~/.ssh/gen root@10.0.20.22 '
+        #        '/opt/DL/license/bin/accept-powerai-license.sh')
+        # resp = sub_proc_display(cmd)
+        # print(resp)
+        print('All done')
+
     def install(self):
         ansible_inventory = get_ansible_inventory()
         cmd = ('{} -i {} '
@@ -582,12 +596,7 @@ class software(object):
                .format(get_ansible_playbook_path(), ansible_inventory,
                        get_playbooks_path()))
         resp, err, rc = sub_proc_exec(cmd)
-        print(resp)
-        cmd = ('ssh -t -i ~/.ssh/gen root@10.0.20.22 '
-               '/opt/DL/license/bin/accept-powerai-license.sh')
-        resp = sub_proc_display(cmd)
-        print(resp)
-        print('All done')
+        print('Done')
 
 
 if __name__ == '__main__':

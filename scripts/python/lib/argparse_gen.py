@@ -323,6 +323,12 @@ def get_args(parser_args=False):
              'up this node as the server for the software')
 
     parser_software.add_argument(
+        '--init-clients',
+        default=ABSENT,
+        action='store_true',
+        help='Initialize the cluster clients to access the POWER-Up software server')
+
+    parser_software.add_argument(
         '--install',
         default=ABSENT,
         action='store_true',
@@ -423,9 +429,10 @@ def _check_post_deploy(args, subparser):
 
 def _check_software(args, subparser):
     if not args.setup and not args.install and not args.name and not args.about \
-            and not args.all:
+            and not args.init_clients and not args.all:
         subparser.error('one of the arguments --about --prep --status-prep'
-                        '--install -a/--all is required')
+                        '--init-clients --install -a/--all plus a software '
+                        'installer module name is required')
 
 
 def is_arg_present(arg):
