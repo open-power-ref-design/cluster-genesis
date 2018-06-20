@@ -335,13 +335,13 @@ def get_args(parser_args=False):
         help='Install the specified software to cluster nodes')
 
     parser_software.add_argument(
-        '--about',
+        '--README',
         default=ABSENT,
         action='store_true',
         help='Display software install module help')
 
     parser_software.add_argument(
-        '--status-prep',
+        '--status',
         default=ABSENT,
         action='store_true',
         help='Display software install module preparation status')
@@ -421,14 +421,8 @@ def _check_post_deploy(args, subparser):
             '--config-client-os -a/--all is required')
 
 
-# def _check_util(args, subparser):
-#     if not args.scan-pxe-network and not args.scan-ipmi-networks:
-#         subparser.error(
-#             'one of the arguments --scan-pxe-networks --scan-ipmi-networks is required')
-
-
 def _check_software(args, subparser):
-    if not args.setup and not args.install and not args.name and not args.about \
+    if not args.setup and not args.install and not args.name and not args.README \
             and not args.init_clients and not args.all:
         subparser.error('one of the arguments --about --prep --status-prep'
                         '--init-clients --install -a/--all plus a software '
