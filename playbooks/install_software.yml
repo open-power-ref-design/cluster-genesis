@@ -3,6 +3,7 @@
   hosts: all
   vars_files:
     - /home/user/power-up/software/software-vars.yml
+    - /home/user/power-up/playbooks/poweraie_software.yml
   tasks:
     - name: install "{{ item }}"
       package:
