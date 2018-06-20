@@ -73,6 +73,7 @@ class software(object):
         self.state = {'EPEL Repository': '-',
                       'CUDA Toolkit Repository': '-',
                       'PowerAI Base Repository': '-',
+                      'Dependent Packages Repository': '-',
                       'CUDA dnn content': '-',
                       'Anaconda content': '-',
                       'Spectrum conductor content': '-',
@@ -81,10 +82,11 @@ class software(object):
                       'Firewall': '-'}
         self.repo_id = {'EPEL Repository': 'epel-ppc64le',
                         'CUDA Toolkit Repository': 'cuda',
-                        'PowerAI Base Repository': 'power-ai'}
+                        'PowerAI Base Repository': 'power-ai',
+                        'Dependent Packages Repository': 'dependencies'}
         self.files = {'anaconda': 'Anaconda2-[56].[1-9]*-Linux-ppc64le.sh',
                       'cudnn': 'cudnn-9.[1-9]-linux-ppc64le-v7.1.tgz',
-                      'spectrum-conductor': 'conductor2.[3-9].[0-9].[0-9]_ppc64le.bin',
+                      'spectrum-conductor': 'cws-2.[2-9].[0-9].[0-9]_ppc64le.bin',
                       'spectrum-dli': 'dli-1.[1-9].[0-9].[0-9]_ppc64le.bin'}
 
         self.log.debug(f'software variables: {self.sw_vars}')
@@ -107,9 +109,9 @@ class software(object):
                 '       usage: pup software --install paie52\n\n'
                 'Before beiginning, the following files should be copied\n'
                 'onto this node;\n'
-                '- mldl-repo-local-5.1.0-201804110899.fd91856.ppc64le.rpm\n'
+                '- mldl-repo-local-5.2.0-201804110899.fd91856.ppc64le.rpm\n'
                 '- cudnn-9.1-linux-ppc64le-v7.1.tgz\n'
-                '- conductor2.3.0.0_ppc64le.bin\n'
+                '- cws-2.2.0.0_ppc64le.bin\n'
                 '- dli-1.1.0.0_ppc64le.bin\n\n'
                 'For installation status: pup software --status paie52\n'
                 'To redisplay this README: pup software --README paie52\n\n')
@@ -135,7 +137,8 @@ class software(object):
 
         # Anaconda status
         if which == 'all' or which == 'anaconda':
-            exists = glob.glob(f'/srv/anaconda/**/{self.files["anaconda"]}', recursive=True)
+            exists = glob.glob(f'/srv/anaconda/**/{self.files["anaconda"]}',
+                               recursive=True)
             if exists:
                 self.state['Anaconda content'] = ('Anaconda is present in the '
                                                   'POWER-Up server')
@@ -145,21 +148,21 @@ class software(object):
             if exists:
                 self.state['CUDA dnn content'] = ('CUDA DNN is present in the '
                                                   'POWER-Up server')
-
         # Spectrum conductor status
         if which == 'all' or which == 'spectrum-conductor':
-            exists = glob.glob(f'/srv/spectrum-conductor/**/{self.files["spectrum-conductor"]}', recursive=True)
+            exists = glob.glob(f'/srv/spectrum-conductor/**/'
+                               f'{self.files["spectrum-conductor"]}', recursive=True)
             if exists:
                 self.state['Spectrum conductor content'] = \
                     'Spectrum Conductor is present in the POWER-Up server'
 
         # Spectrum DLI status
         if which == 'all' or which == 'spectrum-dli':
-            exists = glob.glob(f'/srv/spectrum-dli/**/{self.files["spectrum-dli"]}', recursive=True)
+            exists = glob.glob(f'/srv/spectrum-dli/**/{self.files["spectrum-dli"]}',
+                               recursive=True)
             if exists:
                 self.state['Spectrum DLI content'] = ('Spectrum DLI is present in the '
                                                       'POWER-Up server')
-
         # PowerAI status
         s = 'PowerAI Base Repository'
         if which == 'all' or which == s:
@@ -186,6 +189,15 @@ class software(object):
             if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[s]}-local.repo') \
                     and exists_repodata:
                 self.state[s] = s + ' is setup'
+
+        # Dependent Packages status
+        s = 'Dependent Packages Repository'
+        if which == 'all' or which == s:
+            exists_repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[s]) +
+                                        '/**/repodata', recursive=True)
+            if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[s]}-local.repo') \
+                    and exists_repodata:
+                self.status[s] = s + ' is setup'
 
         if which == 'all':
             heading1('Preparation Summary')
@@ -363,7 +375,7 @@ class software(object):
         if src is not None and src != ana_src and 'http' in src:
             self.sw_vars[f'{ana_name}_alt_url'] = src
 
-        # Get Spectrum Conductor
+        # Get Spectrum Conductor with Spark
         name = 'spectrum-conductor'
         heading1(f'Set up {name.title()} \n')
         spc_src = self.files[name]
@@ -388,6 +400,48 @@ class software(object):
 
         if not exists or (exists and get_yesno(f'Copy a new {name.title()} file? ')):
             src_path = PowerupFileFromDisk(name, spdli_src)
+
+        # Setup repository for dependent packages
+        dep_list = ('bzip2 opencv kernel kernel-tools kernel-tools-libs '
+                    'kernel-bootwrapper kernel-devel kernel-headers gcc gcc-c++ '
+                    'libXdmcp elfutils-libelf-devel java-1.8.0-openjdk libmpc '
+                    'libatomic glibc-devel glibc-headers mpfr kernel-headers '
+                    'zlib-devel boost-system libgfortran boost-python boost-thread '
+                    'boost-filesystem java-1.8.0-openjdk-devel')
+        file_more = GEN_SOFTWARE_PATH + 'dependent-packages.list'
+        if os.path.isfile(file_more):
+            try:
+                with open(file_more, 'r') as f:
+                    more = f.read()
+            except:
+                self.log.error('Error reading {file_more}')
+                more = ''
+            else:
+                more.replace(',', ' ')
+                more.replace('\n', ' ')
+        else:
+            more = ''
+        heading1('Setup repository for dependent packages\n')
+        self.status_prep(which='Dependent Packages Repository')
+        new = self.status['Dependent Packages Repository'] == '-'
+        if not new:
+            self.log.info('The Dependent Packages Repository exists already'
+                          ' in the POWER-Up server.')
+            resp = get_yesno('Do you wish to recreate the dependent '
+                             'packages repository?')
+        if new or resp:
+            repo_id = 'dependencies'
+            repo_name = 'Dependencies'
+            repo = PowerupRepo(repo_id, repo_name)
+            repo_dir = repo.get_repo_dir()
+            self._add_dependent_packages(repo_dir, dep_list)
+            self._add_dependent_packages(repo_dir, more)
+            repo.create_meta()
+            content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+            repo.write_yum_dot_repo_file(content)
+            content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
+            filename = repo_id + '-powerup.repo'
+            self.sw_vars['yum_powerup_repo_files'][filename] = content
 
         # Get cudnn tar file
         name = 'cudnn'
@@ -415,7 +469,7 @@ class software(object):
 
         self.status_prep(which='CUDA Toolkit Repository')
         new = self.state['CUDA Toolkit Repository'] == '-'
-        if new:
+        if not new:
             self.log.info('The CUDA Toolkit Repository exists already'
                           ' in the POWER-Up server')
 
@@ -460,6 +514,9 @@ class software(object):
 
         self.status_prep(which='EPEL Repository')
         new = self.state['EPEL Repository'] == '-'
+        if not new:
+            self.log.info('The EPEL Repository exists already'
+                          ' in the POWER-Up server')
 
         repo = PowerupRepoFromRepo(repo_id, repo_name)
 
@@ -581,6 +638,30 @@ class software(object):
             self.log.info('Repository setup complete')
         # Display status
         self.status_prep()
+
+    def _add_dependent_packages(self, repo_dir, dep_list):
+        cmd = (f'yumdownloader --resolve --archlist={self.arch} --destdir '
+               f'{repo_dir} {dep_list}')
+        resp, err, rc = sub_proc_exec(cmd)
+        if rc != 0:
+            self.log.error('An error occurred while downloading dependent packages\n'
+                           f'rc: {rc} err: {err}')
+        resp = resp.splitlines()
+        for item in resp:
+            if 'No Match' in item:
+                self.log.error(f'Dependent packages download error. {item}')
+
+        cmd = 'yum clean packages expire-cache'
+        resp, err, rc = sub_proc_exec(cmd)
+        if rc != 0:
+            self.log.error('An error occurred while cleaning the yum cache\n'
+                           f'rc: {rc} err: {err}')
+
+        cmd = 'yum makecache fast'
+        resp, err, rc = sub_proc_exec(cmd)
+        if rc != 0:
+            self.log.error('An error occurred while making the yum cache\n'
+                           f'rc: {rc} err: {err}')
 
     def install(self):
         ansible_inventory = get_ansible_inventory()
