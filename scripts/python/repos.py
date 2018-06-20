@@ -166,7 +166,7 @@ class PowerupRepo(object):
         mutaully exclusive. If repo_dir is not included, self.repo_dir is used as the
         baseurl for client and local .repo content.
         """
-        self.log.info(f'Creating yum ". repo" file for {self.repo_name}')
+        self.log.debug(f'Creating yum ". repo" file for {self.repo_name}')
         if not repo_dir:
             repo_dir = self.repo_dir
         content = ''
@@ -215,18 +215,23 @@ class PowerupRepo(object):
                     with open(repo_link_path, 'r') as f:
                         curr_content = f.read()
                         if curr_content != content:
-                            cache_dir = f'/var/cache/yum/{self.arch}/7Server/{self.repo_id}'
+                            cache_dir = f'/var/cache/yum/{self.arch}/7Server/\
+                                        {self.repo_id}'
                             if os.path.exists(cache_dir):
-                                self.log.info(f'Removing existing cache directory {cache_dir}')
+                                self.log.info(f'Removing existing cache directory '
+                                              '{cache_dir}')
                                 rmtree(cache_dir)
                             if os.path.exists(cache_dir + '-local'):
-                                self.log.info(f'Removing existing cache directory {cache_dir}-local')
+                                self.log.info(f'Removing existing cache directory '
+                                              '{cache_dir}-local')
                                 rmtree(cache_dir + '-local')
                             if os.path.exists(f'{self.repo_dir}/repodata'):
-                                self.log.info(f'Removing existing repodata for {self.repo_id}')
+                                self.log.info(f'Removing existing repodata for '
+                                              '{self.repo_id}')
                                 rmtree(f'{self.repo_dir}/repodata')
                             if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id}-local.repo'):
-                                self.log.info(f'Removing existing local .repo for {self.repo_id}-local')
+                                self.log.info(f'Removing existing local .repo for'
+                                              ' {self.repo_id}-local')
                                 os.remove(f'/etc/yum.repos.d/{self.repo_id}-local.repo')
         with open(repo_link_path, 'w') as f:
             f.write(content)
