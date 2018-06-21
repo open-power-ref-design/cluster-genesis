@@ -52,7 +52,7 @@ def setup_source_file(name, src_glob, url='http://', alt_url='http://',
             only a single match is found it is used without choice and returned.
     """
     log = logger.getlogger()
-    name_src = name.lower().replace(' ','-').rstrip('-content')
+    name_src = name.lower().replace(' ', '-').replace('-content', '')
     exists = glob.glob(f'/srv/{name_src}/**/{src_glob}', recursive=True)
     if exists:
         log.info(f'The {name.capitalize()} source file exists already in the POWER-Up server '
@@ -147,6 +147,7 @@ class PowerupRepo(object):
         self.arch = arch
         self.rhel_ver = str(rhel_ver)
         self.repo_dir = f'/srv/repos/{self.repo_id}/rhel{self.rhel_ver}/{self.repo_id}'
+        self.anarepo_dir = f'/srv/repos/{self.repo_id}'
         self.log = logger.getlogger()
 
     def get_repo_dir(self):
@@ -317,7 +318,8 @@ class PowerupRepoFromRpm(PowerupRepo):
 class PowerupRepoFromRepo(PowerupRepo):
     """Sets up a yum repository for access by POWER-Up software clients.
     The repo is first sync'ed locally from the internet or a user specified
-    URL which should reside on another host.
+    URL which could reside on another host or from a local directory. (ie
+    a file based URL pointing to a mounted disk. eg file:///mnt/my-mounted-usb)
     """
     def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7'):
         super(PowerupRepoFromRepo, self).__init__(repo_id, repo_name, arch, rhel_ver)
@@ -332,7 +334,7 @@ class PowerupRepoFromRepo(PowerupRepo):
             print(f'\nDo you want to sync the local {self.repo_name}\nrepository'
                   ' at this time?\n')
             print('This can take a few minutes.\n')
-            items = 'Yes,no,Sync repository and Force recreation of yum ".repo" files'
+            items = 'Yes,no,Sync repository and Force recreation of metadata files'
             ch, item = get_selection(items, 'Y,n,F', sep=',')
         return ch
 
@@ -368,6 +370,35 @@ class PowerupRepoFromRepo(PowerupRepo):
             raise UserException
         else:
             self.log.info(f'{self.repo_name} sync finished successfully')
+
+    def sync_ana(self, url, repo='free'):
+        """Syncs an Anaconda repository using wget or copy?. The corresponding
+        'noarch' repo is also synced.
+        """
+        # curl -C -
+
+        if 'http:' in url or 'https:' in url:
+            self.log.info(f'Syncing {self.repo_name}')
+            self.log.info('This can take many minutes or hours for large repositories\n')
+            cmd = (f'wget --reject-regex "continuum-docs-*" -P /srv/repos/{self.repo_id} -m '
+                   f'{url}')
+            rc = sub_proc_display(cmd)
+            if rc != 0:
+                self.log.error(f'Error downloading {url}/noarch/.  rc: {rc}')
+        elif 'file:///' in url:
+            src_dir = url[7:]
+            if self.anarepo_dir in url:
+                dest_dir = url[url.find(self.anarepo_dir):]
+            else:
+                dest_dir = self.anarepo_dir + url
+            if not os.path.isdir(dest_dir):
+                os.makedirs(dest_dir)
+            cmd = f'rsync -u -r -P -v {src_dir} {dest_dir}'
+            rc = sub_proc_display(cmd)
+            if rc != 0:
+                self.log.error('Sync of {self.repo_id} failed. rc: {rc}')
+            else:
+                self.log.info(f'{self.repo_name} sync finished successfully')
 
 
 class PowerupRepoFromDir(PowerupRepo):

@@ -295,7 +295,7 @@ def get_url(url='http://', type='directory', prompt_name='', repo_chk=False):
                 response = re.search(r'Content-Length:\s+\d+', reply)
                 if response:
                     try:
-                        cmd = f'curl --max-time 2 -I {url}/repodata'
+                        cmd = f'curl --max-time 2 -I {url}/repodata{{,.json}}'
                         reply, err, rc = sub_proc_exec(cmd)
                     except:
                         pass

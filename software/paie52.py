@@ -417,7 +417,8 @@ class software(object):
                     'libXdmcp elfutils-libelf-devel java-1.8.0-openjdk libmpc '
                     'libatomic glibc-devel glibc-headers mpfr kernel-headers '
                     'zlib-devel boost-system libgfortran boost-python boost-thread '
-                    'boost-filesystem java-1.8.0-openjdk-devel')
+                    'boost-filesystem java-1.8.0-openjdk-devel scipy PyYAML '
+                    'pyparsing python-pillow python-matplotlib pciutils')
         file_more = GEN_SOFTWARE_PATH + 'dependent-packages.list'
         if os.path.isfile(file_more):
             try:
@@ -539,37 +540,38 @@ class software(object):
             self.sw_vars[f'{ana_name}_alt_url'] = src
 
         # Setup Anaconda Repo.  (not a YUM repo)
+        repo_id = 'anaconda'
         repo_name = 'Anaconda Repository'
-        heading1(f'Set up {repo_name} repository\n')
+        # baseurl = 'https://repo.continuum.io/pkgs/free/linux-ppc64le'
+        baseurl = 'https://repo.continuum.io/pkgs/free/noarch'
+        heading1(f'Set up {repo_name}\n')
+        if f'{repo_id}_alt_url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{repo_id}_alt_url']
+        else:
+            alt_url = None
+
         exists = self.status_prep(which='Anaconda Repository')
         if exists:
-            msg = 'recreate'
             self.log.info('The Anaconda Repository exists already'
                           ' in the POWER-Up server\n')
-        else:
-            msg = 'create'
+        repo = PowerupRepoFromRepo(repo_id, repo_name)
 
-        if not exists or get_yesno(f'Do you want to {msg} the {repo_name}? '):
-            cmd = ('wget --reject-regex "continuum-docs-*" -P /srv/repos/anaconda -m '
-                   'https://repo.continuum.io/pkgs/free/noarch/')
-            rc = sub_proc_display(cmd)
-            if rc != 0:
-                self.log.error('Error downloading https://repo.continuum.io/pkgs/free/'
-                               f'noarch/.  rc: {rc}')
+        ch = repo.get_action(not exists)
+        if ch in 'YF':
+            # if not exists or ch == 'F':
+            url = repo.get_repo_url(baseurl, alt_url)
+            if not url == baseurl:
+                self.sw_vars[f'{repo_id}_alt_url'] = url
+            print(f'url: {url}')
+            repo.sync_ana(url)
+            noarch_url = os.path.split(url.rstrip('/'))[0]
+            repo.sync_ana(noarch_url)
 
-            cmd = ('wget --reject-regex "|cudatoolkit*|cudnn*|tensorflow-*|caffe-*|"'
-                   ' -P /srv/repos/anaconda -m https://repo.continuum.io/pkgs/free/'
-                   'linux-ppc64le/')
-            rc = sub_proc_display(cmd)
-            if rc != 0:
-                self.log.error('Error downloading https://repo.continuum.io/pkgs/free/'
-                               f'noarch/.  rc: {rc}')
-            else:
-                content = ('channels:\n'
-                           '  - http://{{ host_ip.stdout }}/repos/anaconda/'
-                           'repo.continuum.io/pkgs/free/\n'
-                           'show_channel_urls: True')
-                self.sw_vars['ana_powerup_repo_files']['.condarc'] = content
+            content = ('channels:\n'
+                       '  - http://{{ host_ip.stdout }}/repos/anaconda/'
+                       'repo.continuum.io/pkgs/free/\n'
+                       'show_channel_urls: True')
+            self.sw_vars['ana_powerup_repo_files']['.condarc'] = content
 
         # Setup EPEL Repo
         repo_id = 'epel-ppc64le'
