@@ -52,7 +52,8 @@ def setup_source_file(name, src_glob, url='http://', alt_url='http://',
             only a single match is found it is used without choice and returned.
     """
     log = logger.getlogger()
-    exists = glob.glob(f'/srv/{name}/**/{src_glob}', recursive=True)
+    name_src = name.lower().replace(' ','-').rstrip('-content')
+    exists = glob.glob(f'/srv/{name_src}/**/{src_glob}', recursive=True)
     if exists:
         log.info(f'The {name.capitalize()} source file exists already in the POWER-Up server '
                  'directory')
@@ -72,14 +73,14 @@ def setup_source_file(name, src_glob, url='http://', alt_url='http://',
                     regex = src_glob.replace('*', '.+')
                     if re.search(regex, url):
                         good_url = True
-                        if not os.path.exists(f'/srv/{name}'):
-                            os.mkdir(f'/srv/{name}')
-                        os.chdir(f'/srv/{name}')
+                        if not os.path.exists(f'/srv/{name_src}'):
+                            os.mkdir(f'/srv/{name_src}')
+                        os.chdir(f'/srv/{name_src}')
                         cmd = f'curl -O {_url}'
                         rc = sub_proc_display(cmd)
                         if rc != 0:
-                            log.error(f'Failed downloading {name} source to /srv/{name}/ '
-                                      f'directory. \n{rc}')
+                            log.error(f'Failed downloading {name} source to'
+                                      f' /srv/{name_src}/ directory. \n{rc}')
                         else:
                             return _url, True
                     else:
