@@ -61,6 +61,8 @@ class software(object):
             if not isinstance(self.sw_vars, dict):
                 self.sw_vars = {}
                 self.sw_vars['init-time'] = time.ctime()
+        if 'ana_powerup_repo_files' not in self.sw_vars:
+            self.sw_vars['ana_powerup_repo_files'] = {}
         if 'yum_powerup_repo_files' not in self.sw_vars:
             self.sw_vars['yum_powerup_repo_files'] = {}
         self.epel_repo_name = 'epel-ppc64le'
@@ -75,7 +77,9 @@ class software(object):
                       'PowerAI Base Repository': '-',
                       'Dependent Packages Repository': '-',
                       'CUDA dnn content': '-',
+                      'CUDA nccl2 content': '-',
                       'Anaconda content': '-',
+                      'Anaconda Repository': '-',
                       'Spectrum conductor content': '-',
                       'Spectrum DLI content': '-',
                       'Nginx Web Server': '-',
@@ -143,6 +147,15 @@ class software(object):
             if exists:
                 self.state['Anaconda content'] = ('Anaconda is present in the '
                                                   'POWER-Up server')
+
+        # Anaconda Repo status
+        s = 'Anaconda Repository'
+        if which == 'all' or which == s:
+            exists_repodata = glob.glob('/srv/repos' +
+                                        '/**/repodata.*', recursive=True)
+            if exists_repodata:
+                self.state[s] = s + ' is setup'
+
         # cudnn status
         if which == 'all' or which == 'cudnn':
             exists = glob.glob(f'/srv/cudnn/**/{self.files["cudnn"]}', recursive=True)
@@ -366,23 +379,6 @@ class software(object):
             else:
                 self.log.info('No source selected. Skipping PowerAI repository creation.')
 
-        # Get Anaconda
-        ana_name = 'anaconda'
-        ana_src = self.files[ana_name]
-        ana_url = 'https://repo.continuum.io/archive/Anaconda2-5.1.0-Linux-ppc64le.sh'
-        if f'{ana_name}_alt_url' in self.sw_vars:
-            alt_url = self.sw_vars[f'{ana_name}_alt_url']
-        else:
-            alt_url = 'http://'
-
-        self.status_prep(ana_name)
-
-        heading1('Set up Anaconda \n')
-        src, state = setup_source_file(ana_name, ana_src, ana_url, alt_url=alt_url)
-
-        if src is not None and src != ana_src and 'http' in src:
-            self.sw_vars[f'{ana_name}_alt_url'] = src
-
         # Get Spectrum Conductor with Spark
         name = 'spectrum-conductor'
         heading1(f'Set up {name.title()} \n')
@@ -409,7 +405,8 @@ class software(object):
         if not exists or (exists and get_yesno(f'Copy a new {name.title()} file? ')):
             src_path = PowerupFileFromDisk(name, spdli_src)
 
-        # Setup repository for dependent packages
+        # Setup repository for dependent packages. Dependent packages can come from
+        # any YUM repository enabled on the POWER-Up Installer node.
         dep_list = ('bzip2 opencv kernel kernel-tools kernel-tools-libs '
                     'kernel-bootwrapper kernel-devel kernel-headers gcc gcc-c++ '
                     'libXdmcp elfutils-libelf-devel java-1.8.0-openjdk libmpc '
@@ -522,7 +519,46 @@ class software(object):
                 filename = repo_id + '-powerup.repo'
                 self.sw_vars['yum_powerup_repo_files'][filename] = content
 
-        # Setup EPEL
+        # Get Anaconda
+        ana_name = 'anaconda'
+        ana_src = self.files[ana_name]
+        ana_url = 'https://repo.continuum.io/archive/Anaconda2-5.1.0-Linux-ppc64le.sh'
+        if f'{ana_name}_alt_url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{ana_name}_alt_url']
+        else:
+            alt_url = 'http://'
+
+        self.status_prep(ana_name)
+
+        heading1('Set up Anaconda \n')
+        src, state = setup_source_file(ana_name, ana_src, ana_url, alt_url=alt_url)
+
+        if src is not None and src != ana_src and 'http' in src:
+            self.sw_vars[f'{ana_name}_alt_url'] = src
+
+        # Setup Anaconda Repo.  (not a YUM repo)
+        repo_name = 'Anaconda Repository'
+        heading1(f'Set up {repo_name} repository\n')
+        self.status_prep(which='Anaconda Repository')
+        new = self.state['Anaconda Repository'] == '-'
+        if not new:
+            self.log.info('The Anaconda Repository exists already'
+                          ' in the POWER-Up server')
+        if new or get_yesno(f'Do you want to recreate the {repo_name}? '):
+            cmd = ('wget --reject-regex "continuum-docs-*" -P /srv/repos/anaconda -m '
+                   'https://repo.continuum.io/pkgs/free/noarch/')
+            rc = sub_proc_display(cmd)
+            if rc != 0:
+                self.log.error('Error downloading https://repo.continuum.io/pkgs/free/'
+                               f'noarch/.  rc: {rc}')
+            else:
+                content = 'channels:\n'
+                content += '  - http://10.0.20.21/repos/anaconda/repo.continuum.io/pkgs/free/\n'
+                content += 'show_channel_urls: True'
+                self.sw_vars['ana_powerup_repo_files']['.condarc'] = content
+        sys.exit('bye ana repo')
+
+        # Setup EPEL Repo
         repo_id = 'epel-ppc64le'
         repo_name = 'Extra Packages for Enterprise Linux 7 (EPEL) - ppc64le'
         baseurl = 'https://mirrors.fedoraproject.org/metalink?repo=epel-7&arch=ppc64le'
