@@ -21,7 +21,7 @@ For additional instructions and developer resources:
 * `Release Table <docs/Release-Table.rst>`_
 * `User's Guide <http://power-up.readthedocs.io>`_ at 'Read the Docs'
 * `Developer's Guide <docs/Dev-Guide.rst>`_
-* IRC: `#cluster-genesis channel on freenode.net <http://webchat.freenode.net/?channels=%23power-up&uio=d4>`_
+* IRC: `#power-up channel on freenode.net <http://webchat.freenode.net/?channels=%23power-up&uio=d4>`_
 
 
 Authors
