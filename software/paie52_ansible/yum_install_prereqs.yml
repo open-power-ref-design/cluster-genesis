@@ -7,4 +7,5 @@
     - wget
       # - nano
     - bzip2
+    - powerai-license
   become: yes

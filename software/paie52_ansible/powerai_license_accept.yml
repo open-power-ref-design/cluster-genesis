@@ -1,0 +1,4 @@
+---
+- name: Silently accept POWER AI license agreement
+  shell: "env IBM_POWERAI_LICENSE_ACCEPT=yes /opt/DL/license/bin/accept-powerai-license.sh"
+  become: yes
