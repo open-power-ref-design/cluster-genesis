@@ -703,32 +703,40 @@ class software(object):
                                        'paie52_install_procedure.yml'))
         for task in install_tasks:
             heading1(f"Client Node Action: {task['description']}")
-            if _run_ansible_tasks(task['tasks'], ansible_inventory):
-                self.log.error('POWER-Up is unable to continue.')
-                sys.exit('Exiting')
-
+            _run_ansible_tasks(task['tasks'], ansible_inventory)
         print('Done')
 
 
 def _run_ansible_tasks(tasks_path, ansible_inventory, extra_args=''):
     log = logger.getlogger()
-    log.info(f'Running Ansible tasks found in \'{tasks_path}\' ...')
     if 'become:' in open(f'{GEN_SOFTWARE_PATH}{tasks_path}').read():
         extra_args += ' --ask-become-pass'
     cmd = ('{0} -i {1} '
            '{2}paie52_ansible/run.yml --extra-vars "task_file={2}{3}" {4}'
            .format(get_ansible_playbook_path(), ansible_inventory,
                    GEN_SOFTWARE_PATH, tasks_path, extra_args))
-    resp, err, rc = sub_proc_exec(cmd, shell=True)
-    log.debug(f"cmd: {cmd}\nresp: {resp}\nerr: {err}\nrc: {rc}")
-    if rc != 0:
-        log.warning("Ansible tasks failed!")
-        if resp != '':
-            print(f"stdout:\n{resp}\n")
-        if err != '':
-            print(f"stderr:\n{err}\n")
-    else:
-        log.info("Ansible tasks ran successfully")
+    run = True
+    while run:
+        log.info(f'Running Ansible tasks found in \'{tasks_path}\' ...')
+        resp, err, rc = sub_proc_exec(cmd, shell=True)
+        log.debug(f"cmd: {cmd}\nresp: {resp}\nerr: {err}\nrc: {rc}")
+        if rc != 0:
+            log.warning("Ansible tasks failed!")
+            if resp != '':
+                print(f"stdout:\n{resp}\n")
+            if err != '':
+                print(f"stderr:\n{err}\n")
+            choice, item = get_selection(['Retry','Continue','Exit'])
+            if choice == "1":
+                pass
+            elif choice == "2":
+                run = False
+            elif choice == "3":
+                log.debug('User chooses to exit.')
+                sys.exit('Exiting')
+        else:
+            log.info("Ansible tasks ran successfully")
+            run = False
     return rc
 
 
