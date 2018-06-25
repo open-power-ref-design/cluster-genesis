@@ -709,10 +709,11 @@ class software(object):
 
 def _run_ansible_tasks(tasks_path, ansible_inventory, extra_args=''):
     log = logger.getlogger()
+    tasks_path = 'paie52_ansible/' + tasks_path
     if 'become:' in open(f'{GEN_SOFTWARE_PATH}{tasks_path}').read():
         extra_args += ' --ask-become-pass'
-    cmd = ('{0} -i {1} '
-           '{2}paie52_ansible/run.yml --extra-vars "task_file={2}{3}" {4}'
+    cmd = ('{0} -i {1} {2}paie52_ansible/run.yml '
+           '--extra-vars "task_file={2}{3}" {4}'
            .format(get_ansible_playbook_path(), ansible_inventory,
                    GEN_SOFTWARE_PATH, tasks_path, extra_args))
     run = True

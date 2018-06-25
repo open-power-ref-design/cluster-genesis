@@ -1,36 +1,33 @@
 ---
 - description: Update yum cache
-  tasks: paie52_ansible/yum_update_cache.yml
+  tasks: yum_update_cache.yml
 
-- description: Install prerequisite software packages
-  tasks: paie52_ansible/yum_install_prereqs.yml
+- description: Install additional software packages
+  tasks: yum_install_additional_software.yml
 
 - description: Update kernel
-  tasks: paie52_ansible/update_kernel.yml
+  tasks: update_kernel.yml
 
 - description: Disable Memory Auto-Onlining
-  tasks: paie52_ansible/disable_udev_mem_auto_onlining.yml
+  tasks: disable_udev_mem_auto_onlining.yml
 
 - description: Install CUDA toolkit
-  tasks: paie52_ansible/install_cuda.yml
+  tasks: install_cuda.yml
 
 - description: Install CUDA Deep Neural Network library
-  tasks: paie52_ansible/install_cudnn.yml
+  tasks: install_cudnn.yml
 
 - description: Install NCCL Library
-  tasks: paie52_ansible/install_nccl.yml
+  tasks: install_nccl.yml
 
 - description: Install Anaconda installer
-  tasks: paie52_ansible/install_anaconda.yml
+  tasks: install_anaconda.yml
 
 - description: Run License Script
-  tasks: paie52_ansible/powerai_license_accept.yml
+  tasks: powerai_license_accept.yml
 
 - description: Install Deep Learning frameworks
-  tasks: paie52_ansible/install_frameworks.yml
-
-- description: Install IBM PowerAI Distributed Deep Learning
-  tasks: paie52_ansible/install_ddl.yml
+  tasks: install_frameworks.yml
 
 - description: Apply recommended performance settings
-  tasks: paie52_ansible/performance_tuning.yml
+  tasks: performance_tuning.yml

@@ -1,11 +1,10 @@
 ---
-- name: Install packages needed for the installation
+- name: Install additional software packages
   yum:
     name: "{{ item }}"
     state: latest
   with_items:
     - wget
-      # - nano
     - bzip2
     - powerai-license
   become: yes

@@ -1,6 +1,0 @@
----
-- name: Install IBM PowerAI Distributed Deep Learning (DDL) packages
-  yum:
-    name: power-ddl
-    state: latest
-  become: yes
