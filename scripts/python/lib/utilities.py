@@ -167,11 +167,13 @@ def sub_proc_exec(cmd, stdout=PIPE, stderr=PIPE, shell=False):
     return stdout.decode('utf-8'), stderr.decode('utf-8'), proc.returncode
 
 
-def sub_proc_display(cmd, stdout=None, stderr=None):
+def sub_proc_display(cmd, stdout=None, stderr=None, shell=False):
     """Popen subprocess created without PIPES to allow subprocess printing
     to the parent screen. This is a blocking function.
     """
-    proc = Popen(cmd.split(), stdout=stdout, stderr=stderr)
+    if not shell:
+        cmd = cmd.split()
+    proc = Popen(cmd, stdout=stdout, stderr=stderr, shell=shell)
     proc.wait()
     rc = proc.returncode
     return rc
@@ -264,7 +266,8 @@ def get_url(url='http://', type='directory', prompt_name='', repo_chk=False):
                         cmd = f'curl -G {url}'
                         reply, err, rc = sub_proc_exec(cmd)
                         if rc == 0:
-                            repodata = re.search(r'href=["\']repodata\/["\']', reply)
+                            repodata = re.search(r'href=["\']repodata(\/|.json)+["\']',
+                                                 reply)
                         else:
                             repodata = ''
                         if repodata:

@@ -375,16 +375,19 @@ class PowerupRepoFromRepo(PowerupRepo):
         """Syncs an Anaconda repository using wget or copy?. The corresponding
         'noarch' repo is also synced.
         """
-        # curl -C -
-
         if 'http:' in url or 'https:' in url:
+            dest_dir = f'/srv/repos/{self.repo_id}' + url[2 + url.find(':/')]
             self.log.info(f'Syncing {self.repo_name}')
             self.log.info('This can take many minutes or hours for large repositories\n')
-            cmd = (f'wget --reject-regex "continuum-docs-*" -P /srv/repos/{self.repo_id} -m '
-                   f'{url}')
-            rc = sub_proc_display(cmd)
+
+            # cut directory path components up to '/pkgs'
+            cd_cnt = url[3 + url.find('://'):url.find('/pkgs')].count('/')
+            cmd = (f"wget -nH --cut-dirs={cd_cnt} --reject 'continuum-docs-*,"
+                   "cudatoolkit-*,cudnn-*,tensorflow-*,caffe-*' -P "
+                   f"/srv/repos/{self.repo_id} -m {url}")
+            rc = sub_proc_display(cmd, shell=True)
             if rc != 0:
-                self.log.error(f'Error downloading {url}/noarch/.  rc: {rc}')
+                self.log.error(f'Error downloading {url}.  rc: {rc}')
         elif 'file:///' in url:
             src_dir = url[7:]
             if self.anarepo_dir in url:
@@ -393,12 +396,13 @@ class PowerupRepoFromRepo(PowerupRepo):
                 dest_dir = self.anarepo_dir + url
             if not os.path.isdir(dest_dir):
                 os.makedirs(dest_dir)
-            cmd = f'rsync -u -r -P -v {src_dir} {dest_dir}'
+            cmd = f'rsync -uaPv {src_dir} {dest_dir}'
             rc = sub_proc_display(cmd)
             if rc != 0:
                 self.log.error('Sync of {self.repo_id} failed. rc: {rc}')
             else:
                 self.log.info(f'{self.repo_name} sync finished successfully')
+        return dest_dir
 
 
 class PowerupRepoFromDir(PowerupRepo):

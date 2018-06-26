@@ -152,9 +152,9 @@ class software(object):
 
             # Anaconda Repo status
             if item == 'Anaconda Repository':
-                repodata_noarch = glob.glob('/srv/repos/anaconda/repo.continuum.io/pkgs'
-                                            '/free/noarch/repodata.json', recursive=True)
-                repodata = glob.glob('/srv/repos/anaconda/repo.continuum.io/pkgs/free'
+                repodata_noarch = glob.glob('/srv/repos/anaconda/pkgs/free'
+                                            '/noarch/repodata.json', recursive=True)
+                repodata = glob.glob('/srv/repos/anaconda/pkgs/free'
                                      '/linux-ppc64le/repodata.json', recursive=True)
                 if repodata and repodata_noarch:
                     self.state[item] = f'{item} is setup'
@@ -542,8 +542,7 @@ class software(object):
         # Setup Anaconda Repo.  (not a YUM repo)
         repo_id = 'anaconda'
         repo_name = 'Anaconda Repository'
-        # baseurl = 'https://repo.continuum.io/pkgs/free/linux-ppc64le'
-        baseurl = 'https://repo.continuum.io/pkgs/free/noarch'
+        baseurl = 'https://repo.continuum.io/pkgs/free/linux-ppc64le'
         heading1(f'Set up {repo_name}\n')
         if f'{repo_id}_alt_url' in self.sw_vars:
             alt_url = self.sw_vars[f'{repo_id}_alt_url']
@@ -563,14 +562,17 @@ class software(object):
             if not url == baseurl:
                 self.sw_vars[f'{repo_id}_alt_url'] = url
             print(f'url: {url}')
-            repo.sync_ana(url)
-            noarch_url = os.path.split(url.rstrip('/'))[0]
+            dest_dir = repo.sync_ana(url)
+            print(f'dest dir: {dest_dir}')
+            dest_dir = dest_dir[4 + dest_dir.find('/srv'):5 + dest_dir.find('free')]
+            print(f'dest dir: {dest_dir}')
+            noarch_url = os.path.split(url.rstrip('/'))[0] + '/noarch/'
             repo.sync_ana(noarch_url)
-
+            # form .condarc content for given channel. Note that conda adds
+            # the corresponding 'noarch' channel automatically.
             content = ('channels:\n'
-                       '  - http://{{ host_ip.stdout }}/repos/anaconda/'
-                       'repo.continuum.io/pkgs/free/\n'
-                       'show_channel_urls: True')
+                       '  - http://{{ host_ip.stdout }}/'
+                       f'{dest_dir}\nshow_channel_urls: True')
             self.sw_vars['ana_powerup_repo_files']['.condarc'] = content
 
         # Setup EPEL Repo
