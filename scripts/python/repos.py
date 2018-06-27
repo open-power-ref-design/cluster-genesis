@@ -380,7 +380,7 @@ class PowerupRepoFromRepo(PowerupRepo):
             self.log.info(f'Syncing {self.repo_name}')
             self.log.info('This can take many minutes or hours for large repositories\n')
 
-            # cut directory path components up to '/pkgs'
+            # remove directory path components up to '/pkgs'
             cd_cnt = url[3 + url.find('://'):url.find('/pkgs')].count('/')
             cmd = (f"wget -nH --cut-dirs={cd_cnt} --reject 'continuum-docs-*,"
                    "cudatoolkit-*,cudnn-*,tensorflow-*,caffe-*' -P "
@@ -390,7 +390,9 @@ class PowerupRepoFromRepo(PowerupRepo):
                 self.log.error(f'Error downloading {url}.  rc: {rc}')
         elif 'file:///' in url:
             src_dir = url[7:]
-            if self.anarepo_dir in url:
+            if '/pkgs/' in url:
+                dest_dir = self.anarepo_dir + url[url.find('/pkgs/'):]
+            elif self.anarepo_dir in url:
                 dest_dir = url[url.find(self.anarepo_dir):]
             else:
                 dest_dir = self.anarepo_dir + url

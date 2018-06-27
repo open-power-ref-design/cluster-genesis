@@ -365,7 +365,7 @@ class software(object):
         if exists:
             self.log.info(f'The {repo_id} repository exists already in the POWER-Up server')
 
-        if not exists or get_yesno(f'Recreate the {repo_id} repository? '):
+        if not exists or get_yesno(f'Recreate the {repo_id} repository '):
             repo = PowerupRepoFromRpm(repo_id, repo_name)
             src_path = get_src_path(pai_src)
             if src_path:
@@ -395,7 +395,7 @@ class software(object):
         if exists:
             self.log.info('Spectrum conductor content exists already in the POWER-Up server')
 
-        if not exists or get_yesno(f'Copy a new {name.title()} file? '):
+        if not exists or get_yesno(f'Copy a new {name.title()} file '):
             src_path = PowerupFileFromDisk(name, spc_src)
 
         # Get Spectrum DLI
@@ -407,7 +407,7 @@ class software(object):
         if exists:
             self.log.info('Spectrum DLI content exists already in the POWER-Up server')
 
-        if not exists or get_yesno(f'Copy a new {name.title()} file? '):
+        if not exists or get_yesno(f'Copy a new {name.title()} file '):
             src_path = PowerupFileFromDisk(name, spdli_src)
 
         # Setup repository for dependent packages. Dependent packages can come from
@@ -438,7 +438,7 @@ class software(object):
             self.log.info('The Dependent Packages Repository exists already'
                           ' in the POWER-Up server.')
             resp = get_yesno('Do you wish to recreate the dependent '
-                             'packages repository?')
+                             'packages repository ')
         if not exists or resp:
             repo_id = 'dependencies'
             repo_name = 'Dependencies'
@@ -462,7 +462,7 @@ class software(object):
         if exists:
             self.log.info('CUDA dnn content exists already in the POWER-Up server')
 
-        if not exists or get_yesno(f'Copy a new {name.title()} file? '):
+        if not exists or get_yesno(f'Copy a new {name.title()} file '):
             src_path = PowerupFileFromDisk(name, cudnn_src)
 
         # Get cuda nccl2 tar file
@@ -474,7 +474,7 @@ class software(object):
         if exists:
             self.log.info('CUDA nccl2 content exists already in the POWER-Up server')
 
-        if not exists or get_yesno(f'Copy a new {name.title()} file? '):
+        if not exists or get_yesno(f'Copy a new {name.title()} file '):
             src_path = PowerupFileFromDisk(name, nccl2_src)
 
         # Setup CUDA
@@ -619,7 +619,7 @@ class software(object):
 
         # Create custom repositories
         heading1('Create custom repositories')
-        if get_yesno('Would you like to create a custom repository? '):
+        if get_yesno('Would you like to create a custom repository '):
             repo_id = input('Enter a repo id (yum short name): ')
             repo_name = input('Enter a repo name (Descriptive name): ')
 
