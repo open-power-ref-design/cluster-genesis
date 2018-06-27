@@ -1,11 +1,18 @@
 ---
+- name: Gather localhost facts
+  hosts: localhost
+  gather_facts: True
+  tasks: []
+
 - name: Init clients to access the POWER-Up server
   hosts: all
   vars_files:
     - /home/user/power-up/software/software-vars.yml
   tasks:
     - name: Get route to client
-      shell: "ip route get to {{ ansible_default_ipv4.address }} | awk '/src/ {print $5}'"
+      command: "{{ hostvars['localhost']['python_executable_local'] }} \
+      {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+      {{ inventory_hostname }}"
       delegate_to: localhost
       register: host_ip
 

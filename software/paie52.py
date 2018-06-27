@@ -75,6 +75,7 @@ class software(object):
                       'PowerAI Base Repository': '-',
                       'Dependent Packages Repository': '-',
                       'CUDA dnn content': '-',
+                      'CUDA nccl2 content': '-',
                       'Anaconda content': '-',
                       'Spectrum conductor content': '-',
                       'Spectrum DLI content': '-',
