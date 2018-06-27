@@ -376,15 +376,16 @@ class PowerupRepoFromRepo(PowerupRepo):
         'noarch' repo is also synced.
         """
         if 'http:' in url or 'https:' in url:
-            dest_dir = f'/srv/repos/{self.repo_id}' + url[2 + url.find(':/')]
+            dest_dir = f'/srv/repos/{self.repo_id}' + url[url.find('/pkgs/'):]
             self.log.info(f'Syncing {self.repo_name}')
             self.log.info('This can take many minutes or hours for large repositories\n')
 
             # remove directory path components up to '/pkgs'
             cd_cnt = url[3 + url.find('://'):url.find('/pkgs')].count('/')
-            cmd = (f"wget -nH --cut-dirs={cd_cnt} --reject 'continuum-docs-*,"
-                   "cudatoolkit-*,cudnn-*,tensorflow-*,caffe-*' -P "
-                   f"/srv/repos/{self.repo_id} -m {url}")
+            rejlist = ('continuum-docs-*,cudatoolkit-*,'
+                       'cudnn-*,tensorflow-*,caffe-*')
+            cmd = (f"wget -nH --cut-dirs={cd_cnt} --reject '{rejlist}' "
+                   f"-P /srv/repos/{self.repo_id} -m {url}")
             rc = sub_proc_display(cmd, shell=True)
             if rc != 0:
                 self.log.error(f'Error downloading {url}.  rc: {rc}')
@@ -404,6 +405,18 @@ class PowerupRepoFromRepo(PowerupRepo):
                 self.log.error('Sync of {self.repo_id} failed. rc: {rc}')
             else:
                 self.log.info(f'{self.repo_name} sync finished successfully')
+
+        with open(dest_dir + '/index.html', 'r') as f:
+            d = f.read()
+            rejlist = rejlist.replace('*', '').split(',')
+            for item in rejlist:
+                ss = f' *<tr>\\n\\s+<td><a\\s+href="{item}.+\\.tar\\.bz2">.*?</td>(\\n.*<td.*/td>){{3}}\\n\\s*</tr>\\n'
+                d = re.sub(ss, '', d)
+        filecnt = d.count('</tr>') - 1
+        d = re.sub(r'Files:\s+\d+', f'Files: {filecnt}', d)
+        with open(dest_dir + '/index.html', 'w') as f:
+            f.write(d)
+
         return dest_dir
 
 

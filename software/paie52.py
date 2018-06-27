@@ -561,19 +561,18 @@ class software(object):
             url = repo.get_repo_url(baseurl, alt_url)
             if not url == baseurl:
                 self.sw_vars[f'{repo_id}_alt_url'] = url
-            print(f'url: {url}')
             dest_dir = repo.sync_ana(url)
-            print(f'dest dir: {dest_dir}')
             dest_dir = dest_dir[4 + dest_dir.find('/srv'):5 + dest_dir.find('free')]
-            print(f'dest dir: {dest_dir}')
-            noarch_url = os.path.split(url.rstrip('/'))[0] + '/noarch/'
-            repo.sync_ana(noarch_url)
             # form .condarc content for given channel. Note that conda adds
             # the corresponding 'noarch' channel automatically.
             content = ('channels:\n'
                        '  - http://{{ host_ip.stdout }}/'
                        f'{dest_dir}\nshow_channel_urls: True')
             self.sw_vars['ana_powerup_repo_files']['.condarc'] = content
+            print(content)
+            noarch_url = os.path.split(url.rstrip('/'))[0] + '/noarch/'
+            repo.sync_ana(noarch_url)
+
 
         # Setup EPEL Repo
         repo_id = 'epel-ppc64le'
