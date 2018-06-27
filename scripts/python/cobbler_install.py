@@ -36,6 +36,7 @@ import lib.logger as logger
 
 URL = 'https://github.com/cobbler/cobbler.git'
 BRANCH = 'release28'
+COMMIT = '7fd4b8cae9af665e318406f6b0bb9686fab813a6'
 
 TFTPBOOT = '/tftpboot'
 DNSMASQ_TEMPLATE = '/etc/cobbler/dnsmasq.template'
@@ -58,8 +59,6 @@ PY_DIST_PKGS = '/usr/lib/python2.7/dist-packages'
 INITD = '/etc/init.d/'
 APACHE2_CONF = '/etc/apache2/apache2.conf'
 MANAGE_DNSMASQ = '/opt/cobbler/cobbler/modules/manage_dnsmasq.py'
-COBBLER_DLCONTENT = '/opt/cobbler/cobbler/action_dlcontent.py'
-COBBLER_SETTINGS_PY = '/opt/cobbler/cobbler/settings.py'
 
 A2ENCONF = '/usr/sbin/a2enconf'
 A2ENMOD = '/usr/sbin/a2enmod'
@@ -111,6 +110,8 @@ def cobbler_install(config_path=None):
     log.info(
         "Cobbler branch \'%s\' cloned into \'%s\'" %
         (repo.active_branch, repo.working_dir))
+    repo.head.reference = repo.commit(COMMIT)
+    log.debug("Checkout Cobbler commit \'%s\'" % COMMIT)
 
     # Modify Cobbler scrpit that write DHCP reservations so that the
     #   lease time is included.
@@ -118,16 +119,6 @@ def cobbler_install(config_path=None):
     util.replace_regex(MANAGE_DNSMASQ, 'systxt \= systxt \+ \"\\\\n\"',
                        "systxt = systxt + \",{}\\\\n\"".
                        format(dhcp_lease_time))
-
-    # Use non-secure http to download network boot-loaders
-    util.replace_regex(COBBLER_DLCONTENT,
-                       'https://cobbler.github.io',
-                       'http://cobbler.github.io')
-
-    # Use non-secure http to download signatures
-    util.replace_regex(COBBLER_SETTINGS_PY,
-                       'https://cobbler.github.io',
-                       'http://cobbler.github.io')
 
     # Run cobbler make install
     util.bash_cmd('cd %s; make install' % install_dir)
@@ -267,6 +258,9 @@ def cobbler_install(config_path=None):
     # Set Apache2 'ServerName'
     util.append_line(APACHE2_CONF, "ServerName localhost")
 
+    # Enable 'cobblerd' service
+    util.bash_cmd('update-rc.d cobblerd defaults')
+
     # Restart services
     _restart_service('ntp')
     _restart_service('cobblerd')
@@ -292,7 +286,7 @@ def cobbler_install(config_path=None):
 
 
 def _restart_service(service):
-    util.bash_cmd('service %s restart' % service)
+    util.bash_cmd('systemctl restart %s' % service)
 
 
 def _service_start_on_boot(service):

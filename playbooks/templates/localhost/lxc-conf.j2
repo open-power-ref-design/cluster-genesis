@@ -37,7 +37,6 @@ lxc.network.hwaddr = 00:16:3e:xx:xx:xx
 
 {% endfor -%}
 
-lxc.aa_profile=lxc-container-default
 lxc.start.auto = 1
 lxc.id_map = u 0 {{ uidrange }}
 lxc.id_map = g 0 {{ gidrange }}

@@ -47,7 +47,7 @@ class Container(object):
         PIP = 'pkgs-pip'
         VENV = 'pkgs-pip-venv'
 
-    ROOTFS = AttrDict({'dist': 'ubuntu', 'release': 'trusty', 'arch': None})
+    ROOTFS = AttrDict({'dist': 'ubuntu', 'release': 'xenial', 'arch': None})
     ARCHITECTURE = {u'x86_64': 'amd64', u'ppc64le': 'ppc64el'}
     LXC_USERNET = '/etc/lxc/lxc-usernet'
     RESOLV_CONF = '/etc/resolv.conf'
