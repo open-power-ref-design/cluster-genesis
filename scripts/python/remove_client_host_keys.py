@@ -34,7 +34,8 @@ def remove_client_host_keys(config_path=None):
 
     for ipaddr in inv.yield_nodes_pxe_ipaddr():
         log.info("Remove any stale ssh host keys for {}".format(ipaddr))
-        util.bash_cmd("ssh-keygen -R {}".format(ipaddr))
+        if os.path.isfile(os.path.expanduser('~/.ssh/known_hosts')):
+            util.bash_cmd("ssh-keygen -R {}".format(ipaddr))
         playbooks_known_hosts = (os.path.join(gen.get_playbooks_path(),
                                               'known_hosts'))
         if os.path.isfile(playbooks_known_hosts):
