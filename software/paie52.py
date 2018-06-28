@@ -107,16 +107,19 @@ class software(object):
         text = ('\nThis module installs the PowerAI Enterprise software '
                 'to a cluster of OpenPOWER nodes.\n\n'
                 'PowerAI Enterprise installation involves three steps;\n'
-                '   1 - Preparation. Prepares the installer node software server.\n'
+                '\n  1 - Preparation. Prepares the installer node software server.\n'
                 '       The preparation phase may be run multiple times if needed.\n'
                 '       usage: pup software --prep paie52\n'
-                '   2 - Installation. Install software on the client nodes\n'
+                '\n  2 - Initialization of client nodes\n'
+                '       usage: pup software --init-clients paie52\n'
+                '\n  3 - Installation. Install software on the client nodes\n'
                 '       usage: pup software --install paie52\n\n'
-                'Before beiginning, the following files should be copied\n'
+                'Before beiginning, the following files should be present\n'
                 'onto this node;\n'
-                '- mldl-repo-local-5.2.0-201804110899.fd91856.ppc64le.rpm\n'
-                '- cudnn-9.1-linux-ppc64le-v7.1.tgz\n'
-                '- cws-2.2.0.0_ppc64le.bin\n'
+                '- mldl-repo-local-5.2.0-201806060629.714fa9e.ppc64le.rpm\n'
+                '- cudnn-9.2-linux-ppc64le-v7.1.tgz\n'
+                '- nccl_2.2.12-1+cuda9.2_ppc64le.tgz\n'
+                '- cws-2.2.1.0_ppc64le.bin\n'
                 '- dli-1.1.0.0_ppc64le.bin\n\n'
                 'For installation status: pup software --status paie52\n'
                 'To redisplay this README: pup software --README paie52\n\n')
@@ -258,7 +261,7 @@ class software(object):
             resp, err, rc = sub_proc_exec(cmd)
             if rc != 0:
                 self.log.error('An error occurred while cleaning the yum repositories\n'
-                              'POWER-Up is unable to continue.')
+                               'POWER-Up is unable to continue.')
                 sys.exit('Exiting')
 
         # Setup firewall to allow http
@@ -573,7 +576,6 @@ class software(object):
             noarch_url = os.path.split(url.rstrip('/'))[0] + '/noarch/'
             repo.sync_ana(noarch_url)
 
-
         # Setup EPEL Repo
         repo_id = 'epel-ppc64le'
         repo_name = 'Extra Packages for Enterprise Linux 7 (EPEL) - ppc64le'
@@ -778,7 +780,7 @@ def _run_ansible_tasks(tasks_path, ansible_inventory, extra_args=''):
                 print(f"stdout:\n{resp}\n")
             if err != '':
                 print(f"stderr:\n{err}\n")
-            choice, item = get_selection(['Retry','Continue','Exit'])
+            choice, item = get_selection(['Retry', 'Continue', 'Exit'])
             if choice == "1":
                 pass
             elif choice == "2":
