@@ -217,32 +217,32 @@ class PowerupRepo(object):
                     with open(repo_link_path, 'r') as f:
                         curr_content = f.read()
                         if curr_content != content:
-                            cache_dir = f'/var/cache/yum/{self.arch}/7Server/\
-                                        {self.repo_id}'
+                            self.log.info(f'Sync source for repository {self.repo_id} '
+                                          'has changed')
+                            cache_dir = (f'/var/cache/yum/{self.arch}/7Server/'
+                                         f'{self.repo_id}')
                             if os.path.exists(cache_dir):
                                 self.log.info(f'Removing existing cache directory '
-                                              '{cache_dir}')
+                                              f'{cache_dir}')
                                 rmtree(cache_dir)
                             if os.path.exists(cache_dir + '-local'):
                                 self.log.info(f'Removing existing cache directory '
-                                              '{cache_dir}-local')
+                                              f'{cache_dir}-local')
                                 rmtree(cache_dir + '-local')
                             if os.path.exists(f'{self.repo_dir}/repodata'):
                                 self.log.info(f'Removing existing repodata for '
-                                              '{self.repo_id}')
+                                              f'{self.repo_id}')
                                 rmtree(f'{self.repo_dir}/repodata')
                             if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id}-local.repo'):
                                 self.log.info(f'Removing existing local .repo for'
-                                              ' {self.repo_id}-local')
+                                              f' {self.repo_id}-local')
                                 os.remove(f'/etc/yum.repos.d/{self.repo_id}-local.repo')
         with open(repo_link_path, 'w') as f:
             f.write(content)
 
     def create_meta(self, update=False):
-        if not os.path.exists(f'{self.repo_dir}/repodata'):
-            self.log.info('Creating repository metadata and databases')
-        else:
-            self.log.info('Updating repository metadata and databases')
+        action = ('update', 'Updating') if update else ('create', 'Creating')
+        self.log.info(f'{action[1]} repository metadata and databases')
         print('This may take a few minutes.')
         if not update:
             cmd = f'createrepo -v {self.repo_dir}'
@@ -252,7 +252,7 @@ class PowerupRepo(object):
         if rc != 0:
             self.log.error(f'Repo creation error: rc: {rc} stderr: {err}')
         else:
-            self.log.info(f'Repo create process for {self.repo_id} finished'
+            self.log.info(f'Repo {action[0]} process for {self.repo_id} finished'
                           ' succesfully')
 
 
