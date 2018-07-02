@@ -1,4 +1,22 @@
 ---
+- name: Set installation directory variable
+  set_fact:
+    install_dir: "{{ ansible_env.HOME }}/anaconda2"
+
+- name: Check if anaconda2 directory already exists
+  stat:
+    path: "{{ install_dir }}"
+  register: anaconda2_dir
+
+- name: Set install args variable
+  set_fact:
+    args: ""
+
+- name: If install directory exists use update arg
+  set_fact:
+    args: -u
+  when: anaconda2_dir.stat.isdir is defined and anaconda2_dir.stat.isdir
+
 - name: Download Anaconda
   get_url:
     owner: "{{ ansible_user_id }}"
@@ -9,6 +27,13 @@
     dest: "{{ ansible_env.HOME }}"
 
 - name: Install Anaconda
-  shell: ~/Anaconda2-5.1.0-Linux-ppc64le.sh -b -p ~/Anaconda/
+  shell: "{{ ansible_env.HOME }}/Anaconda2-5.1.0-Linux-ppc64le.sh \
+          -b -p {{ install_dir }} {{ args }}"
   args:
     executable: /bin/bash
+
+- name: Add Anaconda2 install location to PATH in bashrc
+  lineinfile:
+    path: "{{ ansible_env.HOME }}/.bashrc"
+    regexp: ".*PATH={{ install_dir}}/bin.*"
+    line: "export PATH={{ install_dir}}/bin:$PATH"
