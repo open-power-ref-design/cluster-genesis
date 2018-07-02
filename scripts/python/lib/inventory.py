@@ -416,6 +416,16 @@ class Inventory(object):
             return [pxe_addr_list[x][self.InvKey.IPADDRS][0]
                     for x in range(len(pxe_addr_list))]
 
+    def yield_nodes_pxe_ipaddr(self):
+        """Yield nodes PXE ipaddrs
+        Returns:
+            iter of str: Nodes ipaddrs
+        """
+
+        for node in self.inv.nodes:
+            for ipaddr in node.pxe.ipaddrs:
+                yield ipaddr
+
     def set_nodes_pxe_ipaddr(self, if_index, index, ipaddr):
         """Set nodes PXE interface ipaddr
         Args:

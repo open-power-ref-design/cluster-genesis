@@ -77,7 +77,7 @@ At any time, you can check the status of the POWER-Up software server by running
 
 Preparation of the POWER-Up Software Server
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Before beginning, the files listed below need to be copied onto the software server node.
+Before beginning installation of PowerAI Enterprise, the files listed below need to be copied onto the software server node.
 The files can be copied anywhere, but the POWER-Up software can locate them quicker if the files are under one of the /home/ directories.
 
 -  PowerAI Enterprise binary file. (powerai-enterprise-1.1.0_ppc64le.bin)
@@ -98,10 +98,6 @@ Before beginning, extract the contents of the powerai-enterprise-1.1.0_ppc64le.b
     $ sudo bash ./powerai-enterprise-1.1.0_ppc64le.bin
 
 NOTE: Extraction and license acceptance must be run on an OpenPOWER node. If you are running the POWER-Up installer software on an x_86 node, you must first extract the files on an OpenPOWER node and then copy all of the extracted contents to the POWER-Up installer node.
-
-Insure that the set up steps on IBM Knowledge Center up through and including 'Mount a shared file system' have been completed.
-
-https://www.ibm.com/support/knowledgecenter/SSFHA8_1.1.0/enterprise/powerai_setup.html
 
 Preparation is run with the following POWER-Up command::
 
@@ -132,9 +128,11 @@ To initialize the client nodes and enable access to the POWER-Up software server
 
 Installation
 ~~~~~~~~~~~~
-To install the PowerAI base software and prerequisites::
+To install the PowerAI base software Frameworks and prerequisites::
 
     $ pup software --install paie52
+
+After completion of the installation of the PowerAI frameworks, continue installation of PowerAI Enterprise at the step labeled 'Configure the system for IBM Spectrum Conductor Deep Learning Impact' at https://www.ibm.com/support/knowledgecenter/SSFHA8_1.1.0/enterprise/powerai_install.html
 
 **Note:** After installation of the PowerAI base components, Conductor with Spark and the DLI binary files can be copied to all client nodes at once, by executing the following Ansible commands on the installer node::
 

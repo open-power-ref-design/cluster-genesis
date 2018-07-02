@@ -250,6 +250,9 @@ class Container(object):
         if (not os.path.isfile(self.PRIVATE_SSH_KEY_FILE) and
                 not os.path.isfile(self.PUBLIC_SSH_KEY_FILE)):
             key = RSA.generate(self.RSA_BIT_LENGTH)
+            # Create user .ssh directory if needed
+            if not os.path.exists(os.path.expanduser('~/.ssh')):
+                os.mkdir(os.path.expanduser('~/.ssh'), 0o700)
             # Create private ssh key
             with open(self.PRIVATE_SSH_KEY_FILE, 'w') as ssh_key:
                 ssh_key.write(key.exportKey())
