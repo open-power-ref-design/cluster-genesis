@@ -57,7 +57,7 @@
     - name: Combine client node tables
       set_fact:
         set_macs_all: "{{ set_macs_all| combine(hostvars[item]['set_macs']) }}"
-      with_items: "{{ hostvars }}"
+      with_items: "{{ groups['client_nodes'] }}"
       when: hostvars[item]['set_macs'] is defined
 
     - name: Call 'inv_set_interface_names.py' with lookup data
