@@ -32,7 +32,7 @@ import code
 import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupRepoFromRepo, \
     PowerupRepoFromRpm, setup_source_file, PowerupFileFromDisk
-from software_hosts import get_ansible_inventory
+from software_hosts import get_ansible_inventory, validate_software_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, get_url, Color, \
     get_selection, get_yesno, get_dir, get_file_path, get_src_path, rlinput, bold
 from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path, \
@@ -93,6 +93,8 @@ class software(object):
                       'CUDA nccl2 content': 'nccl_2.2.1[2-9]-1+cuda9.[2-9]_ppc64le.tgz',
                       'Spectrum conductor content': 'cws-2.[2-9].[0-9].[0-9]_ppc64le.bin',
                       'Spectrum DLI content': 'dli-1.[1-9].[0-9].[0-9]_ppc64le.bin'}
+        if 'ansible_inventory' not in self.sw_vars:
+            self.sw_vars['ansible_inventory'] = None
 
         self.log.debug(f'software variables: {self.sw_vars}')
 
@@ -738,25 +740,33 @@ class software(object):
                            f'rc: {rc} err: {err}')
 
     def init_clients(self):
-        ansible_inventory = get_ansible_inventory()
+        self.sw_vars['ansible_inventory'] = get_ansible_inventory()
         cmd = ('{} -i {} '
                '{}/init_clients.yml --ask-become-pass'
-               .format(get_ansible_playbook_path(), ansible_inventory,
+               .format(get_ansible_playbook_path(),
+                       self.sw_vars['ansible_inventory'],
                        GEN_SOFTWARE_PATH))
         resp, err, rc = sub_proc_exec(cmd)
-        # cmd = ('ssh -t -i ~/.ssh/gen root@10.0.20.22 '
-        #        '/opt/DL/license/bin/accept-powerai-license.sh')
-        # resp = sub_proc_display(cmd)
-        # print(resp)
         print('All done')
 
     def install(self):
-        ansible_inventory = get_ansible_inventory()
+        if self.sw_vars['ansible_inventory'] is None:
+            self.sw_vars['ansible_inventory'] = get_ansible_inventory()
+        else:
+            print("Validating software inventory '{}'..."
+                  .format(self.sw_vars['ansible_inventory']))
+            if validate_software_inventory(self.sw_vars['ansible_inventory']):
+                print(bold("Validation passed!"))
+            else:
+                print(bold("Validation FAILED!"))
+                self.sw_vars['ansible_inventory'] = get_ansible_inventory()
+
         install_tasks = yaml.load(open(GEN_SOFTWARE_PATH +
                                        'paie52_install_procedure.yml'))
         for task in install_tasks:
             heading1(f"Client Node Action: {task['description']}")
-            _run_ansible_tasks(task['tasks'], ansible_inventory)
+            _run_ansible_tasks(task['tasks'],
+                               self.sw_vars['ansible_inventory'])
         print('Done')
 
 
