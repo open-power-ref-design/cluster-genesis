@@ -31,7 +31,7 @@ import code
 
 import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupRepoFromRepo, \
-    PowerupRepoFromRpm, setup_source_file, PowerupFileFromDisk
+    PowerupRepoFromRpm, setup_source_file, powerup_file_from_disk, get_name_dir
 from software_hosts import get_ansible_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, get_url, Color, \
     get_selection, get_yesno, get_dir, get_file_path, get_src_path, rlinput, bold
@@ -147,7 +147,8 @@ class software(object):
 
             # Anaconda content status
             if item == 'Anaconda content':
-                exists = glob.glob(f'/srv/anaconda/**/{self.files[item]}',
+                item_dir = get_name_dir(item)
+                exists = glob.glob(f'/srv/{item_dir}/**/{self.files[item]}',
                                    recursive=True)
                 if exists:
                     self.state['Anaconda content'] = ('Anaconda is present in the '
@@ -155,30 +156,34 @@ class software(object):
 
             # Anaconda Repo status
             if item == 'Anaconda Repository':
-                repodata_noarch = glob.glob('/srv/repos/anaconda/pkgs/free'
+                item_dir = get_name_dir(item)
+                repodata_noarch = glob.glob(f'/srv/repos/{item_dir}/pkgs/free'
                                             '/noarch/repodata.json', recursive=True)
-                repodata = glob.glob('/srv/repos/anaconda/pkgs/free'
+                repodata = glob.glob(f'/srv/repos/{item_dir}/pkgs/free'
                                      '/linux-ppc64le/repodata.json', recursive=True)
                 if repodata and repodata_noarch:
                     self.state[item] = f'{item} is setup'
 
             # cudnn status
             if item == 'CUDA dnn content':
-                exists = glob.glob(f'/srv/cudnn/**/{self.files[item]}', recursive=True)
+                item_dir = get_name_dir(item)
+                exists = glob.glob(f'/srv/{item_dir}/**/{self.files[item]}', recursive=True)
                 if exists:
                     self.state['CUDA dnn content'] = ('CUDA DNN is present in the '
                                                       'POWER-Up server')
 
             # cuda nccl2 status
             if item == 'CUDA nccl2 content':
-                exists = glob.glob(f'/srv/nccl2/**/{self.files[item]}', recursive=True)
+                item_dir = get_name_dir(item)
+                exists = glob.glob(f'/srv/{item_dir}/**/{self.files[item]}', recursive=True)
                 if exists:
                     self.state[item] = ('CUDA nccl2 is present in the '
                                         'POWER-Up server')
 
             # Spectrum conductor status
             if item == 'Spectrum conductor content':
-                exists = glob.glob(f'/srv/spectrum-conductor/**/'
+                item_dir = get_name_dir(item)
+                exists = glob.glob(f'/srv/{item_dir}/**/'
                                    f'{self.files[item]}', recursive=True)
                 if exists:
                     self.state[item] = \
@@ -186,7 +191,8 @@ class software(object):
 
             # Spectrum DLI status
             if item == 'Spectrum DLI content':
-                exists = glob.glob(f'/srv/spectrum-dli/**/{self.files[item]}',
+                item_dir = get_name_dir(item)
+                exists = glob.glob(f'/srv/{item_dir}/**/{self.files[item]}',
                                    recursive=True)
                 if exists:
                     self.state[item] = ('Spectrum DLI is present in the '
@@ -399,7 +405,7 @@ class software(object):
             self.log.info('Spectrum conductor content exists already in the POWER-Up server')
 
         if not exists or get_yesno(f'Copy a new {name.title()} file '):
-            src_path = PowerupFileFromDisk(name, spc_src)
+            src_path = powerup_file_from_disk(name, spc_src)
 
         # Get Spectrum DLI
         name = 'Spectrum DLI content'
@@ -411,7 +417,7 @@ class software(object):
             self.log.info('Spectrum DLI content exists already in the POWER-Up server')
 
         if not exists or get_yesno(f'Copy a new {name.title()} file '):
-            src_path = PowerupFileFromDisk(name, spdli_src)
+            src_path = powerup_file_from_disk(name, spdli_src)
 
         # Setup repository for dependent packages. Dependent packages can come from
         # any YUM repository enabled on the POWER-Up Installer node.
@@ -466,7 +472,7 @@ class software(object):
             self.log.info('CUDA dnn content exists already in the POWER-Up server')
 
         if not exists or get_yesno(f'Copy a new {name.title()} file '):
-            src_path = PowerupFileFromDisk(name, cudnn_src)
+            src_path = powerup_file_from_disk(name, cudnn_src)
 
         # Get cuda nccl2 tar file
         name = 'CUDA nccl2 content'
@@ -478,7 +484,7 @@ class software(object):
             self.log.info('CUDA nccl2 content exists already in the POWER-Up server')
 
         if not exists or get_yesno(f'Copy a new {name.title()} file '):
-            src_path = PowerupFileFromDisk(name, nccl2_src)
+            src_path = powerup_file_from_disk(name, nccl2_src)
 
         # Setup CUDA
         repo_id = 'cuda'
