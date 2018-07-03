@@ -691,7 +691,9 @@ class Gen(object):
                 self.args.all = True
             if gen.GEN_SOFTWARE_PATH not in sys.path:
                 sys.path.append(gen.GEN_SOFTWARE_PATH)
+
             try:
+                self.args.name = self.args.name.split('.')[0]
                 software_module = importlib.import_module(self.args.name)
             except ImportError as exc:
                 print(exc)
