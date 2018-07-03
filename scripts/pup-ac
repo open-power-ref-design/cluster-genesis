@@ -16,87 +16,88 @@
 
 _pup()
 {
-    local cur prev opts prev_2 prev_3 comm_opts
+    local cur prev opts prev_2 prev_3 comm_opts pup_path
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
-    prev="${COMP_WORDS[COMP_CWORD-1]}"
-    prev_2="${COMP_WORDS[COMP_CWORD-2]}"
-    prev_3="${COMP_WORDS[COMP_CWORD-3]}"
+
+    if [[ $COMP_CWORD -ge 1  ]]; then
+        prev="${COMP_WORDS[COMP_CWORD-1]}"
+    fi
+
+    if [[ $COMP_CWORD -ge 2  ]]; then
+        prev_2="${COMP_WORDS[COMP_CWORD-2]}"
+    fi
+
+    if [[ $COMP_CWORD -ge 3  ]]; then
+        prev_3="${COMP_WORDS[COMP_CWORD-3]}"
+    fi
+
+    pup_path=${PATH%%power-up*}
+    pup_path=${pup_path##*:}power-up/
 
     cmd="pup"
 
     comm_opts=" --help --all --log-level-file --log-level-print"
 
-    opts="--networks --gateway"
-
-    if [[ ${cur} == * ]] && [[ ${prev} == setup ]]; then
+    if [[ ${prev} == "$cmd" ]] && [[ ${cur} == -* ]]; then
+        opts=$comm_opts
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         return 0
     fi
 
-    opts="--create-container --mgmt-switches --data-switches "
-
-    if [[ ${cur} == * ]] && [[ ${prev} == config ]]; then
-        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
-        return 0
-    fi
-
-    opts="--config-file --cluster-hardware"
-
-    if [[ ${cur} == * ]] && [[ ${prev} == validate ]]; then
-        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
-        return 0
-    fi
-
-    opts="--create-inventory --install-cobbler --download-os-images "
-    opts+="--inv-add-ports-ipmi --inv-add-ports-pxe --reserve-ipmi-pxe-ips "
-    opts+="--add-cobbler-distros --add-cobbler-systems --install-client-os "
-    opts="$opts""$comm_opts"
-
-    if [[ ${cur} == * ]] && [[ ${prev} == deploy ]]; then
-        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
-        return 0
-    fi
-
-    opts="--ssh-keyscan --gather-mac-addr --config-client-os "
-    opts+="--lookup-interface-names"
-    opts="$opts""$comm_opts"
-
-    if [[ ${cur} == * ]] && [[ ${prev} == post-deploy ]]; then
-        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
-        return 0
-    fi
-
-    opts="--scan-pxe-network --scan-ipmi-network"
-
-    if [[ ${cur} == * ]] && [[ ${prev} == utils ]]; then
-        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
-        return 0
-    fi
-
-    opts="setup config validate deploy post-deploy utils --help"
-
-    if [[ ${cur} == * ]] && [[ ${prev} == "$cmd" ]]; then
-        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
-        return 0
-    fi
-
-    opts="nolog debug info warning error critical"
-
-    if [[ ${cur} == * ]] && ([[ ${prev} == -p ]] || [[ ${prev} == -f ]] || \
+    if ([[ ${prev} == -p ]] || [[ ${prev} == -f ]] || \
         [[ ${prev} == --log-level-file ]] || \
         [[ ${prev} == --log-level-print ]]); then
+        opts="nolog debug info warning error critical"
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         return 0
     fi
 
-    opts="$comm_opts"
-
-    if [[ ${cur} == * ]] && [[ ${prev_3} == "$cmd" ]]; then
-        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+    if ([[ ${prev_2} == -p ]] || [[ ${prev_2} == -f ]] || \
+        [[ ${prev_2} == --log-level-file ]] || \
+        [[ ${prev_2} == --log-level-print ]]); then
         return 0
     fi
 
+    if ([[ ${prev} == software ]] && [[ ${prev_2} == "$cmd" ]]) || \
+            ([[ ${prev_2} == software ]] && [[ ${prev_3} == "$cmd" ]]); then
+        if [[ ${cur} != -* ]]; then
+            files=`ls "$pup_path"software/*.py | sed -E 's/(.+)\///'`
+            COMPREPLY=( $( compgen -W "${files[@]}" -- ${cur} ) )
+        else
+            opts="--prep --init-clients --install --status --README"
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+        fi
+        return 0
+    fi
+
+    if ([[ ${prev_3} == "$cmd" ]] && [[ ${prev} == --* ]]) || \
+            ([[ ${prev_2} == "$cmd" ]] && ([[ ${prev} == deploy ]] || \
+            [[ ${prev} == post-deploy ]]) && [[ ${cur} != -* ]]); then
+        files=`ls "$pup_path"*.yml | sed -E 's/(.+)\///'`
+        COMPREPLY=( $( compgen -W "${files[@]}" -- ${cur} ) )
+        return 0
+    fi
+
+    if [[ ${prev} == setup ]]; then
+        opts="--networks --gateway"
+    elif [[ ${prev} == config ]]; then
+        opts="--create-container --mgmt-switches --data-switches "
+    elif [[ ${prev} == validate ]]; then
+        opts="--config-file --cluster-hardware"
+    elif [[ ${prev} == deploy ]]; then
+        opts="--create-inventory --install-cobbler --download-os-images "
+        opts+="--inv-add-ports-ipmi --inv-add-ports-pxe --reserve-ipmi-pxe-ips "
+        opts+="--add-cobbler-distros --add-cobbler-systems --install-client-os "
+        opts+="$comm_opts"
+    elif [[ ${prev} == post-deploy ]]; then
+        opts="--ssh-keyscan --gather-mac-addr --config-client-os "
+        opts+="--lookup-interface-names"
+        opts="$opts""$comm_opts"
+    elif [[ ${prev} == "$cmd" ]]; then
+        opts="setup config validate deploy post-deploy software --help"
+    fi
+    COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
 }
 
 complete -F _pup pup
