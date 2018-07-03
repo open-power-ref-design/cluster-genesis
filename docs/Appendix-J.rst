@@ -7,7 +7,7 @@ Overview
 --------
 The POWER-Up software can run on OpenPOWER or x_86 architecture.
 
-The PowerAI Enterprise Software Install Module provides for rapid installation of the PowerAI Enterprise software to a cluster of Power8 or Power9 servers.
+The PowerAI Enterprise Software Install Module provides for rapid installation of the PowerAI Enterprise software to a cluster of POWER8 or POWER9 servers.
 The install module creates a web based software installation server on one of the cluster nodes or another node with access to the cluster.
 The software server is populated with repositories and files needed for installation of PowerAI Enterprise.
 Once the software server is setup, installation scripts orchestrate the software installation to one or more client nodes.
@@ -28,11 +28,11 @@ POWER-Up Node  Prerequisites;
 
 #. Enable the optional and extras repositories.
 
-    On Power8::
+    On POWER8::
 
     $ subscription-manager repos --enable rhel-7-optional-rpms --enable rhel-7-extras-rpms
 
-    On Power9::
+    On POWER9::
 
     $ subscription-manager repos --enable=rhel-7-for-power-9-optional-rpms --enable=–enable=rhel-7-for-power-9-extras-rpms
 
@@ -40,11 +40,18 @@ POWER-Up Node  Prerequisites;
 
     $ df -h /srv
 
-Install the POWER-Up software::
+From your home directory install the POWER-Up software and initialize the environment.
+For additional information, see :ref:`installing`::
 
     $ sudo yum install git
 
     $ git clone https://github.com/open-power-ref-design-toolkit/power-up -b software-install-b1
+
+    $ cd power-up
+
+    $ ./scripts/install.sh
+
+    $ source scripts/setup-env
 
 Installation of PowerAI Enterprise
 ----------------------------------
@@ -111,7 +118,7 @@ These dependent packages are downloaded to the POWER-Up software server from ena
 Additional software packages can be installed in the 'dependencies' repo on the POWER-Up software server by listing them in the power-up/software/dependent-packages.list file.
 Entries in this file can be delimited by spaces or commas and can appear on multiple lines.
 Note that packages listed in the dependent-packages.list file are not automatically installed on client nodes unless needed by the PowerAI software.
-They can be installed on a client node explicitly using yum on the client node (ie yum install pkg-name). Alternatively, they can be installed on all client nodes at once using Ansible::
+They can be installed on a client node explicitly using yum on the client node (ie yum install pkg-name). Alternatively, they can be installed on all client nodes at once using Ansible (run from within the power-up/software/ directory)::
 
     $ ansible all -i software_hosts -m yum -a "name=pkg-name"
 
