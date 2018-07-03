@@ -23,7 +23,7 @@ _pup()
     prev_2="${COMP_WORDS[COMP_CWORD-2]}"
     prev_3="${COMP_WORDS[COMP_CWORD-3]}"
     pup_path=${PATH%%power-up*}
-    pup_path=${pup_path##*:}
+    pup_path=${pup_path##*:}power-up/
 
     cmd="pup"
 
@@ -39,13 +39,13 @@ _pup()
 
     if [[ ${cur} == * ]] && [[ ${prev_3} == "$cmd" ]] && \
         [[ ${prev_2} == software ]]; then
-        files=`ls "$pup_path"power-up/software/*.py | sed -E 's/(.+)\///'`
+        files=`ls "$pup_path"software/*.py | sed -E 's/(.+)\///'`
         COMPREPLY=( $( compgen -W "${files[@]}" -- ${cur} ) )
         return 0
     fi
 
     if [[ ${prev_3} == "$cmd" ]] && [[ ${#COMP_WORDS[@]} == 4  ]]; then
-        files=`ls "$pup_path"power-up/*.yml | sed -E 's/(.+)\///'`
+        files=`ls "$pup_path"*.yml | sed -E 's/(.+)\///'`
         COMPREPLY=( $( compgen -W "${files[@]}" -- ${cur} ) )
         return 0
     fi
