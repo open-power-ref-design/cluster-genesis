@@ -52,7 +52,7 @@ def setup_source_file(name, src_glob, url='http://', alt_url='http://',
             only a single match is found it is used without choice and returned.
     """
     log = logger.getlogger()
-    name_src = name.lower().replace(' ', '-').replace('-content', '')
+    name_src = get_name_dir(name)
     exists = glob.glob(f'/srv/{name_src}/**/{src_glob}', recursive=True)
     if exists:
         log.info(f'The {name.capitalize()} source file exists already in the POWER-Up server '
@@ -93,12 +93,12 @@ def setup_source_file(name, src_glob, url='http://', alt_url='http://',
         elif ch == 'D':
             src_path = get_src_path(src_glob)
             if src_path:
-                if not os.path.exists(f'/srv/{name}'):
-                    os.mkdir(f'/srv/{name}')
+                if not os.path.exists(f'/srv/{name_src}'):
+                    os.mkdir(f'/srv/{name_src}')
                 try:
-                    copy2(f'{src_path}', f'/srv/{name}/')
+                    copy2(f'{src_path}', f'/srv/{name_src}/')
                 except Error as err:
-                    log.debug(f'Failed copying {name} source file to /srv/{name}/ '
+                    log.debug(f'Failed copying {name} source file to /srv/{name_src}/ '
                               f'directory. \n{err}')
                     return False, None
                 else:
@@ -106,7 +106,8 @@ def setup_source_file(name, src_glob, url='http://', alt_url='http://',
                              'into the POWER-Up software server.')
                     return src_path, True
         else:
-            log.info(f'No {name.capitalize()} source file copied to POWER-Up server directory')
+            log.info(f'No {name.capitalize()} source file copied to POWER-Up '
+                     'server directory')
             if exists:
                 return None, True
             else:
@@ -119,16 +120,26 @@ def setup_source_file(name, src_glob, url='http://', alt_url='http://',
             return None, False
 
 
-def PowerupFileFromDisk(name, file_glob):
+def get_name_dir(name):
+    """Construct a reasonable directory name from a descriptive name. Replace
+    spaces with dashes, convert to lower case and remove 'content' and 'Repository'
+    if present.
+    """
+    return name.lower().replace(' ', '-').replace('-content', '')\
+        .replace('-repository', '')
+
+
+def powerup_file_from_disk(name, file_glob):
         log = logger.getlogger()
+        name_src = get_name_dir(name)
         src_path = get_src_path(file_glob)
         if src_path:
-            if not os.path.exists(f'/srv/{name}'):
-                os.mkdir(f'/srv/{name}')
+            if not os.path.exists(f'/srv/{name_src}'):
+                os.mkdir(f'/srv/{name_src}')
             try:
-                copy2(f'{src_path}', f'/srv/{name}/')
+                copy2(f'{src_path}', f'/srv/{name_src}/')
             except Error as err:
-                log.debug(f'Failed copying {name} source file to /srv/{name}/ '
+                log.debug(f'Failed copying {name} source file to /srv/{name_src}/ '
                           f'directory. \n{err}')
             else:
                 log.info(f'Successfully installed {name} source file '
@@ -217,32 +228,32 @@ class PowerupRepo(object):
                     with open(repo_link_path, 'r') as f:
                         curr_content = f.read()
                         if curr_content != content:
-                            cache_dir = f'/var/cache/yum/{self.arch}/7Server/\
-                                        {self.repo_id}'
+                            self.log.info(f'Sync source for repository {self.repo_id} '
+                                          'has changed')
+                            cache_dir = (f'/var/cache/yum/{self.arch}/7Server/'
+                                         f'{self.repo_id}')
                             if os.path.exists(cache_dir):
                                 self.log.info(f'Removing existing cache directory '
-                                              '{cache_dir}')
+                                              f'{cache_dir}')
                                 rmtree(cache_dir)
                             if os.path.exists(cache_dir + '-local'):
                                 self.log.info(f'Removing existing cache directory '
-                                              '{cache_dir}-local')
+                                              f'{cache_dir}-local')
                                 rmtree(cache_dir + '-local')
                             if os.path.exists(f'{self.repo_dir}/repodata'):
                                 self.log.info(f'Removing existing repodata for '
-                                              '{self.repo_id}')
+                                              f'{self.repo_id}')
                                 rmtree(f'{self.repo_dir}/repodata')
                             if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id}-local.repo'):
                                 self.log.info(f'Removing existing local .repo for'
-                                              ' {self.repo_id}-local')
+                                              f' {self.repo_id}-local')
                                 os.remove(f'/etc/yum.repos.d/{self.repo_id}-local.repo')
         with open(repo_link_path, 'w') as f:
             f.write(content)
 
     def create_meta(self, update=False):
-        if not os.path.exists(f'{self.repo_dir}/repodata'):
-            self.log.info('Creating repository metadata and databases')
-        else:
-            self.log.info('Updating repository metadata and databases')
+        action = ('update', 'Updating') if update else ('create', 'Creating')
+        self.log.info(f'{action[1]} repository metadata and databases')
         print('This may take a few minutes.')
         if not update:
             cmd = f'createrepo -v {self.repo_dir}'
@@ -252,7 +263,7 @@ class PowerupRepo(object):
         if rc != 0:
             self.log.error(f'Repo creation error: rc: {rc} stderr: {err}')
         else:
-            self.log.info(f'Repo create process for {self.repo_id} finished'
+            self.log.info(f'Repo {action[0]} process for {self.repo_id} finished'
                           ' succesfully')
 
 
@@ -410,7 +421,8 @@ class PowerupRepoFromRepo(PowerupRepo):
             d = f.read()
             rejlist = rejlist.replace('*', '').split(',')
             for item in rejlist:
-                ss = f' *<tr>\\n\\s+<td><a\\s+href="{item}.+\\.tar\\.bz2">.*?</td>(\\n.*<td.*/td>){{3}}\\n\\s*</tr>\\n'
+                ss = (f' *<tr>\\n\\s+<td><a\\s+href="{item}.+\\.tar\\.bz2">.*?</td>'
+                      '(\\n.*<td.*/td>){{3}}\\n\\s*</tr>\\n')
                 d = re.sub(ss, '', d)
         filecnt = d.count('</tr>') - 1
         d = re.sub(r'Files:\s+\d+', f'Files: {filecnt}', d)

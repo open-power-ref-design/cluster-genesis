@@ -1,6 +1,14 @@
 ---
+- name: Get route to client
+  command: "{{ hostvars['localhost']['python_executable_local'] }} \
+  {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+  {{ inventory_hostname }}"
+  delegate_to: localhost
+  register: host_ip
+
 - name: Install the cuDNN v7.1.2 packages
-  shell: "curl -G http://10.0.20.21/cudnn/cudnn-9.2-linux-ppc64le-v7.1.tgz \
+  shell: "curl -G \
+  http://{{ host_ip.stdout }}/cudnn/cudnn-9.2-linux-ppc64le-v7.1.tgz \
   | tar -C /usr/local --no-same-owner -xzv"
   args:
     warn: no
