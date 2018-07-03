@@ -421,7 +421,8 @@ class software(object):
                     'libatomic glibc-devel glibc-headers mpfr kernel-headers '
                     'zlib-devel boost-system libgfortran boost-python boost-thread '
                     'boost-filesystem java-1.8.0-openjdk-devel scipy PyYAML '
-                    'pyparsing python-pillow python-matplotlib pciutils')
+                    'pyparsing python-pillow python-matplotlib pciutils libgcc '
+                    'libgomp libstdc++ libstdc++-devel cpp gcc-c++')
         file_more = GEN_SOFTWARE_PATH + 'dependent-packages.list'
         if os.path.isfile(file_more):
             try:
