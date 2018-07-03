@@ -31,8 +31,8 @@ import code
 
 import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupRepoFromRepo, \
-    PowerupRepoFromRpm, setup_source_file, PowerupFileFromDisk
-from software_hosts import get_ansible_inventory
+    PowerupRepoFromRpm, setup_source_file, powerup_file_from_disk, get_name_dir
+from software_hosts import get_ansible_inventory, validate_software_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, get_url, Color, \
     get_selection, get_yesno, get_dir, get_file_path, get_src_path, rlinput, bold
 from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path, \
@@ -93,6 +93,8 @@ class software(object):
                       'CUDA nccl2 content': 'nccl_2.2.1[2-9]-1+cuda9.[2-9]_ppc64le.tgz',
                       'Spectrum conductor content': 'cws-2.[2-9].[0-9].[0-9]_ppc64le.bin',
                       'Spectrum DLI content': 'dli-1.[1-9].[0-9].[0-9]_ppc64le.bin'}
+        if 'ansible_inventory' not in self.sw_vars:
+            self.sw_vars['ansible_inventory'] = None
 
         self.log.debug(f'software variables: {self.sw_vars}')
 
@@ -147,7 +149,8 @@ class software(object):
 
             # Anaconda content status
             if item == 'Anaconda content':
-                exists = glob.glob(f'/srv/anaconda/**/{self.files[item]}',
+                item_dir = get_name_dir(item)
+                exists = glob.glob(f'/srv/{item_dir}/**/{self.files[item]}',
                                    recursive=True)
                 if exists:
                     self.state['Anaconda content'] = ('Anaconda is present in the '
@@ -155,30 +158,34 @@ class software(object):
 
             # Anaconda Repo status
             if item == 'Anaconda Repository':
-                repodata_noarch = glob.glob('/srv/repos/anaconda/pkgs/free'
+                item_dir = get_name_dir(item)
+                repodata_noarch = glob.glob(f'/srv/repos/{item_dir}/pkgs/free'
                                             '/noarch/repodata.json', recursive=True)
-                repodata = glob.glob('/srv/repos/anaconda/pkgs/free'
+                repodata = glob.glob(f'/srv/repos/{item_dir}/pkgs/free'
                                      '/linux-ppc64le/repodata.json', recursive=True)
                 if repodata and repodata_noarch:
                     self.state[item] = f'{item} is setup'
 
             # cudnn status
             if item == 'CUDA dnn content':
-                exists = glob.glob(f'/srv/cudnn/**/{self.files[item]}', recursive=True)
+                item_dir = get_name_dir(item)
+                exists = glob.glob(f'/srv/{item_dir}/**/{self.files[item]}', recursive=True)
                 if exists:
                     self.state['CUDA dnn content'] = ('CUDA DNN is present in the '
                                                       'POWER-Up server')
 
             # cuda nccl2 status
             if item == 'CUDA nccl2 content':
-                exists = glob.glob(f'/srv/nccl2/**/{self.files[item]}', recursive=True)
+                item_dir = get_name_dir(item)
+                exists = glob.glob(f'/srv/{item_dir}/**/{self.files[item]}', recursive=True)
                 if exists:
                     self.state[item] = ('CUDA nccl2 is present in the '
                                         'POWER-Up server')
 
             # Spectrum conductor status
             if item == 'Spectrum conductor content':
-                exists = glob.glob(f'/srv/spectrum-conductor/**/'
+                item_dir = get_name_dir(item)
+                exists = glob.glob(f'/srv/{item_dir}/**/'
                                    f'{self.files[item]}', recursive=True)
                 if exists:
                     self.state[item] = \
@@ -186,7 +193,8 @@ class software(object):
 
             # Spectrum DLI status
             if item == 'Spectrum DLI content':
-                exists = glob.glob(f'/srv/spectrum-dli/**/{self.files[item]}',
+                item_dir = get_name_dir(item)
+                exists = glob.glob(f'/srv/{item_dir}/**/{self.files[item]}',
                                    recursive=True)
                 if exists:
                     self.state[item] = ('Spectrum DLI is present in the '
@@ -399,7 +407,7 @@ class software(object):
             self.log.info('Spectrum conductor content exists already in the POWER-Up server')
 
         if not exists or get_yesno(f'Copy a new {name.title()} file '):
-            src_path = PowerupFileFromDisk(name, spc_src)
+            src_path = powerup_file_from_disk(name, spc_src)
 
         # Get Spectrum DLI
         name = 'Spectrum DLI content'
@@ -411,7 +419,7 @@ class software(object):
             self.log.info('Spectrum DLI content exists already in the POWER-Up server')
 
         if not exists or get_yesno(f'Copy a new {name.title()} file '):
-            src_path = PowerupFileFromDisk(name, spdli_src)
+            src_path = powerup_file_from_disk(name, spdli_src)
 
         # Setup repository for dependent packages. Dependent packages can come from
         # any YUM repository enabled on the POWER-Up Installer node.
@@ -467,7 +475,7 @@ class software(object):
             self.log.info('CUDA dnn content exists already in the POWER-Up server')
 
         if not exists or get_yesno(f'Copy a new {name.title()} file '):
-            src_path = PowerupFileFromDisk(name, cudnn_src)
+            src_path = powerup_file_from_disk(name, cudnn_src)
 
         # Get cuda nccl2 tar file
         name = 'CUDA nccl2 content'
@@ -479,7 +487,7 @@ class software(object):
             self.log.info('CUDA nccl2 content exists already in the POWER-Up server')
 
         if not exists or get_yesno(f'Copy a new {name.title()} file '):
-            src_path = PowerupFileFromDisk(name, nccl2_src)
+            src_path = powerup_file_from_disk(name, nccl2_src)
 
         # Setup CUDA
         repo_id = 'cuda'
@@ -739,25 +747,33 @@ class software(object):
                            f'rc: {rc} err: {err}')
 
     def init_clients(self):
-        ansible_inventory = get_ansible_inventory()
+        self.sw_vars['ansible_inventory'] = get_ansible_inventory()
         cmd = ('{} -i {} '
                '{}/init_clients.yml --ask-become-pass'
-               .format(get_ansible_playbook_path(), ansible_inventory,
+               .format(get_ansible_playbook_path(),
+                       self.sw_vars['ansible_inventory'],
                        GEN_SOFTWARE_PATH))
         resp, err, rc = sub_proc_exec(cmd)
-        # cmd = ('ssh -t -i ~/.ssh/gen root@10.0.20.22 '
-        #        '/opt/DL/license/bin/accept-powerai-license.sh')
-        # resp = sub_proc_display(cmd)
-        # print(resp)
         print('All done')
 
     def install(self):
-        ansible_inventory = get_ansible_inventory()
+        if self.sw_vars['ansible_inventory'] is None:
+            self.sw_vars['ansible_inventory'] = get_ansible_inventory()
+        else:
+            print("Validating software inventory '{}'..."
+                  .format(self.sw_vars['ansible_inventory']))
+            if validate_software_inventory(self.sw_vars['ansible_inventory']):
+                print(bold("Validation passed!"))
+            else:
+                print(bold("Validation FAILED!"))
+                self.sw_vars['ansible_inventory'] = get_ansible_inventory()
+
         install_tasks = yaml.load(open(GEN_SOFTWARE_PATH +
                                        'paie52_install_procedure.yml'))
         for task in install_tasks:
             heading1(f"Client Node Action: {task['description']}")
-            _run_ansible_tasks(task['tasks'], ansible_inventory)
+            _run_ansible_tasks(task['tasks'],
+                               self.sw_vars['ansible_inventory'])
         print('Done')
 
 

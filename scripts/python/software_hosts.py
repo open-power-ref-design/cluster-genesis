@@ -310,7 +310,7 @@ def _validate_ansible_ping(software_hosts_file_path):
     return True
 
 
-def _validate_software_inventory(software_hosts_file_path):
+def validate_software_inventory(software_hosts_file_path):
     """Validate Ansible software inventory
 
     Args:
@@ -363,7 +363,7 @@ def get_ansible_inventory():
         print("--------------------------------")
         print(_get_groups_hosts_string(dynamic_inventory))
         print("--------------------------------")
-        _validate_software_inventory(software_hosts_file_path)
+        validate_software_inventory(dynamic_inventory)
         if click.confirm('Do you want to use this inventory?'):
             print("Using Ansible Dynamic Inventory")
             inventory_choice = dynamic_inventory_path
@@ -404,29 +404,29 @@ def get_ansible_inventory():
                     continue
 
             # Menu items can modified to show validation results
-            menu_items = ['Edit inventory file',
-                          'Use inventory file as-is',
+            menu_items = ['Continue with current inventory',
+                          'Edit inventory file',
                           'Exit program']
 
             # Validate software inventory
             print("Validating software inventory...")
-            if _validate_software_inventory(software_hosts_file_path):
+            if validate_software_inventory(software_hosts_file_path):
                 print(bold("Validation passed!"))
             else:
                 print(bold("Validation FAILED!"))
-                menu_items[1] = ("Use inventory file as-is - "
+                menu_items[0] = ("Continue with inventory as-is - "
                                  "WARNING: Validated failed")
 
-            # If validation fails or user opts not to use as-is
+            # Prompt user
             choice, item = get_selection(menu_items)
             print(f'Choice: {choice} Item: {item}')
             if choice == "1":
-                click.edit(filename=software_hosts_file_path)
-            elif choice == "2":
                 print("Using '{}' as inventory"
                       .format(software_hosts_file_path))
                 inventory_choice = software_hosts_file_path
                 break
+            elif choice == "2":
+                click.edit(filename=software_hosts_file_path)
             elif choice == "3":
                 sys.exit(1)
 
