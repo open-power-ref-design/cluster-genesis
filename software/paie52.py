@@ -788,8 +788,14 @@ def _run_ansible_tasks(tasks_path, ansible_inventory, extra_args=''):
     run = True
     while run:
         log.info(f'Running Ansible tasks found in \'{tasks_path}\' ...')
+        if 'notify: Reboot' in open(f'{GEN_SOFTWARE_PATH}{tasks_path}').read():
+            print(bold('\nThis step requires changed systems to reboot! '
+                       '(16 minute timeout)'))
+        if '--ask-become-pass' in cmd:
+            print('\nClient password required for privilege escalation')
         resp, err, rc = sub_proc_exec(cmd, shell=True)
         log.debug(f"cmd: {cmd}\nresp: {resp}\nerr: {err}\nrc: {rc}")
+        print("") # line break
         if rc != 0:
             log.warning("Ansible tasks failed!")
             if resp != '':
