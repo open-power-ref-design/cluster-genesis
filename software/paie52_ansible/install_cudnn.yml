@@ -8,7 +8,7 @@
 
 - name: Install the cuDNN v7.1.2 packages
   shell: "curl -G \
-  http://{{ host_ip.stdout }}/cudnn/cudnn-9.2-linux-ppc64le-v7.1.tgz \
+  http://{{ host_ip.stdout }}/cuda-dnn/cudnn-9.2-linux-ppc64le-v7.1.tgz \
   | tar -C /usr/local --no-same-owner -xzv"
   args:
     warn: no

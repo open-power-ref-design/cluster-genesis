@@ -8,7 +8,7 @@
 
 - name: Install NVIDIA Collective Communications Library
   shell: "curl -G \
-  http://{{ host_ip.stdout }}/nccl2/nccl_2.2.12-1+cuda9.2_ppc64le.tgz \
+  http://{{ host_ip.stdout }}/cuda-nccl2/nccl_2.2.13-1+cuda9.2_ppc64le.tgz \
   | tar -C /usr/local --no-same-owner -xzv"
   args:
     warn: no
