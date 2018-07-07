@@ -6,5 +6,9 @@
   with_items:
     - wget
     - bzip2
-    - powerai-license
+    - curl
+    - bind-utils
+    - iproute
+    - acl
+    - net-tools
   become: yes
