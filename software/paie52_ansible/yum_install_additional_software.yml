@@ -11,4 +11,5 @@
     - iproute
     - acl
     - net-tools
+    - dejavu-serif-fonts
   become: yes
