@@ -430,7 +430,8 @@ class software(object):
                     'zlib-devel boost-system libgfortran boost-python boost-thread '
                     'boost-filesystem java-1.8.0-openjdk-devel scipy PyYAML '
                     'pyparsing python-pillow python-matplotlib pciutils libgcc '
-                    'libgomp libstdc++ libstdc++-devel cpp gcc-c++')
+                    'libgomp libstdc++ libstdc++-devel cpp gcc-c++ '
+                    'dejavu-serif-fonts')
         file_more = GEN_SOFTWARE_PATH + 'dependent-packages.list'
         if os.path.isfile(file_more):
             try:
