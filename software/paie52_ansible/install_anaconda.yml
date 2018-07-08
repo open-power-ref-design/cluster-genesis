@@ -1,7 +1,7 @@
 ---
 - name: Set installation directory variable
   set_fact:
-    install_dir: "{{ ansible_env.HOME }}/anaconda2"
+    install_dir: "/opt/anaconda2"
 
 - name: Check if anaconda2 directory already exists
   stat:
