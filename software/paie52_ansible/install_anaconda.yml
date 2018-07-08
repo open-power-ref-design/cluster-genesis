@@ -38,6 +38,7 @@
           -b -p {{ install_dir }} {{ args }}"
   args:
     executable: /bin/bash
+  become: yes
 
 - name: Add Anaconda2 install location to PATH in bashrc
   lineinfile:
