@@ -29,5 +29,8 @@
 - description: Install Deep Learning frameworks
   tasks: install_frameworks.yml
 
+- description: Post-Install Configurations
+  tasks: post_install_config.yml
+
 - description: Apply recommended performance settings
   tasks: performance_tuning.yml
