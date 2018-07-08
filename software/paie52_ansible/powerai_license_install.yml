@@ -1,0 +1,6 @@
+---
+- name: Install powerai-license software package
+  yum:
+    name: powerai-license
+    state: latest
+  become: yes

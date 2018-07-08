@@ -772,7 +772,7 @@ class software(object):
                                        'paie52_install_procedure.yml'))
         for task in install_tasks:
             heading1(f"Client Node Action: {task['description']}")
-            if task['description'] == "Run License Script":
+            if task['description'] == "Run PowerAI License Script":
                 _interactive_powerai_license_accept(
                     self.sw_vars['ansible_inventory'])
             _run_ansible_tasks(task['tasks'],
