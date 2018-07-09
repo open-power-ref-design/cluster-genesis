@@ -20,6 +20,13 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 
 import click
 import os.path
+from os import listdir, mkdir, chown, chmod, getlogin
+import filecmp
+import json
+import pwd
+import grp
+from shutil import copyfile
+from pathlib import Path
 import re
 import netaddr
 import socket
@@ -32,7 +39,7 @@ import lib.logger as logger
 from lib.genesis import get_python_path, CFG_FILE, \
     get_dynamic_inventory_path, get_playbooks_path, get_ansible_path
 from lib.utilities import bash_cmd, sub_proc_exec, heading1, get_selection, \
-    bold
+    bold, get_yesno, sub_proc_display, remove_line, append_line
 
 
 def _get_dynamic_inventory():
@@ -173,7 +180,7 @@ def _create_new_software_inventory(software_hosts_file_path):
 # Global SSH logic credentials can be specified with [all:vars]
 #   e.g.:
 #   [all:vars]
-#   ansible_ssh_private_key_file=~/.ssh/gen
+#   ansible_ssh_private_key_file=~/.ssh/powerup
 #   ansible_user=root
 #   ansible_ssh_common_args='-o StrictHostKeyChecking=no'
 #
@@ -310,6 +317,204 @@ def _validate_ansible_ping(software_hosts_file_path):
     return True
 
 
+def configure_ssh_keys(software_hosts_file_path):
+    """Get a list of existing SSH private/public key paths from
+    '~/.ssh/'. If called with 'sudo' then get list from both
+    '/root/.ssh/' and '~/.ssh'.
+
+    Args:
+        software_hosts_file_path (str): Path to software inventory file
+
+    Returns:
+        list of str: List of private ssh key paths
+    """
+    default_ssh_key_name = "powerup"
+
+    ssh_key_options = get_existing_ssh_key_pairs()
+
+    if os.path.join(Path.home(), ".ssh",
+                    default_ssh_key_name) not in ssh_key_options:
+        ssh_key_options.insert(0, 'Create New "powerup" Key Pair')
+
+    if len(ssh_key_options) == 1:
+        item = ssh_key_options[0]
+    elif len(ssh_key_options) > 1:
+        print(bold("\nSelect an SSH key to use:"))
+        choice, item = get_selection(ssh_key_options)
+
+    if item == 'Create New "powerup" Key Pair':
+        ssh_key = create_ssh_key_pair(default_ssh_key_name)
+    else:
+        ssh_key = item
+
+    copy_ssh_key_pair_to_user(ssh_key)
+
+    hosts_list = _validate_inventory_count(software_hosts_file_path)
+
+    cmd = (f'ansible-inventory --inventory {software_hosts_file_path} --list')
+    resp, err, rc = sub_proc_exec(cmd, shell=True)
+    hostvars = json.loads(resp)['_meta']['hostvars']
+
+    for host in hosts_list:
+        cmd = (f'ssh-copy-id {hostvars[host]["ansible_user"]}@{host} '
+               f'-i {ssh_key} ')
+        if "ansible_port" in hostvars[host]:
+            cmd += f'-p {hostvars[host]["ansible_port"]} '
+        if "ansible_ssh_common_args" in hostvars[host]:
+            cmd += f'{hostvars[host]["ansible_ssh_common_args"]} '
+
+        rc = sub_proc_display(cmd)
+
+    remove_line(software_hosts_file_path, '^ansible_ssh_private_key_file=.*')
+    append_line(software_hosts_file_path, '[all:vars]')
+    with open(software_hosts_file_path, 'r') as software_hosts_read:
+        software_hosts = software_hosts_read.readlines()
+    with open(software_hosts_file_path, 'w') as software_hosts_write:
+        for line in software_hosts:
+            if line.startswith("[all:vars]"):
+                line = line + f'ansible_ssh_private_key_file={ssh_key}\n'
+            software_hosts_write.write(line)
+
+
+def get_existing_ssh_key_pairs():
+    """Get a list of existing SSH private/public key paths from
+    '~/.ssh/'. If called with 'sudo' then get list from both
+    '/root/.ssh/' and '~/.ssh'.
+
+    Returns:
+        list of str: List of private ssh key paths
+    """
+    ssh_key_pairs = []
+
+    ssh_dir = os.path.join(Path.home(), ".ssh")
+    if os.path.isdir(ssh_dir):
+        for item in listdir(ssh_dir):
+            item = os.path.join(ssh_dir, item)
+            if os.path.isfile(item + '.pub'):
+                ssh_key_pairs.append(item)
+
+    user_name, user_home_dir = get_user_and_home()
+    if user_home_dir != str(Path.home()):
+        user_ssh_dir = os.path.join(user_home_dir, ".ssh")
+        if os.path.isdir(user_ssh_dir):
+            for item in listdir(user_ssh_dir):
+                item = os.path.join(user_ssh_dir, item)
+                if os.path.isfile(item + '.pub'):
+                    ssh_key_pairs.append(item)
+
+    return ssh_key_pairs
+
+
+def create_ssh_key_pair(name):
+    """Create an SSH private/public key pair in ~/.ssh/
+
+    If an SSH key pair exists with "name" then the private key path is
+    returned *without* creating anything new.
+
+    Args:
+        name (str): Filename of private key file
+
+    Returns:
+        str: Private ssh key path
+
+    Raises:
+        UserException: If ssh-keygen command fails
+    """
+    log = logger.getlogger()
+    ssh_dir = os.path.join(Path.home(), ".ssh")
+    private_key_path = os.path.join(ssh_dir, name)
+    if not os.path.isdir(ssh_dir):
+        os.mkdir(ssh_dir, mode=0o700)
+    if os.path.isfile(private_key_path):
+        log.info(f'SSH key \'{private_key_path}\' already exists, continuing')
+    else:
+        log.info(f'Creating SSH key \'{private_key_path}\'')
+        cmd = ('ssh-keygen -t rsa -b 4096 '
+               '-C "Generated by Power-Up Software Installer" '
+               f'-f {private_key_path} -N ""')
+        resp, err, rc = sub_proc_exec(cmd, shell=True)
+        if str(rc) != "0":
+            msg = 'ssh-keygen failed:\n{}'.format(resp)
+            log.debug(msg)
+            raise UserException(msg)
+    return private_key_path
+
+
+def copy_ssh_key_pair_to_user(private_key_path):
+    """Copy an SSH private/public key pair into the user's ~/.ssh dir
+
+    This function is useful when a key pair is created as root user
+    (e.g. using 'sudo') but should also be available to the user for
+    direct 'ssh' calls.
+
+    If the private key is already in the user's ~/.ssh directory
+    nothing is done.
+
+    Args:
+        private_key_path (str) : Filename of private key file
+    """
+    log = logger.getlogger()
+    public_key_path = private_key_path + '.pub'
+
+    user_name, user_home_dir = get_user_and_home()
+    user_ssh_dir = os.path.join(user_home_dir, ".ssh")
+
+    if user_ssh_dir not in private_key_path:
+        user_private_key_path = os.path.join(
+            user_ssh_dir, os.path.basename(private_key_path))
+        user_public_key_path = user_private_key_path + '.pub'
+        user_uid = pwd.getpwnam(user_name).pw_uid
+        user_gid = grp.getgrnam(user_name).gr_gid
+
+        if not os.path.isdir(user_ssh_dir):
+            os.mkdir(user_ssh_dir, mode=0o700)
+            os.chown(user_ssh_dir, user_uid, user_gid)
+
+        # Never overwrite an existing private key file!
+        while os.path.isfile(user_private_key_path):
+            # If key pair already exists no need to do anything
+            if (filecmp.cmp(private_key_path, user_private_key_path) and
+                    filecmp.cmp(public_key_path, user_public_key_path)):
+                return
+            else:
+                user_private_key_path += "_powerup"
+                user_public_key_path = user_private_key_path + '.pub'
+
+        copyfile(private_key_path, user_private_key_path)
+        copyfile(public_key_path, user_public_key_path)
+
+        os.chown(user_private_key_path, user_uid, user_gid)
+        os.chmod(user_private_key_path, 0o600)
+
+        os.chown(user_public_key_path, user_uid, user_gid)
+        os.chmod(user_public_key_path, 0o644)
+
+
+def get_user_and_home():
+    """Get user name and home directory path
+
+    Returns the user account calling the script, *not* 'root' even
+    when called with 'sudo'.
+
+    Returns:
+        user_name, user_home_dir (tuple): User name and home dir path
+
+    Raises:
+        UserException: If 'getent' command fails
+    """
+    user_name = getlogin()
+
+    cmd = f'getent passwd {user_name}'
+    resp, err, rc = sub_proc_exec(cmd, shell=True)
+    if str(rc) != "0":
+        msg = 'getent failed:\n{}'.format(err)
+        log.debug(msg)
+        raise UserException(msg)
+    user_home_dir = resp.split(':')[5].rstrip()
+
+    return (user_name, user_home_dir)
+
+
 def validate_software_inventory(software_hosts_file_path):
     """Validate Ansible software inventory
 
@@ -416,18 +621,21 @@ def get_ansible_inventory():
                 print(bold("Validation FAILED!"))
                 menu_items[0] = ("Continue with inventory as-is - "
                                  "WARNING: Validated failed")
+                menu_items.insert(0, 'Configure SSH Keys')
 
             # Prompt user
             choice, item = get_selection(menu_items)
             print(f'Choice: {choice} Item: {item}')
-            if choice == "1":
+            if item == 'Configure SSH Keys':
+                configure_ssh_keys(software_hosts_file_path)
+            elif item.startswith('Continue with'):
                 print("Using '{}' as inventory"
                       .format(software_hosts_file_path))
                 inventory_choice = software_hosts_file_path
                 break
-            elif choice == "2":
+            elif item == 'Edit inventory file':
                 click.edit(filename=software_hosts_file_path)
-            elif choice == "3":
+            elif item == 'Exit program':
                 sys.exit(1)
 
     if inventory_choice is None:
