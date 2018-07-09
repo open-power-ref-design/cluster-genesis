@@ -28,6 +28,7 @@ from shutil import copy2, Error
 import time
 import yaml
 import code
+import json
 
 import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupRepoFromRepo, \
@@ -771,6 +772,9 @@ class software(object):
                                        'paie52_install_procedure.yml'))
         for task in install_tasks:
             heading1(f"Client Node Action: {task['description']}")
+            if task['description'] == "Install Anaconda installer":
+                _interactive_anaconda_license_accept(
+                    self.sw_vars['ansible_inventory'])
             _run_ansible_tasks(task['tasks'],
                                self.sw_vars['ansible_inventory'])
         print('Done')
@@ -807,6 +811,41 @@ def _run_ansible_tasks(tasks_path, ansible_inventory, extra_args=''):
         else:
             log.info("Ansible tasks ran successfully")
             run = False
+    return rc
+
+
+def _interactive_anaconda_license_accept(ansible_inventory):
+    log = logger.getlogger()
+    cmd = (f'ansible-inventory --inventory {ansible_inventory} --list')
+    resp, err, rc = sub_proc_exec(cmd, shell=True)
+    inv = json.loads(resp)
+    hostname, hostvars = inv['_meta']['hostvars'].popitem()
+
+    base_cmd = f'ssh -t {hostvars["ansible_user"]}@{hostname} '
+    if "ansible_ssh_private_key_file" in hostvars:
+        base_cmd += f'-i {hostvars["ansible_ssh_private_key_file"]} '
+    if "ansible_ssh_common_args" in hostvars:
+        base_cmd += f'{hostvars["ansible_ssh_common_args"]} '
+
+    cmd = base_cmd + 'ls /opt/anaconda2/'
+    resp, err, rc = sub_proc_exec(cmd)
+
+    # If install directory already exists assume license has been accepted
+    if rc == 0:
+        print(f'Anaconda license already accepted on {hostname}')
+    else:
+        print(bold('Manual Anaconda license acceptance required on at least '
+                   'one client!'))
+        rlinput(f'Press Enter to run interactively on {hostname}')
+        cmd = (base_cmd + 'sudo ~/Anaconda2-5.1.0-Linux-ppc64le.sh '
+               '-p /opt/anaconda2')
+        rc = sub_proc_display(cmd)
+        if rc == 0:
+            print('\nLicense accepted. Acceptance script will be run quietly '
+                  'on remaining servers.')
+        else:
+            log.error("Anaconda license acceptance required to continue!")
+            sys.exit('Exiting')
     return rc
 
 

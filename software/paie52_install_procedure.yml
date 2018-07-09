@@ -20,8 +20,11 @@
 - description: Install NCCL Library
   tasks: install_nccl.yml
 
+- description: Download Anaconda installer
+  tasks: anaconda_prep.yml
+
 - description: Install Anaconda installer
-  tasks: install_anaconda.yml
+  tasks: anaconda_install.yml
 
 - description: Run License Script
   tasks: powerai_license_accept.yml
