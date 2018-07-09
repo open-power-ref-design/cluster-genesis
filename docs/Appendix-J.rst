@@ -26,15 +26,15 @@ POWER-Up Node  Prerequisites;
 
 #. Enable access to the Extra Packages for Enterprise Linux (EPEL) repository. (https://fedoraproject.org/wiki/EPEL#Quickstart)
 
-#. Enable the optional and extras repositories.
+#. Enable the common, optional and extras repositories.
 
     On POWER8::
 
-    $ subscription-manager repos --enable rhel-7-optional-rpms --enable rhel-7-extras-rpms
+    $ sudo subscription-manager repos --enable=rhel-7-for-power-le-rpms --enable=rhel-7-for-power-le-optional-rpms --enable=rhel-7-for-power-le-extras-rpms
 
     On POWER9::
 
-    $ subscription-manager repos --enable=rhel-7-for-power-9-optional-rpms --enable=–enable=rhel-7-for-power-9-extras-rpms
+    $ sudo subscription-manager repos --enable=rhel-7-for-power-9-rpms --enable=rhel-7-for-power-9-optional-rpms --enable=–enable=rhel-7-for-power-9-extras-rpms
 
 #. Insure that there is at least 40 GB of available disk space in the partition holding the /srv directory::
 
@@ -81,6 +81,8 @@ https://www.ibm.com/support/knowledgecenter/SSFHA8_1.1.0/enterprise/powerai_setu
 At any time, you can check the status of the POWER-Up software server by running::
 
     $ pup software --status paie52
+
+**Hint: The POWER-Up command line interface supports tab autocompletion.**
 
 Preparation of the POWER-Up Software Server
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
