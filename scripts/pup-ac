@@ -94,8 +94,10 @@ _pup()
         opts="--ssh-keyscan --gather-mac-addr --config-client-os "
         opts+="--lookup-interface-names"
         opts="$opts""$comm_opts"
+    elif [[ ${prev} == utils ]]; then
+        opts="--scan-pxe-network --scan-ipmi-network"
     elif [[ ${prev} == "$cmd" ]]; then
-        opts="setup config validate deploy post-deploy software --help"
+        opts="setup config validate deploy post-deploy software utils --help"
     fi
     COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
 }
