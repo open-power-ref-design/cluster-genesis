@@ -23,7 +23,10 @@
 - description: Install Anaconda installer
   tasks: install_anaconda.yml
 
-- description: Run License Script
+- description: Install PowerAI License Script
+  tasks: powerai_license_install.yml
+
+- description: Run PowerAI License Script
   tasks: powerai_license_accept.yml
 
 - description: Install Deep Learning frameworks

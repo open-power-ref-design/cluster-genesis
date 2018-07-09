@@ -28,6 +28,7 @@ from shutil import copy2, Error
 import time
 import yaml
 import code
+import json
 
 import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupRepoFromRepo, \
@@ -773,6 +774,9 @@ class software(object):
                                        'paie52_install_procedure.yml'))
         for task in install_tasks:
             heading1(f"Client Node Action: {task['description']}")
+            if task['description'] == "Run PowerAI License Script":
+                _interactive_powerai_license_accept(
+                    self.sw_vars['ansible_inventory'])
             _run_ansible_tasks(task['tasks'],
                                self.sw_vars['ansible_inventory'])
         print('Done')
@@ -815,6 +819,39 @@ def _run_ansible_tasks(tasks_path, ansible_inventory, extra_args=''):
         else:
             log.info("Ansible tasks ran successfully")
             run = False
+    return rc
+
+
+def _interactive_powerai_license_accept(ansible_inventory):
+    log = logger.getlogger()
+    cmd = (f'ansible-inventory --inventory {ansible_inventory} --list')
+    resp, err, rc = sub_proc_exec(cmd, shell=True)
+    inv = json.loads(resp)
+    hostname, hostvars = inv['_meta']['hostvars'].popitem()
+
+    cmd = (f'ssh -t {hostvars["ansible_user"]}@{hostname} '
+           f'-i {hostvars["ansible_ssh_private_key_file"]} '
+           f'{hostvars["ansible_ssh_common_args"]} '
+            '/opt/DL/license/bin/check-powerai-license.sh')
+    rc = sub_proc_display(cmd)
+
+    if rc == 0:
+        print(f'PowerAI license already accepted on {hostname}')
+    else:
+        print(bold('Manual PowerAI license acceptance required on at least '
+                   'one client!'))
+        rlinput(f'Press Enter to run interactive license script on {hostname}')
+        cmd = (f'ssh -t {hostvars["ansible_user"]}@{hostname} '
+               f'-i {hostvars["ansible_ssh_private_key_file"]} '
+               f'{hostvars["ansible_ssh_common_args"]} '
+                'sudo /opt/DL/license/bin/accept-powerai-license.sh')
+        rc = sub_proc_display(cmd)
+        if rc == 0:
+            print('\nLicense accepted. Acceptance script will be run quietly '
+                  'on remaining servers.')
+        else:
+            log.error("PowerAI license acceptance required to continue!")
+            sys.exit('Exiting')
     return rc
 
 
