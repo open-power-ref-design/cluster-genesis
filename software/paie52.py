@@ -748,14 +748,40 @@ class software(object):
                            f'rc: {rc} err: {err}')
 
     def init_clients(self):
+        log = logger.getlogger()
         self.sw_vars['ansible_inventory'] = get_ansible_inventory()
         cmd = ('{} -i {} '
-               '{}/init_clients.yml --ask-become-pass'
+               '{}init_clients.yml --ask-become-pass '
+               '--extra-vars "@{}"'
                .format(get_ansible_playbook_path(),
                        self.sw_vars['ansible_inventory'],
-                       GEN_SOFTWARE_PATH))
-        resp, err, rc = sub_proc_exec(cmd)
-        print('All done')
+                       GEN_SOFTWARE_PATH,
+                       GEN_SOFTWARE_PATH + "software-vars.yml"))
+        run = True
+        while run:
+            log.info(f"Running Ansible playbook 'init_clients.yml' ...")
+            print('\nClient password required for privilege escalation')
+            resp, err, rc = sub_proc_exec(cmd, shell=True)
+            log.debug(f"cmd: {cmd}\nresp: {resp}\nerr: {err}\nrc: {rc}")
+            print("") # line break
+            if rc != 0:
+                log.warning("Ansible playbook failed!")
+                if resp != '':
+                    print(f"stdout:\n{resp}\n")
+                if err != '':
+                    print(f"stderr:\n{err}\n")
+                choice, item = get_selection(['Retry', 'Continue', 'Exit'])
+                if choice == "1":
+                    pass
+                elif choice == "2":
+                    run = False
+                elif choice == "3":
+                    log.debug('User chooses to exit.')
+                    sys.exit('Exiting')
+            else:
+                log.info("Ansible playbook ran successfully")
+                run = False
+            print('All done')
 
     def install(self):
         if self.sw_vars['ansible_inventory'] is None:
