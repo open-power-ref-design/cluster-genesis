@@ -318,15 +318,20 @@ def _validate_ansible_ping(software_hosts_file_path):
 
 
 def configure_ssh_keys(software_hosts_file_path):
-    """Get a list of existing SSH private/public key paths from
-    '~/.ssh/'. If called with 'sudo' then get list from both
-    '/root/.ssh/' and '~/.ssh'.
+    """Configure SSH keys for Ansible software hosts
+
+    Scan for SSH key pairs in home directory, and if called using
+    'sudo' also in "login" user's home directory. Allow user to create
+    a new SSH key pair if 'default_ssh_key_name' doesn't already exist.
+    If multiple choices are available user will be prompted to choose.
+    Selected key pair is copied into "login" user's home '.ssh'
+    directory if necessary. Selected key pair is then copied to all
+    hosts listed in 'software_hosts' file via 'ssh-copy-id', and
+    finally assigned to the 'ansible_ssh_private_key_file' var in
+    the 'software_hosts' '[all:vars]' section.
 
     Args:
         software_hosts_file_path (str): Path to software inventory file
-
-    Returns:
-        list of str: List of private ssh key paths
     """
     default_ssh_key_name = "powerup"
 
