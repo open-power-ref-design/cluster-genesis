@@ -112,7 +112,7 @@ Preparation is run with the following POWER-Up command::
 
     $ pup software --prep paie52
 
-Preparation is interactive. Respond to the prompts as appropriate for your environment. Note that the EPEL, Cuda, dependencies and Anaconda repositories can be replicated from the public web sites or from alternate sites accessible on your intranet environment or from local disk (ie from a mounted USB drive). Most other files come from the local file system except for the Anaconda package which can be downloaded from the public internet during the preparation step.
+Preparation is interactive and may be rerun if needed. Respond to the prompts as appropriate for your environment. Note that the EPEL, Cuda, dependencies and Anaconda repositories can be replicated from the public web sites or from alternate sites accessible on your intranet environment or from local disk (ie from a mounted USB drive). Most other files come from the local file system except for the Anaconda package which can be downloaded from the public internet during the preparation step.
 
 **Dependent software packages**
 The PowerAI Enterprise software is dependent on additional open source software that is not shipped with PowerAI Enterprise.
@@ -135,11 +135,15 @@ To initialize the client nodes and enable access to the POWER-Up software server
 
     $ pup software --init-clients paie52
 
+Note: Initialization of client nodes can be rerun if needed.
+
 Installation
 ~~~~~~~~~~~~
 To install the PowerAI base software Frameworks and prerequisites::
 
     $ pup software --install paie52
+
+Note: installation of PowerAI Enterprise can be rerun if needed.
 
 After completion of the installation of the PowerAI frameworks, continue installation of PowerAI Enterprise at the step labeled 'Configure the system for IBM Spectrum Conductor Deep Learning Impact' at https://www.ibm.com/support/knowledgecenter/SSFHA8_1.1.0/enterprise/powerai_install.html
 
