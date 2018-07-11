@@ -180,7 +180,7 @@ def _create_new_software_inventory(software_hosts_file_path):
 #
 # Only host definitions are required. SSH keys can be automatically
 # configured by pup or manually defined in this file.
-
+#
 # POWER-Up uses ssh keys to access the client nodes. If there is an
 # existing ssh key pair available, you may enter it under the [all:vars]
 # section (eg; ansible_ssh_private_key_file=/root/.ssh/your-private-key).
@@ -769,7 +769,7 @@ def get_ansible_inventory():
             else:
                 print(bold("Unable to complete validation"))
                 continue_msg = ("Continue with inventory as-is - "
-                                "WARNING: Validated incomplete")
+                                "WARNING: Validation incomplete")
                 menu_items.append(ssh_config_msg)
 
             # Prompt user
