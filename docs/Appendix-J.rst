@@ -76,20 +76,14 @@ Installation of the PowerAI Enterprise software involves the following steps;
 Preparation of the client nodes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Insure that the set up steps on IBM Knowledge Center up through and including 'Mount a shared file system' have been completed. Record the following information;
-
--  hostname for each client node
--  Userid and password or private ssh key for the client nodes. Note that for installation, the same user id and password must exist on all client nodes. The user id used for installation must be configured with sudo access.
+Insure that the set up steps on IBM Knowledge Center up through and including 'Mount a shared file system' have been completed.
 
 https://www.ibm.com/support/knowledgecenter/SSFHA8_1.1.0/enterprise/powerai_setup.html
 
-**Status of the Software Server**
+Record the following information;
 
-At any time, you can check the status of the POWER-Up software server by running::
-
-    $ pup software --status paie52
-
-**Hint: The POWER-Up command line interface supports tab autocompletion.**
+-  hostname for each client node
+-  Userid and password or private ssh key for the client nodes. Note that for installation, the same user id and password must exist on all client nodes. The user id used for installation must be configured with sudo access.
 
 Preparation of the POWER-Up Software Server
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -114,6 +108,14 @@ Before beginning, extract the contents of the powerai-enterprise-1.1.0_ppc64le.b
     $ sudo bash ./powerai-enterprise-1.1.0_ppc64le.bin
 
 NOTE: Extraction and license acceptance must be run on an OpenPOWER node. If you are running the POWER-Up installer software on an x_86 node, you must first extract the files on an OpenPOWER node and then copy all of the extracted contents to the POWER-Up installer node.
+
+**Status of the Software Server**
+
+At any time, you can check the status of the POWER-Up software server by running::
+
+    $ pup software --status paie52
+
+**Hint: The POWER-Up command line interface supports tab autocompletion.**
 
 Preparation is run with the following POWER-Up command::
 
