@@ -32,12 +32,13 @@ import netaddr
 import socket
 from subprocess import CalledProcessError
 import sys
+from getpass import getpass
 
 from inventory import generate_dynamic_inventory
 from lib.exception import UserException
 import lib.logger as logger
 from lib.genesis import get_python_path, CFG_FILE, \
-    get_dynamic_inventory_path, GEN_SOFTWARE_PATH, get_ansible_path
+    get_dynamic_inventory_path, get_playbooks_path, get_ansible_path
 from lib.utilities import bash_cmd, sub_proc_exec, heading1, get_selection, \
     bold, get_yesno, sub_proc_display, remove_line, append_line, rlinput
 
@@ -395,7 +396,7 @@ def configure_ssh_keys(software_hosts_file_path):
         if global_pass is None and 'ansible_ssh_pass' not in hostvars[host]:
             print(bold('\nOne or more hosts does not have '
                        '\'ansible_ssh_pass\' defined in inventory'))
-            global_pass = rlinput('Please input a global client SSH login '
+            global_pass = getpass('Please input a global client SSH login '
                                   'password: ')
         if global_user is not None and global_pass is not None:
             break
@@ -699,7 +700,7 @@ def get_ansible_inventory():
     inventory_choice = None
     dynamic_inventory_path = get_dynamic_inventory_path()
     software_hosts_file_path = (
-        os.path.join(GEN_SOFTWARE_PATH, 'software_hosts'))
+        os.path.join(get_playbooks_path(), 'software_hosts'))
 
     heading1("Software hosts inventory setup\n")
 
@@ -755,33 +756,36 @@ def get_ansible_inventory():
                     continue
 
             # Menu items can modified to show validation results
-            menu_items = ['Continue with current inventory',
-                          'Edit inventory file',
-                          'Exit program']
+            continue_msg = 'Continue with current inventory'
+            edit_msg = 'Edit inventory file'
+            exit_msg = 'Exit program'
+            ssh_config_msg = 'Configure Client Nodes for SSH Key Access'
+            menu_items = []
 
             # Validate software inventory
             print("Validating software inventory...")
             if validate_software_inventory(software_hosts_file_path):
                 print(bold("Validation passed!"))
             else:
-                print(bold("Validation FAILED!"))
-                menu_items[0] = ("Continue with inventory as-is - "
-                                 "WARNING: Validated failed")
-                menu_items.insert(0, 'Configure SSH Keys')
+                print(bold("Unable to complete validation"))
+                continue_msg = ("Continue with inventory as-is - "
+                                "WARNING: Validated incomplete")
+                menu_items.append(ssh_config_msg)
 
             # Prompt user
+            menu_items += [continue_msg, edit_msg, exit_msg]
             choice, item = get_selection(menu_items)
             print(f'Choice: {choice} Item: {item}')
-            if item == 'Configure SSH Keys':
+            if item == ssh_config_msg:
                 configure_ssh_keys(software_hosts_file_path)
-            elif item.startswith('Continue with'):
+            elif item == continue_msg:
                 print("Using '{}' as inventory"
                       .format(software_hosts_file_path))
                 inventory_choice = software_hosts_file_path
                 break
-            elif item == 'Edit inventory file':
+            elif item == edit_msg:
                 click.edit(filename=software_hosts_file_path)
-            elif item == 'Exit program':
+            elif item == exit_msg:
                 sys.exit(1)
 
     if inventory_choice is None:
