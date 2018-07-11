@@ -26,7 +26,7 @@
 - description: Install Anaconda installer
   tasks: anaconda_install.yml
 
-- description: Run License Script
+- description: Silently Run PowerAI Enterprise License Script
   tasks: powerai_license_accept.yml
 
 - description: Install Deep Learning frameworks
@@ -34,6 +34,3 @@
 
 - description: Post-Install Configurations
   tasks: post_install_config.yml
-
-- description: Apply recommended performance settings
-  tasks: performance_tuning.yml
