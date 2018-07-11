@@ -179,6 +179,19 @@ def _create_new_software_inventory(software_hosts_file_path):
 #
 # Only host definitions are required. SSH keys can be automatically
 # configured by pup or manually defined in this file.
+
+# POWER-Up uses ssh keys to access the client nodes. If there is an
+# existing ssh key pair available, you may enter it under the [all:vars]
+# section (eg; ansible_ssh_private_key_file=/root/.ssh/your-private-key).
+# If one is not available, POWER-Up will generate one for you. POWER-Up
+# also needs an active user id for the client nodes. The POWER-Up
+# software will prompt for the user id, or you may enter it under the
+# [all:vars] section below (eg; ansible_ssh_user=egoadmin).
+#
+# Global variables can be defined via the [all:vars] group
+#   e.g.:
+#   [all:vars]
+#   ansible_ssh_user=egoadmin
 #
 # Group names are defined within brackets
 # Hosts are defined with an FQDN or IP address
