@@ -26,7 +26,8 @@ if [[ $ID == "ubuntu" ]]; then
     sudo apt-get -y install python-pip python-dev libffi-dev libssl-dev \
     # sudo apt-get -y install python36-dev libffi-dev libssl-dev \
         python-netaddr ipmitool aptitude lxc vim vlan bridge-utils gcc cpp \
-        python-tabulate fping g++ make unzip libncurses5 libncurses5-dev
+        python-tabulate fping g++ make unzip libncurses5 libncurses5-dev \
+        sshpass
 
     if [[ $VERSION_ID == "14.04" ]]; then
         sudo apt-get -y install lxc-dev liblxc1
@@ -39,7 +40,7 @@ elif [[ $ID == "rhel" ]]; then
         lxc lxc-devel lxc-extra lxc-templates libvirt ipmitool\
         debootstrap gcc vim vlan bridge-utils cpp flex bison unzip cmake \
         fping gcc-c++ patch perl-ExtUtils-MakeMaker perl-Thread-Queue \
-        ncurses-devel bash-completion yum-utils createrepo
+        ncurses-devel bash-completion yum-utils createrepo sshpass
     sudo systemctl start lxc.service
     sudo systemctl start libvirtd
 
