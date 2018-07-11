@@ -6,8 +6,6 @@
 
 - name: Init clients to access the POWER-Up server
   hosts: all
-  vars_files:
-    - /home/user/power-up/software/software-vars.yml
   tasks:
     - name: Get route to client
       command: "{{ hostvars['localhost']['python_executable_local'] }} \

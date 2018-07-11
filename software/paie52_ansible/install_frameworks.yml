@@ -4,10 +4,10 @@
     name: "{{ item }}"
     state: latest
   with_items:
-    - power-ddl
     # - caffe-bvlc
-    - caffe-ibm
+    # - caffe-ibm
     # - tensorflow
     # - tensorboard
-    # - power-mldl
+    - power-mldl
+    - power-ddl
   become: yes

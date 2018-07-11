@@ -1,0 +1,16 @@
+---
+- name: Get route to client
+  command: "{{ hostvars['localhost']['python_executable_local'] }} \
+  {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+  {{ inventory_hostname }}"
+  delegate_to: localhost
+  register: host_ip
+
+- name: Download Anaconda
+  get_url:
+    owner: "{{ ansible_user_id }}"
+    group: "{{ ansible_user_id }}"
+    mode: 0744
+    checksum: md5:e894dcc547a1c7d67deb04f6bba7223a
+    url: "http://{{ host_ip.stdout }}/anaconda/Anaconda2-5.1.0-Linux-ppc64le.sh"
+    dest: "{{ ansible_env.HOME }}"
