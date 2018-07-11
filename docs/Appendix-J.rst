@@ -15,6 +15,12 @@ The POWER-Up software installer does not currently support installation of Power
 If it is necessary to install PowerAI Enterprise onto the node running the POWER-Up software, this can be done manually or can be accomplished by running the POWER-Up software on an additional node in the cluster.
 Hint: A second POWER-Up server can be quickly prepared by replicating the repositories from the first POWER-Up server.
 
+Support
+-------
+Questions regarding the PowerAI Enterprise installation software, installation, or suggestions for improvement can be posted on IBM's developer community forum at https://developer.ibm.com/answers/index.html with the PowerAI tag.
+
+Answered questions regarding PowerAI can be viewed at https://developer.ibm.com/answers/topics/powerai/
+
 Set up of the POWER-Up Software Installer Node
 ----------------------------------------------
 
@@ -70,11 +76,12 @@ Installation of the PowerAI Enterprise software involves the following steps;
 Preparation of the client nodes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Insure that the set up steps on IBM Knowledge Center up through and including 'Mount a shared file system' have been
-completed.
+Insure that the set up steps on IBM Knowledge Center up through and including 'Mount a shared file system' have been completed. Record the following information;
+
+-  hostname for each client node
+-  Userid and password or private ssh key for the client nodes. Note that for installation, the same user id and password must exist on all client nodes. The user id used for installation must be configured with sudo access.
 
 https://www.ibm.com/support/knowledgecenter/SSFHA8_1.1.0/enterprise/powerai_setup.html
-
 
 **Status of the Software Server**
 
@@ -102,7 +109,7 @@ In addition, the POWER-Up software server needs access to the following reposito
 
 These can be accessed using the public internet (URL's are provided) or via an alternate web site such as an intranet mirror repository or from a mounted USB key.
 
-Before beginning, extract the contents of the powerai-enterprise-1.1.0_ppc64le.bin file and accept the license by running::
+Before beginning, extract the contents of the powerai-enterprise-1.1.0_ppc64le.bin file and accept the license by running the following on the installer node::
 
     $ sudo bash ./powerai-enterprise-1.1.0_ppc64le.bin
 
@@ -131,6 +138,8 @@ or on a subset of nodes (eg the master nodes) ::
 
 Initialization of the Client Nodes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+During the initialization phase, you will need to enter a resolvable hostname for each client node. Optionally you may enter the path of a private ssh key file. If one is not available, an ssh key pair will be automatically generated. You will also be prompted for a password for the client nodes.
+
 To initialize the client nodes and enable access to the POWER-Up software server::
 
     $ pup software --init-clients paie52
@@ -145,12 +154,10 @@ After completion of the installation of the PowerAI frameworks, continue install
 
 **Note:** After installation of the PowerAI base components, Conductor with Spark and the DLI binary files can be copied to all client nodes at once, by executing the following Ansible commands on the installer node::
 
-    $ ansible all -i software_hosts -m get_url -a 'owner=user group=user checksum=md5:f3d4e52ce23e7fbe6909ddc2e8a85166 url=http://installer-hostname/spectrum-conductor/cws-2.2.1.0_ppc64le.bin dest=/home/pai-user/'
+    $ ansible all -i software_hosts -m get_url -a 'owner=pai-user group=pai-user checksum=md5:f3d4e52ce23e7fbe6909ddc2e8a85166 url=http://installer-hostname/spectrum-conductor/cws-2.2.1.0_ppc64le.bin dest=/home/pai-user/'
 
-    $ ansible all -i software_hosts -m get_url -a 'owner=user group=user checksum=md5:5529a3c74cea687e896e1d226570d799 url=http://installer-hostname/spectrum-dli/dli-1.1.0.0_ppc64le.bin dest=/home/pai-user/'
+    $ ansible all -i software_hosts -m get_url -a 'owner=pai-user group=pai-user checksum=md5:5529a3c74cea687e896e1d226570d799 url=http://installer-hostname/spectrum-dli/dli-1.1.0.0_ppc64le.bin dest=/home/pai-user/'
 
-Alternatively, the files can be 'pulled' to individual nodes using curl::
+Adjust the owner, group and dest fields as appropriate for your installation.
 
-    $ curl -O http://installer-hostname/spectrum-conductor/cws-2.2.1.0_ppc64le.bin /home/pai-user
-
-    $ curl -O http://installer-hostname/spectrum-dli/dli-1.1.0.0_ppc64le.bin /home/pai-user
+**Hint: You can browse the content of the POWER-Up software server by pointing a web browser at the POWER-Up installer node. Individual files can be copied to client nodes using wget or curl.**
