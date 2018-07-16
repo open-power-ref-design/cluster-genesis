@@ -36,6 +36,7 @@ _pup()
     pup_path=${pup_path##*:}power-up/
 
     cmd="pup"
+    cwd=`pwd`
 
     comm_opts=" --help --all --log-level-file --log-level-print"
 
@@ -62,7 +63,7 @@ _pup()
     if ([[ ${prev} == software ]] && [[ ${prev_2} == "$cmd" ]]) || \
             ([[ ${prev_2} == software ]] && [[ ${prev_3} == "$cmd" ]]); then
         if [[ ${cur} != -* ]]; then
-            files=`ls "$pup_path"software/*.py | sed -E 's/(.+)\///'`
+            files=`ls "$pup_path"software/*.py 2>/dev/null | sed -E 's/(.+)\///'`
             COMPREPLY=( $( compgen -W "${files[@]}" -- ${cur} ) )
         else
             opts="--prep --init-clients --install --status --README"
@@ -74,8 +75,8 @@ _pup()
     if ([[ ${prev_3} == "$cmd" ]] && [[ ${prev} == --* ]]) || \
             ([[ ${prev_2} == "$cmd" ]] && ([[ ${prev} == deploy ]] || \
             [[ ${prev} == post-deploy ]]) && [[ ${cur} != -* ]]); then
-        files=`ls "$pup_path"*.yml | sed -E 's/(.+)\///'`
-        COMPREPLY=( $( compgen -W "${files[@]}" -- ${cur} ) )
+        files=`ls -1 "$cur"*.yml 2>/dev/null`
+        COMPREPLY=( $( compgen -o plusdirs -X "*inventory*.yml" -W "${files[@]}" -- ${cur} ) )
         return 0
     fi
 
@@ -102,4 +103,4 @@ _pup()
     COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
 }
 
-complete -F _pup pup
+complete -o filenames -F _pup pup
