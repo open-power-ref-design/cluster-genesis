@@ -245,6 +245,39 @@ class ValidateConfigLogic(object):
                     'hours (e.g. "1h") or "infinite" (lease does not expire).')
             raise UserException(exc)
 
+    def _validate_labels(self):
+        """Verify that all labels are valid."""
+        labels = self.cfg.get_ntmpl_label()
+        self._check_for_dashes(labels)
+        labels = self.cfg.get_sw_data_label()
+        self._check_for_dashes(labels)
+        labels = self.cfg.get_sw_mgmt_label()
+        self._check_for_dashes(labels)
+        labels = self.cfg.get_loc_racks_label()
+        self._check_for_dashes(labels)
+        ifcs = self.cfg.get_interfaces()
+        for ifc in ifcs:
+            self._check_for_dashes([ifc.label])
+
+    def _check_for_dashes(self, labels):
+        for label in labels:
+            if '-' in label:
+                msg = ('\nLabels can not contain dashes. (underscores are permitted)\n'
+                       'Label: {}\n'.format(label))
+                self.exc += msg
+
+    def _validata_software_bootstrap(self):
+        node_labels = self.cfg.get_ntmpl_label()
+        node_labels.append('all')
+        bs = self.cfg.get_software_bootstrap()
+        for item in bs:
+            if item.hosts not in node_labels:
+                msg = ('\nUndefined software bootstrap host.\nhost: {}\n'.
+                       format(item.hosts))
+                self.exc += msg
+                msg = ('Valid hosts: {}'.format(node_labels))
+                self.exc += msg
+
     def validate_config_logic(self):
         """Config logic validation"""
 
@@ -252,6 +285,8 @@ class ValidateConfigLogic(object):
         self._validate_physical_interfaces()
         self._validate_deployer_networks()
         self._validate_dhcp_lease_time()
+        self._validate_labels()
+        self._validata_software_bootstrap()
 
         if self.exc:
             raise UserCriticalException(self.exc)
