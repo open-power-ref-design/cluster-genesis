@@ -7,6 +7,13 @@
   set_fact:
     install_dir: "/opt/anaconda2"
 
+- name: Get route to client
+  command: "{{ hostvars['localhost']['python_executable_local'] }} \
+  {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+  {{ inventory_hostname }}"
+  delegate_to: localhost
+  register: host_ip
+
 - name: Check if anaconda2 directory already exists
   stat:
     path: "{{ install_dir }}"
@@ -33,3 +40,25 @@
     path: "{{ ansible_env.HOME }}/.bashrc"
     regexp: ".*PATH={{ install_dir }}/bin.*"
     line: "export PATH={{ install_dir }}/bin:$PATH"
+
+- name: Create ~/.condarc
+  file:
+    path: "{{ ansible_env.HOME }}/.condarc"
+    state: touch
+
+- name: Check if 'channels:' exists in ~/.condarc
+  shell: "grep '^channels:' {{ ansible_env.HOME }}/.condarc"
+  register: channels_exists
+  failed_when: channels_exists.rc == 2
+
+- name: Create 'channels:' key in ~/.condarc
+  lineinfile:
+    path: "{{ ansible_env.HOME }}/.condarc"
+    line: 'channels:'
+  when: channels_exists.rc == 1
+
+- name: Populate 'channels:' value in ~/.condarc
+  lineinfile:
+    path: "{{ ansible_env.HOME }}/.condarc"
+    insertafter: '^channels:.*'
+    line: "  - http://{{ host_ip.stdout }}/repos/anaconda/pkgs/free/linux-ppc64le/"
