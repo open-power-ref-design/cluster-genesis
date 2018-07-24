@@ -33,7 +33,7 @@ import json
 import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
     PowerupAnaRepoFromRepo, PowerupRepoFromRpm, setup_source_file, \
-    powerup_file_from_disk, get_name_dir
+    PowerupPypiRepoFromRepo, powerup_file_from_disk, get_name_dir
 from software_hosts import get_ansible_inventory, validate_software_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, get_url, Color, \
     get_selection, get_yesno, get_dir, get_file_path, get_src_path, rlinput, bold
@@ -80,6 +80,7 @@ class software(object):
                       'CUDA Toolkit Repository': '-',
                       'PowerAI Base Repository': '-',
                       'Dependent Packages Repository': '-',
+                      'Python Package Repository': '-',
                       'CUDA dnn content': '-',
                       'CUDA nccl2 content': '-',
                       'Anaconda content': '-',
@@ -92,7 +93,8 @@ class software(object):
         self.repo_id = {'EPEL Repository': 'epel-ppc64le',
                         'CUDA Toolkit Repository': 'cuda',
                         'PowerAI Base Repository': 'power-ai',
-                        'Dependent Packages Repository': 'dependencies'}
+                        'Dependent Packages Repository': 'dependencies',
+                        'Python Package Repository': 'pypi'}
         self.files = {'Anaconda content': 'Anaconda2-[56].[1-9]*-Linux-ppc64le.sh',
                       'CUDA dnn content': 'cudnn-9.[1-9]-linux-ppc64le-v7.1.tgz',
                       'CUDA nccl2 content': 'nccl_2.2.1[2-9]-1+cuda9.[2-9]_ppc64le.tgz',
@@ -129,7 +131,8 @@ class software(object):
                 '- cws-2.2.1.0_ppc64le.bin\n'
                 '- dli-1.1.0.0_ppc64le.bin\n\n'
                 'For installation status: pup software --status paie52\n'
-                'To redisplay this README: pup software --README paie52\n\n')
+                'To redisplay this README: pup software --README paie52\n\n'
+                'Note: The \'pup\' cli supports tab autocompletion.\n\n')
         print(text)
 
     def status(self, which='all'):
@@ -214,35 +217,41 @@ class software(object):
                                         'POWER-Up server')
             # PowerAI status
             if item == 'PowerAI Base Repository':
-                exists_repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
-                                            '/**/repodata', recursive=True)
+                repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
+                                     '/**/repodata', recursive=True)
                 if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[item]}-local.repo') \
-                        and exists_repodata:
+                        and repodata:
                     self.state[item] = f'{item} is setup'
 
             # CUDA status
             if item == 'CUDA Toolkit Repository':
-                exists_repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
-                                            '/**/repodata', recursive=True)
+                repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
+                                     '/**/repodata', recursive=True)
                 if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[item]}-local.repo') \
-                        and exists_repodata:
+                        and repodata:
                     self.state[item] = f'{item} is setup'
 
             # EPEL status
             if item == 'EPEL Repository':
-                exists_repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
-                                            '/**/repodata', recursive=True)
+                repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
+                                     '/**/repodata', recursive=True)
                 if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[item]}-local.repo') \
-                        and exists_repodata:
+                        and repodata:
                     self.state[item] = f'{item} is setup'
 
             # Dependent Packages status
             s = 'Dependent Packages Repository'
             if item == 'Dependent Packages Repository':
-                exists_repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
-                                            '/**/repodata', recursive=True)
+                repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
+                                     '/**/repodata', recursive=True)
                 if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[item]}-local.repo') \
-                        and exists_repodata:
+                        and repodata:
+                    self.state[item] = f'{item} is setup'
+
+            # Python Packages status
+            s = 'Python Packages Repository'
+            if item == 'Python Package Repository':
+                if os.path.isfile(f'/srv/repos/{self.repo_id[item]}/simple/index.html'):
                     self.state[item] = f'{item} is setup'
 
         exists = True
@@ -277,7 +286,7 @@ class software(object):
         if rc or yum_err:
             self.log.error('There is a problem with yum or one or more of the yum '
                            'repositories. \n')
-            self.log.info('Trying clean of yum caches')
+            self.log.info('Cleaning yum caches')
             cmd = 'yum clean all'
             resp, err, rc = sub_proc_exec(cmd)
             if rc != 0:
@@ -485,6 +494,31 @@ class software(object):
             filename = repo_id + '-powerup.repo'
             self.sw_vars['yum_powerup_repo_files'][filename] = content
 
+        # Setup Python package repository. (pypi)
+        repo_id = 'pypi'
+        repo_name = 'Python Package'
+        heading1(f'Set up {repo_name} repository\n')
+        if f'{repo_id}_alt_url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{repo_id}_alt_url']
+        else:
+            alt_url = None
+
+        exists = self.status_prep(which='Python Package Repository')
+        if exists:
+            self.log.info('The Python Package Repository exists already'
+                          ' in the POWER-Up server')
+
+        repo = PowerupPypiRepoFromRepo(repo_id, repo_name)
+        ch = repo.get_action(exists, exists_prompt_yn=True)
+        pkg_list = ('easydict==1.6 python-gflags==2.0 alembic==0.8.2 Keras==2.0.5 '
+                    'elasticsearch==5.2.0 Flask-Script==2.0.5 Flask-HTTPAuth==3.2.2 '
+                    'mongoengine==0.11.0 pathlib==1.0.1 python-heatclient==1.2.0 '
+                    'python-keystoneclient==3.1.0')
+
+        if not exists or ch == 'Y':
+            # url = repo.get_repo_url(baseurl, alt_url)
+            repo.sync(pkg_list)
+
         # Get cudnn tar file
         name = 'CUDA dnn content'
         heading1(f'Set up {name.title()} \n')
@@ -531,7 +565,7 @@ class software(object):
 
         repo = PowerupYumRepoFromRepo(repo_id, repo_name)
 
-        ch = repo.get_action(not exists)
+        ch = repo.get_action(exists)
         if ch in 'YF':
             url = repo.get_repo_url(baseurl, alt_url)
             if not url == baseurl:
@@ -598,7 +632,7 @@ class software(object):
 
         repo = PowerupAnaRepoFromRepo(repo_id, repo_name)
 
-        ch = repo.get_action(not exists)
+        ch = repo.get_action(exists)
         if ch in 'YF':
             # if not exists or ch == 'F':
             url = repo.get_repo_url(baseurl, alt_url)
@@ -637,14 +671,16 @@ class software(object):
 
         repo = PowerupAnaRepoFromRepo(repo_id, repo_name)
 
-        ch = repo.get_action(not exists)
+        ch = repo.get_action(exists)
         if ch in 'YF':
             # if not exists or ch == 'F':
             url = repo.get_repo_url(baseurl, alt_url)
             if not url == baseurl:
                 self.sw_vars[f'{vars_key}-alt-url'] = url
 
-            acclist = 'scipy-1.1.0*,six-1.11.0*'
+            acclist = ('scipy-1.1.0*,six-1.11.0*,libgfortran-ng-7.2.0*,blas-1.0*,'
+                       'libgcc-ng-7.2.0*,libstdcxx-ng-7.2.0*,libopenblas-0.2.20*,'
+                       'libgfortran-ng-7.2.0*')
 
             dest_dir = repo.sync_ana(url, acclist=acclist)
             dest_dir = dest_dir[4 + dest_dir.find('/srv'):5 + dest_dir.find('main')]
@@ -674,7 +710,7 @@ class software(object):
 
         repo = PowerupYumRepoFromRepo(repo_id, repo_name)
 
-        ch = repo.get_action(not exists)
+        ch = repo.get_action(exists)
         if ch in 'YF':
             if not exists or ch == 'F':
                 url = repo.get_repo_url(baseurl, alt_url)

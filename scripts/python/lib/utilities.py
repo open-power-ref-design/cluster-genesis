@@ -277,7 +277,7 @@ def get_url(url='http://', type='directory', prompt_name='', repo_chk=False):
                         else:
                             print('Not a valid repository')
                     else:
-                        # file
+                        # check if url points at a file or directory
                         response = re.search(r'Content-Length:\s+[1-9]\d+', reply)
                         if response:
                             print(response.group(0))
@@ -297,19 +297,34 @@ def get_url(url='http://', type='directory', prompt_name='', repo_chk=False):
             elif 'file:///' in url:
                 response = re.search(r'Content-Length:\s+\d+', reply)
                 if response:
-                    try:
-                        cmd = f'curl --max-time 2 -I {url}/repodata{{,.json}}'
-                        reply, err, rc = sub_proc_exec(cmd)
-                    except:
-                        pass
-                    else:
-                        response = re.search(r'Content-Length:\s+\d+', reply)
-                        if response:
-                            print('\nRepository data found.')
-                            if get_yesno('Use the specified URL '):
-                                break
+                    if repo_chk:
+                        try:
+                            cmd = f'curl --max-time 2 -I {url}/repodata{{,.json}}'
+                            reply, err, rc = sub_proc_exec(cmd)
+                        except:
+                            pass
                         else:
-                            print('Not a valid repository')
+                            response = re.search(r'Content-Length:\s+\d+', reply)
+                            if response:
+                                print('\nRepository data found.')
+                                if get_yesno('Use the specified URL '):
+                                    break
+                            else:
+                                print('Not a valid repository')
+                    else:
+                        try:
+                            cmd = f'curl --max-time 2 -I {url}'
+                            reply, err, rc = sub_proc_exec(cmd)
+                        except:
+                            pass
+                        else:
+                            response = re.search(r'Content-Length:\s+\d+', reply)
+                            if response:
+                                print('\nFile or directory found.')
+                                if get_yesno('Use the specified URL '):
+                                    break
+                            else:
+                                print('No content found')
 
             elif 'file:' in url:
                 print('Proper file url format: "file:///path/to/file')
