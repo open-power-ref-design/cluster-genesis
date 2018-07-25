@@ -32,5 +32,8 @@
 - description: Install Deep Learning frameworks
   tasks: install_frameworks.yml
 
+- description: Configure a system for IBM Spectrum Conductor Deep Learning Impact
+  tasks: configure_spectrum_conductor.yml
+
 - description: Post-Install Configurations
   tasks: post_install_config.yml
