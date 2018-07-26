@@ -28,8 +28,15 @@
     executable: /bin/bash
   become: yes
 
-- name: Add Anaconda2 install location to PATH in bashrc
+- name: Add Anaconda2 install location to PATH in user's bashrc
   lineinfile:
     path: "{{ ansible_env.HOME }}/.bashrc"
     regexp: ".*PATH={{ install_dir }}/bin.*"
     line: "export PATH={{ install_dir }}/bin:$PATH"
+
+- name: Add Anaconda2 install location to PATH in root's bashrc
+  lineinfile:
+    path: "/root/.bashrc"
+    regexp: ".*PATH={{ install_dir }}/bin.*"
+    line: "export PATH={{ install_dir }}/bin:$PATH"
+  become: yes
