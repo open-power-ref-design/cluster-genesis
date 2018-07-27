@@ -33,5 +33,6 @@ pip install \
     'tabulate==0.8.2' \
     'gitpython==2.1.9' \
     'netaddr==0.7.19' \
-    'click==6.7'
+    'click==6.7 ' \
+    'pip2pi==0.7.0'
 deactivate
