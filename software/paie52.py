@@ -678,7 +678,7 @@ class software(object):
             if not url == baseurl:
                 self.sw_vars[f'{vars_key}-alt-url'] = url
 
-            acclist = ('scipy-1.1.0*,six-1.11.0*,libgfortran-ng-7.2.0*,blas-1.0*,'
+            acclist = ('scipy-*,six-1.11.0*,libgfortran-ng-7.2.0*,blas-1.0*,'
                        'libgcc-ng-7.2.0*,libstdcxx-ng-7.2.0*,libopenblas-0.2.20*,'
                        'libgfortran-ng-7.2.0*')
 
