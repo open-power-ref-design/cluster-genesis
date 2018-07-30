@@ -642,7 +642,7 @@ class software(object):
             dest_dir = dest_dir[4 + dest_dir.find('/srv'):5 + dest_dir.find('free')]
             # form .condarc channel entry. Note that conda adds
             # the corresponding 'noarch' channel automatically.
-            channel = f'  - http://{{ host_ip.stdout }}/{dest_dir}'
+            channel = f'  - http://{{{{ host_ip.stdout }}}}{dest_dir}'
             if channel not in self.sw_vars['ana_powerup_repo_channels']:
                 self.sw_vars['ana_powerup_repo_channels'].append(channel)
             noarch_url = os.path.split(url.rstrip('/'))[0] + '/noarch/'
@@ -686,7 +686,7 @@ class software(object):
             dest_dir = dest_dir[4 + dest_dir.find('/srv'):5 + dest_dir.find('main')]
             # form .condarc channel entry. Note that conda adds
             # the corresponding 'noarch' channel automatically.
-            channel = f'  - http://{{ host_ip.stdout }}/{dest_dir}'
+            channel = f'  - http://{{{{ host_ip.stdout }}}}{dest_dir}'
             if channel not in self.sw_vars['ana_powerup_repo_channels']:
                 self.sw_vars['ana_powerup_repo_channels'].append(channel)
             noarch_url = os.path.split(url.rstrip('/'))[0] + '/noarch/'
