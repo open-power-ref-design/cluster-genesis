@@ -18,6 +18,7 @@
 python3.6 -m venv ${1}pup-venv
 source ${1}pup-venv/bin/activate
 pip install --upgrade pip
+pip install --upgrade setuptools==40.0.0
 pip install \
     'ansible==2.5.5' \
     'orderedattrdict==1.5' \

@@ -74,16 +74,18 @@ def setup_source_file(name, src_glob, url='http://', alt_url='http://',
                 _url = alt_url if alt_url else 'http://'
             good_url = False
             while not good_url and _url is not None:
-                _url = get_url(_url, type='file')
+                _url = get_url(_url, fileglob=src_glob)
                 if _url:
-                    regex = src_glob.replace('*', '.+')
+                    regex = src_glob.replace('.', '[.]')
+                    regex = src_glob.replace('*', '+')
                     if re.search(regex, url):
                         good_url = True
                         dest_dir = f'/srv/{name_src}'
                         if not os.path.exists(dest_dir):
                             os.mkdir(dest_dir)
                         os.chdir(dest_dir)
-                        cmd = f'curl -O {_url}'
+                        cmd = (f'wget -r -l 1 -nH -np --cut-dirs=1 --accept={src_glob} '
+                               f'{_url}')
                         rc = sub_proc_display(cmd)
                         if rc != 0:
                             log.error(f'Failed downloading {name} source to'
@@ -157,6 +159,7 @@ class PowerupRepo(object):
         self.repo_id = repo_id
         self.repo_name = repo_name
         self.arch = arch
+        self.repo_type = 'yum'
         self.rhel_ver = str(rhel_ver)
         self.repo_base_dir = '/srv'
         self.repo_dir = f'/srv/repos/{self.repo_id}/rhel{self.rhel_ver}/{self.repo_id}'
@@ -195,7 +198,7 @@ class PowerupRepo(object):
         if ch == 'A':
             if not alt_url:
                 alt_url = f'http://host/repos/{self.repo_id}/'
-            tmp = get_url(alt_url, prompt_name=self.repo_name, repo_chk=True)
+            tmp = get_url(alt_url, prompt_name=self.repo_name, repo_chk=self.repo_type)
             if tmp is None:
                 return None
             else:
@@ -417,6 +420,7 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
     """
     def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7'):
         super(PowerupAnaRepoFromRepo, self).__init__(repo_id, repo_name, arch, rhel_ver)
+        self.repo_type = 'ana'
 
     def sync_ana(self, url, rejlist='', acclist=''):
         """Syncs an Anaconda repository using wget or copy?. The corresponding
@@ -511,8 +515,9 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
     """
     def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7'):
         super(PowerupPypiRepoFromRepo, self).__init__(repo_id, repo_name, arch, rhel_ver)
+        self.repo_type = 'pypi'
 
-    def sync(self, pkg_list):
+    def sync(self, pkg_list, alt_url=None):
         """
         inputs:
             pkg_list (str): list of packages separated by space(s). Packages can
@@ -525,7 +530,12 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
         for pkg in pkg_list:
             print(f'Pkg {cnt} of {len(pkg_list)} - Downloading {pkg}')
             cnt += 1
-            cmd = f'pip download -d {self.pypirepo_dir} {pkg}'
+            if alt_url:
+                host = re.search(r'http://([^/]+)', alt_url).group(1)
+                cmd = (f'python2.7 -m pip download --index-url={alt_url} -d {self.pypirepo_dir} {pkg} '
+                       f'--trusted-host {host}')
+            else:
+                cmd = f'python2.7 -m pip download -d {self.pypirepo_dir} {pkg}'
             resp, err, rc = sub_proc_exec(cmd)
             if rc != 0:
                 self.log.error('Error occured while downloading python package: '
@@ -537,10 +547,11 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
                            f'dir2pi utility results: \nResp: {resp} \nRet code: '
                            f'{rc} \nerr: {err}')
 
-    def sync_url(self, url):
+    def sync_alt_url(self, url):
         """Copies an existing url into the POWER-Up server base directory. The
         source directory must contain a 'simple' directory.
         """
+        print(f'Sync alt url: {url}')
 
 
 class PowerupRepoFromDir(PowerupRepo):

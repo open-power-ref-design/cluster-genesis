@@ -95,7 +95,7 @@ class software(object):
                         'PowerAI Base Repository': 'power-ai',
                         'Dependent Packages Repository': 'dependencies',
                         'Python Package Repository': 'pypi'}
-        self.files = {'Anaconda content': 'Anaconda2-[56].[1-9]*-Linux-ppc64le.sh',
+        self.files = {'Anaconda content': 'Anaconda2-[56].[1-9]*.[0-9]*-Linux-ppc64le.sh',
                       'CUDA dnn content': 'cudnn-9.[1-9]-linux-ppc64le-v7.1.tgz',
                       'CUDA nccl2 content': 'nccl_2.2.1[2-9]-1+cuda9.[2-9]_ppc64le.tgz',
                       'Spectrum conductor content': 'cws-2.[2-9].[0-9].[0-9]_ppc64le.bin',
@@ -497,6 +497,7 @@ class software(object):
         # Setup Python package repository. (pypi)
         repo_id = 'pypi'
         repo_name = 'Python Package'
+        baseurl = 'https://pypi.org'
         heading1(f'Set up {repo_name} repository\n')
         if f'{repo_id}_alt_url' in self.sw_vars:
             alt_url = self.sw_vars[f'{repo_id}_alt_url']
@@ -516,8 +517,12 @@ class software(object):
                     'python-keystoneclient==3.1.0')
 
         if not exists or ch == 'Y':
-            # url = repo.get_repo_url(baseurl, alt_url)
-            repo.sync(pkg_list)
+            url = repo.get_repo_url(baseurl, alt_url)
+            if url == baseurl:
+                repo.sync(pkg_list)
+            else:
+                self.sw_vars[f'{repo_id}_alt_url'] = url
+                repo.sync(pkg_list, url + 'simple')
 
         # Get cudnn tar file
         name = 'CUDA dnn content'
