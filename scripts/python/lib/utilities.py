@@ -280,8 +280,8 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk=''):
                                 print(response.group(0))
                             else:
                                 print('\nRepository data found.')
-                                if get_yesno('Use the specified URL '):
-                                    break
+                            if get_yesno('Use the specified URL '):
+                                break
                         else:
                             print('No repodata found')
                     else:
@@ -290,12 +290,15 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk=''):
                     cmd = f'wget -r -l 1 -np --spider --accept={fileglob} {url}'
                     reply, err, rc = sub_proc_exec(cmd)
                     if rc == 0:
-                        fg = fileglob.replace('.', '[.]')
-                        fg = fg.replace('*', '+')
-                        if re.search(fg, err):
+                        regx = fileglob.replace('.', '[.]')
+                        regx = regx.replace('+', '[+]')
+                        regx = regx.replace('*', '.+')
+                        if re.search(regx, err):
                             print('\nFile match found.')
                             if get_yesno('Use the specified URL '):
                                 break
+                        else:
+                            print('No file match found.')
                 else:
                     print('Invalid url')
                     err = re.search('curl: .+', err)
