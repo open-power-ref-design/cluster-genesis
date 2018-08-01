@@ -100,8 +100,8 @@ class software(object):
                       'Spectrum DLI content': 'dli-1.[1-9].[0-9].[0-9]_ppc64le.bin'}
         if 'ansible_inventory' not in self.sw_vars:
             self.sw_vars['ansible_inventory'] = None
-        if 'ansible_sudo_pass' not in self.sw_vars:
-            self.sw_vars['ansible_sudo_pass'] = None
+        if 'ansible_become_pass' not in self.sw_vars:
+            self.sw_vars['ansible_become_pass'] = None
         self.vault_pass = None
         self.vault_pass_file = f'{GEN_SOFTWARE_PATH}.vault'
 
@@ -778,7 +778,7 @@ class software(object):
         self.sw_vars['ansible_inventory'] = get_ansible_inventory()
 
         sudo_password = None
-        if (self.sw_vars['ansible_sudo_pass'] is None and
+        if (self.sw_vars['ansible_become_pass'] is None and
                 get_yesno(f'\nCache sudo password locally? ')):
             sudo_password = self._cache_sudo_pass()
         else:
@@ -791,10 +791,10 @@ class software(object):
                        GEN_SOFTWARE_PATH + "software-vars.yml"))
         prompt_msg = ""
         if sudo_password is not None:
-            cmd += f'--extra-vars "ansible_sudo_pass={sudo_password}" '
+            cmd += f'--extra-vars "ansible_become_pass={sudo_password}" '
         elif os.path.isfile(self.vault_pass_file):
             cmd += '--vault-password-file ' + self.vault_pass_file
-        elif self.sw_vars['ansible_sudo_pass'] is None:
+        elif self.sw_vars['ansible_become_pass'] is None:
             cmd += '--ask-become-pass '
             prompt_msg = "\nClient password required for privilege escalation"
 
@@ -843,29 +843,29 @@ class software(object):
               "client nodes must use the same password!")
         client_sudo_pass_validated = False
 
-        ansible_sudo_pass = getpass(prompt="Client sudo password: ")
+        ansible_become_pass = getpass(prompt="Client sudo password: ")
 
-        while not self._validate_ansible_sudo_pass(ansible_sudo_pass):
+        while not self._validate_ansible_become_pass(ansible_become_pass):
             choice, item = get_selection(['Re-enter password',
                                           'Continue without caching password',
                                           'Exit'])
             if choice == "1":
-                ansible_sudo_pass = getpass(prompt="Client sudo password: ")
+                ansible_become_pass = getpass(prompt="Client sudo password: ")
             elif choice == "2":
-                ansible_sudo_pass = None
+                ansible_become_pass = None
                 break
             elif choice == "3":
                 log.debug('User chooses to exit.')
                 sys.exit('Exiting')
 
-        if ansible_sudo_pass is not None:
+        if ansible_become_pass is not None:
             vault = Vault(self.vault_pass)
-            data = vault.dump(ansible_sudo_pass).decode(encoding='UTF-8')
-            self.sw_vars['ansible_sudo_pass'] = YAMLVault(data)
+            data = vault.dump(ansible_become_pass).decode(encoding='UTF-8')
+            self.sw_vars['ansible_become_pass'] = YAMLVault(data)
 
-        return ansible_sudo_pass
+        return ansible_become_pass
 
-    def _validate_ansible_sudo_pass(self, ansible_sudo_pass):
+    def _validate_ansible_become_pass(self, ansible_become_pass):
         log = logger.getlogger()
 
         print("\nValidating sudo password on all clients...")
@@ -875,8 +875,8 @@ class software(object):
                f'-i {self.sw_vars["ansible_inventory"]} '
                f'{GEN_SOFTWARE_PATH}paie52_ansible/run.yml '
                f'--extra-vars "task_file={sudo_test}" ')
-        if ansible_sudo_pass is not None:
-            cmd += f'--extra-vars "ansible_sudo_pass={ansible_sudo_pass}" '
+        if ansible_become_pass is not None:
+            cmd += f'--extra-vars "ansible_become_pass={ansible_become_pass}" '
         elif os.path.isfile(self.vault_pass_file):
             cmd += f' --vault-password-file {self.vault_pass_file} '
             cmd += f'--extra-vars "@{GEN_SOFTWARE_PATH}software-vars.yml" '
@@ -897,7 +897,7 @@ class software(object):
 
     def _unlock_vault(self):
         while True:
-            if self.sw_vars['ansible_sudo_pass'] is None:
+            if self.sw_vars['ansible_become_pass'] is None:
                 return False
             elif self.vault_pass is None:
                 print("\nVault password required to retrieve sudo password")
@@ -906,7 +906,7 @@ class software(object):
                 vault_pass_file_out.write(self.vault_pass)
             os.chmod(self.vault_pass_file, 0o600)
 
-            if self._validate_ansible_sudo_pass(None):
+            if self._validate_ansible_become_pass(None):
                 return True
             else:
                 print(bold("Cached sudo password decryption/validation fail!"))
@@ -1029,8 +1029,8 @@ def _interactive_anaconda_license_accept(ansible_inventory):
 class YAMLVault(yaml.YAMLObject):
     yaml_tag = u'!vault'
 
-    def __init__(self, ansible_sudo_pass):
-        self.ansible_sudo_pass = ansible_sudo_pass
+    def __init__(self, ansible_become_pass):
+        self.ansible_become_pass = ansible_become_pass
 
     @classmethod
     def from_yaml(cls, loader, node):
@@ -1038,7 +1038,7 @@ class YAMLVault(yaml.YAMLObject):
 
     @classmethod
     def to_yaml(cls, dumper, data):
-        return dumper.represent_scalar(cls.yaml_tag, data.ansible_sudo_pass)
+        return dumper.represent_scalar(cls.yaml_tag, data.ansible_become_pass)
 
 
 if __name__ == '__main__':
