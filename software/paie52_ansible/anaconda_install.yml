@@ -38,14 +38,14 @@
 - name: Add Anaconda2 install location to PATH in ~/.bashrc
   lineinfile:
     path: "{{ ansible_env.HOME }}/.bashrc"
-    regexp: ".*PATH={{ install_dir }}/bin.*"
-    line: "export PATH={{ install_dir }}/bin:$PATH"
+    regexp: ".*PATH=.*{{ install_dir }}/bin.*"
+    line: "export PATH=\"{{ install_dir }}/bin:$PATH\""
 
 - name: Add Anaconda2 install location to PATH in /root/.bashrc
   lineinfile:
     path: "/root/.bashrc"
-    regexp: ".*PATH={{ install_dir }}/bin.*"
-    line: "export PATH={{ install_dir }}/bin:$PATH"
+    regexp: ".*PATH=.*{{ install_dir }}/bin.*"
+    line: "export PATH=\"{{ install_dir }}/bin:$PATH\""
   become: yes
 
 - name: "Create {{ install_dir }}/.condarc"
