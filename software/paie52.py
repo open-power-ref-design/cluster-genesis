@@ -95,12 +95,16 @@ class software(object):
                         'PowerAI Base Repository': 'power-ai',
                         'Dependent Packages Repository': 'dependencies',
                         'Python Package Repository': 'pypi'}
+        # When searching for files in other web servers, the fileglobs are converted to
+        # regular expressions. An asterisk (*) after a bracket is converted to a
+        # regular extression of [0-9]{0,3} Other asterisks are converted to regular
+        # expression of .+
         self.files = {'Anaconda content': 'Anaconda2-[56].[1-9]*.[0-9]*-Linux-ppc64le.sh',
-                      'CUDA dnn content': 'cudnn-9.[1-9]-linux-ppc64le-v7.1.tgz',
+                      'CUDA dnn content': 'cudnn-9.[1-9]*-linux-ppc64le-v7.1.tgz',
                       'CUDA nccl2 content': 'nccl_2.2.1[2-9]-1+cuda9.[2-9]_ppc64le.tgz',
-                      'PowerAI content': 'mldl-repo-local-5.[1-9]*.ppc64le.rpm',
-                      'Spectrum conductor content': 'cws-2.[2-9].[0-9].[0-9]_ppc64le.bin',
-                      'Spectrum DLI content': 'dli-1.[1-9].[0-9].[0-9]_ppc64le.bin'}
+                      'PowerAI content': 'mldl-repo-local-[5-9]*.[1-9]*.[0-9]**.ppc64le.rpm',
+                      'Spectrum conductor content': 'cws-[2-9]*.[2-9]*.[0-9]*.[0-9]*_ppc64le.bin',
+                      'Spectrum DLI content': 'dli-[1-9]*.[1-9]*.[0-9]*.[0-9]*_ppc64le.bin'}
         if 'ansible_inventory' not in self.sw_vars:
             self.sw_vars['ansible_inventory'] = None
 
@@ -439,12 +443,21 @@ class software(object):
         heading1(f'Set up {name.title()} \n')
         spc_src = self.files[name]
         exists = self.status_prep(name)
+        spc_url = ''
+
+        if f'{name}_alt_url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{name}_alt_url']
+        else:
+            alt_url = 'http://'
 
         if exists:
             self.log.info('Spectrum conductor content exists already in the POWER-Up server')
 
         if not exists or get_yesno(f'Copy a new {name.title()} file '):
-            src_path, dest_path = powerup_file_from_disk(name, spc_src)
+            src_path, dest_path, state = setup_source_file(name, spc_src, pai_url,
+                                                           alt_url=alt_url)
+            if 'http' in src_path:
+                self.sw_vars[f'{name}_alt_url'] = src_path
             if dest_path:
                 self.sw_vars['content_files'][get_name_dir(name)] = dest_path
 
@@ -453,12 +466,21 @@ class software(object):
         heading1(f'Set up {name.title()} \n')
         spdli_src = self.files[name]
         exists = self.status_prep(name)
+        spdli_url = ''
+
+        if f'{name}_alt_url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{name}_alt_url']
+        else:
+            alt_url = 'http://'
 
         if exists:
             self.log.info('Spectrum DLI content exists already in the POWER-Up server')
 
         if not exists or get_yesno(f'Copy a new {name.title()} file '):
-            src_path, dest_path = powerup_file_from_disk(name, spdli_src)
+            src_path, dest_path, state = setup_source_file(name, spdli_src, spdli_url,
+                                                           alt_url=alt_url)
+            if 'http' in src_path:
+                self.sw_vars[f'{name}_alt_url'] = src_path
             if dest_path:
                 self.sw_vars['content_files'][get_name_dir(name)] = dest_path
 
@@ -598,9 +620,12 @@ class software(object):
             if not url == baseurl:
                 self.sw_vars[f'{vars_key}-alt-url'] = url
 
-            acclist = ('scipy-*,six-1.11.0*,libgfortran-ng-7.2.0*,blas-1.0*,'
-                       'libgcc-ng-7.2.0*,libstdcxx-ng-7.2.0*,libopenblas-0.2.20*,'
-                       'libgfortran-ng-7.2.0*')
+            acclist = ('scipy-*,six-*,libgfortran-ng-*,blas-*,'
+                       'libgcc-ng-*,libstdcxx-ng-*,libopenblas-*,'
+                       'libgfortran-ng*,python-2.7.1*,ncurses-*,'
+                       'openssl-1.*,ca-certificates-*,tk-*,sqlite-3.*,'
+                       'wheel-*,readline-*,zlib-*,setuptools-*,libffi-*,'
+                       'pip-1*,certifi-*,libedit-*')
 
             dest_dir = repo.sync_ana(url, acclist=acclist)
             dest_dir = dest_dir[4 + dest_dir.find('/srv'):5 + dest_dir.find('main')]
@@ -909,8 +934,6 @@ class software(object):
                 if not os.path.isdir(os.path.expanduser('~/anaconda2/envs/pkgdl')):
                     cmd = os.path.join(os.path.expanduser("~/anaconda2/bin"), 'conda')
                     cmd += ' create --name pkgdl --yes pip python=2.7'
-                    code.interact(banner='get url 2', local=dict(globals(), **locals()))
-
                     rc = sub_proc_display(cmd)
                     if rc != 0:
                         self.log.error('Error creating package download virtual '

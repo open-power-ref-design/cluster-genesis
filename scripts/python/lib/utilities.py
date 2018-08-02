@@ -290,8 +290,9 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk=''):
                     cmd = f'wget -r -l 1 -np --spider --accept={fileglob} {url}'
                     reply, err, rc = sub_proc_exec(cmd)
                     if rc == 0:
-                        regx = fileglob.replace('.', '[.]')
-                        regx = regx.replace('+', '[+]')
+                        regx = fileglob.replace('.', '\.')
+                        regx = regx.replace('+', '\+')
+                        regx = regx.replace(']*', '][0-9]{0,3}')
                         regx = regx.replace('*', '.+')
                         if re.search(regx, err):
                             print('\nFile match found.')
