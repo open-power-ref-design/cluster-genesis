@@ -778,8 +778,7 @@ class software(object):
         self.sw_vars['ansible_inventory'] = get_ansible_inventory()
 
         sudo_password = None
-        if (self.sw_vars['ansible_become_pass'] is None and
-                get_yesno(f'\nCache sudo password locally? ')):
+        if self.sw_vars['ansible_become_pass'] is None:
             sudo_password = self._cache_sudo_pass()
         else:
             self._unlock_vault()
@@ -827,18 +826,6 @@ class software(object):
         from ansible_vault import Vault
         log = logger.getlogger()
 
-        print("\nClient sudo password will be encrypted using Ansible Vault. "
-              "Please provide a password below to be used for vault access "
-              "(this does not need to be the same as the client sudo "
-              "password).")
-        while True:
-            self.vault_pass = getpass(prompt="Vault Encryption password: ")
-            if self.vault_pass == getpass(prompt="Confirm Vault Encryption "
-                                          "password: "):
-                break
-            else:
-                log.warning("Passwords do not match!\n")
-
         print("\nPlease provide the client sudo password below. Note: All "
               "client nodes must use the same password!")
         client_sudo_pass_validated = False
@@ -857,6 +844,8 @@ class software(object):
             elif choice == "3":
                 log.debug('User chooses to exit.')
                 sys.exit('Exiting')
+
+        self.vault_pass = ansible_become_pass
 
         if ansible_become_pass is not None:
             vault = Vault(self.vault_pass)
@@ -900,8 +889,7 @@ class software(object):
             if self.sw_vars['ansible_become_pass'] is None:
                 return False
             elif self.vault_pass is None:
-                print("\nVault password required to retrieve sudo password")
-                self.vault_pass = getpass(prompt="Vault Encryption password: ")
+                self.vault_pass = getpass(prompt="\nClient sudo password: ")
             with open(self.vault_pass_file, 'w') as vault_pass_file_out:
                 vault_pass_file_out.write(self.vault_pass)
             os.chmod(self.vault_pass_file, 0o600)
@@ -910,7 +898,7 @@ class software(object):
                 return True
             else:
                 print(bold("Cached sudo password decryption/validation fail!"))
-                choice, item = get_selection(['Retry Vault Password', 'Exit'])
+                choice, item = get_selection(['Retry Password', 'Exit'])
                 if choice == "1":
                     self.vault_pass = None
                 elif choice == "2":
