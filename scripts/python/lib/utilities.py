@@ -28,7 +28,6 @@ import readline
 from shutil import copy2, Error
 from subprocess import Popen, PIPE
 from tabulate import tabulate
-import code
 import lib.logger as logger
 
 PATTERN_MAC = '[\da-fA-F]{2}:){5}[\da-fA-F]{2}'
@@ -287,16 +286,24 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk=''):
                     else:
                         print(f'Error reading url.  {resp}')
                 elif response:
-                    cmd = f'wget -r -l 1 -np --spider --accept={fileglob} {url}'
+                    cmd = f'wget -r -l 10 -nd -np --spider --accept={fileglob} {url}'
                     reply, err, rc = sub_proc_exec(cmd)
+                    err = err.replace('%2B', '+')
                     if rc == 0:
                         regx = fileglob.replace('.', '\.')
                         regx = regx.replace('+', '\+')
                         regx = regx.replace(']*', '][0-9]{0,3}')
                         regx = regx.replace('*', '.+')
-                        if re.search(regx, err):
-                            print('\nFile match found.')
-                            if get_yesno('Use the specified URL '):
+                        _found = re.findall(regx, err)
+                        # remove dups
+                        found = []
+                        for item in _found:
+                            if item not in found:
+                                found.append(item)
+                        if found:
+                            ch, sel = get_selection(found, allow_none=True)
+                            if ch != 'N':
+                                url = re.search('http.+' + regx, err).group(0)
                                 break
                         else:
                             print('No file match found.')

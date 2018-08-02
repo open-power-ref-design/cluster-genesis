@@ -81,20 +81,14 @@ def setup_source_file(name, src_glob, url='', alt_url='http://',
                 dest_dir = f'/srv/{name_src}'
                 if not os.path.exists(dest_dir):
                     os.mkdir(dest_dir)
-                cmd = (f'wget -r -l 1 -nH -np --cut-dirs=1 --accept={src_glob} '
-                       f'-P {dest_dir} {_url}')
+                cmd = f'wget -r -l 1 -nH -np --cut-dirs=1 -P {dest_dir} {_url}'
                 rc = sub_proc_display(cmd)
                 if rc != 0:
                     log.error(f'Failed downloading {name} source to'
                               f' /srv/{name_src}/ directory. \n{rc}')
                 else:
                     src_path = _url
-                    src_list = os.listdir(dest_dir)
-                    if len(src_list) == 1:
-                        src_name = src_list[0]
-                    else:
-                        ch, src_name = get_selection(src_list, prompt='Choose a source file: ')
-                    dest_path = os.path.join(dest_dir, src_name)
+                    dest_path = os.path.join(dest_dir, os.path.basename(_url))
                     state = True
     elif ch == 'D':
         src_path = get_src_path(src_glob)

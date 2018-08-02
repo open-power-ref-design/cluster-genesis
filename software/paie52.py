@@ -27,7 +27,6 @@ import sys
 from shutil import copy2, Error
 import time
 import yaml
-import code
 import json
 
 import lib.logger as logger
@@ -75,7 +74,9 @@ class software(object):
         self.sw_vars['rhel_ver'] = self.rhel_ver
         self.arch = 'ppc64le'
         self.sw_vars['arch'] = self.arch
-        self.repo_dir = '/srv/repos/{repo_id}/rhel' + self.rhel_ver + '/{repo_id}'
+        self.root_dir = '/srv/'
+        self.repo_dir = self.root_dir + 'repos/{repo_id}/rhel' + self.rhel_ver + \
+            '/{repo_id}'
         self.state = {'EPEL Repository': '-',
                       'CUDA Toolkit Repository': '-',
                       'PowerAI Base Repository': '-',
@@ -222,10 +223,12 @@ class software(object):
                                         'POWER-Up server')
             # PowerAI status
             if item == 'PowerAI Base Repository':
+                content = glob.glob(os.path.join(self.root_dir, self.repo_id[item],
+                                    self.files['PowerAI content']))
                 repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
                                      '/**/repodata', recursive=True)
                 if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[item]}-local.repo') \
-                        and repodata:
+                        and repodata and content:
                     self.state[item] = f'{item} is setup'
 
             # CUDA status
@@ -420,8 +423,8 @@ class software(object):
             if src_path:
                 print(f'Creating {repo_id} repository.')
                 if 'http' in src_path:
-                    self.sw_vars[f'{name}_alt_url'] = src_path
-                self.sw_vars['content_files'][get_name_dir(name)] = dest_path
+                    self.sw_vars[f'{name}_alt_url'] = os.path.dirname(src_path) + '/'
+                self.sw_vars['content_files'][get_name_dir(repo_id)] = dest_path
                 repodata_dir = repo.extract_rpm(dest_path)
                 if repodata_dir:
                     content = repo.get_yum_dotrepo_content(repo_dir=repodata_dir,
@@ -457,7 +460,7 @@ class software(object):
             src_path, dest_path, state = setup_source_file(name, spc_src, pai_url,
                                                            alt_url=alt_url)
             if 'http' in src_path:
-                self.sw_vars[f'{name}_alt_url'] = src_path
+                self.sw_vars[f'{name}_alt_url'] = os.path.dirname(src_path) + '/'
             if dest_path:
                 self.sw_vars['content_files'][get_name_dir(name)] = dest_path
 
@@ -480,7 +483,7 @@ class software(object):
             src_path, dest_path, state = setup_source_file(name, spdli_src, spdli_url,
                                                            alt_url=alt_url)
             if 'http' in src_path:
-                self.sw_vars[f'{name}_alt_url'] = src_path
+                self.sw_vars[f'{name}_alt_url'] = os.path.dirname(src_path) + '/'
             if dest_path:
                 self.sw_vars['content_files'][get_name_dir(name)] = dest_path
 
@@ -553,7 +556,7 @@ class software(object):
             if dest_path:
                 self.sw_vars['content_files'][get_name_dir(ana_name)] = dest_path
             if src_path is not None and src_path != ana_src and 'http' in src_path:
-                self.sw_vars[f'{ana_name}_alt_url'] = src_path
+                self.sw_vars[f'{ana_name}_alt_url'] = os.path.dirname(src_path) + '/'
 
         # Setup Anaconda Free Repo.  (not a YUM repo)
         repo_id = 'anaconda'
@@ -716,6 +719,8 @@ class software(object):
                                                            alt_url=alt_url)
             if dest_path:
                 self.sw_vars['content_files'][get_name_dir(name)] = dest_path
+            if 'http' in src_path:
+                self.sw_vars[f'{name}_alt_url'] = os.path.dirname(src_path) + '/'
 
         # Get cuda nccl2 tar file
         name = 'CUDA nccl2 content'
@@ -733,6 +738,8 @@ class software(object):
 
             if dest_path:
                 self.sw_vars['content_files'][get_name_dir(name)] = dest_path
+            if 'http' in src_path:
+                self.sw_vars[f'{name}_alt_url'] = os.path.dirname(src_path) + '/'
 
         # Setup CUDA
         repo_id = 'cuda'
