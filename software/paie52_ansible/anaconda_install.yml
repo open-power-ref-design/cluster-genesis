@@ -7,29 +7,61 @@
   set_fact:
     install_dir: "/opt/anaconda2"
 
-- name: Check if anaconda2 directory already exists
+- name: Get route to client
+  command: "{{ hostvars['localhost']['python_executable_local'] }} \
+  {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+  {{ inventory_hostname }}"
+  delegate_to: localhost
+  register: host_ip
+
+- name: Check if anaconda2 bin directory already exists
   stat:
-    path: "{{ install_dir }}"
+    path: "{{ install_dir }}/bin"
   register: anaconda2_dir
-
-- name: Set install args variable
-  set_fact:
-    args: ""
-
-- name: If install directory exists use update arg
-  set_fact:
-    args: -u
-  when: anaconda2_dir.stat.isdir is defined and anaconda2_dir.stat.isdir
 
 - name: Install Anaconda
   shell: "{{ ansible_env.HOME }}/{{ file }} \
-          -b -p {{ install_dir }} {{ args }}"
+          -b -p {{ install_dir }} -f"
   args:
     executable: /bin/bash
+  when: anaconda2_dir.stat.isdir is not defined or not anaconda2_dir.stat.isdir
   become: yes
 
-- name: Add Anaconda2 install location to PATH in bashrc
+- name: Add Anaconda2 install location to PATH in ~/.bashrc
   lineinfile:
     path: "{{ ansible_env.HOME }}/.bashrc"
-    regexp: ".*PATH={{ install_dir }}/bin.*"
-    line: "export PATH={{ install_dir }}/bin:$PATH"
+    regexp: ".*PATH=.*{{ install_dir }}/bin.*"
+    line: "export PATH=\"{{ install_dir }}/bin:$PATH\""
+
+- name: Add Anaconda2 install location to PATH in /root/.bashrc
+  lineinfile:
+    path: "/root/.bashrc"
+    regexp: ".*PATH=.*{{ install_dir }}/bin.*"
+    line: "export PATH=\"{{ install_dir }}/bin:$PATH\""
+  become: yes
+
+- name: "Create {{ install_dir }}/.condarc"
+  file:
+    path: "{{ install_dir }}/.condarc"
+    state: touch
+  become: yes
+
+- name: "Check if 'channels:' exists in {{ install_dir }}/.condarc"
+  shell: "grep '^channels:' {{ install_dir }}/.condarc"
+  register: channels_exists
+  failed_when: channels_exists.rc == 2
+
+- name: "Create 'channels:' key in {{ install_dir }}/.condarc"
+  lineinfile:
+    path: "{{ install_dir }}/.condarc"
+    line: 'channels:'
+  when: channels_exists.rc == 1
+  become: yes
+
+- name: "Populate 'channels:' value in {{ install_dir }}/.condarc"
+  lineinfile:
+    path: "{{ install_dir }}/.condarc"
+    insertafter: '^channels:.*'
+    line: "{{ item }}"
+  loop: "{{ ana_powerup_repo_channels }}"
+  become: yes

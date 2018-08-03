@@ -34,5 +34,6 @@ pip install \
     'gitpython==2.1.9' \
     'netaddr==0.7.19' \
     'click==6.7' \
-    'ansible-vault==1.1.1'
+    'ansible-vault==1.1.1' \
+    'pip2pi==0.7.0'
 deactivate

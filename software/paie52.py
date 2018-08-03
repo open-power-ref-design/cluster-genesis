@@ -32,8 +32,9 @@ import json
 from getpass import getpass
 
 import lib.logger as logger
-from repos import PowerupRepo, PowerupRepoFromDir, PowerupRepoFromRepo, \
-    PowerupRepoFromRpm, setup_source_file, powerup_file_from_disk, get_name_dir
+from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
+    PowerupAnaRepoFromRepo, PowerupRepoFromRpm, setup_source_file, \
+    PowerupPypiRepoFromRepo, powerup_file_from_disk, get_name_dir
 from software_hosts import get_ansible_inventory, validate_software_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, get_url, Color, \
     get_selection, get_yesno, get_dir, get_file_path, get_src_path, rlinput, bold
@@ -64,8 +65,8 @@ class software(object):
             if not isinstance(self.sw_vars, dict):
                 self.sw_vars = {}
                 self.sw_vars['init-time'] = time.ctime()
-        if 'ana_powerup_repo_files' not in self.sw_vars:
-            self.sw_vars['ana_powerup_repo_files'] = {}
+        if 'ana_powerup_repo_channels' not in self.sw_vars:
+            self.sw_vars['ana_powerup_repo_channels'] = []
         if 'yum_powerup_repo_files' not in self.sw_vars:
             self.sw_vars['yum_powerup_repo_files'] = {}
         if 'content_files' not in self.sw_vars:
@@ -81,10 +82,12 @@ class software(object):
                       'CUDA Toolkit Repository': '-',
                       'PowerAI Base Repository': '-',
                       'Dependent Packages Repository': '-',
+                      'Python Package Repository': '-',
                       'CUDA dnn content': '-',
                       'CUDA nccl2 content': '-',
                       'Anaconda content': '-',
-                      'Anaconda Repository': '-',
+                      'Anaconda Free Repository': '-',
+                      'Anaconda Main Repository': '-',
                       'Spectrum conductor content': '-',
                       'Spectrum DLI content': '-',
                       'Nginx Web Server': '-',
@@ -92,7 +95,8 @@ class software(object):
         self.repo_id = {'EPEL Repository': 'epel-ppc64le',
                         'CUDA Toolkit Repository': 'cuda',
                         'PowerAI Base Repository': 'power-ai',
-                        'Dependent Packages Repository': 'dependencies'}
+                        'Dependent Packages Repository': 'dependencies',
+                        'Python Package Repository': 'pypi'}
         self.files = {'Anaconda content': 'Anaconda2-[56].[1-9]*-Linux-ppc64le.sh',
                       'CUDA dnn content': 'cudnn-9.[1-9]-linux-ppc64le-v7.1.tgz',
                       'CUDA nccl2 content': 'nccl_2.2.1[2-9]-1+cuda9.[2-9]_ppc64le.tgz',
@@ -135,7 +139,8 @@ class software(object):
                 '- cws-2.2.1.0_ppc64le.bin\n'
                 '- dli-1.1.0.0_ppc64le.bin\n\n'
                 'For installation status: pup software --status paie52\n'
-                'To redisplay this README: pup software --README paie52\n\n')
+                'To redisplay this README: pup software --README paie52\n\n'
+                'Note: The \'pup\' cli supports tab autocompletion.\n\n')
         print(text)
 
     def status(self, which='all'):
@@ -167,12 +172,20 @@ class software(object):
                     self.state['Anaconda content'] = ('Anaconda is present in the '
                                                       'POWER-Up server')
 
-            # Anaconda Repo status
-            if item == 'Anaconda Repository':
-                item_dir = get_name_dir(item)
-                repodata_noarch = glob.glob(f'/srv/repos/{item_dir}/pkgs/free'
+            # Anaconda Repo Free status
+            if item == 'Anaconda Free Repository':
+                repodata_noarch = glob.glob(f'/srv/repos/anaconda/pkgs/free'
                                             '/noarch/repodata.json', recursive=True)
-                repodata = glob.glob(f'/srv/repos/{item_dir}/pkgs/free'
+                repodata = glob.glob(f'/srv/repos/anaconda/pkgs/free'
+                                     '/linux-ppc64le/repodata.json', recursive=True)
+                if repodata and repodata_noarch:
+                    self.state[item] = f'{item} is setup'
+
+            # Anaconda Main repo status
+            if item == 'Anaconda Main Repository':
+                repodata_noarch = glob.glob(f'/srv/repos/anaconda/pkgs/main'
+                                            '/noarch/repodata.json', recursive=True)
+                repodata = glob.glob(f'/srv/repos/anaconda/pkgs/main'
                                      '/linux-ppc64le/repodata.json', recursive=True)
                 if repodata and repodata_noarch:
                     self.state[item] = f'{item} is setup'
@@ -212,35 +225,41 @@ class software(object):
                                         'POWER-Up server')
             # PowerAI status
             if item == 'PowerAI Base Repository':
-                exists_repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
-                                            '/**/repodata', recursive=True)
+                repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
+                                     '/**/repodata', recursive=True)
                 if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[item]}-local.repo') \
-                        and exists_repodata:
+                        and repodata:
                     self.state[item] = f'{item} is setup'
 
             # CUDA status
             if item == 'CUDA Toolkit Repository':
-                exists_repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
-                                            '/**/repodata', recursive=True)
+                repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
+                                     '/**/repodata', recursive=True)
                 if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[item]}-local.repo') \
-                        and exists_repodata:
+                        and repodata:
                     self.state[item] = f'{item} is setup'
 
             # EPEL status
             if item == 'EPEL Repository':
-                exists_repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
-                                            '/**/repodata', recursive=True)
+                repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
+                                     '/**/repodata', recursive=True)
                 if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[item]}-local.repo') \
-                        and exists_repodata:
+                        and repodata:
                     self.state[item] = f'{item} is setup'
 
             # Dependent Packages status
             s = 'Dependent Packages Repository'
             if item == 'Dependent Packages Repository':
-                exists_repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
-                                            '/**/repodata', recursive=True)
+                repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
+                                     '/**/repodata', recursive=True)
                 if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[item]}-local.repo') \
-                        and exists_repodata:
+                        and repodata:
+                    self.state[item] = f'{item} is setup'
+
+            # Python Packages status
+            s = 'Python Packages Repository'
+            if item == 'Python Package Repository':
+                if os.path.isfile(f'/srv/repos/{self.repo_id[item]}/simple/index.html'):
                     self.state[item] = f'{item} is setup'
 
         exists = True
@@ -275,7 +294,7 @@ class software(object):
         if rc or yum_err:
             self.log.error('There is a problem with yum or one or more of the yum '
                            'repositories. \n')
-            self.log.info('Trying clean of yum caches')
+            self.log.info('Cleaning yum caches')
             cmd = 'yum clean all'
             resp, err, rc = sub_proc_exec(cmd)
             if rc != 0:
@@ -440,15 +459,15 @@ class software(object):
 
         # Setup repository for dependent packages. Dependent packages can come from
         # any YUM repository enabled on the POWER-Up Installer node.
-        dep_list = ('bzip2 opencv kernel kernel-tools kernel-tools-libs '
+        dep_list = ('kernel kernel-tools kernel-tools-libs dejavu-serif-fonts '
+                    'bzip2 opencv opencv-devel opencv-python snappy-devel '
                     'kernel-bootwrapper kernel-devel kernel-headers gcc gcc-c++ '
                     'libXdmcp elfutils-libelf-devel java-1.8.0-openjdk libmpc '
                     'libatomic glibc-devel glibc-headers mpfr kernel-headers '
                     'zlib-devel boost-system libgfortran boost-python boost-thread '
                     'boost-filesystem java-1.8.0-openjdk-devel scipy PyYAML '
                     'pyparsing python-pillow python-matplotlib pciutils libgcc '
-                    'libgomp libstdc++ libstdc++-devel cpp gcc-c++ '
-                    'dejavu-serif-fonts')
+                    'libgomp libstdc++ libstdc++-devel cpp gcc-c++ ')
         file_more = GEN_SOFTWARE_PATH + 'dependent-packages.list'
         if os.path.isfile(file_more):
             try:
@@ -482,6 +501,31 @@ class software(object):
             content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
             filename = repo_id + '-powerup.repo'
             self.sw_vars['yum_powerup_repo_files'][filename] = content
+
+        # Setup Python package repository. (pypi)
+        repo_id = 'pypi'
+        repo_name = 'Python Package'
+        heading1(f'Set up {repo_name} repository\n')
+        if f'{repo_id}_alt_url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{repo_id}_alt_url']
+        else:
+            alt_url = None
+
+        exists = self.status_prep(which='Python Package Repository')
+        if exists:
+            self.log.info('The Python Package Repository exists already'
+                          ' in the POWER-Up server')
+
+        repo = PowerupPypiRepoFromRepo(repo_id, repo_name)
+        ch = repo.get_action(exists, exists_prompt_yn=True)
+        pkg_list = ('easydict==1.6 python-gflags==2.0 alembic==0.8.2 Keras==2.0.5 '
+                    'elasticsearch==5.2.0 Flask-Script==2.0.5 Flask-HTTPAuth==3.2.2 '
+                    'mongoengine==0.11.0 pathlib==1.0.1 python-heatclient==1.2.0 '
+                    'python-keystoneclient==3.1.0')
+
+        if not exists or ch == 'Y':
+            # url = repo.get_repo_url(baseurl, alt_url)
+            repo.sync(pkg_list)
 
         # Get cudnn tar file
         name = 'CUDA dnn content'
@@ -527,9 +571,9 @@ class software(object):
             self.log.info('The CUDA Toolkit Repository exists already'
                           ' in the POWER-Up server')
 
-        repo = PowerupRepoFromRepo(repo_id, repo_name)
+        repo = PowerupYumRepoFromRepo(repo_id, repo_name)
 
-        ch = repo.get_action(not exists)
+        ch = repo.get_action(exists)
         if ch in 'YF':
             url = repo.get_repo_url(baseurl, alt_url)
             if not url == baseurl:
@@ -577,37 +621,82 @@ class software(object):
         if src_path is not None and src_path != ana_src and 'http' in src_path:
             self.sw_vars[f'{ana_name}_alt_url'] = src_path
 
-        # Setup Anaconda Repo.  (not a YUM repo)
+        # Setup Anaconda Free Repo.  (not a YUM repo)
         repo_id = 'anaconda'
-        repo_name = 'Anaconda Repository'
-        baseurl = 'https://repo.continuum.io/pkgs/free/linux-ppc64le'
+        repo_name = 'Anaconda Free Repository'
+        baseurl = 'https://repo.continuum.io/pkgs/free/linux-ppc64le/'
         heading1(f'Set up {repo_name}\n')
-        if f'{repo_id}_alt_url' in self.sw_vars:
-            alt_url = self.sw_vars[f'{repo_id}_alt_url']
+
+        vars_key = get_name_dir(repo_name)  # format the name
+        if f'{vars_key}-alt-url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{vars_key}-alt-url']
         else:
             alt_url = None
 
-        exists = self.status_prep(which='Anaconda Repository')
+        exists = self.status_prep(which='Anaconda Free Repository')
         if exists:
             self.log.info('The Anaconda Repository exists already'
                           ' in the POWER-Up server\n')
-        repo = PowerupRepoFromRepo(repo_id, repo_name)
 
-        ch = repo.get_action(not exists)
+        repo = PowerupAnaRepoFromRepo(repo_id, repo_name)
+
+        ch = repo.get_action(exists)
         if ch in 'YF':
             # if not exists or ch == 'F':
             url = repo.get_repo_url(baseurl, alt_url)
             if not url == baseurl:
-                self.sw_vars[f'{repo_id}_alt_url'] = url
+                self.sw_vars[f'{vars_key}-alt-url'] = url
             dest_dir = repo.sync_ana(url)
             dest_dir = dest_dir[4 + dest_dir.find('/srv'):5 + dest_dir.find('free')]
-            # form .condarc content for given channel. Note that conda adds
+            # form .condarc channel entry. Note that conda adds
             # the corresponding 'noarch' channel automatically.
-            content = ('channels:\n'
-                       '  - http://{{ host_ip.stdout }}/'
-                       f'{dest_dir}\nshow_channel_urls: True')
-            self.sw_vars['ana_powerup_repo_files']['.condarc'] = content
-            print(content)
+            channel = f'  - http://{{{{ host_ip.stdout }}}}{dest_dir}'
+            if channel not in self.sw_vars['ana_powerup_repo_channels']:
+                self.sw_vars['ana_powerup_repo_channels'].append(channel)
+            noarch_url = os.path.split(url.rstrip('/'))[0] + '/noarch/'
+            rejlist = ('continuum-docs-*,cudatoolkit-*,'
+                       'cudnn-*,tensorflow-*,caffe-*,'
+                       'anaconda-oss-docs-*,anaconda-docs-*')
+
+            repo.sync_ana(noarch_url, rejlist=rejlist)
+
+        # Setup Anaconda Main Repo.  (not a YUM repo)
+        repo_id = 'anaconda'
+        repo_name = 'Anaconda Main Repository'
+        baseurl = 'https://repo.continuum.io/pkgs/main/linux-ppc64le/'
+        heading1(f'Set up {repo_name}\n')
+
+        vars_key = get_name_dir(repo_name)  # format the name
+        if f'{vars_key}-alt-url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{vars_key}-alt-url']
+        else:
+            alt_url = None
+
+        exists = self.status_prep(which='Anaconda Main Repository')
+        if exists:
+            self.log.info('The Anaconda Repository exists already'
+                          ' in the POWER-Up server\n')
+
+        repo = PowerupAnaRepoFromRepo(repo_id, repo_name)
+
+        ch = repo.get_action(exists)
+        if ch in 'YF':
+            # if not exists or ch == 'F':
+            url = repo.get_repo_url(baseurl, alt_url)
+            if not url == baseurl:
+                self.sw_vars[f'{vars_key}-alt-url'] = url
+
+            acclist = ('scipy-*,six-1.11.0*,libgfortran-ng-7.2.0*,blas-1.0*,'
+                       'libgcc-ng-7.2.0*,libstdcxx-ng-7.2.0*,libopenblas-0.2.20*,'
+                       'libgfortran-ng-7.2.0*')
+
+            dest_dir = repo.sync_ana(url, acclist=acclist)
+            dest_dir = dest_dir[4 + dest_dir.find('/srv'):5 + dest_dir.find('main')]
+            # form .condarc channel entry. Note that conda adds
+            # the corresponding 'noarch' channel automatically.
+            channel = f'  - http://{{{{ host_ip.stdout }}}}{dest_dir}'
+            if channel not in self.sw_vars['ana_powerup_repo_channels']:
+                self.sw_vars['ana_powerup_repo_channels'].append(channel)
             noarch_url = os.path.split(url.rstrip('/'))[0] + '/noarch/'
             repo.sync_ana(noarch_url)
 
@@ -627,9 +716,9 @@ class software(object):
             self.log.info('The EPEL Repository exists already'
                           ' in the POWER-Up server')
 
-        repo = PowerupRepoFromRepo(repo_id, repo_name)
+        repo = PowerupYumRepoFromRepo(repo_id, repo_name)
 
-        ch = repo.get_action(not exists)
+        ch = repo.get_action(exists)
         if ch in 'YF':
             if not exists or ch == 'F':
                 url = repo.get_repo_url(baseurl, alt_url)
