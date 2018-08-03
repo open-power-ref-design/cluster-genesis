@@ -60,6 +60,7 @@ INV_FILE = GEN_PATH + INV_FILE_NAME
 LXC_DIR = os.path.expanduser('~/.local/share/lxc/')
 ANSIBLE = 'ansible'
 ANSIBLE_PLAYBOOK = 'ansible-playbook'
+ANSIBLE_VAULT = 'ansible-vault'
 POWER_TIME_OUT = 60
 POWER_WAIT = 5
 POWER_SLEEP_TIME = 2 * 60
@@ -212,6 +213,10 @@ def get_ansible_path():
 
 def get_ansible_playbook_path():
     return os.path.join(get_venv_path(), 'bin', ANSIBLE_PLAYBOOK)
+
+
+def get_ansible_vault_path():
+    return os.path.join(get_venv_path(), 'bin', ANSIBLE_VAULT)
 
 
 def get_os_images_path():
