@@ -28,6 +28,7 @@ from shutil import copy2, Error
 import time
 import yaml
 import json
+from getpass import getpass
 
 import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
@@ -37,7 +38,7 @@ from software_hosts import get_ansible_inventory, validate_software_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, get_url, Color, \
     get_selection, get_yesno, get_dir, get_file_path, get_src_path, rlinput, bold
 from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path, \
-    get_playbooks_path
+    get_playbooks_path, get_ansible_vault_path
 from lib.exception import UserException
 
 
@@ -50,6 +51,7 @@ class software(object):
     def __init__(self):
         self.log = logger.getlogger()
         self.yum_powerup_repo_files = []
+        yaml.add_constructor(YAMLVault.yaml_tag, YAMLVault.from_yaml)
         try:
             self.sw_vars = yaml.load(open(GEN_SOFTWARE_PATH + 'software-vars.yml'))
         except IOError:
@@ -108,6 +110,10 @@ class software(object):
                       'Spectrum DLI content': 'dli-[1-9]*.[1-9]*.[0-9]*.[0-9]*_ppc64le.bin'}
         if 'ansible_inventory' not in self.sw_vars:
             self.sw_vars['ansible_inventory'] = None
+        if 'ansible_become_pass' not in self.sw_vars:
+            self.sw_vars['ansible_become_pass'] = None
+        self.vault_pass = None
+        self.vault_pass_file = f'{GEN_SOFTWARE_PATH}.vault'
 
         self.log.debug(f'software variables: {self.sw_vars}')
 
@@ -116,6 +122,8 @@ class software(object):
             os.mkdir(GEN_SOFTWARE_PATH)
         with open(GEN_SOFTWARE_PATH + 'software-vars.yml', 'w') as f:
             yaml.dump(self.sw_vars, f, default_flow_style=False)
+        if os.path.isfile(self.vault_pass_file):
+            os.remove(self.vault_pass_file)
 
     def README(self):
         print(bold('\nPowerAI 5.2 software installer module'))
@@ -587,7 +595,7 @@ class software(object):
             dest_dir = dest_dir[4 + dest_dir.find('/srv'):5 + dest_dir.find('free')]
             # form .condarc channel entry. Note that conda adds
             # the corresponding 'noarch' channel automatically.
-            channel = f'  - http://{{ host_ip.stdout }}/{dest_dir}'
+            channel = f'  - http://{{{{ host_ip.stdout }}}}{dest_dir}'
             if channel not in self.sw_vars['ana_powerup_repo_channels']:
                 self.sw_vars['ana_powerup_repo_channels'].append(channel)
             noarch_url = os.path.split(url.rstrip('/'))[0] + '/noarch/'
@@ -644,7 +652,7 @@ class software(object):
             dest_dir = dest_dir[4 + dest_dir.find('/srv'):5 + dest_dir.find('main')]
             # form .condarc channel entry. Note that conda adds
             # the corresponding 'noarch' channel automatically.
-            channel = f'  - http://{{ host_ip.stdout }}/{dest_dir}'
+            channel = f'  - http://{{{{ host_ip.stdout }}}}{dest_dir}'
             if channel not in self.sw_vars['ana_powerup_repo_channels']:
                 self.sw_vars['ana_powerup_repo_channels'].append(channel)
             noarch_url = os.path.split(url.rstrip('/'))[0] + '/noarch/'
@@ -994,21 +1002,35 @@ class software(object):
 
     def init_clients(self):
         log = logger.getlogger()
+
         self.sw_vars['ansible_inventory'] = get_ansible_inventory()
-        cmd = ('{} -i {} '
-               '{}init_clients.yml --ask-become-pass '
-               '--extra-vars "@{}"'
+
+        sudo_password = None
+        if self.sw_vars['ansible_become_pass'] is None:
+            sudo_password = self._cache_sudo_pass()
+        else:
+            self._unlock_vault()
+
+        cmd = ('{} -i {} {}init_clients.yml --extra-vars "@{}" '
                .format(get_ansible_playbook_path(),
                        self.sw_vars['ansible_inventory'],
                        GEN_SOFTWARE_PATH,
                        GEN_SOFTWARE_PATH + "software-vars.yml"))
+        prompt_msg = ""
+        if sudo_password is not None:
+            cmd += f'--extra-vars "ansible_become_pass={sudo_password}" '
+        elif os.path.isfile(self.vault_pass_file):
+            cmd += '--vault-password-file ' + self.vault_pass_file
+        elif self.sw_vars['ansible_become_pass'] is None:
+            cmd += '--ask-become-pass '
+            prompt_msg = "\nClient password required for privilege escalation"
+
         run = True
         while run:
             log.info(f"Running Ansible playbook 'init_clients.yml' ...")
-            print('\nClient password required for privilege escalation')
+            print(prompt_msg)
             resp, err, rc = sub_proc_exec(cmd, shell=True)
             log.debug(f"cmd: {cmd}\nresp: {resp}\nerr: {err}\nrc: {rc}")
-            print("")
             if rc != 0:
                 log.warning("Ansible playbook failed!")
                 if resp != '':
@@ -1028,7 +1050,92 @@ class software(object):
                 run = False
             print('All done')
 
+    def _cache_sudo_pass(self):
+        from ansible_vault import Vault
+        log = logger.getlogger()
+
+        print("\nPlease provide the client sudo password below. Note: All "
+              "client nodes must use the same password!")
+        client_sudo_pass_validated = False
+
+        ansible_become_pass = getpass(prompt="Client sudo password: ")
+
+        while not self._validate_ansible_become_pass(ansible_become_pass):
+            choice, item = get_selection(['Re-enter password',
+                                          'Continue without caching password',
+                                          'Exit'])
+            if choice == "1":
+                ansible_become_pass = getpass(prompt="Client sudo password: ")
+            elif choice == "2":
+                ansible_become_pass = None
+                break
+            elif choice == "3":
+                log.debug('User chooses to exit.')
+                sys.exit('Exiting')
+
+        self.vault_pass = ansible_become_pass
+
+        if ansible_become_pass is not None:
+            vault = Vault(self.vault_pass)
+            data = vault.dump(ansible_become_pass).decode(encoding='UTF-8')
+            self.sw_vars['ansible_become_pass'] = YAMLVault(data)
+
+        return ansible_become_pass
+
+    def _validate_ansible_become_pass(self, ansible_become_pass):
+        log = logger.getlogger()
+
+        print("\nValidating sudo password on all clients...")
+
+        sudo_test = f'{GEN_SOFTWARE_PATH}paie52_ansible/sudo_test.yml'
+        cmd = (f'{get_ansible_playbook_path()} '
+               f'-i {self.sw_vars["ansible_inventory"]} '
+               f'{GEN_SOFTWARE_PATH}paie52_ansible/run.yml '
+               f'--extra-vars "task_file={sudo_test}" ')
+        if ansible_become_pass is not None:
+            cmd += f'--extra-vars "ansible_become_pass={ansible_become_pass}" '
+        elif os.path.isfile(self.vault_pass_file):
+            cmd += f' --vault-password-file {self.vault_pass_file} '
+            cmd += f'--extra-vars "@{GEN_SOFTWARE_PATH}software-vars.yml" '
+        else:
+            cmd += ' --ask-become-pass '
+        resp, err, rc = sub_proc_exec(cmd, shell=True)
+        log.debug(f"cmd: {cmd}\nresp: {resp}\nerr: {err}\nrc: {rc}")
+        if rc == 0:
+            print(bold("Validation passed!\n"))
+            return True
+        else:
+            print(bold("Validation failed!"))
+            if resp != '':
+                print(f"stdout:\n{resp}\n")
+            if err != '':
+                print(f"stderr:\n{err}\n")
+            return False
+
+    def _unlock_vault(self):
+        while True:
+            if self.sw_vars['ansible_become_pass'] is None:
+                return False
+            elif self.vault_pass is None:
+                self.vault_pass = getpass(prompt="\nClient sudo password: ")
+            with open(self.vault_pass_file, 'w') as vault_pass_file_out:
+                vault_pass_file_out.write(self.vault_pass)
+            os.chmod(self.vault_pass_file, 0o600)
+
+            if self._validate_ansible_become_pass(None):
+                return True
+            else:
+                print(bold("Cached sudo password decryption/validation fail!"))
+                choice, item = get_selection(['Retry Password', 'Exit'])
+                if choice == "1":
+                    self.vault_pass = None
+                elif choice == "2":
+                    log.debug('User chooses to exit.')
+                    sys.exit('Exiting')
+                    sys.exit(1)
+
     def install(self):
+        log = logger.getlogger()
         if self.sw_vars['ansible_inventory'] is None:
             self.sw_vars['ansible_inventory'] = get_ansible_inventory()
         else:
@@ -1040,6 +1147,8 @@ class software(object):
                 print(bold("Validation FAILED!"))
                 self.sw_vars['ansible_inventory'] = get_ansible_inventory()
 
+        self._unlock_vault()
+
         install_tasks = yaml.load(open(GEN_SOFTWARE_PATH +
                                        'paie52_install_procedure.yml'))
         for task in install_tasks:
@@ -1048,14 +1157,18 @@ class software(object):
                 _interactive_anaconda_license_accept(
                     self.sw_vars['ansible_inventory'])
             _run_ansible_tasks(task['tasks'],
-                               self.sw_vars['ansible_inventory'])
+                               self.sw_vars['ansible_inventory'],
+                               self.vault_pass_file)
         print('Done')
 
 
-def _run_ansible_tasks(tasks_path, ansible_inventory, extra_args=''):
+def _run_ansible_tasks(tasks_path, ansible_inventory, vault_pass_file,
+                       extra_args=''):
     log = logger.getlogger()
     tasks_path = 'paie52_ansible/' + tasks_path
-    if 'become:' in open(f'{GEN_SOFTWARE_PATH}{tasks_path}').read():
+    if os.path.isfile(vault_pass_file):
+        extra_args += ' --vault-password-file ' + vault_pass_file
+    elif 'become:' in open(f'{GEN_SOFTWARE_PATH}{tasks_path}').read():
         extra_args += ' --ask-become-pass'
     cmd = ('{0} -i {1} {2}paie52_ansible/run.yml '
            '--extra-vars "task_file={2}{3}" '
@@ -1127,6 +1240,21 @@ def _interactive_anaconda_license_accept(ansible_inventory):
             log.error("Anaconda license acceptance required to continue!")
             sys.exit('Exiting')
     return rc
+
+
+class YAMLVault(yaml.YAMLObject):
+    yaml_tag = u'!vault'
+
+    def __init__(self, ansible_become_pass):
+        self.ansible_become_pass = ansible_become_pass
+
+    @classmethod
+    def from_yaml(cls, loader, node):
+        return YAMLVault(node.value)
+
+    @classmethod
+    def to_yaml(cls, dumper, data):
+        return dumper.represent_scalar(cls.yaml_tag, data.ansible_become_pass)
 
 
 if __name__ == '__main__':
