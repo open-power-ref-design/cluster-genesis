@@ -35,8 +35,9 @@ from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
     PowerupAnaRepoFromRepo, PowerupRepoFromRpm, setup_source_file, \
     PowerupPypiRepoFromRepo, powerup_file_from_disk, get_name_dir
 from software_hosts import get_ansible_inventory, validate_software_inventory
-from lib.utilities import sub_proc_display, sub_proc_exec, heading1, get_url, Color, \
-    get_selection, get_yesno, get_dir, get_file_path, get_src_path, rlinput, bold
+from lib.utilities import sub_proc_display, sub_proc_exec, heading1, get_url, \
+    Color, get_selection, get_yesno, get_dir, get_file_path, get_src_path, \
+    rlinput, bold, ansible_pprint
 from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path, \
     get_playbooks_path, get_ansible_vault_path
 from lib.exception import UserException
@@ -1039,7 +1040,7 @@ class software(object):
             if rc != 0:
                 log.warning("Ansible playbook failed!")
                 if resp != '':
-                    print(f"stdout:\n{resp}\n")
+                    print(f"stdout:\n{ansible_pprint(resp)}\n")
                 if err != '':
                     print(f"stderr:\n{err}\n")
                 choice, item = get_selection(['Retry', 'Continue', 'Exit'])
@@ -1112,7 +1113,7 @@ class software(object):
         else:
             print(bold("Validation failed!"))
             if resp != '':
-                print(f"stdout:\n{resp}\n")
+                print(f"stdout:\n{ansible_pprint(resp)}\n")
             if err != '':
                 print(f"stderr:\n{err}\n")
             return False
@@ -1195,7 +1196,7 @@ def _run_ansible_tasks(tasks_path, ansible_inventory, vault_pass_file,
         if rc != 0:
             log.warning("Ansible tasks failed!")
             if resp != '':
-                print(f"stdout:\n{resp}\n")
+                print(f"stdout:\n{ansible_pprint(resp)}\n")
             if err != '':
                 print(f"stderr:\n{err}\n")
             choice, item = get_selection(['Retry', 'Continue', 'Exit'])

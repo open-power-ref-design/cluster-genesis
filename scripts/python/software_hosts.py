@@ -40,7 +40,8 @@ import lib.logger as logger
 from lib.genesis import get_python_path, CFG_FILE, \
     get_dynamic_inventory_path, get_playbooks_path, get_ansible_path
 from lib.utilities import bash_cmd, sub_proc_exec, heading1, get_selection, \
-    bold, get_yesno, sub_proc_display, remove_line, append_line, rlinput
+    bold, get_yesno, sub_proc_display, remove_line, append_line, rlinput, \
+    ansible_pprint
 
 
 def _get_dynamic_inventory():
@@ -333,7 +334,7 @@ def _validate_ansible_ping(software_hosts_file_path):
                                          software_hosts_file_path))
     resp, err, rc = sub_proc_exec(cmd)
     if str(rc) != "0":
-        msg = 'Ansible ping validation failed:\n{}'.format(resp)
+        msg = f'Ansible ping validation failed:\n{ansible_pprint(resp)}'
         log.debug(msg)
         raise UserException(msg)
     log.debug("Software inventory Ansible ping validation passed")
