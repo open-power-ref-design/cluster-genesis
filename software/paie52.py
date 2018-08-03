@@ -497,7 +497,7 @@ class software(object):
                     'zlib-devel boost-system libgfortran boost-python boost-thread '
                     'boost-filesystem java-1.8.0-openjdk-devel scipy PyYAML '
                     'pyparsing python-pillow python-matplotlib pciutils libgcc '
-                    'libgomp libstdc++ libstdc++-devel cpp gcc-c++ ')
+                    'libgomp libstdc++ libstdc++-devel cpp gcc-c++ gcc-gfortran')
         file_more = GEN_SOFTWARE_PATH + 'dependent-packages.list'
         if os.path.isfile(file_more):
             try:
@@ -623,14 +623,24 @@ class software(object):
             if not url == baseurl:
                 self.sw_vars[f'{vars_key}-alt-url'] = url
 
-            acclist = ('scipy-*,six-*,libgfortran-ng-*,blas-*,'
-                       'libgcc-ng-*,libstdcxx-ng-*,libopenblas-*,'
-                       'libgfortran-ng*,python-2.7.1*,ncurses-*,'
-                       'openssl-1.*,ca-certificates-*,tk-*,sqlite-3.*,'
-                       'wheel-*,readline-*,zlib-*,setuptools-*,libffi-*,'
-                       'pip-1*,certifi-*,libedit-*')
+            al = ('libgcc-ng-*,libstdcxx-ng-*,python-2.7.1*,ncurses-*,'
+                  'openssl-1.*,ca-certificates-*,tk-*,sqlite-3.*,'
+                  'wheel-*,readline-*,zlib-*,setuptools-*,libffi-*,'
+                  'pip-1*,certifi-*,libedit-*')
+            al += ('backports.shutil_get_terminal_size*,blas*,cairo*,chardet*,'
+                   'cycler*,cython*,decorator*,enum34*,fontconfig*,freetype*,'
+                   'functools32*,get_terminal_size*,h5py*,hdf5*,icu*,ipython*,'
+                   'ipython_genutils*,jpeg*,leveldb*,libgfortran-ng*,libiconv*,'
+                   'libopenblas*,libpng*,libtiff*,libxml2*,matplotlib*,networkx*,'
+                   'nose*,numpy*,olefile*,pandas*,pathlib2*,pexpect*,pickleshare*,'
+                   'pillow*,pixman*,prompt_toolkit*,ptyprocess*,pycairo*,pygments*,'
+                   'pyparsing*,python-dateutil*,python-leveldb*,python-lmdb*,pytz*,'
+                   'pywavelets*,pyyaml*,redis*,redis-py*,requests*,scandir*,'
+                   'scikit-image*,scipy*,simplegeneric*,six*,snappy*,subprocess32*,'
+                   'traitlets*,wcwidth*,xz*,yaml*')
 
-            dest_dir = repo.sync_ana(url, acclist=acclist)
+            dest_dir = repo.sync_ana(url, acclist=al)
+            # dest_dir = repo.sync_ana(url)
             dest_dir = dest_dir[4 + dest_dir.find('/srv'):5 + dest_dir.find('main')]
             # form .condarc channel entry. Note that conda adds
             # the corresponding 'noarch' channel automatically.
@@ -660,7 +670,8 @@ class software(object):
         pkg_list = ('easydict==1.6 python-gflags==2.0 alembic==0.8.2 Keras==2.0.5 '
                     'elasticsearch==5.2.0 Flask-Script==2.0.5 Flask-HTTPAuth==3.2.2 '
                     'mongoengine==0.11.0 pathlib==1.0.1 python-heatclient==1.2.0 '
-                    'python-keystoneclient==3.1.0 cmd2==0.8.8 unicodecsv>=0.8.0')
+                    'python-keystoneclient==3.1.0 cmd2==0.8.8 unicodecsv>=0.8.0 '
+                    'protobuf>=3.5.0.post1')
         # Conda prereqs for downloading the Python packages. These are installed
         # in the pkgdl venv on the installer node so that pypi packages can be downloaded
         pkg_list_conda = ('cython==0.25.2 h5py==2.7.0 ipython==5.3.0 '

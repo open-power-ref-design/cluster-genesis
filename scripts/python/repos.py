@@ -23,7 +23,6 @@ import glob
 import os
 import re
 from shutil import copy2, copytree, rmtree, Error
-import code
 
 import lib.logger as logger
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, rlinput, \
@@ -518,34 +517,58 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
         """
         if not os.path.isdir(self.pypirepo_dir):
             os.mkdir(self.pypirepo_dir)
-        pkg_list = pkg_list.split()
-        cnt = 1
-        for pkg in pkg_list:
-            print(f'Pkg {cnt} of {len(pkg_list)} - Downloading {pkg}')
-            cnt += 1
-            if alt_url:
-                host = re.search(r'http://([^/]+)', alt_url).group(1)
-                cmd = (f'python2.7 -m pip download --index-url={alt_url} -d '
-                       f'{self.pypirepo_dir} {pkg} --trusted-host {host}')
-            else:
-                cmd = ('source ' + os.path.expanduser('~/anaconda2/bin/activate') +
-                       f' pkgdl && pip download -d {self.pypirepo_dir} {pkg}')
-                resp, err, rc = sub_proc_exec(cmd, shell=True)
-                if rc != 0:
-                    self.log.error('Error occured while downloading python package: '
-                                   f'{pkg}. \nResp: {resp} \nRet code: {rc} \nerr: {err}')
-        cmd = f'dir2pi {self.pypirepo_dir}'
-        resp, err, rc = sub_proc_exec(cmd)
-        if rc != 0:
-            self.log.error('An error occured while creating python package index: \n'
-                           f'dir2pi utility results: \nResp: {resp} \nRet code: '
-                           f'{rc} \nerr: {err}')
+        pkg_cnt = len(pkg_list.split())
+        print(f'Downloading {pkg_cnt} python packages plus dependencies:\n{pkg_list}\n')
 
-    def sync_alt_url(self, url):
-        """Copies an existing url into the POWER-Up server base directory. The
-        source directory must contain a 'simple' directory.
-        """
-        print(f'Sync alt url: {url}')
+        if alt_url:
+            host = re.search(r'http://([^/]+)', alt_url).group(1)
+            cmd = ('source ' + os.path.expanduser('~/anaconda2/bin/activate') +
+                   f'pkgdl &&  pip download --index-url={alt_url} -d '
+                   f'{self.pypirepo_dir} {pkg} --trusted-host {host}')
+            resp, err, rc = sub_proc_exec(cmd, shell=True)
+            if rc != 0:
+                self.log.error('Error occured while downloading python package: '
+                               f'{pkg}. \nResp: {resp} \nRet code: {rc} \nerr: {err}')
+        else:
+            cmd = ('source ' + os.path.expanduser('~/anaconda2/bin/activate') +
+                   f' pkgdl && pip download -d {self.pypirepo_dir} {pkg_list}')
+            resp, err, rc = sub_proc_exec(cmd, shell=True)
+            if rc != 0:
+                self.log.error('Error occured while downloading python package: '
+                               f'{pkg}. \nResp: {resp} \nRet code: {rc} \nerr: {err}')
+        if not os.path.isdir(self.pypirepo_dir + '/simple'):
+            os.mkdir(self.pypirepo_dir + '/simple')
+        dir_list = os.listdir(self.pypirepo_dir)
+        cnt = 0
+
+        for item in dir_list:
+            if item[0] != '.' and os.path.isfile(self.pypirepo_dir + '/' + item):
+                res = re.search(r'([-_+\w\.]+)(?=-(\d+\.\d+){1,3}).+', item)
+                if res:
+                    cnt += 1
+                    name = res.group(1)
+                    name = name.replace('.', '-')
+                    name = name.replace('_', '-')
+                    name = name.lower()
+                    if not os.path.isdir(self.pypirepo_dir + f'/simple/{name}'):
+                        os.mkdir(self.pypirepo_dir + f'/simple/{name}')
+                    if not os.path.islink(self.pypirepo_dir + f'/simple/{name}/{item}'):
+                        os.symlink(self.pypirepo_dir + f'/{item}',
+                                   self.pypirepo_dir + f'/simple/{name}/{item}')
+                else:
+                    self.log.error(f'mismatch: {item}. There was a problem entering '
+                                   f'{item}\ninto the python package index')
+        self.log.info(f'A total of {cnt} packages exist or were added to the python '
+                      'package repository')
+# dir2pi changes underscores to dashes in the links it creates which caused some
+# packages to fail to install. In particular python_heatclient and other python
+# openstack packages
+#        cmd = f'dir2pi -N {self.pypirepo_dir}'
+#        resp, err, rc = sub_proc_exec(cmd)
+#        if rc != 0:
+#            self.log.error('An error occured while creating python package index: \n'
+#                           f'dir2pi utility results: \nResp: {resp} \nRet code: '
+#                           f'{rc} \nerr: {err}')
 
 
 class PowerupRepoFromDir(PowerupRepo):
