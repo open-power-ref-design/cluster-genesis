@@ -14,25 +14,17 @@
   delegate_to: localhost
   register: host_ip
 
-- name: Check if anaconda2 directory already exists
+- name: Check if anaconda2 bin directory already exists
   stat:
-    path: "{{ install_dir }}"
+    path: "{{ install_dir }}/bin"
   register: anaconda2_dir
-
-- name: Set install args variable
-  set_fact:
-    args: ""
-
-- name: If install directory exists use update arg
-  set_fact:
-    args: -u
-  when: anaconda2_dir.stat.isdir is defined and anaconda2_dir.stat.isdir
 
 - name: Install Anaconda
   shell: "{{ ansible_env.HOME }}/{{ file }} \
-          -b -p {{ install_dir }} {{ args }}"
+          -b -p {{ install_dir }} -f"
   args:
     executable: /bin/bash
+  when: anaconda2_dir.stat.isdir is not defined or not anaconda2_dir.stat.isdir
   become: yes
 
 - name: Add Anaconda2 install location to PATH in ~/.bashrc
