@@ -256,7 +256,6 @@ class software(object):
                     self.state[item] = f'{item} is setup'
 
             # Dependent Packages status
-            s = 'Dependent Packages Repository'
             if item == 'Dependent Packages Repository':
                 repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
                                      '/**/repodata', recursive=True)
@@ -265,9 +264,9 @@ class software(object):
                     self.state[item] = f'{item} is setup'
 
             # Python Packages status
-            s = 'Python Packages Repository'
             if item == 'Python Package Repository':
-                if os.path.isfile(f'/srv/repos/{self.repo_id[item]}/simple/index.html'):
+                if os.path.exists(f'/srv/repos/{self.repo_id[item]}/simple/') and \
+                len(os.listdir(f'/srv/repos/{self.repo_id[item]}/simple/')) >= 1:
                     self.state[item] = f'{item} is setup'
 
         exists = True
