@@ -505,7 +505,12 @@ class software(object):
                     'zlib-devel boost-system libgfortran boost-python boost-thread '
                     'boost-filesystem java-1.8.0-openjdk-devel scipy PyYAML '
                     'pyparsing python-pillow python-matplotlib pciutils libgcc '
-                    'libgomp libstdc++ libstdc++-devel cpp gcc-c++ gcc-gfortran')
+                    'libgomp libstdc++ libstdc++-devel cpp gcc-c++ gcc-gfortran '
+                    'freetype-devel libpng-devel libffi-devel openssl-devel '
+                    'krb5-devel pkgconfig openssl-libs libkadm5 libcom_err-devel '
+                    'libselinux-devel libverto-devel keyutils-libs-devel krb5-libs '
+                    'pcre-devel libsepol-devel libcom_err e2fsprogs e2fsprogs-libs '
+                    'libss')
         file_more = GEN_SOFTWARE_PATH + 'dependent-packages.list'
         if os.path.isfile(file_more):
             try:
@@ -632,20 +637,20 @@ class software(object):
                 self.sw_vars[f'{vars_key}-alt-url'] = url
 
             al = ('libgcc-ng-*,libstdcxx-ng-*,python-2.7.1*,ncurses-*,'
-                  'openssl-1.*,ca-certificates-*,tk-*,sqlite-3.*,'
-                  'wheel-*,readline-*,zlib-*,setuptools-*,libffi-*,'
-                  'pip-1*,certifi-*,libedit-*')
-            al += ('backports.shutil_get_terminal_size*,blas*,cairo*,chardet*,'
-                   'cycler*,cython*,decorator*,enum34*,fontconfig*,freetype*,'
-                   'functools32*,get_terminal_size*,h5py*,hdf5*,icu*,ipython*,'
-                   'ipython_genutils*,jpeg*,leveldb*,libgfortran-ng*,libiconv*,'
-                   'libopenblas*,libpng*,libtiff*,libxml2*,matplotlib*,networkx*,'
-                   'nose*,numpy*,olefile*,pandas*,pathlib2*,pexpect*,pickleshare*,'
-                   'pillow*,pixman*,prompt_toolkit*,ptyprocess*,pycairo*,pygments*,'
-                   'pyparsing*,python-dateutil*,python-leveldb*,python-lmdb*,pytz*,'
-                   'pywavelets*,pyyaml*,redis*,redis-py*,requests*,scandir*,'
-                   'scikit-image*,scipy*,simplegeneric*,six*,snappy*,subprocess32*,'
-                   'traitlets*,wcwidth*,xz*,yaml*')
+                  'openssl-1.*,ca-certificates-*,tk-*,sqlite-3.*,wheel-*,'
+                  'readline-*,zlib-*,setuptools-*,libffi-*,pip-1*,certifi-*,'
+                  'libedit-*,scikit-learn*,openblas-devel*,openblas*,'
+                  'backports.shutil_get_terminal_size*,blas*,cairo*,chardet*,'
+                  'cycler*,cython*,decorator*,enum34*,fontconfig*,freetype*,'
+                  'functools32*,get_terminal_size*,h5py*,hdf5*,icu*,ipython*,'
+                  'ipython_genutils*,jpeg*,leveldb*,libgfortran-ng*,libiconv*,'
+                  'libopenblas*,libpng*,libtiff*,libxml2*,matplotlib*,networkx*,'
+                  'nose*,numpy*,olefile*,pandas*,pathlib2*,pexpect*,pickleshare*,'
+                  'pillow*,pixman*,prompt_toolkit*,ptyprocess*,pycairo*,pygments*,'
+                  'pyparsing*,python-dateutil*,python-leveldb*,python-lmdb*,pytz*,'
+                  'pywavelets*,pyyaml*,redis*,redis-py*,requests*,scandir*,'
+                  'scikit-image*,scipy*,simplegeneric*,six*,snappy*,subprocess32*,'
+                  'traitlets*,wcwidth*,xz*,yaml*')
 
             dest_dir = repo.sync_ana(url, acclist=al)
             # dest_dir = repo.sync_ana(url)
