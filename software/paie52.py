@@ -499,6 +499,7 @@ class software(object):
         # any YUM repository enabled on the POWER-Up Installer node.
         dep_list = ('kernel kernel-tools kernel-tools-libs dejavu-serif-fonts '
                     'bzip2 opencv opencv-devel opencv-python snappy-devel '
+                    'curl bind-utils iproute acl net-tools '
                     'kernel-bootwrapper kernel-devel kernel-headers gcc gcc-c++ '
                     'libXdmcp elfutils-libelf-devel java-1.8.0-openjdk libmpc '
                     'libatomic glibc-devel glibc-headers mpfr kernel-headers '
