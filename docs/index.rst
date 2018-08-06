@@ -33,6 +33,7 @@ Welcome to POWER-Up User's Guide documentation!
    Run-Cluster-Genesis
    Run-Software-Install
    Creating-Software-Install-Modules
+   Running-paie
    Config-Specification
    Inventory-Specification
    Multi-Tenant
@@ -45,7 +46,6 @@ Welcome to POWER-Up User's Guide documentation!
    Appendix-G
    Appendix-H
    Appendix-I
-   Appendix-J
 
 Indices and tables
 ==================

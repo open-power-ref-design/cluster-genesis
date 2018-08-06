@@ -1,11 +1,11 @@
 .. _running_paie:
 
-Appendix - J Running the PowerAI Enterprise Software Install Module
+Running the PowerAI Enterprise Software Install Module
 ===================================================================
 
 Overview
 --------
-The POWER-Up software can run on OpenPOWER or x_86 architecture.
+The PowerAI Enterprise software installation can be automated using the POWER-Up software. POWER-Up can run on OpenPOWER or x_86 architecture.
 
 The PowerAI Enterprise Software Install Module provides for rapid installation of the PowerAI Enterprise software to a cluster of POWER8 or POWER9 servers.
 The install module creates a web based software installation server on one of the cluster nodes or another node with access to the cluster.
@@ -23,6 +23,8 @@ Answered questions regarding PowerAI can be viewed at https://developer.ibm.com/
 
 Set up of the POWER-Up Software Installer Node
 ----------------------------------------------
+
+Before beginning automated installation, you should have completed the 'Setup for automated installer steps' at http://blaze.aus.stglabs.ibm.com/kc20A-cur/SSFHA8_1.1.0/enterprise/powerai_auto_install.html
 
 POWER-Up Node  Prerequisites;
 
@@ -76,14 +78,10 @@ Installation of the PowerAI Enterprise software involves the following steps;
 Preparation of the client nodes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Insure that the set up steps on IBM Knowledge Center up through and including 'Mount a shared file system' have been completed.
-
-https://www.ibm.com/support/knowledgecenter/SSFHA8_1.1.0/enterprise/powerai_setup.html
-
-Record the following information;
+Before proceding, you will need to gather the following information;
 
 -  hostname for each client node
--  Userid and password or private ssh key for the client nodes. Note that for installation, the same user id and password must exist on all client nodes. The user id used for installation must be configured with sudo access.
+-  Userid and password or private ssh key filr for the client nodes. Note that for running automated installation, the same user id and password must exist on all client nodes and must be configured with sudo access.
 
 Preparation of the POWER-Up Software Server
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -113,13 +111,15 @@ NOTE: Extraction and license acceptance must be run on an OpenPOWER node. If you
 
 At any time, you can check the status of the POWER-Up software server by running::
 
-    $ pup software --status paie52
+    $ pup software --status paie11
+
+Note: The POWER-Up software installer runs python installation modules. Inclusion of the '.py' in the software module name is optional. ie paie11 or paie11.py are both acceptable.
 
 **Hint: The POWER-Up command line interface supports tab autocompletion.**
 
 Preparation is run with the following POWER-Up command::
 
-    $ pup software --prep paie52
+    $ pup software --prep paie11
 
 Preparation is interactive and may be rerun if needed. Respond to the prompts as appropriate for your environment. Note that the EPEL, Cuda, dependencies and Anaconda repositories can be replicated from the public web sites or from alternate sites accessible on your intranet environment or from local disk (ie from a mounted USB drive). Most other files come from the local file system except for the Anaconda package which can be downloaded from the public internet during the preparation step.
 
@@ -144,7 +144,7 @@ During the initialization phase, you will need to enter a resolvable hostname fo
 
 To initialize the client nodes and enable access to the POWER-Up software server::
 
-    $ pup software --init-clients paie52
+    $ pup software --init-clients paie11
 
 Note: Initialization of client nodes can be rerun if needed.
 
@@ -152,11 +152,11 @@ Installation
 ~~~~~~~~~~~~
 To install the PowerAI base software Frameworks and prerequisites::
 
-    $ pup software --install paie52
+    $ pup software --install paie11
 
 Note: installation of PowerAI Enterprise can be rerun if needed.
 
-After completion of the installation of the PowerAI frameworks, continue installation of PowerAI Enterprise at the step labeled 'Configure the system for IBM Spectrum Conductor Deep Learning Impact' at https://www.ibm.com/support/knowledgecenter/SSFHA8_1.1.0/enterprise/powerai_install.html
+After completion of the installation phase of the PowerAI Enterprise installer module, continue installation of PowerAI Enterprise at the step labeled 'Install IBM Spectrum Conductor with Spark' at https://www.ibm.com/support/knowledgecenter/SSFHA8_1.1.0/enterprise/powerai_install.html
 
 **Note:** After installation of the PowerAI base components, Conductor with Spark and the DLI binary files can be copied to all client nodes at once, by executing the following Ansible commands on the installer node::
 
