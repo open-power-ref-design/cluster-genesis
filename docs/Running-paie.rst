@@ -24,7 +24,7 @@ Answered questions regarding PowerAI can be viewed at https://developer.ibm.com/
 Set up of the POWER-Up Software Installer Node
 ----------------------------------------------
 
-Before beginning automated installation, you should have completed the 'Setup for automated installer steps' at http://blaze.aus.stglabs.ibm.com/kc20A-cur/SSFHA8_1.1.0/enterprise/powerai_auto_install.html
+Before beginning automated installation, you should have completed the 'Setup for automated installer steps' at https://www.ibm.com/support/knowledgecenter/SSFHA8_1.1.0/enterprise/powerai_auto_install.html
 
 POWER-Up Node  Prerequisites;
 
@@ -78,10 +78,10 @@ Installation of the PowerAI Enterprise software involves the following steps;
 Preparation of the client nodes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Before proceding, you will need to gather the following information;
+Before proceeding, you will need to gather the following information;
 
 -  hostname for each client node
--  Userid and password or private ssh key filr for the client nodes. Note that for running automated installation, the same user id and password must exist on all client nodes and must be configured with sudo access.
+-  Userid and password or private ssh key pair for accessing the client nodes. Note that for running an automated installation, the same user id and password must exist on all client nodes and must be configured with sudo access.
 
 Preparation of the POWER-Up Software Server
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
