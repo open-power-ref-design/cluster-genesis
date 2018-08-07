@@ -53,7 +53,7 @@ For additional information, see :ref:`installing`::
 
     $ sudo yum install git
 
-    $ git clone https://github.com/open-power-ref-design-toolkit/power-up -b software-install-b1
+    $ git clone https://github.com/open-power-ref-design-toolkit/power-up -b software-install-b2
 
     $ cd power-up
 
