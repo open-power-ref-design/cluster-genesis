@@ -1152,8 +1152,6 @@ class software(object):
                 print(bold("Validation FAILED!"))
                 self.sw_vars['ansible_inventory'] = get_ansible_inventory()
 
-        self._unlock_vault()
-
         install_tasks = yaml.load(open(GEN_SOFTWARE_PATH +
                                        'paie52_install_procedure.yml'))
         for task in install_tasks:
@@ -1171,7 +1169,7 @@ def _run_ansible_tasks(tasks_path, ansible_inventory, vault_pass_file,
                        extra_args=''):
     log = logger.getlogger()
     tasks_path = 'paie52_ansible/' + tasks_path
-    if os.path.isfile(vault_pass_file):
+    if self.sw_vars['ansible_become_pass'] is not None:
         extra_args += ' --vault-password-file ' + vault_pass_file
     elif 'become:' in open(f'{GEN_SOFTWARE_PATH}{tasks_path}').read():
         extra_args += ' --ask-become-pass'
@@ -1189,6 +1187,8 @@ def _run_ansible_tasks(tasks_path, ansible_inventory, vault_pass_file,
                        '(16 minute timeout)'))
         if '--ask-become-pass' in cmd:
             print('\nClient password required for privilege escalation')
+        elif '--vault-password-file' in cmd:
+            self._unlock_vault()
         resp, err, rc = sub_proc_exec(cmd, shell=True)
         log.debug(f"cmd: {cmd}\nresp: {resp}\nerr: {err}\nrc: {rc}")
         print("")  # line break
