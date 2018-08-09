@@ -29,6 +29,7 @@ import time
 import yaml
 import json
 from getpass import getpass
+import code
 
 import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
@@ -52,6 +53,12 @@ class software(object):
         self.log = logger.getlogger()
         self.yum_powerup_repo_files = []
         yaml.add_constructor(YAMLVault.yaml_tag, YAMLVault.from_yaml)
+
+        try:
+            self.pkgs = yaml.load(open(GEN_SOFTWARE_PATH + 'pkg-lists.yml'))
+        except IOError:
+            self.log.error('Error opening the pkg lists file (pkg-lists.yml)')
+
         try:
             self.sw_vars = yaml.load(open(GEN_SOFTWARE_PATH + 'software-vars.yml'))
         except IOError:
@@ -266,7 +273,7 @@ class software(object):
             # Python Packages status
             if item == 'Python Package Repository':
                 if os.path.exists(f'/srv/repos/{self.repo_id[item]}/simple/') and \
-                len(os.listdir(f'/srv/repos/{self.repo_id[item]}/simple/')) >= 1:
+                        len(os.listdir(f'/srv/repos/{self.repo_id[item]}/simple/')) >= 1:
                     self.state[item] = f'{item} is setup'
 
         exists = True
@@ -494,23 +501,18 @@ class software(object):
             if dest_path:
                 self.sw_vars['content_files'][get_name_dir(name)] = dest_path
 
-        # Setup repository for dependent packages. Dependent packages can come from
-        # any YUM repository enabled on the POWER-Up Installer node.
-        dep_list = ('kernel kernel-tools kernel-tools-libs dejavu-serif-fonts '
-                    'bzip2 opencv opencv-devel opencv-python snappy-devel '
-                    'curl bind-utils iproute acl net-tools '
-                    'kernel-bootwrapper kernel-devel kernel-headers gcc gcc-c++ '
-                    'libXdmcp elfutils-libelf-devel java-1.8.0-openjdk libmpc '
-                    'libatomic glibc-devel glibc-headers mpfr kernel-headers '
-                    'zlib-devel boost-system libgfortran boost-python boost-thread '
-                    'boost-filesystem java-1.8.0-openjdk-devel scipy PyYAML '
-                    'pyparsing python-pillow python-matplotlib pciutils libgcc '
-                    'libgomp libstdc++ libstdc++-devel cpp gcc-c++ gcc-gfortran '
-                    'freetype-devel libpng-devel libffi-devel openssl-devel '
-                    'krb5-devel pkgconfig openssl-libs libkadm5 libcom_err-devel '
-                    'libselinux-devel libverto-devel keyutils-libs-devel krb5-libs '
-                    'pcre-devel libsepol-devel libcom_err e2fsprogs e2fsprogs-libs '
-                    'libss')
+        # Setup repository for redhat dependent packages. This is intended to deal
+        # specifically with redhat packages requiring red hat subscription for access,
+        # however dependent packages can come from any YUM repository enabled on the
+        # POWER-Up Installer node. Alternately the dependent packages repo can be
+        # Created from a local directory or an existing repository on another node.
+        repo_id = 'dependencies'
+        repo_name = 'Dependencies'
+        baseurl = ''
+        heading1(f'Set up {repo_name} repository')
+        # list to str
+        dep_list = ' '.join(self.pkgs['python_pkgs'])
+
         file_more = GEN_SOFTWARE_PATH + 'dependent-packages.list'
         if os.path.isfile(file_more):
             try:
@@ -524,16 +526,39 @@ class software(object):
                 more.replace('\n', ' ')
         else:
             more = ''
-        heading1('Setup repository for dependent packages\n')
+
+        if f'{repo_id}_alt_url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{repo_id}_alt_url']
+        else:
+            alt_url = None
+
         exists = self.status_prep(which='Dependent Packages Repository')
         if exists:
-            self.log.info('The Dependent Packages Repository exists already'
-                          ' in the POWER-Up server.')
-            resp = get_yesno('Do you wish to recreate the dependent '
-                             'packages repository ')
-        if not exists or resp:
-            repo_id = 'dependencies'
-            repo_name = 'Dependencies'
+            self.log.info(f'The {repo_name} repository exists already'
+                          ' in the POWER-Up server')
+            pr_str = (f'\nDo you want to resync the {repo_name} repository'
+                      ' at this time\n')
+        else:
+            pr_str = (f'\nDo you want to create the {repo_name} repository'
+                      ' at this time\n')
+
+        ch = 'S'
+        if get_yesno(prompt=pr_str, yesno='Y/n'):
+            if platform.machine() == self.arch:
+                ch, item = get_selection('Download dependent packages from Enabled repos\n'
+                                         'Create from files in a local Directory\n'
+                                         'Sync from an external Repository\n'
+                                         'Skip',
+                                         'E\nD\nR\nS',
+                                         'Repository source? ')
+            else:
+                ch, item = get_selection('Create from files in a local Directory\n'
+                                         'Sync from an external Repository\n'
+                                         'Skip',
+                                         'D\nR\nS',
+                                         'Repository source? ')
+
+        if ch == 'E':
             repo = PowerupRepo(repo_id, repo_name)
             repo_dir = repo.get_repo_dir()
             self._add_dependent_packages(repo_dir, dep_list)
@@ -544,6 +569,54 @@ class software(object):
             content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
             filename = repo_id + '-powerup.repo'
             self.sw_vars['yum_powerup_repo_files'][filename] = content
+
+        elif ch == 'D':
+            repo = PowerupRepoFromDir(repo_id, repo_name)
+
+            if f'{repo_id}_src_dir' in self.sw_vars:
+                src_dir = self.sw_vars[f'{repo_id}_src_dir']
+            else:
+                src_dir = None
+            src_dir, dest_dir = repo.copy_dirs(src_dir)
+            if src_dir:
+                self.sw_vars[f'{repo_id}_src_dir'] = src_dir
+                repo.create_meta()
+                content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+                repo.write_yum_dot_repo_file(content)
+                content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
+                filename = repo_id + '-powerup.repo'
+                self.sw_vars['yum_powerup_repo_files'][filename] = content
+
+        elif ch == 'R':
+            if f'{repo_id}_alt_url' in self.sw_vars:
+                alt_url = self.sw_vars[f'{repo_id}_alt_url']
+            else:
+                alt_url = None
+
+            repo = PowerupYumRepoFromRepo(repo_id, repo_name)
+
+            url = repo.get_repo_url(baseurl)
+            if not url == baseurl:
+                self.sw_vars[f'{repo_id}_alt_url'] = url
+            # Set up access to the repo
+            content = repo.get_yum_dotrepo_content(url, gpgcheck=0)
+            repo.write_yum_dot_repo_file(content)
+
+            repo.sync()
+            repo.create_meta()
+
+            # Setup local access to the new repo copy in /srv/repo/
+            if platform.machine() == self.arch:
+                content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+                repo.write_yum_dot_repo_file(content)
+            # Prep setup of POWER-Up client access to the repo copy
+            content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
+            filename = repo_id + '-powerup.repo'
+            self.sw_vars['yum_powerup_repo_files'][filename] = content
+            self.log.info('Repository setup complete')
+
+        else:
+            print(f'{repo_name} repository not updated')
 
         # Get Anaconda
         ana_name = 'Anaconda content'
@@ -604,9 +677,7 @@ class software(object):
             if channel not in self.sw_vars['ana_powerup_repo_channels']:
                 self.sw_vars['ana_powerup_repo_channels'].append(channel)
             noarch_url = os.path.split(url.rstrip('/'))[0] + '/noarch/'
-            rejlist = ('continuum-docs-*,cudatoolkit-*,'
-                       'cudnn-*,tensorflow-*,caffe-*,'
-                       'anaconda-oss-docs-*,anaconda-docs-*')
+            rejlist = ','.join(self.pkgs['anaconda_free_pkgs']['reject_list'])
 
             repo.sync_ana(noarch_url, rejlist=rejlist)
 
@@ -636,21 +707,7 @@ class software(object):
             if not url == baseurl:
                 self.sw_vars[f'{vars_key}-alt-url'] = url
 
-            al = ('libgcc-ng-*,libstdcxx-ng-*,python-2.7.1*,ncurses-*,'
-                  'openssl-1.*,ca-certificates-*,tk-*,sqlite-3.*,wheel-*,'
-                  'readline-*,zlib-*,setuptools-*,libffi-*,pip-1*,certifi-*,'
-                  'libedit-*,scikit-learn*,openblas-devel*,openblas*,'
-                  'backports.shutil_get_terminal_size*,blas*,cairo*,chardet*,'
-                  'cycler*,cython*,decorator*,enum34*,fontconfig*,freetype*,'
-                  'functools32*,get_terminal_size*,h5py*,hdf5*,icu*,ipython*,'
-                  'ipython_genutils*,jpeg*,leveldb*,libgfortran-ng*,libiconv*,'
-                  'libopenblas*,libpng*,libtiff*,libxml2*,matplotlib*,networkx*,'
-                  'nose*,numpy*,olefile*,pandas*,pathlib2*,pexpect*,pickleshare*,'
-                  'pillow*,pixman*,prompt_toolkit*,ptyprocess*,pycairo*,pygments*,'
-                  'pyparsing*,python-dateutil*,python-leveldb*,python-lmdb*,pytz*,'
-                  'pywavelets*,pyyaml*,redis*,redis-py*,requests*,scandir*,'
-                  'scikit-image*,scipy*,simplegeneric*,six*,snappy*,subprocess32*,'
-                  'traitlets*,wcwidth*,xz*,yaml*')
+            al = ','.join(self.pkgs['anaconda_main_pkgs']['accept_list'])
 
             dest_dir = repo.sync_ana(url, acclist=al)
             # dest_dir = repo.sync_ana(url)
@@ -680,47 +737,15 @@ class software(object):
 
         repo = PowerupPypiRepoFromRepo(repo_id, repo_name)
         ch = repo.get_action(exists, exists_prompt_yn=True)
-        pkg_list = ('easydict==1.6 python-gflags==2.0 alembic==0.8.2 Keras==2.0.5 '
-                    'elasticsearch==5.2.0 Flask-Script==2.0.5 Flask-HTTPAuth==3.2.2 '
-                    'mongoengine==0.11.0 pathlib==1.0.1 python-heatclient==1.2.0 '
-                    'python-keystoneclient==3.1.0 cmd2==0.8.8 unicodecsv>=0.8.0 '
-                    'protobuf>=3.5.0.post1')
-        # Conda prereqs for downloading the Python packages. These are installed
-        # in the pkgdl venv on the installer node so that pypi packages can be downloaded
-        pkg_list_conda = ('cython==0.25.2 h5py==2.7.0 ipython==5.3.0 '
-                          'python-leveldb==0.194 python-lmdb==0.92 matplotlib==2.0.2 '
-                          'networkx==1.11 nose==1.3.7 pandas==0.20.3 pillow==4.1.1 '
-                          'python-dateutil==2.6.1 pyyaml==3.12 requests==2.13.0 '
-                          'scipy==1.1.0 six==1.11.0 scikit-image==0.13.0 '
-                          'redis-py==2.10.5 chardet==3.0.4')
 
+        pkg_list = ' '.join(self.pkgs['python_pkgs'])
         if not exists or ch == 'Y':
-            if self._setup_anaconda_venv():
-                cmd = ('source ' + os.path.expanduser('~/anaconda2/bin/activate') +
-                       f' pkgdl && conda list')
-                conda_list, err, rc = sub_proc_exec(cmd, shell=True)
-                for pkg in pkg_list_conda.split():
-                    name = pkg[:pkg.find('==')]
-                    ver = pkg[pkg.find('==') + 2:]
-                    installed = re.search(f'^{name}\s+{ver}', conda_list, re.MULTILINE)
-                    if not installed:
-                        print(f'Conda installing: {pkg}')
-                        cmd = ('source ' + os.path.expanduser('~/anaconda2/bin/activate') +
-                               f' pkgdl && conda install -y {pkg}')
-                        resp, err, rc = sub_proc_exec(cmd, shell=True)
-                        if rc != 0:
-                            self.log.error('Error occured while installing conda package: '
-                                           f'{pkg}. \nResp: {resp} \nRet code: {rc} '
-                                           f'\nerr: {err}')
-                url = repo.get_repo_url(baseurl, alt_url, name=repo_name)
-                if url == baseurl:
-                    repo.sync(pkg_list)
-                else:
-                    self.sw_vars[f'{repo_id}_alt_url'] = url
-                    repo.sync(pkg_list, url + 'simple')
+            url = repo.get_repo_url(baseurl, alt_url, name=repo_name)
+            if url == baseurl:
+                repo.sync(pkg_list)
             else:
-                self.log.error('Failed to setup the Anaconda environment')
-                code.interact(banner='pypi', local=dict(globals(), **locals()))
+                self.sw_vars[f'{repo_id}_alt_url'] = url
+                repo.sync(pkg_list, url + 'simple')
 
         # Get cudnn tar file
         name = 'CUDA dnn content'
@@ -915,7 +940,7 @@ class software(object):
                 else:
                     alt_url = None
 
-                repo = PowerupRepoFromRepo(repo_id, repo_name)
+                repo = PowerupYumRepoFromRepo(repo_id, repo_name)
 
                 new = True
                 if os.path.isfile(f'/etc/yum.repos.d/{repo_id}.repo') and \

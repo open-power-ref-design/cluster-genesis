@@ -185,8 +185,11 @@ class PowerupRepo(object):
         """
         if name:
             print(f'\nChoice for source of {name} repository:')
-        ch, item = get_selection('Public mirror.Alternate web site', 'P.A',
-                                 'Select source: ', '.')
+        if url:
+            ch, item = get_selection('Public mirror.Alternate web site', 'P.A',
+                                     'Select source: ', '.')
+        else:
+            ch = 'A'
         if ch == 'A':
             if not alt_url:
                 alt_url = f'http://host/repos/{self.repo_id}/'
@@ -522,20 +525,25 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
 
         if alt_url:
             host = re.search(r'http://([^/]+)', alt_url).group(1)
-            cmd = ('source ' + os.path.expanduser('~/anaconda2/bin/activate') +
-                   f'pkgdl &&  pip download --index-url={alt_url} -d '
-                   f'{self.pypirepo_dir} {pkg} --trusted-host {host}')
+            #cmd = ('source ' + os.path.expanduser('~/anaconda2/bin/activate') +
+            #       f'pkgdl &&  pip download --index-url={alt_url} -d '
+            #       f'{self.pypirepo_dir} {pkg_list} --trusted-host {host}')
+            cmd = (f'python2.7 -m pip download --platform ppc64le  --no-deps '
+                   f'--index-url={alt_url} -d {self.pypirepo_dir} {pkg_list} '
+                   f'--trusted-host {host}')
             resp, err, rc = sub_proc_exec(cmd, shell=True)
             if rc != 0:
                 self.log.error('Error occured while downloading python package: '
-                               f'{pkg}. \nResp: {resp} \nRet code: {rc} \nerr: {err}')
+                               f'{pkg_list}. \nResp: {resp} \nRet code: {rc} \nerr: {err}')
         else:
-            cmd = ('source ' + os.path.expanduser('~/anaconda2/bin/activate') +
-                   f' pkgdl && pip download -d {self.pypirepo_dir} {pkg_list}')
+            #cmd = ('source ' + os.path.expanduser('~/anaconda2/bin/activate') +
+            #       f' pkgdl && pip download -d {self.pypirepo_dir} {pkg_list}')
+            cmd = (f'python2.7 -m pip download --platform ppc64le  --no-deps '
+                   f'-d {self.pypirepo_dir} {pkg_list}')
             resp, err, rc = sub_proc_exec(cmd, shell=True)
             if rc != 0:
-                self.log.error('Error occured while downloading python package: '
-                               f'{pkg}. \nResp: {resp} \nRet code: {rc} \nerr: {err}')
+                self.log.error('Error occured while downloading python packages: '
+                               f'\nResp: {resp} \nRet code: {rc} \nerr: {err}')
         if not os.path.isdir(self.pypirepo_dir + '/simple'):
             os.mkdir(self.pypirepo_dir + '/simple')
         dir_list = os.listdir(self.pypirepo_dir)
@@ -577,8 +585,7 @@ class PowerupRepoFromDir(PowerupRepo):
 
     def copy_dirs(self, src_dir=None):
         if os.path.exists(self.repo_dir):
-            r = get_yesno(f'Directory {self.repo_dir} already exists. OK to replace it? ')
-            if r == 'yes':
+            if get_yesno(f'Directory {self.repo_dir} already exists.\nOK to replace it? '):
                 rmtree(os.path.dirname(self.repo_dir), ignore_errors=True)
             else:
                 self.log.info('Directory not created')
