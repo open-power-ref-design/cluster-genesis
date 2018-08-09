@@ -316,11 +316,37 @@ def _validate_host_list_network(host_list):
     return True
 
 
-def _validate_ansible_ping(software_hosts_file_path):
+def _check_known_hosts(host_list):
+    """Ensure all hosts have entries in 'known_hosts' to avoid
+    Ansible's clunky yes/no prompting to accept keys (all prompts are
+    printed at once).
+
+    If any hosts are missing the user will be prompted to add it.
+
+    Args:
+        host_list (list): List of hostnames or IP addresses
+    """
+    log = logger.getlogger()
+    known_hosts = os.path.join(Path.home(), ".ssh", "known_hosts")
+    for host in host_list:
+        cmd = (f'ssh-keygen -F {host}')
+        resp, err, rc = sub_proc_exec(cmd)
+        if rc == 1:
+            print(f'No host key found in {known_hosts} for {host}')
+            cmd = (f'ssh-keyscan -H {host}')
+            resp, err, rc = sub_proc_exec(cmd)
+            print(f'The following keys were collected:')
+            print(resp)
+            if get_yesno(f'Add key(s) to {known_hosts}? '):
+                append_line(known_hosts, resp, check_exists=False)
+
+
+def _validate_ansible_ping(software_hosts_file_path, hosts_list):
     """Validate Ansible connectivity and functionality on all hosts
 
     Args:
         software_hosts_file_path (str): Path to software inventory file
+        host_list (list): List of hostnames or IP addresses
 
     Returns:
         bool: True if Ansible can connect to all hosts
@@ -335,6 +361,28 @@ def _validate_ansible_ping(software_hosts_file_path):
     if str(rc) != "0":
         msg = 'Ansible ping validation failed:\n{}'.format(resp)
         log.debug(msg)
+        if 'WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!' in msg:
+            print(
+                '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n'
+                '@    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED      @\n'
+                '@             ON ONE OR MORE CLIENT NODES!                @\n'
+                '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n'
+                'IT IS POSSIBLE THAT SOMEONE IS DOING SOMETHING NASTY!\n'
+                'Someone could be eavesdropping on you right now '
+                '(man-in-the-middle attack)!\n'
+                'It is also possible that a host key has just been changed.\n')
+            if get_yesno('Remove the existing known host keys? '):
+                known_hosts = os.path.join(Path.home(), ".ssh", "known_hosts")
+                for host in hosts_list:
+                    print(f'Removing host keys for {host}')
+                    cmd = (f'ssh-keygen -R {host}')
+                    resp, err, rc = sub_proc_exec(cmd)
+                    print(f'Collecting new host key(s) for {host}')
+                    cmd = (f'ssh-keyscan -H {host}')
+                    resp, err, rc = sub_proc_exec(cmd)
+                    append_line(known_hosts, resp, check_exists=False)
+                return _validate_ansible_ping(software_hosts_file_path,
+                                              hosts_list)
         raise UserException(msg)
     log.debug("Software inventory Ansible ping validation passed")
     return True
@@ -684,9 +732,12 @@ def validate_software_inventory(software_hosts_file_path):
         print("Inventory network validation error: {}".format(exc))
         return False
 
+    # Ensure hosts keys exist in known_hosts
+    _check_known_hosts(hosts_list)
+
     # Validate complete Ansible connectivity
     try:
-        _validate_ansible_ping(software_hosts_file_path)
+        _validate_ansible_ping(software_hosts_file_path, hosts_list)
     except UserException as exc:
         print("Inventory validation error:\n{}".format(exc))
         return False
