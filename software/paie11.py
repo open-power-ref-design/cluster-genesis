@@ -265,9 +265,9 @@ class software(object):
 
             # Python Packages status
             if item == 'Python Package Repository':
-                if os.path.exists(f'/srv/repos/{self.repo_id[item]}/simple/') and \
-                len(os.listdir(f'/srv/repos/{self.repo_id[item]}/simple/')) >= 1:
-                    self.state[item] = f'{item} is setup'
+                if os.path.exists(f'/srv/repos/{self.repo_id[item]}/simple/'):
+                    if len(os.listdir(f'/srv/repos/{self.repo_id[item]}/simple/')) >= 1:
+                        self.state[item] = f'{item} is setup'
 
         exists = True
         if which == 'all':
@@ -287,6 +287,7 @@ class software(object):
         return exists
 
     def setup(self):
+        # Invoked with --prep flag
         # Basic check of the state of yum repos
         print()
         self.log.info('Performing basic check of yum repositories')
@@ -348,13 +349,20 @@ class software(object):
 
         # nginx setup
         heading1('Set up Nginx')
-        baseurl = 'http://nginx.org/packages/mainline/rhel/7/' + \
-                  platform.machine()
-        repo_id = 'nginx'
-        repo_name = 'nginx.org public'
-        repo = PowerupRepo(repo_id, repo_name)
-        content = repo.get_yum_dotrepo_content(baseurl, gpgcheck=0)
-        repo.write_yum_dot_repo_file(content)
+        exists = self.status_prep(which='Nginx Web Server')
+        if not exists:
+            baseurl = 'http://nginx.org/packages/mainline/rhel/7/' + \
+                      platform.machine()
+            repo_id = 'nginx'
+            repo_name = 'nginx.org public'
+            repo = PowerupRepo(repo_id, repo_name)
+            content = repo.get_yum_dotrepo_content(baseurl, gpgcheck=0)
+            repo.write_yum_dot_repo_file(content)
+            cmd = 'yum makecache'
+            resp, err, rc = sub_proc_exec(cmd)
+            if rc != 0:
+                self.log.error('A problem occured while creating the yum caches')
+                self.log.error(f'Response: {resp}\nError: {err}\nRC: {rc}')
 
         # Check if nginx installed. Install if necessary.
         cmd = 'nginx -v'
