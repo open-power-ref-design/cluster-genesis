@@ -359,7 +359,7 @@ def configure_ssh_keys(software_hosts_file_path):
     log = logger.getlogger()
     default_ssh_key_name = "powerup"
 
-    ssh_key_options = get_existing_ssh_key_pairs()
+    ssh_key_options = get_existing_ssh_key_pairs(no_root_keys=True)
 
     if os.path.join(Path.home(), ".ssh",
                     default_ssh_key_name) not in ssh_key_options:
@@ -460,10 +460,14 @@ def add_software_hosts_global_var(software_hosts_file_path, entry):
     _set_software_hosts_owner_mode(software_hosts_file_path)
 
 
-def get_existing_ssh_key_pairs():
+def get_existing_ssh_key_pairs(no_root_keys=False):
     """Get a list of existing SSH private/public key paths from
-    '~/.ssh/'. If called with 'sudo' then get list from both
-    '/root/.ssh/' and '~/.ssh'.
+    '~/.ssh/'. If called with 'sudo' and 'no_root_keys=False', then get
+    list from both '/root/.ssh/' and '~/.ssh'. If 'no_root_keys=True'
+    then any private keys located in '/root/.ssh' will be omitted.
+
+    Args:
+        no_root_keys (bool): Do not return any keys from '/root/.ssh'
 
     Returns:
         list of str: List of private ssh key paths
@@ -471,7 +475,8 @@ def get_existing_ssh_key_pairs():
     ssh_key_pairs = []
 
     ssh_dir = os.path.join(Path.home(), ".ssh")
-    if os.path.isdir(ssh_dir):
+    if (not ('/root' == str(Path.home()) and no_root_keys) and
+            os.path.isdir(ssh_dir)):
         for item in listdir(ssh_dir):
             item = os.path.join(ssh_dir, item)
             if os.path.isfile(item + '.pub'):
@@ -480,7 +485,8 @@ def get_existing_ssh_key_pairs():
     user_name, user_home_dir = get_user_and_home()
     if user_home_dir != str(Path.home()):
         user_ssh_dir = os.path.join(user_home_dir, ".ssh")
-        if os.path.isdir(user_ssh_dir):
+        if (not ('/root' == str(Path.home()) and no_root_keys) and
+                os.path.isdir(user_ssh_dir)):
             for item in listdir(user_ssh_dir):
                 item = os.path.join(user_ssh_dir, item)
                 if os.path.isfile(item + '.pub'):
