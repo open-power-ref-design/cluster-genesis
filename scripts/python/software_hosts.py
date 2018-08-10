@@ -361,7 +361,8 @@ def configure_ssh_keys(software_hosts_file_path):
 
     ssh_key_options = get_existing_ssh_key_pairs(no_root_keys=True)
 
-    if os.path.join(Path.home(), ".ssh",
+    user_name, user_home_dir = get_user_and_home()
+    if os.path.join(user_home_dir, ".ssh",
                     default_ssh_key_name) not in ssh_key_options:
         ssh_key_options.insert(0, 'Create New "powerup" Key Pair')
 
@@ -376,7 +377,7 @@ def configure_ssh_keys(software_hosts_file_path):
     else:
         ssh_key = item
 
-    copy_ssh_key_pair_to_user_dir(ssh_key)
+    ssh_key = copy_ssh_key_pair_to_user_dir(ssh_key)
 
     add_software_hosts_global_var(
         software_hosts_file_path,
@@ -485,12 +486,10 @@ def get_existing_ssh_key_pairs(no_root_keys=False):
     user_name, user_home_dir = get_user_and_home()
     if user_home_dir != str(Path.home()):
         user_ssh_dir = os.path.join(user_home_dir, ".ssh")
-        if (not ('/root' == str(Path.home()) and no_root_keys) and
-                os.path.isdir(user_ssh_dir)):
-            for item in listdir(user_ssh_dir):
-                item = os.path.join(user_ssh_dir, item)
-                if os.path.isfile(item + '.pub'):
-                    ssh_key_pairs.append(item)
+        for item in listdir(user_ssh_dir):
+            item = os.path.join(user_ssh_dir, item)
+            if os.path.isfile(item + '.pub'):
+                ssh_key_pairs.append(item)
 
     return ssh_key_pairs
 
@@ -542,6 +541,9 @@ def copy_ssh_key_pair_to_user_dir(private_key_path):
 
     Args:
         private_key_path (str) : Filename of private key file
+
+    Returns:
+        str: Path to user copy of private key
     """
     log = logger.getlogger()
     public_key_path = private_key_path + '.pub'
@@ -586,6 +588,11 @@ def copy_ssh_key_pair_to_user_dir(private_key_path):
 
             os.chown(user_public_key_path, user_uid, user_gid)
             os.chmod(user_public_key_path, 0o644)
+
+    else:
+        user_private_key_path = private_key_path
+
+    return user_private_key_path
 
 
 def copy_ssh_key_pair_to_hosts(private_key_path, software_hosts_file_path,
