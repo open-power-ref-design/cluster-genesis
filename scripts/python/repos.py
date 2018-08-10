@@ -525,10 +525,7 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
 
         if alt_url:
             host = re.search(r'http://([^/]+)', alt_url).group(1)
-            #cmd = ('source ' + os.path.expanduser('~/anaconda2/bin/activate') +
-            #       f'pkgdl &&  pip download --index-url={alt_url} -d '
-            #       f'{self.pypirepo_dir} {pkg_list} --trusted-host {host}')
-            cmd = (f'python2.7 -m pip download --platform ppc64le  --no-deps '
+            cmd = (f'python2.7 -m pip download --platform ppc64le --no-deps '
                    f'--index-url={alt_url} -d {self.pypirepo_dir} {pkg_list} '
                    f'--trusted-host {host}')
             resp, err, rc = sub_proc_exec(cmd, shell=True)
@@ -536,8 +533,6 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
                 self.log.error('Error occured while downloading python package: '
                                f'{pkg_list}. \nResp: {resp} \nRet code: {rc} \nerr: {err}')
         else:
-            #cmd = ('source ' + os.path.expanduser('~/anaconda2/bin/activate') +
-            #       f' pkgdl && pip download -d {self.pypirepo_dir} {pkg_list}')
             cmd = (f'python2.7 -m pip download --platform ppc64le  --no-deps '
                    f'-d {self.pypirepo_dir} {pkg_list}')
             resp, err, rc = sub_proc_exec(cmd, shell=True)

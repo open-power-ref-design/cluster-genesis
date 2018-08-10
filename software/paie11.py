@@ -511,7 +511,7 @@ class software(object):
         baseurl = ''
         heading1(f'Set up {repo_name} repository')
         # list to str
-        dep_list = ' '.join(self.pkgs['python_pkgs'])
+        dep_list = ' '.join(self.pkgs['yum_pkgs'])
 
         file_more = GEN_SOFTWARE_PATH + 'dependent-packages.list'
         if os.path.isfile(file_more):

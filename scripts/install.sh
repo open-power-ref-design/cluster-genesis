@@ -36,7 +36,7 @@ if [[ $ID == "ubuntu" ]]; then
     fi
 
 elif [[ $ID == "rhel" ]]; then
-    sudo yum -y install python36-devel libffi-devel openssl-devel \
+    sudo yum -y install python-devel python36-devel libffi-devel openssl-devel \
         lxc lxc-devel lxc-extra lxc-templates libvirt ipmitool\
         debootstrap gcc vim vlan bridge-utils cpp flex bison unzip cmake \
         fping gcc-c++ patch perl-ExtUtils-MakeMaker perl-Thread-Queue \
