@@ -266,9 +266,9 @@ class software(object):
 
             # Python Packages status
             if item == 'Python Package Repository':
-                if os.path.exists(f'/srv/repos/{self.repo_id[item]}/simple/') and \
-                len(os.listdir(f'/srv/repos/{self.repo_id[item]}/simple/')) >= 1:
-                    self.state[item] = f'{item} is setup'
+                if os.path.exists(f'/srv/repos/{self.repo_id[item]}/simple/'):
+                    if len(os.listdir(f'/srv/repos/{self.repo_id[item]}/simple/')) >= 1:
+                        self.state[item] = f'{item} is setup'
 
         exists = True
         if which == 'all':
@@ -288,6 +288,7 @@ class software(object):
         return exists
 
     def setup(self):
+        # Invoked with --prep flag
         # Basic check of the state of yum repos
         print()
         self.log.info('Performing basic check of yum repositories')
@@ -349,13 +350,20 @@ class software(object):
 
         # nginx setup
         heading1('Set up Nginx')
-        baseurl = 'http://nginx.org/packages/mainline/rhel/7/' + \
-                  platform.machine()
-        repo_id = 'nginx'
-        repo_name = 'nginx.org public'
-        repo = PowerupRepo(repo_id, repo_name)
-        content = repo.get_yum_dotrepo_content(baseurl, gpgcheck=0)
-        repo.write_yum_dot_repo_file(content)
+        exists = self.status_prep(which='Nginx Web Server')
+        if not exists:
+            baseurl = 'http://nginx.org/packages/mainline/rhel/7/' + \
+                      platform.machine()
+            repo_id = 'nginx'
+            repo_name = 'nginx.org public'
+            repo = PowerupRepo(repo_id, repo_name)
+            content = repo.get_yum_dotrepo_content(baseurl, gpgcheck=0)
+            repo.write_yum_dot_repo_file(content)
+            cmd = 'yum makecache'
+            resp, err, rc = sub_proc_exec(cmd)
+            if rc != 0:
+                self.log.error('A problem occured while creating the yum caches')
+                self.log.error(f'Response: {resp}\nError: {err}\nRC: {rc}')
 
         # Check if nginx installed. Install if necessary.
         cmd = 'nginx -v'
@@ -1118,7 +1126,7 @@ class software(object):
                 print(f"stderr:\n{err}\n")
             return False
 
-    def _unlock_vault(self):
+    def _unlock_vault(self, validate=True):
         while True:
             if self.sw_vars['ansible_become_pass'] is None:
                 return False
@@ -1128,7 +1136,7 @@ class software(object):
                 vault_pass_file_out.write(self.vault_pass)
             os.chmod(self.vault_pass_file, 0o600)
 
-            if self._validate_ansible_become_pass(None):
+            if not validate or self._validate_ansible_become_pass(None):
                 return True
             else:
                 print(bold("Cached sudo password decryption/validation fail!"))
@@ -1162,55 +1170,58 @@ class software(object):
             if task['description'] == "Install Anaconda installer":
                 _interactive_anaconda_license_accept(
                     self.sw_vars['ansible_inventory'])
-            _run_ansible_tasks(task['tasks'],
-                               self.sw_vars['ansible_inventory'],
-                               self.vault_pass_file)
+            self._run_ansible_tasks(task['tasks'])
         print('Done')
 
+    def _run_ansible_tasks(self, tasks_path, extra_args=''):
+        log = logger.getlogger()
+        tasks_path = 'paie52_ansible/' + tasks_path
+        if self.sw_vars['ansible_become_pass'] is not None:
+            extra_args += ' --vault-password-file ' + self.vault_pass_file
+        elif 'become:' in open(f'{GEN_SOFTWARE_PATH}{tasks_path}').read():
+            extra_args += ' --ask-become-pass'
+        cmd = ('{0} -i {1} {2}paie52_ansible/run.yml '
+               '--extra-vars "task_file={2}{3}" '
+               '--extra-vars "@{2}{4}" {5}'
+               .format(get_ansible_playbook_path(),
+                       self.sw_vars['ansible_inventory'], GEN_SOFTWARE_PATH,
+                       tasks_path, 'software-vars.yml', extra_args))
+        run = True
+        while run:
+            log.info(f'Running Ansible tasks found in \'{tasks_path}\' ...')
+            if ('notify: Reboot' in
+                    open(f'{GEN_SOFTWARE_PATH}{tasks_path}').read()):
+                print(bold('\nThis step requires changed systems to reboot! '
+                           '(16 minute timeout)'))
+            if '--ask-become-pass' in cmd:
+                print('\nClient password required for privilege escalation')
+            elif '--vault-password-file' in cmd:
+                self._unlock_vault(validate=False)
+            resp, err, rc = sub_proc_exec(cmd, shell=True)
+            log.debug(f"cmd: {cmd}\nresp: {resp}\nerr: {err}\nrc: {rc}")
+            print("")  # line break
 
-def _run_ansible_tasks(tasks_path, ansible_inventory, vault_pass_file,
-                       extra_args=''):
-    log = logger.getlogger()
-    tasks_path = 'paie52_ansible/' + tasks_path
-    if os.path.isfile(vault_pass_file):
-        extra_args += ' --vault-password-file ' + vault_pass_file
-    elif 'become:' in open(f'{GEN_SOFTWARE_PATH}{tasks_path}').read():
-        extra_args += ' --ask-become-pass'
-    cmd = ('{0} -i {1} {2}paie52_ansible/run.yml '
-           '--extra-vars "task_file={2}{3}" '
-           '--extra-vars "@{2}{4}" {5}'
-           .format(get_ansible_playbook_path(), ansible_inventory,
-                   GEN_SOFTWARE_PATH, tasks_path, 'software-vars.yml',
-                   extra_args))
-    run = True
-    while run:
-        log.info(f'Running Ansible tasks found in \'{tasks_path}\' ...')
-        if 'notify: Reboot' in open(f'{GEN_SOFTWARE_PATH}{tasks_path}').read():
-            print(bold('\nThis step requires changed systems to reboot! '
-                       '(16 minute timeout)'))
-        if '--ask-become-pass' in cmd:
-            print('\nClient password required for privilege escalation')
-        resp, err, rc = sub_proc_exec(cmd, shell=True)
-        log.debug(f"cmd: {cmd}\nresp: {resp}\nerr: {err}\nrc: {rc}")
-        print("")  # line break
-        if rc != 0:
-            log.warning("Ansible tasks failed!")
-            if resp != '':
-                print(f"stdout:\n{ansible_pprint(resp)}\n")
-            if err != '':
-                print(f"stderr:\n{err}\n")
-            choice, item = get_selection(['Retry', 'Continue', 'Exit'])
-            if choice == "1":
-                pass
-            elif choice == "2":
+            # If .vault file is missing a retry should work
+            if rc != 0 and '.vault was not found' in err:
+                log.warning("Vault file missing, retrying...")
+            elif rc != 0:
+                log.warning("Ansible tasks failed!")
+                if resp != '':
+                    print(f"stdout:\n{ansible_pprint(resp)}\n")
+                if err != '':
+                    print(f"stderr:\n{err}\n")
+                choice, item = get_selection(['Retry', 'Continue', 'Exit'])
+                if choice == "1":
+                    pass
+                elif choice == "2":
+                    run = False
+                elif choice == "3":
+                    log.debug('User chooses to exit.')
+                    sys.exit('Exiting')
+            else:
+                log.info("Ansible tasks ran successfully")
                 run = False
-            elif choice == "3":
-                log.debug('User chooses to exit.')
-                sys.exit('Exiting')
-        else:
-            log.info("Ansible tasks ran successfully")
-            run = False
-    return rc
+        return rc
 
 
 def _interactive_anaconda_license_accept(ansible_inventory):

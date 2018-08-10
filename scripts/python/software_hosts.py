@@ -317,11 +317,43 @@ def _validate_host_list_network(host_list):
     return True
 
 
-def _validate_ansible_ping(software_hosts_file_path):
+def _check_known_hosts(host_list):
+    """Ensure all hosts have entries in 'known_hosts' to avoid
+    Ansible's clunky yes/no prompting to accept keys (all prompts are
+    printed at once).
+
+    If any hosts are missing the user will be prompted to add it.
+
+    Args:
+        host_list (list): List of hostnames or IP addresses
+    """
+    log = logger.getlogger()
+    known_hosts_files = [os.path.join(Path.home(), ".ssh", "known_hosts")]
+    user_name, user_home_dir = get_user_and_home()
+    if user_home_dir != str(Path.home()):
+        known_hosts_files.append(os.path.join(user_home_dir,
+                                              ".ssh", "known_hosts"))
+
+    for host in host_list:
+        for known_hosts in known_hosts_files:
+            cmd = (f'ssh-keygen -F {host} -f {known_hosts}')
+            resp, err, rc = sub_proc_exec(cmd)
+            if rc == 1:
+                print(f'No host key found in {known_hosts} for {host}')
+                cmd = (f'ssh-keyscan -H {host}')
+                resp, err, rc = sub_proc_exec(cmd)
+                print(f'The following keys were collected:')
+                print(resp)
+                if get_yesno(f'Add key(s) to {known_hosts}? '):
+                    append_line(known_hosts, resp, check_exists=False)
+
+
+def _validate_ansible_ping(software_hosts_file_path, hosts_list):
     """Validate Ansible connectivity and functionality on all hosts
 
     Args:
         software_hosts_file_path (str): Path to software inventory file
+        host_list (list): List of hostnames or IP addresses
 
     Returns:
         bool: True if Ansible can connect to all hosts
@@ -336,6 +368,49 @@ def _validate_ansible_ping(software_hosts_file_path):
     if str(rc) != "0":
         msg = f'Ansible ping validation failed:\n{ansible_pprint(resp)}'
         log.debug(msg)
+        if 'WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!' in msg:
+            print(
+                '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n'
+                '@    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED      @\n'
+                '@             ON ONE OR MORE CLIENT NODES!                @\n'
+                '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n'
+                'IT IS POSSIBLE THAT SOMEONE IS DOING SOMETHING NASTY!\n'
+                'Someone could be eavesdropping on you right now '
+                '(man-in-the-middle attack)!\n'
+                'It is also possible that a host key has just been changed.\n')
+            if get_yesno('Remove the existing known host keys? '):
+                known_hosts_files = (
+                    [os.path.join(Path.home(), ".ssh", "known_hosts")])
+                user_name, user_home_dir = get_user_and_home()
+                if user_home_dir != str(Path.home()):
+                    known_hosts_files.append(os.path.join(user_home_dir,
+                                              ".ssh", "known_hosts"))
+                for host in hosts_list:
+                    print(f'Collecting new host key(s) for {host}')
+                    cmd = (f'ssh-keyscan -H {host}')
+                    new_host_key, err, rc = sub_proc_exec(cmd)
+                    for known_hosts in known_hosts_files:
+                        print(f'Removing host keys for {host} '
+                              f'from {known_hosts}')
+                        cmd = (f'ssh-keygen -R {host} -f {known_hosts}')
+                        resp, err, rc = sub_proc_exec(cmd)
+                        print(f'Appending new host key for {host} to '
+                              f'{known_hosts}')
+                        append_line(known_hosts, new_host_key,
+                                    check_exists=False)
+
+                if user_home_dir != str(Path.home()):
+                    user_known_hosts = os.path.join(user_home_dir, ".ssh",
+                                                    "known_hosts")
+                    user_uid = pwd.getpwnam(user_name).pw_uid
+                    user_gid = grp.getgrnam(user_name).gr_gid
+                    os.chown(user_known_hosts, user_uid, user_gid)
+                    os.chmod(user_known_hosts, 0o600)
+                    os.chown(user_known_hosts + '.old', user_uid, user_gid)
+                    os.chmod(user_known_hosts + '.old', 0o600)
+
+                return _validate_ansible_ping(software_hosts_file_path,
+                                              hosts_list)
         raise UserException(msg)
     log.debug("Software inventory Ansible ping validation passed")
     return True
@@ -360,9 +435,10 @@ def configure_ssh_keys(software_hosts_file_path):
     log = logger.getlogger()
     default_ssh_key_name = "powerup"
 
-    ssh_key_options = get_existing_ssh_key_pairs()
+    ssh_key_options = get_existing_ssh_key_pairs(no_root_keys=True)
 
-    if os.path.join(Path.home(), ".ssh",
+    user_name, user_home_dir = get_user_and_home()
+    if os.path.join(user_home_dir, ".ssh",
                     default_ssh_key_name) not in ssh_key_options:
         ssh_key_options.insert(0, 'Create New "powerup" Key Pair')
 
@@ -377,7 +453,7 @@ def configure_ssh_keys(software_hosts_file_path):
     else:
         ssh_key = item
 
-    copy_ssh_key_pair_to_user_dir(ssh_key)
+    ssh_key = copy_ssh_key_pair_to_user_dir(ssh_key)
 
     add_software_hosts_global_var(
         software_hosts_file_path,
@@ -461,10 +537,14 @@ def add_software_hosts_global_var(software_hosts_file_path, entry):
     _set_software_hosts_owner_mode(software_hosts_file_path)
 
 
-def get_existing_ssh_key_pairs():
+def get_existing_ssh_key_pairs(no_root_keys=False):
     """Get a list of existing SSH private/public key paths from
-    '~/.ssh/'. If called with 'sudo' then get list from both
-    '/root/.ssh/' and '~/.ssh'.
+    '~/.ssh/'. If called with 'sudo' and 'no_root_keys=False', then get
+    list from both '/root/.ssh/' and '~/.ssh'. If 'no_root_keys=True'
+    then any private keys located in '/root/.ssh' will be omitted.
+
+    Args:
+        no_root_keys (bool): Do not return any keys from '/root/.ssh'
 
     Returns:
         list of str: List of private ssh key paths
@@ -472,7 +552,8 @@ def get_existing_ssh_key_pairs():
     ssh_key_pairs = []
 
     ssh_dir = os.path.join(Path.home(), ".ssh")
-    if os.path.isdir(ssh_dir):
+    if (not ('/root' == str(Path.home()) and no_root_keys) and
+            os.path.isdir(ssh_dir)):
         for item in listdir(ssh_dir):
             item = os.path.join(ssh_dir, item)
             if os.path.isfile(item + '.pub'):
@@ -481,11 +562,10 @@ def get_existing_ssh_key_pairs():
     user_name, user_home_dir = get_user_and_home()
     if user_home_dir != str(Path.home()):
         user_ssh_dir = os.path.join(user_home_dir, ".ssh")
-        if os.path.isdir(user_ssh_dir):
-            for item in listdir(user_ssh_dir):
-                item = os.path.join(user_ssh_dir, item)
-                if os.path.isfile(item + '.pub'):
-                    ssh_key_pairs.append(item)
+        for item in listdir(user_ssh_dir):
+            item = os.path.join(user_ssh_dir, item)
+            if os.path.isfile(item + '.pub'):
+                ssh_key_pairs.append(item)
 
     return ssh_key_pairs
 
@@ -537,6 +617,9 @@ def copy_ssh_key_pair_to_user_dir(private_key_path):
 
     Args:
         private_key_path (str) : Filename of private key file
+
+    Returns:
+        str: Path to user copy of private key
     """
     log = logger.getlogger()
     public_key_path = private_key_path + '.pub'
@@ -581,6 +664,11 @@ def copy_ssh_key_pair_to_user_dir(private_key_path):
 
             os.chown(user_public_key_path, user_uid, user_gid)
             os.chmod(user_public_key_path, 0o644)
+
+    else:
+        user_private_key_path = private_key_path
+
+    return user_private_key_path
 
 
 def copy_ssh_key_pair_to_hosts(private_key_path, software_hosts_file_path,
@@ -685,9 +773,12 @@ def validate_software_inventory(software_hosts_file_path):
         print("Inventory network validation error: {}".format(exc))
         return False
 
+    # Ensure hosts keys exist in known_hosts
+    _check_known_hosts(hosts_list)
+
     # Validate complete Ansible connectivity
     try:
-        _validate_ansible_ping(software_hosts_file_path)
+        _validate_ansible_ping(software_hosts_file_path, hosts_list)
     except UserException as exc:
         print("Inventory validation error:\n{}".format(exc))
         return False
