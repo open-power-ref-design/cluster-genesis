@@ -20,12 +20,10 @@ if [[ -z $1 || -z $2 ]]; then
     exit
 fi
 
-echo 'Enter password for '$1
-read -s PASSWORD
-
+#echo 'Enter password for '$1
+read -sp 'Enter password for '$1': ' PASSWORD
+echo
 export SSHPASS=$PASSWORD
-
-sshpass -e ssh -t $1@$2 'ls'
 
 user=$(whoami)
 sshpass -e ssh -t $1@$2 'sudo yum install yum-utils'
