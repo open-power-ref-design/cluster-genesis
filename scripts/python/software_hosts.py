@@ -327,18 +327,24 @@ def _check_known_hosts(host_list):
         host_list (list): List of hostnames or IP addresses
     """
     log = logger.getlogger()
-    known_hosts = os.path.join(Path.home(), ".ssh", "known_hosts")
+    known_hosts_files = [os.path.join(Path.home(), ".ssh", "known_hosts")]
+    user_name, user_home_dir = get_user_and_home()
+    if user_home_dir != str(Path.home()):
+        known_hosts_files.append(os.path.join(user_home_dir,
+                                              ".ssh", "known_hosts"))
+
     for host in host_list:
-        cmd = (f'ssh-keygen -F {host}')
-        resp, err, rc = sub_proc_exec(cmd)
-        if rc == 1:
-            print(f'No host key found in {known_hosts} for {host}')
-            cmd = (f'ssh-keyscan -H {host}')
+        for known_hosts in known_hosts_files:
+            cmd = (f'ssh-keygen -F {host} -f {known_hosts}')
             resp, err, rc = sub_proc_exec(cmd)
-            print(f'The following keys were collected:')
-            print(resp)
-            if get_yesno(f'Add key(s) to {known_hosts}? '):
-                append_line(known_hosts, resp, check_exists=False)
+            if rc == 1:
+                print(f'No host key found in {known_hosts} for {host}')
+                cmd = (f'ssh-keyscan -H {host}')
+                resp, err, rc = sub_proc_exec(cmd)
+                print(f'The following keys were collected:')
+                print(resp)
+                if get_yesno(f'Add key(s) to {known_hosts}? '):
+                    append_line(known_hosts, resp, check_exists=False)
 
 
 def _validate_ansible_ping(software_hosts_file_path, hosts_list):
@@ -372,15 +378,36 @@ def _validate_ansible_ping(software_hosts_file_path, hosts_list):
                 '(man-in-the-middle attack)!\n'
                 'It is also possible that a host key has just been changed.\n')
             if get_yesno('Remove the existing known host keys? '):
-                known_hosts = os.path.join(Path.home(), ".ssh", "known_hosts")
+                known_hosts_files = (
+                    [os.path.join(Path.home(), ".ssh", "known_hosts")])
+                user_name, user_home_dir = get_user_and_home()
+                if user_home_dir != str(Path.home()):
+                    known_hosts_files.append(os.path.join(user_home_dir,
+                                              ".ssh", "known_hosts"))
                 for host in hosts_list:
-                    print(f'Removing host keys for {host}')
-                    cmd = (f'ssh-keygen -R {host}')
-                    resp, err, rc = sub_proc_exec(cmd)
                     print(f'Collecting new host key(s) for {host}')
                     cmd = (f'ssh-keyscan -H {host}')
-                    resp, err, rc = sub_proc_exec(cmd)
-                    append_line(known_hosts, resp, check_exists=False)
+                    new_host_key, err, rc = sub_proc_exec(cmd)
+                    for known_hosts in known_hosts_files:
+                        print(f'Removing host keys for {host} '
+                              f'from {known_hosts}')
+                        cmd = (f'ssh-keygen -R {host} -f {known_hosts}')
+                        resp, err, rc = sub_proc_exec(cmd)
+                        print(f'Appending new host key for {host} to '
+                              f'{known_hosts}')
+                        append_line(known_hosts, new_host_key,
+                                    check_exists=False)
+
+                if user_home_dir != str(Path.home()):
+                    user_known_hosts = os.path.join(user_home_dir, ".ssh",
+                                                    "known_hosts")
+                    user_uid = pwd.getpwnam(user_name).pw_uid
+                    user_gid = grp.getgrnam(user_name).gr_gid
+                    os.chown(user_known_hosts, user_uid, user_gid)
+                    os.chmod(user_known_hosts, 0o600)
+                    os.chown(user_known_hosts + '.old', user_uid, user_gid)
+                    os.chmod(user_known_hosts + '.old', 0o600)
+
                 return _validate_ansible_ping(software_hosts_file_path,
                                               hosts_list)
         raise UserException(msg)
