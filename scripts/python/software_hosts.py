@@ -796,7 +796,7 @@ def get_ansible_inventory():
 
     heading1("Software hosts inventory setup\n")
 
-    dynamic_inventory = _get_dynamic_inventory()
+    dynamic_inventory = None
 
     # If dynamic inventory contains clients prompt user to use it
     if (dynamic_inventory is not None and
