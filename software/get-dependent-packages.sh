@@ -14,6 +14,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+set -e
 cd ~
 if [[ -z $1 || -z $2 ]]; then
     echo 'usage: get-dependent-packages userid host'
@@ -26,10 +28,14 @@ echo
 export SSHPASS=$PASSWORD
 
 user=$(whoami)
-sshpass -e ssh -t $1@$2 'sudo yum install yum-utils'
+sshpass -e ssh -t $1@$2 'sudo yum -y install yum-utils'
 
-sshpass -e scp /home/$user/power-up/software/dependent-packages-paie11.list $1@$2:/home/$1/dependent-packages-paie11.list
+sshpass -e scp /home/$user/power-up/software/dependent-packages-paie11.list \
+    $1@$2:/home/$1/dependent-packages-paie11.list
 
-sshpass -e ssh -t customer@9.3.3.47 'mkdir -p tempdl && sudo yumdownloader --resolve --archlist=ppc64le --destdir tempdl $(tr "\n" " " < dependent-packages-paie11.list)'
+sshpass -e ssh -t $1@$2 'mkdir -p tempdl && sudo yumdownloader --archlist=ppc64le \
+    --resolve --destdir tempdl $(tr "\n" " " < dependent-packages-paie11.list)'
 
-sshpass -e scp -r customer@9.3.3.47:/home/customer/tempdl/ .
+sshpass -e scp -r $1@$2:/home/customer/tempdl/ ~
+
+sshpass -e ssh $1@$2 'rm -rf tempdl/ && rm dependent-packages-paie11.list'

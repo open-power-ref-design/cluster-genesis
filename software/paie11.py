@@ -29,7 +29,6 @@ import time
 import yaml
 import json
 from getpass import getpass
-import code
 
 import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
