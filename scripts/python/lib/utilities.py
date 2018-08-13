@@ -557,3 +557,56 @@ def get_file_path(filename='/home'):
                 return None
             if item != 'Search again':
                 filename = item
+
+
+def ansible_pprint(ansible_output):
+    """Ansible pretty print
+
+    Args:
+        ansible_output (str): Raw ansible output
+
+    Returns:
+        str: Ansible output formatted for visual parsing
+    """
+    pretty_out = ""
+    indent_str = "    "
+    indentation = ""
+    for item in ['{', '}']:
+        ansible_output = ansible_output.replace(f'{item}', f'\n{item}')
+    ansible_output = ansible_output.replace(': ["', ':\n["')
+    ansible_output = ansible_output.replace('\\r\\n"', '"')
+    ansible_output = ansible_output.replace('\\r\\n', '\n')
+    ansible_output = ansible_output.replace('\\n', '\n')
+    ansible_output = ansible_output.replace('\\r', '\n')
+    index_indent = False
+    for line in ansible_output.splitlines():
+        for element in line.split(','):
+
+            element = element.lstrip()
+
+            if element.startswith('{'):
+                pretty_out += indentation + "{\n"
+                indentation += indent_str
+                element = element[1:]
+            elif element.startswith('['):
+                indentation += indent_str
+            elif element.endswith('}'):
+                indentation = indentation[len(indent_str):]
+
+            if element != '':
+                pretty_out += indentation + element + "\n"
+
+            if element.count("\"") == 3:
+                index_indent = True
+                index = element.find("\"")
+                index = element.find("\"", index + 1)
+                index = element.find("\"", index + 1)
+                indentation += index * ' '
+
+            if element.endswith(']'):
+                indentation = indentation[len(indent_str):]
+            elif index_indent and element.endswith('"'):
+                indentation = indentation[index:]
+                index_indent = False
+
+    return pretty_out
