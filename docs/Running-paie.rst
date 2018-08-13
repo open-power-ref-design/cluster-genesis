@@ -53,7 +53,7 @@ For additional information, see :ref:`installing`::
 
     $ sudo yum install git
 
-    $ git clone https://github.com/open-power-ref-design-toolkit/power-up -b software-install-b1
+    $ git clone https://github.com/open-power-ref-design-toolkit/power-up -b software-install-b2
 
     $ cd power-up
 
@@ -105,7 +105,14 @@ Before beginning, extract the contents of the powerai-enterprise-1.1.0_ppc64le.b
 
     $ sudo bash ./powerai-enterprise-1.1.0_ppc64le.bin
 
-NOTE: Extraction and license acceptance must be run on an OpenPOWER node. If you are running the POWER-Up installer software on an x_86 node, you must first extract the files on an OpenPOWER node and then copy all of the extracted contents to the POWER-Up installer node.
+**NOTES:**
+
+-  Extraction and license acceptance of PowerAI Enterprise must be performed on an OpenPOWER node. If you are running the POWER-Up installer software on an x_86 node, you must first extract the files on an OpenPOWER node and then copy all of the extracted contents to the POWER-Up installer node.
+-  If running the PowerAI Enterprise installer from an x_86 node, you must download the Red Hat dependent packages on a Power node and copy them to a directory on the x_86 installer node. A utility script is included to facilitate this process. To use the script, insure you have ssh access with sudo priveleges to a Power node which has a subscription to the Red Hat 'common', 'optional' and 'extras' channels. (One of the cluster nodes or any other suitable Power node can be used for this purpose). To run the script from the power-up directory on the installer node::
+
+    $ ./software/get-dependent-packages.sh userid hostname
+
+The hostname can be a resolvalble hostname or ip address. The get-dependent-packages script will download the required packages on the specified Power node and then move them to the ~/tempdl directory on the installer node. After running the script, run/rerun the --prep phase of installation. For dependent packages, choose option D (Create from files in a local Directory) and enter the full absolute path to the /tempdl directory.
 
 **Status of the Software Server**
 
