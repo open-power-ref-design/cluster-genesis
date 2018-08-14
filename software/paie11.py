@@ -113,8 +113,8 @@ class software(object):
         # regular extression of [0-9]{0,3} Other asterisks are converted to regular
         # expression of .+
         self.files = {'Anaconda content': 'Anaconda2-[56].[1-9]*.[0-9]*-Linux-ppc64le.sh',
-                      'CUDA dnn content': 'cudnn-9.[1-9]*-linux-ppc64le-v7.1.tgz',
-                      'CUDA nccl2 content': 'nccl_2.2.1[2-9]-1+cuda9.[2-9]_ppc64le.tgz',
+                      'CUDA dnn content': 'cudnn-9.[1-9]*-linux-ppc64le-v7.[1-9]*.tgz',
+                      'CUDA nccl2 content': 'nccl_2.2.1[2-9]-1+cuda9.[2-9]*_ppc64le.tgz',
                       'PowerAI content': 'mldl-repo-local-[5-9]*.[1-9]*.[0-9]**.ppc64le.rpm',
                       'Spectrum conductor content': 'cws-[2-9]*.[2-9]*.[0-9]*.[0-9]*_ppc64le.bin',
                       'Spectrum DLI content': 'dli-[1-9]*.[1-9]*.[0-9]*.[0-9]*_ppc64le.bin'}
