@@ -486,7 +486,7 @@ class software(object):
         if not exists or get_yesno(f'Copy a new {name.title()} file '):
             src_path, dest_path, state = setup_source_file(name, spc_src, pai_url,
                                                            alt_url=alt_url)
-            if 'http' in src_path:
+            if src_path and 'http' in src_path:
                 self.sw_vars[f'{name}_alt_url'] = os.path.dirname(src_path) + '/'
             if dest_path:
                 self.sw_vars['content_files'][get_name_dir(name)] = dest_path
@@ -509,7 +509,7 @@ class software(object):
         if not exists or get_yesno(f'Copy a new {name.title()} file '):
             src_path, dest_path, state = setup_source_file(name, spdli_src, spdli_url,
                                                            alt_url=alt_url)
-            if 'http' in src_path:
+            if src_path and 'http' in src_path:
                 self.sw_vars[f'{name}_alt_url'] = os.path.dirname(src_path) + '/'
             if dest_path:
                 self.sw_vars['content_files'][get_name_dir(name)] = dest_path
@@ -659,7 +659,7 @@ class software(object):
                                                            alt_url=alt_url)
             if dest_path:
                 self.sw_vars['content_files'][get_name_dir(ana_name)] = dest_path
-            if src_path is not None and src_path != ana_src and 'http' in src_path:
+            if src_path and 'http' in src_path:
                 self.sw_vars[f'{ana_name}_alt_url'] = os.path.dirname(src_path) + '/'
 
         # Setup Anaconda Free Repo.  (not a YUM repo)
@@ -786,7 +786,7 @@ class software(object):
                                                            alt_url=alt_url)
             if dest_path:
                 self.sw_vars['content_files'][get_name_dir(name)] = dest_path
-            if 'http' in src_path:
+            if src_path and 'http' in src_path:
                 self.sw_vars[f'{name}_alt_url'] = os.path.dirname(src_path) + '/'
 
         # Get cuda nccl2 tar file
@@ -805,7 +805,7 @@ class software(object):
 
             if dest_path:
                 self.sw_vars['content_files'][get_name_dir(name)] = dest_path
-            if 'http' in src_path:
+            if src_path and 'http' in src_path:
                 self.sw_vars[f'{name}_alt_url'] = os.path.dirname(src_path) + '/'
 
         # Setup CUDA
