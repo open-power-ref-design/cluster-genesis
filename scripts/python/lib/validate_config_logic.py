@@ -267,15 +267,32 @@ class ValidateConfigLogic(object):
                 self.exc += msg
 
     def _validata_software_bootstrap(self):
-        node_labels = self.cfg.get_ntmpl_label()
-        node_labels.append('all')
+        valid_hosts = ['all']
+
+        for ntmpl_ind, ntmpl_label in enumerate(self.cfg.yield_ntmpl_label()):
+            valid_hosts.append(ntmpl_label)
+
+            hostname_prefix = self.cfg.get_ntmpl_os_hostname_prefix(ntmpl_ind)
+            if hostname_prefix is None:
+                hostname_prefix = self.cfg.get_ntmpl_label(ntmpl_ind)
+
+            index_host = 0
+            for index_port in self.cfg.yield_ntmpl_phyintf_ipmi_pt_ind(
+                    ntmpl_ind, 0):
+                valid_hosts.append(hostname_prefix + '-' + str(index_host + 1))
+                index_host += 1
+
+            if self.cfg.get_ntmpl_roles_cnt(ntmpl_ind) > 0:
+                valid_hosts = list(set(valid_hosts +
+                                       self.cfg.get_ntmpl_roles(ntmpl_ind)))
+
         bs = self.cfg.get_software_bootstrap()
         for item in bs:
-            if item.hosts not in node_labels:
+            if item.hosts not in valid_hosts:
                 msg = ('\nUndefined software bootstrap host.\nhost: {}\n'.
                        format(item.hosts))
                 self.exc += msg
-                msg = ('Valid hosts: {}'.format(node_labels))
+                msg = ('Valid hosts: {}'.format(valid_hosts))
                 self.exc += msg
 
     def validate_config_logic(self):
