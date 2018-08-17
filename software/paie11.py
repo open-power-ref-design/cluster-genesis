@@ -29,6 +29,9 @@ import time
 import yaml
 import json
 from getpass import getpass
+import pwd
+import grp
+import click
 
 import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
@@ -37,7 +40,7 @@ from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
 from software_hosts import get_ansible_inventory, validate_software_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, get_url, \
     Color, get_selection, get_yesno, get_dir, get_file_path, get_src_path, \
-    rlinput, bold, ansible_pprint
+    rlinput, bold, ansible_pprint, replace_regex
 from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path, \
     get_playbooks_path, get_ansible_vault_path
 from lib.exception import UserException
@@ -1218,7 +1221,14 @@ class software(object):
             if task['description'] == "Install Anaconda installer":
                 _interactive_anaconda_license_accept(
                     self.sw_vars['ansible_inventory'])
-            self._run_ansible_tasks(task['tasks'])
+            elif (task['description'] ==
+                    "Install IBM Spectrum Conductor with Spark"):
+                _set_spectrum_conductor_install_env(
+                    self.sw_vars['ansible_inventory'], 'spark')
+            extra_args = ''
+            if 'hosts' in task:
+                extra_args = f"--limit \'{task['hosts']},localhost\'"
+            self._run_ansible_tasks(task['tasks'], extra_args)
         print('Done')
 
     def _run_ansible_tasks(self, tasks_path, extra_args=''):
@@ -1305,6 +1315,45 @@ def _interactive_anaconda_license_accept(ansible_inventory):
             log.error("Anaconda license acceptance required to continue!")
             sys.exit('Exiting')
     return rc
+
+
+def _set_spectrum_conductor_install_env(ansible_inventory, package):
+    cmd = (f'ansible-inventory --inventory {ansible_inventory} --list')
+    resp, err, rc = sub_proc_exec(cmd, shell=True)
+    inv = json.loads(resp)
+    hostname, hostvars = inv['_meta']['hostvars'].popitem()
+
+    if package == 'spark':
+        envs_path = (f'{GEN_SOFTWARE_PATH}/paie52_ansible/'
+                     'envs_spectrum_conductor_with_spark.yml')
+
+        replace_regex(envs_path, '^CLUSTERADMIN:\s*$',
+                      f'CLUSTERADMIN: {hostvars["ansible_user"]}\n')
+
+    env_validated = False
+    while not env_validated:
+        try:
+            for key, value in yaml.load(open(envs_path)).items():
+                if value is None:
+                    break
+            else:
+                env_validated = True
+        except IOError:
+            print('Failed to load Spectrum Conductor configuration')
+
+        if not env_validated:
+            print('\nSpectrum Conductor Configuration variables incomplete!')
+            _ = input('Press enter to edit configuration file')
+            click.edit(filename=envs_path)
+
+    user_name = os.getlogin()
+    if os.getuid() == 0 and user_name != 'root':
+        user_uid = pwd.getpwnam(user_name).pw_uid
+        user_gid = grp.getgrnam(user_name).gr_gid
+        os.chown(envs_path, user_uid, user_gid)
+        os.chmod(envs_path, 0o644)
+
+    print('Spectrum Conductor configuration variables successfully loaded\n')
 
 
 class YAMLVault(yaml.YAMLObject):
