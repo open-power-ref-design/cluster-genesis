@@ -117,7 +117,9 @@ class software(object):
                       'CUDA nccl2 content': 'nccl_2.2.1[2-9]-1+cuda9.[2-9]*_ppc64le.tgz',
                       'PowerAI content': 'mldl-repo-local-[5-9]*.[1-9]*.[0-9]**.ppc64le.rpm',
                       'Spectrum conductor content': 'cws-[2-9]*.[2-9]*.[0-9]*.[0-9]*_ppc64le.bin',
-                      'Spectrum DLI content': 'dli-[1-9]*.[1-9]*.[0-9]*.[0-9]*_ppc64le.bin'}
+                      'Spectrum DLI content': 'dli-[1-9]*.[1-9]*.[0-9]*.[0-9]*_ppc64le.bin',
+                      'Spectrum conductor content entitlement': 'cws_entitlement.dat',
+                      'Spectrum DLI content entitlement': 'dli_entitlement.dat'}
         if 'ansible_inventory' not in self.sw_vars:
             self.sw_vars['ansible_inventory'] = None
         if 'ansible_become_pass' not in self.sw_vars:
@@ -229,6 +231,8 @@ class software(object):
                 item_dir = get_name_dir(item)
                 exists = glob.glob(f'/srv/{item_dir}/**/'
                                    f'{self.files[item]}', recursive=True)
+                exists = glob.glob(f'/srv/{item_dir}/**/'
+                                   f'{self.files[item + " entitlement"]}', recursive=True)
                 if exists:
                     self.state[item] = \
                         'Spectrum Conductor is present in the POWER-Up server'
@@ -238,6 +242,8 @@ class software(object):
                 item_dir = get_name_dir(item)
                 exists = glob.glob(f'/srv/{item_dir}/**/{self.files[item]}',
                                    recursive=True)
+                exists = glob.glob(f'/srv/{item_dir}/**/'
+                                   f'{self.files[item + " entitlement"]}', recursive=True)
                 if exists:
                     self.state[item] = ('Spectrum DLI is present in the '
                                         'POWER-Up server')
@@ -472,6 +478,7 @@ class software(object):
         name = 'Spectrum conductor content'
         heading1(f'Set up {name.title()} \n')
         spc_src = self.files[name]
+        entitlement = self.files[name + ' entitlement']
         exists = self.status_prep(name)
         spc_url = ''
 
@@ -485,16 +492,20 @@ class software(object):
 
         if not exists or get_yesno(f'Copy a new {name.title()} file '):
             src_path, dest_path, state = setup_source_file(name, spc_src, pai_url,
-                                                           alt_url=alt_url)
+                                                           alt_url=alt_url, src2=entitlement)
             if src_path and 'http' in src_path:
                 self.sw_vars[f'{name}_alt_url'] = os.path.dirname(src_path) + '/'
             if dest_path:
                 self.sw_vars['content_files'][get_name_dir(name)] = dest_path
+            if state:
+                self.sw_vars['content_files'][get_name_dir(name) + '-entitlement'] = (
+                    os.path.dirname(dest_path) + '/' + entitlement)
 
         # Get Spectrum DLI
         name = 'Spectrum DLI content'
         heading1(f'Set up {name.title()} \n')
         spdli_src = self.files[name]
+        entitlement = self.files[name + ' entitlement']
         exists = self.status_prep(name)
         spdli_url = ''
 
@@ -508,11 +519,14 @@ class software(object):
 
         if not exists or get_yesno(f'Copy a new {name.title()} file '):
             src_path, dest_path, state = setup_source_file(name, spdli_src, spdli_url,
-                                                           alt_url=alt_url)
+                                                           alt_url=alt_url, src2=entitlement)
             if src_path and 'http' in src_path:
                 self.sw_vars[f'{name}_alt_url'] = os.path.dirname(src_path) + '/'
             if dest_path:
                 self.sw_vars['content_files'][get_name_dir(name)] = dest_path
+            if state:
+                self.sw_vars['content_files'][get_name_dir(name) + '-entitlement'] = (
+                    os.path.dirname(dest_path) + '/' + entitlement)
 
         # Setup repository for redhat dependent packages. This is intended to deal
         # specifically with redhat packages requiring red hat subscription for access,

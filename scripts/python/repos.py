@@ -31,7 +31,7 @@ from lib.exception import UserException
 
 
 def setup_source_file(name, src_glob, url='', alt_url='http://',
-                      dest_dir=None):
+                      dest_dir=None, src2=None):
     """Interactive selection of a source file and copy it to the /srv/<dest>
     directory. The source file can include file globs and can come from a URL
     or the local disk. Local disk searching starts in the
@@ -39,6 +39,8 @@ def setup_source_file(name, src_glob, url='', alt_url='http://',
     found in any home directory. URLs must point to the directory with the file.
     Inputs:
         src_glob (str): Source file name to look for. Can include file globs
+        src2(str): An additional file to be copied from the same source as src_glob.
+            This file would typically be a support file such as an entitlement file.
         dest (str) : destination directory. Will be created if necessary under
             /srv/
         url (str): url for the public web site where the file can be obtained.
@@ -89,6 +91,17 @@ def setup_source_file(name, src_glob, url='', alt_url='http://',
                     src_path = _url
                     dest_path = os.path.join(dest_dir, os.path.basename(_url))
                     state = True
+                if src2:
+                    _url2 = os.path.join(os.path.dirname(_url), src2)
+                    cmd = f'wget -r -l 1 -nH -np --cut-dirs=1 -P {dest_dir} {_url2}'
+                    rc = sub_proc_display(cmd)
+                    if rc != 0:
+                        log.error(f'Failed downloading {name} source file {src2} to'
+                                  f' /srv/{name_src}/ directory. \n{rc}')
+                        state = False
+                    else:
+                        src_path = _url
+                        state = state and True
     elif ch == 'D':
         src_path = get_src_path(src_glob)
         if src_path:
@@ -105,6 +118,18 @@ def setup_source_file(name, src_glob, url='', alt_url='http://',
                          'into the POWER-Up software server.')
                 dest_path = os.path.join(dest_dir, os.path.basename(src_path))
                 state = True
+            if src2:
+                try:
+                    src2_path = os.path.join(os.path.dirname(src_path), src2)
+                    copy2(src2_path, dest_dir)
+                except Error as err:
+                    log.debug(f'Failed copying {name} source file to /srv/{name_src}/ '
+                              f'directory. \n{err}')
+                    state = False
+                else:
+                    log.info(f'Successfully installed {name} source file {src2} '
+                             'into the POWER-Up software server.')
+                    state = state and True
     else:
         log.info(f'No {name.capitalize()} source file copied to POWER-Up '
                  'server directory')
