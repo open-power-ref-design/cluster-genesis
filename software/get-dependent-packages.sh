@@ -28,6 +28,13 @@ echo
 export SSHPASS=$PASSWORD
 
 user=$(whoami)
+
+if ! ssh-keygen -F $2 >/dev/null; then
+    known_hosts="$HOME/.ssh/known_hosts"
+    echo "Adding host key for '$2' to '$known_hosts'"
+    ssh-keyscan $2 >> $known_hosts
+fi
+
 sshpass -e ssh -t $1@$2 'sudo yum -y install yum-utils'
 
 sshpass -e scp /home/$user/power-up/software/dependent-packages-paie11.list \
