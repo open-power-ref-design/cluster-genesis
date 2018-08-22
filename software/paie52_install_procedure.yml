@@ -42,5 +42,15 @@
   tasks: entitle_spectrum_conductor_with_spark.yml
   hosts: master[0]
 
+- description: Install IBM Spectrum Conductor DLI
+  tasks: install_spectrum_conductor_dli.yml
+
+- description: Entitle and Start IBM Spectrum Conductor DLI
+  tasks: entitle_spectrum_conductor_dli.yml
+  hosts: master[0]
+
+- description: Add all hosts to cluster
+  tasks: add_hosts_to_cluster.yml
+
 - description: Post-Install Configurations
   tasks: post_install_config.yml

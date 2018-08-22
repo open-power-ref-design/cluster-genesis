@@ -1225,6 +1225,10 @@ class software(object):
                     "Install IBM Spectrum Conductor with Spark"):
                 _set_spectrum_conductor_install_env(
                     self.sw_vars['ansible_inventory'], 'spark')
+            elif (task['description'] ==
+                    "Install IBM Spectrum Conductor DLI"):
+                _set_spectrum_conductor_install_env(
+                    self.sw_vars['ansible_inventory'], 'dli')
             extra_args = ''
             if 'hosts' in task:
                 extra_args = f"--limit \'{task['hosts']},localhost\'"
@@ -1329,6 +1333,14 @@ def _set_spectrum_conductor_install_env(ansible_inventory, package):
 
         replace_regex(envs_path, '^CLUSTERADMIN:\s*$',
                       f'CLUSTERADMIN: {hostvars["ansible_user"]}\n')
+    elif package == 'dli':
+        envs_path = (f'{GEN_SOFTWARE_PATH}/paie52_ansible/'
+                     'envs_spectrum_conductor_dli.yml')
+
+        replace_regex(envs_path, '^CLUSTERADMIN:\s*$',
+                      f'CLUSTERADMIN: {hostvars["ansible_user"]}\n')
+        replace_regex(envs_path, '^DLI_CONDA_HOME:\s*$',
+                      f'DLI_CONDA_HOME: /opt/anaconda2\n')
 
     env_validated = False
     while not env_validated:
