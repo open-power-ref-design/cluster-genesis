@@ -38,5 +38,9 @@
 - description: Install IBM Spectrum Conductor with Spark
   tasks: install_spectrum_conductor_with_spark.yml
 
+- description: Entitle IBM Spectrum Conductor with Spark
+  tasks: entitle_spectrum_conductor_with_spark.yml
+  hosts: master[0]
+
 - description: Post-Install Configurations
   tasks: post_install_config.yml
