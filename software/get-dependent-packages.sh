@@ -16,7 +16,7 @@
 # limitations under the License.
 
 set -e
-cd ~
+cd "$(dirname "$0")"
 if [[ -z $1 || -z $2 ]]; then
     echo 'usage: get-dependent-packages userid host'
     exit
@@ -28,14 +28,21 @@ echo
 export SSHPASS=$PASSWORD
 
 user=$(whoami)
+
+if ! ssh-keygen -F $2 >/dev/null; then
+    known_hosts="$HOME/.ssh/known_hosts"
+    echo "Adding host key for '$2' to '$known_hosts'"
+    ssh-keyscan $2 >> $known_hosts
+fi
+
 sshpass -e ssh -t $1@$2 'sudo yum -y install yum-utils'
 
-sshpass -e scp /home/$user/power-up/software/dependent-packages-paie11.list \
+sshpass -e scp ./dependent-packages-paie11.list \
     $1@$2:/home/$1/dependent-packages-paie11.list
 
 sshpass -e ssh -t $1@$2 'mkdir -p tempdl && sudo yumdownloader --archlist=ppc64le \
     --resolve --destdir tempdl $(tr "\n" " " < dependent-packages-paie11.list)'
 
-sshpass -e scp -r $1@$2:/home/customer/tempdl/ ~
+sshpass -e scp -r $1@$2:~/tempdl/ ~
 
 sshpass -e ssh $1@$2 'rm -rf tempdl/ && rm dependent-packages-paie11.list'

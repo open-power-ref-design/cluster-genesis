@@ -1,0 +1,14 @@
+---
+#// IBM Spectrum Conductor Deep Learning Impact Config //#
+## The following variables are required:
+CLUSTERADMIN:
+DLI_SHARED_FS:
+DLI_CONDA_HOME:
+
+## The following variables are optional:
+# DLI_MONGODB_PORT:
+# DLI_REDIS_PORT:
+# DLI_DLPD_REST_PORT:
+# DLI_MONITOR_PORT:
+# DLI_OPTIMIZER_PORT:
+# DLI_ENABLE_FABRIC:
