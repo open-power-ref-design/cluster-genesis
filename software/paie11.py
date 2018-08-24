@@ -116,9 +116,9 @@ class software(object):
                       'CUDA dnn content': 'cudnn-9.[1-9]*-linux-ppc64le-v7.[1-9]*.tgz',
                       'CUDA nccl2 content': 'nccl_2.2.1[2-9]-1+cuda9.[2-9]*_ppc64le.tgz',
                       'PowerAI content': 'mldl-repo-local-[5-9]*.[1-9]*.[0-9]**.ppc64le.rpm',
-                      'Spectrum conductor content': 'cws-[2-9]*.[2-9]*.[0-9]*.[0-9]*_ppc64le.bin',
+                      'Spectrum conductor content': 'conductor[2-9]*.[2-9]*.[0-9]*.[0-9]*_ppc64le.bin',
                       'Spectrum DLI content': 'dli-[1-9]*.[1-9]*.[0-9]*.[0-9]*_ppc64le.bin',
-                      'Spectrum conductor content entitlement': 'cws_entitlement.dat',
+                      'Spectrum conductor content entitlement': 'conductor_entitlement.dat',
                       'Spectrum DLI content entitlement': 'dli_entitlement.dat'}
         if 'ansible_inventory' not in self.sw_vars:
             self.sw_vars['ansible_inventory'] = None
@@ -156,7 +156,7 @@ class software(object):
                 '- mldl-repo-local-5.2.0-201806060629.714fa9e.ppc64le.rpm\n'
                 '- cudnn-9.2-linux-ppc64le-v7.1.tgz\n'
                 '- nccl_2.2.12-1+cuda9.2_ppc64le.tgz\n'
-                '- cws-2.2.1.0_ppc64le.bin\n'
+                '- conductor2.3.0.0_ppc64le.bin\n'
                 '- dli-1.1.0.0_ppc64le.bin\n\n'
                 'For installation status: pup software --status paie52\n'
                 'To redisplay this README: pup software --README paie52\n\n'
