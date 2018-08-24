@@ -19,35 +19,33 @@
 
 - name: "Create an Anaconda environment named dli for installing IBM \
          Spectrum Conductor Deep Learning Impact"
-  shell: conda create --name dli --yes pip python=2.7
+  shell: /opt/anaconda2/bin/conda create --name dli --yes pip python=2.7
   when: not conda_dli_env.stat.exists
   become: yes
-  become_method: su
 
 - name: Activate dli and install dependencies
   shell: "source /opt/anaconda2/bin/activate dli && {{ item }}"
   loop:
-    - "conda install cython==0.25.2 h5py==2.7.0 ipython==5.3.0 \
-       python-leveldb=0.194 python-lmdb==0.92 matplotlib==2.0.2 \
-       networkx==1.11 nose==1.3.7 pandas==0.20.3 pillow==4.1.1 \
-       python-dateutil==2.6.1 pyyaml==3.12 requests==2.13.0 scipy==1.1.0 \
-       six==1.11.0 scikit-image==0.13.0 redis-py==2.10.5 chardet==3.0.4"
+    - "/opt/anaconda2/bin/conda install cython==0.25.2 h5py==2.7.0 \
+       ipython==5.3.0 python-leveldb=0.194 python-lmdb==0.92 \
+       matplotlib==2.0.2 networkx==1.11 nose==1.3.7 pandas==0.20.3 \
+       pillow==4.1.1 python-dateutil==2.6.1 pyyaml==3.12 requests==2.13.0 \
+       scipy==1.1.0 six==1.11.0 scikit-image==0.13.0 redis-py==2.10.5 \
+       chardet==3.0.4"
     - "pip install --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
        numpy>=1.8.2 protobuf>=3.5.0.post1 --trusted-host {{ host_ip.stdout }}"
     - "pip install --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
        Keras==2.0.5 easydict==1.6 python-gflags==2.0 --trusted-host \
        {{ host_ip.stdout }}"
   become: yes
-  become_method: su
 
 - name: Install PowerAI deep learning dependencies
-  shell: "{{ item }}"
+  shell: "PATH=/opt/anaconda2/bin:$PATH {{ item }}"
   loop:
     - /opt/DL/tensorflow/bin/install_dependencies -n dli -y
     - /opt/DL/tensorboard/bin/install_dependencies -n dli -y
     - /opt/DL/pytorch/bin/install_dependencies -n dli -y
   become: yes
-  become_method: su
 
 - name: Install Open CV
   yum:
@@ -107,17 +105,16 @@
 
 - name: "Create an Anaconda environment named dlmao for IBM Spectrum \
          Conductor Deep Learning Impact training insights"
-  shell: conda create --name dlmao --yes pip python=2.7
+  shell: /opt/anaconda2/bin/conda create --name dlmao --yes pip python=2.7
   when: not conda_dlmao_env.stat.exists
   become: yes
-  become_method: su
 
 - name: Activate dlmao and install dependencies
   shell: "source /opt/anaconda2/bin/activate dlmao && {{ item }}"
   loop:
-    - "conda install numpy==1.12.1"
-    - "conda install flask==0.12.2 flask-cors==3.0.3 pyopenssl==17.0.0 \
-       sqlalchemy==1.1.13 scipy==1.0.1"
+    - "/opt/anaconda2/bin/conda install numpy==1.12.1"
+    - "/opt/anaconda2/bin/conda install flask==0.12.2 flask-cors==3.0.3 \
+       pyopenssl==17.0.0 sqlalchemy==1.1.13 scipy==1.0.1"
     - "pip install --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
        pbr --trusted-host {{ host_ip.stdout }}"
     - "pip install --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
@@ -126,4 +123,3 @@
        python-heatclient==1.2.0 python-keystoneclient==3.1.0 --trusted-host \
        {{ host_ip.stdout }}"
   become: yes
-  become_method: su
