@@ -130,6 +130,8 @@ Preparation is run with the following POWER-Up command::
 
 Preparation is interactive and may be rerun if needed. Respond to the prompts as appropriate for your environment. Note that the EPEL, Cuda, dependencies and Anaconda repositories can be replicated from the public web sites or from alternate sites accessible on your intranet environment or from local disk (ie from a mounted USB drive). Most other files come from the local file system except for the Anaconda package which can be downloaded from the public internet during the preparation step.
 
+**Hint: You can browse the content of the POWER-Up software server by pointing a web browser at the POWER-Up installer node. Individual files can be copied to client nodes using wget or curl.**
+
 **Dependent software packages**
 The PowerAI Enterprise software is dependent on additional open source software that is not shipped with PowerAI Enterprise.
 These dependent packages are downloaded to the POWER-Up software server from enabled yum repositories during the preparation phase and are subsequently available to the client nodes during the install phase.
@@ -161,16 +163,14 @@ To install the PowerAI base software Frameworks and prerequisites::
 
     $ pup software --install paie11
 
-Note: installation of PowerAI Enterprise can be rerun if needed.
+**Notes:**
 
-After completion of the installation phase of the PowerAI Enterprise installer module, continue installation of PowerAI Enterprise at the step labeled 'Install IBM Spectrum Conductor with Spark' at https://www.ibm.com/support/knowledgecenter/SSFHA8_1.1.0/enterprise/powerai_install.html
+-  During the installation phase you will be required to provide values for certain environment variables needed by Spectrum Conductor with Spark and Spectrum Deep Learning Impact. An editor window will be automatically opened to enable this.
+    -  If left blank, the CLUSTERADMIN variable will be automatically populated with the cluster node userid provided during the init-client phase of installation.
+    -  The DLI_SHARED_FS environment variable should be the full absolute path to the shared file system mount point. (eg DLI_SHARED_FS: /mnt/my-mount-point). The shared file system and the client node mount points need to be configured prior to installing PowerAI Enterprise.
+    -  The DLI_CONDA_HOME environment variable should be the full absolute path of the install location for Anaconda. (ie DLI_CONDA_HOME: /opt/anaconda2)
+-  Installation of PowerAI Enterprise can be rerun if needed.
 
-**Note:** After installation of the PowerAI base components, Conductor with Spark and the DLI binary files can be copied to all client nodes at once, by executing the following Ansible commands on the installer node::
 
-    $ ansible all -i software_hosts -m get_url -a 'owner=pai-user group=pai-user checksum=md5:f3d4e52ce23e7fbe6909ddc2e8a85166 url=http://installer-hostname/spectrum-conductor/cws-2.2.1.0_ppc64le.bin dest=/home/pai-user/'
+After completion of the installation of the PowerAI Enterprise software, you must configure Spectrum Conductor Deep Learning Impact and apply any outstanding fixes. See 'Configure IBM Spectrum Conductor Deep Learning Impact' at https://www.ibm.com/support/knowledgecenter/SSFHA8_1.1.0/enterprise/powerai_install.html
 
-    $ ansible all -i software_hosts -m get_url -a 'owner=pai-user group=pai-user checksum=md5:5529a3c74cea687e896e1d226570d799 url=http://installer-hostname/spectrum-dli/dli-1.1.0.0_ppc64le.bin dest=/home/pai-user/'
-
-Adjust the owner, group and dest fields as appropriate for your installation.
-
-**Hint: You can browse the content of the POWER-Up software server by pointing a web browser at the POWER-Up installer node. Individual files can be copied to client nodes using wget or curl.**
