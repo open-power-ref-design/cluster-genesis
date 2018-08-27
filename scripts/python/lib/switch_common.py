@@ -26,6 +26,8 @@ from orderedattrdict import AttrDict
 from enum import Enum
 from filelock import Timeout, FileLock
 from socket import gethostbyname
+from time import sleep
+from random import random
 
 import lib.logger as logger
 from lib.ssh import SSH
@@ -111,7 +113,8 @@ class SwitchCommon(object):
                               format(self.host))
             cnt += 1
             try:
-                lock.acquire(timeout=5)  # 5 sec
+                lock.acquire(timeout=5, poll_intervall=0.05)  # 5 sec, 50 ms
+                sleep(0.01)  # give switch a chance to close out comms
             except Timeout:
                 pass
         if lock.is_locked:
@@ -127,6 +130,10 @@ class SwitchCommon(object):
                 ssh_log=True,
                 look_for_keys=False)
             lock.release()
+            # sleep 60 ms to give other processes a chance.
+            sleep(0.06 + random() / 100)  # lock acquire polls at 50 ms
+            if lock.is_locked:
+                self.log.error('Lock is locked. Should be unlocked')
             return data
         else:
             self.log.error('Unable to acquire lock for switch {}'.format(self.host))

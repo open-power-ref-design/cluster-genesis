@@ -47,6 +47,10 @@ class InventoryAddPorts(object):
         self.port_type = port_type
         self.inv = Inventory(cfg_file=config_path)
         self.log.debug('Add ports, port type: {}'.format(self.port_type))
+        self.sw_dict = {}
+        for sw_ai in self.cfg.yield_sw_mgmt_access_info():
+            label = sw_ai[0]
+            self.sw_dict[label] = SwitchFactory.factory(*sw_ai[1:])
 
     def get_ports(self):
         dhcp_leases = GetDhcpLeases(self.dhcp_leases_file)
@@ -72,12 +76,10 @@ class InventoryAddPorts(object):
                 mgmt_sw_cfg_mac_lists[switch_label] = \
                     SwitchCommon.get_port_to_mac(mac_info, self.log)
         else:
-            for sw_ai in self.cfg.yield_sw_mgmt_access_info():
-                self.log.debug('switch ai: {}'.format(sw_ai))
-                sw = SwitchFactory.factory(*sw_ai[1:])
-                label = sw_ai[0]
-                mgmt_sw_cfg_mac_lists[label] = \
-                    sw.show_mac_address_table(format='std')
+            for switch in self.sw_dict:
+                self.log.debug('Switch: {}'.format(switch))
+                mgmt_sw_cfg_mac_lists[switch] = \
+                    self.sw_dict[switch].show_mac_address_table(format='std')
 
         self.log.debug('Management switches MAC address tables: {}'.format(
             mgmt_sw_cfg_mac_lists))
