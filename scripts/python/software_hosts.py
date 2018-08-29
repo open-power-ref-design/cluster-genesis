@@ -562,10 +562,11 @@ def get_existing_ssh_key_pairs(no_root_keys=False):
     user_name, user_home_dir = get_user_and_home()
     if user_home_dir != str(Path.home()):
         user_ssh_dir = os.path.join(user_home_dir, ".ssh")
-        for item in listdir(user_ssh_dir):
-            item = os.path.join(user_ssh_dir, item)
-            if os.path.isfile(item + '.pub'):
-                ssh_key_pairs.append(item)
+        if os.path.isdir(user_ssh_dir):
+            for item in listdir(user_ssh_dir):
+                item = os.path.join(user_ssh_dir, item)
+                if os.path.isfile(item + '.pub'):
+                    ssh_key_pairs.append(item)
 
     return ssh_key_pairs
 
