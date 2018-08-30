@@ -212,7 +212,7 @@ class PowerupRepo(object):
             print(f'\nChoice for source of {name} repository:')
         if url:
             ch, item = get_selection('Public mirror.Alternate web site', 'P.A',
-                                     'Select source: ', '.')
+                                     'Select source: ', '.', allow_none=True)
         else:
             ch = 'A'
         if ch == 'A':
@@ -225,7 +225,10 @@ class PowerupRepo(object):
                 if tmp[-1] != '/':
                     tmp = tmp + '/'
                 alt_url = tmp
-        url = alt_url if ch == 'A' else url
+        if ch == 'N':
+            url = 'N'
+        else:
+            url = alt_url if ch == 'A' else url
         return url
 
     def copy_to_srv(self, src_path, dst):

@@ -431,7 +431,8 @@ def get_selection(items, choices=None, prompt='Enter a selection: ', sep='\n',
     ex: ch, item = get_selection('Apple pie\nChocolate cake')
     ex: ch, item = get_selection('Apple pie.Chocolate cake', 'Item 1.Item 2', sep='.')
     Inputs:
-        choices (str or list or tuple): Choices
+        choices (str or list or tuple): Choices. If not specified, a numeric list is
+        generated.
         items (str or list or tuple): Description of choices or items to select
     returns:
        ch (str): One of the elements in choices
