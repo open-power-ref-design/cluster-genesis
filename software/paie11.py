@@ -1334,12 +1334,22 @@ def _set_spectrum_conductor_install_env(ansible_inventory, package):
     if package == 'spark':
         envs_path = (f'{GEN_SOFTWARE_PATH}/paie52_ansible/'
                      'envs_spectrum_conductor_with_spark.yml')
+        if not os.path.isfile(envs_path):
+            copy2(f'{GEN_SOFTWARE_PATH}/paie52_ansible/'
+                  'envs_spectrum_conductor_with_spark_template.yml',
+                  f'{GEN_SOFTWARE_PATH}/paie52_ansible/'
+                  'envs_spectrum_conductor_with_spark.yml')
 
         replace_regex(envs_path, '^CLUSTERADMIN:\s*$',
                       f'CLUSTERADMIN: {hostvars["ansible_user"]}\n')
     elif package == 'dli':
         envs_path = (f'{GEN_SOFTWARE_PATH}/paie52_ansible/'
                      'envs_spectrum_conductor_dli.yml')
+        if not os.path.isfile(envs_path):
+            copy2(f'{GEN_SOFTWARE_PATH}/paie52_ansible/'
+                  'envs_spectrum_conductor_dli_template.yml',
+                  f'{GEN_SOFTWARE_PATH}/paie52_ansible/'
+                  'envs_spectrum_conductor_dli.yml')
 
         replace_regex(envs_path, '^CLUSTERADMIN:\s*$',
                       f'CLUSTERADMIN: {hostvars["ansible_user"]}\n')
