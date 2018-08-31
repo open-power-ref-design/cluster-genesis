@@ -1,0 +1,13 @@
+---
+- name: Install framework(s)
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    # - caffe-bvlc
+    # - caffe-ibm
+    # - tensorflow
+    # - tensorboard
+    - power-mldl
+    - power-ddl
+  become: yes

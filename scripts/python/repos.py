@@ -558,12 +558,21 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
                 self.log.error('Error occured while downloading python package: '
                                f'{pkg_list}. \nResp: {resp} \nRet code: {rc} \nerr: {err}')
         else:
-            cmd = (f'python2.7 -m pip download --platform ppc64le  --no-deps '
-                   f'-d {self.pypirepo_dir} {pkg_list}')
-            resp, err, rc = sub_proc_exec(cmd, shell=True)
-            if rc != 0:
-                self.log.error('Error occured while downloading python packages: '
-                               f'\nResp: {resp} \nRet code: {rc} \nerr: {err}')
+            pkg_list2 = pkg_list.split()
+            for pkg in pkg_list2:
+                print(pkg)
+                cmd = (f'python2.7 -m pip download --platform ppc64le  --no-deps '
+                       f'-d {self.pypirepo_dir} {pkg}')
+                resp, err, rc = sub_proc_exec(cmd, shell=True)
+                if rc != 0:
+                    self.log.error('Error occured while downloading python packages: '
+                                   f'\nResp: {resp} \nRet code: {rc} \nerr: {err}')
+#            cmd = (f'python2.7 -m pip download --platform ppc64le  --no-deps '
+#                   f'-d {self.pypirepo_dir} {pkg_list}')
+#            resp, err, rc = sub_proc_exec(cmd, shell=True)
+#            if rc != 0:
+#                self.log.error('Error occured while downloading python packages: '
+#                               f'\nResp: {resp} \nRet code: {rc} \nerr: {err}')
         if not os.path.isdir(self.pypirepo_dir + '/simple'):
             os.mkdir(self.pypirepo_dir + '/simple')
         dir_list = os.listdir(self.pypirepo_dir)

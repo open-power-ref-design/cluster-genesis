@@ -1,0 +1,18 @@
+---
+- name: Enable 40-redhat.rules
+  copy:
+    remote_src: yes
+    force: no
+    src: /lib/udev/rules.d/40-redhat.rules
+    dest: /etc/udev/rules.d/
+  become: yes
+
+- name: Disable udev Memory Auto-Onlining Rule
+  replace:
+    path: /etc/udev/rules.d/40-redhat.rules
+    regexp: '^(SUBSYSTEM=="memory")'
+    replace: '#\1'
+  become: yes
+  notify: Reboot
+
+- meta: flush_handlers

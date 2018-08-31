@@ -1,0 +1,6 @@
+---
+- name: Verify sudo privilege
+  command: pwd
+  args:
+    warn: no
+  become: yes
