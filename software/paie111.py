@@ -481,7 +481,7 @@ class software(object):
             else:
                 self.log.info('No source selected. Skipping PowerAI repository creation.')
 
-        # Get Spectrum Conductor with Spark
+        # Get Spectrum Conductor
         name = 'Spectrum conductor content'
         heading1(f'Set up {name.title()} \n')
         spc_src = self.files[name]
@@ -549,7 +549,7 @@ class software(object):
         # Generate simple text list for use by get-dependent-packages.sh
         # utility script.
         with open(os.path.join(GEN_SOFTWARE_PATH,
-                  'dependent-packages-paie11.list'), 'w') as f:
+                  'dependent-packages-paie111.list'), 'w') as f:
             f.write(dep_list)
 
         file_more = GEN_SOFTWARE_PATH + 'dependent-packages.list'

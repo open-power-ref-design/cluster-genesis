@@ -35,10 +35,10 @@
 - description: Configure a system for IBM Spectrum Conductor Deep Learning Impact
   tasks: configure_spectrum_conductor.yml
 
-- description: Install IBM Spectrum Conductor with Spark
+- description: Install IBM Spectrum Conductor
   tasks: install_spectrum_conductor_with_spark.yml
 
-- description: Entitle IBM Spectrum Conductor with Spark
+- description: Entitle IBM Spectrum Conductor
   tasks: entitle_spectrum_conductor_with_spark.yml
   hosts: master[0]
 
