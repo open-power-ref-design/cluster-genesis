@@ -1,7 +1,7 @@
 ---
 #// IBM Spectrum Conductor with Spark Config //#
 ## The following variable is required:
-CLUSTERADMIN: customer
+CLUSTERADMIN:
 IBM_SPECTRUM_CONDUCTOR_LICENSE_ACCEPT: y
 
 ## The following variables are optional:

@@ -1224,7 +1224,8 @@ class software(object):
             heading1(f"Client Node Action: {task['description']}")
             if task['description'] == "Install Anaconda installer":
                 _interactive_anaconda_license_accept(
-                    self.sw_vars['ansible_inventory'])
+                    self.sw_vars['ansible_inventory'],
+                    self.sw_vars['content_files']['anaconda'])
             elif (task['description'] ==
                     "Install IBM Spectrum Conductor with Spark"):
                 _set_spectrum_conductor_install_env(
@@ -1290,20 +1291,21 @@ class software(object):
         return rc
 
 
-def _interactive_anaconda_license_accept(ansible_inventory):
+def _interactive_anaconda_license_accept(ansible_inventory, ana_path):
     log = logger.getlogger()
     cmd = (f'ansible-inventory --inventory {ansible_inventory} --list')
     resp, err, rc = sub_proc_exec(cmd, shell=True)
     inv = json.loads(resp)
     hostname, hostvars = inv['_meta']['hostvars'].popitem()
-
+    ip = re.search(r'(Anaconda\d)-\d+.\d+.\d+', ana_path, re.IGNORECASE).group(1)
+    ip = f'/opt/{ip}/'.lower()
     base_cmd = f'ssh -t {hostvars["ansible_user"]}@{hostname} '
     if "ansible_ssh_private_key_file" in hostvars:
         base_cmd += f'-i {hostvars["ansible_ssh_private_key_file"]} '
     if "ansible_ssh_common_args" in hostvars:
         base_cmd += f'{hostvars["ansible_ssh_common_args"]} '
 
-    cmd = base_cmd + 'ls /opt/anaconda2/'
+    cmd = base_cmd + f' ls {ip}'
     resp, err, rc = sub_proc_exec(cmd)
 
     # If install directory already exists assume license has been accepted
@@ -1313,8 +1315,8 @@ def _interactive_anaconda_license_accept(ansible_inventory):
         print(bold('Manual Anaconda license acceptance required on at least '
                    'one client!'))
         rlinput(f'Press Enter to run interactively on {hostname}')
-        cmd = (base_cmd + 'sudo ~/Anaconda2-5.1.0-Linux-ppc64le.sh '
-               '-p /opt/anaconda2')
+        fn = os.path.basename(ana_path)
+        cmd = f'{base_cmd} sudo ~/{fn} -p {ip}'
         rc = sub_proc_display(cmd)
         if rc == 0:
             print('\nLicense accepted. Acceptance script will be run quietly '
@@ -1333,12 +1335,12 @@ def _set_spectrum_conductor_install_env(ansible_inventory, package):
 
     if package == 'spark':
         envs_path = (f'{GEN_SOFTWARE_PATH}/paie111_ansible/'
-                     'envs_spectrum_conductor_with_spark.yml')
+                     'envs_spectrum_conductor.yml')
         if not os.path.isfile(envs_path):
             copy2(f'{GEN_SOFTWARE_PATH}/paie111_ansible/'
-                  'envs_spectrum_conductor_with_spark_template.yml',
+                  'envs_spectrum_conductor_template.yml',
                   f'{GEN_SOFTWARE_PATH}/paie111_ansible/'
-                  'envs_spectrum_conductor_with_spark.yml')
+                  'envs_spectrum_conductor.yml')
 
         replace_regex(envs_path, '^CLUSTERADMIN:\s*$',
                       f'CLUSTERADMIN: {hostvars["ansible_user"]}\n')

@@ -45,7 +45,7 @@
     msg: |
         One of the following components are not entitled:
         - EGO
-        - IBM Spectrum Conductor with Spark
+        - IBM Spectrum Conductor
         - IBM Spectrum Conductor Deep Learning Impact
         -------------------------------------------------
         Output from 'egosh entitlement info':
@@ -53,5 +53,5 @@
   when: >
     out.rc != 0 or
     out.stdout is not search("EGO\s*:\s*Entitled") or
-    out.stdout is not search("Conductor with Spark\s*:\s*Entitled") or
+    out.stdout is not search("Conductor\s*:\s*Entitled") or
     out.stdout is not search("Conductor Deep Learning Impact\s*:\s*Entitled")
