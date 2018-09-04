@@ -11,12 +11,12 @@
     owner: "{{ ansible_user_id }}"
     group: "{{ ansible_user_id }}"
     mode: 0744
-    url: "http://{{ host_ip.stdout }}/spectrum-conductor/cws_entitlement.dat"
+    url: "http://{{ host_ip.stdout }}/spectrum-conductor/conductor_entitlement.dat"
     dest: "{{ ansible_env.HOME }}"
 
 - name: Entitle IBM Spectrum Conductor with Spark
   shell: "source /opt/ibm/spectrumcomputing/profile.platform && \
   egoconfig join {{ groups['master'][0] }} -f && \
-  egoconfig setentitlement {{ ansible_env.HOME }}/cws_entitlement.dat"
+  egoconfig setentitlement {{ ansible_env.HOME }}/conductor_entitlement.dat"
   args:
     executable: /bin/bash

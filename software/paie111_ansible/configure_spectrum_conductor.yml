@@ -47,7 +47,6 @@
   loop:
     - /opt/DL/tensorflow/bin/install_dependencies -n dli -y
     - /opt/DL/tensorboard/bin/install_dependencies -n dli -y
-#    - /opt/DL/pytorch/bin/install_dependencies -n dli -y
   become: yes
 
 - name: Install Open CV
@@ -132,18 +131,18 @@
 - name: Check if Anaconda dli-pytorch environment already exists
   stat:
     path: /opt/anaconda2/envs/dli-pytorch
-  register: conda_dli-pytorch_env
+  register: conda_dli_pytorch_env
 
 - name: "Create an Anaconda environment named dli-pytorch for IBM Spectrum \
          Conductor Deep Learning Impact training insights"
   shell: /opt/anaconda2/bin/conda create --name dli-pytorch --yes pip python=2.7
-  when: not conda_dli-pytorch_env.stat.exists
+  when: not conda_dli_pytorch_env.stat.exists
   become: yes
 
-- name: Activate dli-pytorch and install dependencies
-  shell: "source /opt/anaconda2/bin/activate dli-pytorch && {{ item }}"
+- name: Install dli-pytorch dependencies
+  shell: "PATH=/opt/anaconda2/bin:$PATH {{ item }}"
   loop:
-    - "/opt/DL/pytorch/bin/install_dependencies --yes"
+    - /opt/DL/pytorch/bin/install_dependencies -n dli-pytorch -y
   become: yes
 
 - name: Check if Anaconda dlinsights environment already exists

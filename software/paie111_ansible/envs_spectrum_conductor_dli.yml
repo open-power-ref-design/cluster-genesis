@@ -1,14 +1,15 @@
 ---
 #// IBM Spectrum Conductor Deep Learning Impact Config //#
 ## The following variables are required:
-CLUSTERADMIN:
-DLI_SHARED_FS:
-DLI_CONDA_HOME:
+CLUSTERADMIN: customer
+DLI_SHARED_FS: /mnt/samba/sharedfs
+DLI_CONDA_HOME: /opt/anaconda2
+IBM_SPECTRUM_CONDUCTOR_DEEP_LEARNING_IMPACT_LICENSE_ACCEPT: y
 
 ## The following variables are optional:
 # DLI_MONGODB_PORT:
-# DLI_REDIS_PORT:
+DLI_REDIS_PORT: 6380
 # DLI_DLPD_REST_PORT:
-# DLI_MONITOR_PORT:
+DLI_INSIGHTS_MONITOR_PORT: 5001
 # DLI_OPTIMIZER_PORT:
 # DLI_ENABLE_FABRIC:

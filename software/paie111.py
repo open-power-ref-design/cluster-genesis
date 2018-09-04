@@ -165,8 +165,8 @@ class software(object):
                 'The following files must also be downloaded to this node;\n'
                 '- cudnn-9.2-linux-ppc64le-v7.1.tgz\n'
                 '- nccl_2.2.12-1+cuda9.2_ppc64le.tgz\n'
-                'For installation status: pup software --status paie52\n'
-                'To redisplay this README: pup software --README paie52\n\n'
+                'For installation status: pup software --status paie111\n'
+                'To redisplay this README: pup software --README paie111\n\n'
                 'Note: The \'pup\' cli supports tab autocompletion.\n\n')
         print(text)
 
@@ -1156,10 +1156,10 @@ class software(object):
 
         print("\nValidating sudo password on all clients...")
 
-        sudo_test = f'{GEN_SOFTWARE_PATH}paie52_ansible/sudo_test.yml'
+        sudo_test = f'{GEN_SOFTWARE_PATH}paie111_ansible/sudo_test.yml'
         cmd = (f'{get_ansible_playbook_path()} '
                f'-i {self.sw_vars["ansible_inventory"]} '
-               f'{GEN_SOFTWARE_PATH}paie52_ansible/run.yml '
+               f'{GEN_SOFTWARE_PATH}paie111_ansible/run.yml '
                f'--extra-vars "task_file={sudo_test}" ')
         if ansible_become_pass is not None:
             cmd += f'--extra-vars "ansible_become_pass={ansible_become_pass}" '
@@ -1332,14 +1332,24 @@ def _set_spectrum_conductor_install_env(ansible_inventory, package):
     hostname, hostvars = inv['_meta']['hostvars'].popitem()
 
     if package == 'spark':
-        envs_path = (f'{GEN_SOFTWARE_PATH}/paie52_ansible/'
+        envs_path = (f'{GEN_SOFTWARE_PATH}/paie111_ansible/'
                      'envs_spectrum_conductor_with_spark.yml')
+        if not os.path.isfile(envs_path):
+            copy2(f'{GEN_SOFTWARE_PATH}/paie111_ansible/'
+                  'envs_spectrum_conductor_with_spark_template.yml',
+                  f'{GEN_SOFTWARE_PATH}/paie111_ansible/'
+                  'envs_spectrum_conductor_with_spark.yml')
 
         replace_regex(envs_path, '^CLUSTERADMIN:\s*$',
                       f'CLUSTERADMIN: {hostvars["ansible_user"]}\n')
     elif package == 'dli':
-        envs_path = (f'{GEN_SOFTWARE_PATH}/paie52_ansible/'
+        envs_path = (f'{GEN_SOFTWARE_PATH}/paie111_ansible/'
                      'envs_spectrum_conductor_dli.yml')
+        if not os.path.isfile(envs_path):
+            copy2(f'{GEN_SOFTWARE_PATH}/paie111_ansible/'
+                  'envs_spectrum_conductor_dli_template.yml',
+                  f'{GEN_SOFTWARE_PATH}/paie111_ansible/'
+                  'envs_spectrum_conductor_dli.yml')
 
         replace_regex(envs_path, '^CLUSTERADMIN:\s*$',
                       f'CLUSTERADMIN: {hostvars["ansible_user"]}\n')
