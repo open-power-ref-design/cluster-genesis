@@ -131,9 +131,7 @@ Preparation is run with the following POWER-Up command::
 
 Preparation is interactive and may be rerun if needed. Respond to the prompts as appropriate for your environment. Note that the EPEL, Cuda, dependencies and Anaconda repositories can be replicated from the public web sites or from alternate sites accessible on your intranet environment or from local disk (ie from a mounted USB drive). Most other files come from the local file system except for the Anaconda package which can be downloaded from the public internet during the preparation step.
 
-**Hint: You can browse the content of the POWER-Up software server by pointing a web browser
-at the POWER-Up installer node. Individual files can be copied to client nodes using wget or
-curl.**
+**Hint: You can browse the content of the POWER-Up software server by pointing a web browser at the POWER-Up installer node. Individual files can be copied to client nodes using wget or curl.**
 
 **Dependent software packages**
 The PowerAI Enterprise software is dependent on additional open source software that is not shipped with PowerAI Enterprise.
