@@ -10,7 +10,8 @@ The PowerAI Enterprise software installation can be automated using the POWER-Up
 The PowerAI Enterprise Software Install Module provides for rapid installation of the PowerAI Enterprise software to a cluster of POWER8 or POWER9 servers.
 The install module creates a web based software installation server on one of the cluster nodes or another node with access to the cluster.
 The software server is populated with repositories and files needed for installation of PowerAI Enterprise.
-Once the software server is setup, installation scripts orchestrate the software installation to one or more client nodes.
+Once the software server is setup, installation scripts orchestrate the software installation to one or more client nodes. Note that the software installer node requires access to several open source repositories during the 'preparation' phase. During the preparation phase, packages which PowerAI Enterprise is dependent on are staged on the POWER-Up installer node. After completion of the preparation phase, the installation requires no further access to the open source repositories.
+
 The POWER-Up software installer does not currently support installation of PowerAI Enterprise onto the node running the POWER-Up software installer.
 If it is necessary to install PowerAI Enterprise onto the node running the POWER-Up software, this can be done manually or can be accomplished by running the POWER-Up software on an additional node in the cluster.
 Hint: A second POWER-Up server can be quickly prepared by replicating the repositories from the first POWER-Up server.
@@ -26,7 +27,7 @@ Set up of the POWER-Up Software Installer Node
 
 POWER-Up Node  Prerequisites;
 
-#. The POWER-Up software installer currently runs under RHEL 7.2 or above.
+#. The POWER-Up software installer currently runs under RHEL 7.4 or above.
 
 #. The user account used to run the POWER-Up software needs sudo privileges.
 
@@ -42,7 +43,7 @@ POWER-Up Node  Prerequisites;
 
     $ sudo subscription-manager repos --enable=rhel-7-for-power-9-rpms --enable=rhel-7-for-power-9-optional-rpms --enable=–enable=rhel-7-for-power-9-extras-rpms
 
-#. Insure that there is at least 40 GB of available disk space in the partition holding the /srv directory::
+#. Insure that there is at least 45 GB of available disk space in the partition holding the /srv directory::
 
     $ df -h /srv
 
@@ -100,7 +101,7 @@ In addition, the POWER-Up software server needs access to the following reposito
 -  Cuda Toolkit
 -  Anaconda
 
-These can be accessed using the public internet (URL's are provided) or via an alternate web site such as an intranet mirror repository or from a mounted USB key.
+These can be accessed using the public internet (URL's are provided) or via an alternate web site such as an intranet mirror repository, another POWER-Up server or from a mounted USB key. Because the software installer can run on x_86 architecture, a laptop can be used as an installer node, allowing preparation at a location with internet access and installation at a location without internet access.
 
 Before beginning, extract the contents of the powerai-enterprise-\*_ppc64le.bin file and accept the license by running the following on the installer node::
 
