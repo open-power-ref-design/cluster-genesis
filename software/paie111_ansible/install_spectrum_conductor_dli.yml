@@ -42,7 +42,7 @@
       egocomputehost: EGOCOMPUTEHOST=Y
   when: inventory_hostname not in groups['master']
 
-- name: Install IBM Spectrum Conductor with Spark
+- name: Install IBM Spectrum Conductor DLI
   shell: "{{ egocomputehost }} {{ ansible_env.HOME }}/{{ file }} --quiet"
   environment: "{{ envs }}"
   args:

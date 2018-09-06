@@ -1227,7 +1227,7 @@ class software(object):
                     self.sw_vars['ansible_inventory'],
                     self.sw_vars['content_files']['anaconda'])
             elif (task['description'] ==
-                    "Install IBM Spectrum Conductor with Spark"):
+                    "Install IBM Spectrum Conductor"):
                 _set_spectrum_conductor_install_env(
                     self.sw_vars['ansible_inventory'], 'spark')
             elif (task['description'] ==
