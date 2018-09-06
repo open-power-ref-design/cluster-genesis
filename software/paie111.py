@@ -95,6 +95,7 @@ class software(object):
         self.state = {'EPEL Repository': '-',
                       'CUDA Toolkit Repository': '-',
                       'PowerAI Base Repository': '-',
+                      'PowerAI Enterprise license': '-',
                       'Dependent Packages Repository': '-',
                       'Python Package Repository': '-',
                       'CUDA dnn content': '-',
@@ -119,6 +120,7 @@ class software(object):
                       'CUDA dnn content': 'cudnn-9.[2-9]*-linux-ppc64le-v7.[2-9]*.tgz',
                       'CUDA nccl2 content': 'nccl_2.2.1[3-9]-1+cuda9.[2-9]*_ppc64le.tgz',
                       'PowerAI content': 'mldl-repo-local-[5-9]*.[3-9]*.[0-9]**.ppc64le.rpm',
+                      'PowerAI Enterprise license': 'powerai-enterprise-license-[0-9]*.[0-9]*.[0-9]**.ppc64le.rpm',
                       'Spectrum conductor content': 'conductor[2-9]*.[3-9]*.[0-9]*.[0-9]*_ppc64le.bin',
                       'Spectrum DLI content': 'dli-[1-9]*.[2-9]*.[0-9]*.[0-9]*_ppc64le.bin',
                       'Spectrum conductor content entitlement': 'conductor_entitlement.dat',
@@ -263,6 +265,14 @@ class software(object):
                 if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[item]}-local.repo') \
                         and repodata and content:
                     self.state[item] = f'{item} is setup'
+
+            # PowerAI Enterprise license status
+            if item == 'PowerAI Enterprise license':
+                item_dir = get_name_dir(item)
+                exists = glob.glob(f'/srv/{item_dir}/**/{self.files[item]}',
+                                   recursive=True)
+                if exists:
+                    self.state[item] = ('PowerAI Enterprise license is present')
 
             # CUDA status
             if item == 'CUDA Toolkit Repository':
@@ -440,7 +450,7 @@ class software(object):
         name = 'PowerAI content'
         heading1('Setting up the PowerAI base repository\n')
         pai_src = self.files['PowerAI content']
-        pai_url = ''
+        pai_url = ''  # No default public url exists
         repo_id = 'power-ai'
         repo_name = 'IBM PowerAI Base'
 
@@ -481,6 +491,29 @@ class software(object):
             else:
                 self.log.info('No source selected. Skipping PowerAI repository creation.')
 
+        # Get PowerAI Enterprise license file
+        name = 'PowerAI Enterprise license'
+        heading1(f'Set up {name.title()} \n')
+        lic_src = self.files[name]
+        exists = self.status_prep(name)
+        lic_url = ''
+
+        if f'{name}_alt_url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{name}_alt_url']
+        else:
+            alt_url = 'http://'
+
+        if exists:
+            self.log.info('PowerAI Enterprise license exists already in the POWER-Up server')
+
+        if not exists or get_yesno(f'Copy a new {name.title()} file '):
+            src_path, dest_path, state = setup_source_file(name, lic_src, lic_url,
+                                                           alt_url=alt_url)
+            if src_path and 'http' in src_path:
+                self.sw_vars[f'{name}_alt_url'] = os.path.dirname(src_path) + '/'
+            if dest_path:
+                self.sw_vars['content_files'][get_name_dir(name)] = dest_path
+
         # Get Spectrum Conductor
         name = 'Spectrum conductor content'
         heading1(f'Set up {name.title()} \n')
@@ -498,7 +531,7 @@ class software(object):
             self.log.info('Spectrum conductor content exists already in the POWER-Up server')
 
         if not exists or get_yesno(f'Copy a new {name.title()} file '):
-            src_path, dest_path, state = setup_source_file(name, spc_src, pai_url,
+            src_path, dest_path, state = setup_source_file(name, spc_src, spc_url,
                                                            alt_url=alt_url, src2=entitlement)
             if src_path and 'http' in src_path:
                 self.sw_vars[f'{name}_alt_url'] = os.path.dirname(src_path) + '/'
