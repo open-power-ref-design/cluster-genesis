@@ -1,10 +1,36 @@
 ---
-- name: Install powerai-license software package
+- name: Get enterprise license filename from software-vars.yml
+  set_fact:
+    file: "{{ content_files['powerai-enterprise-license'].split('/')[-1] }}"
+
+- name: Get route to client
+  command: "{{ hostvars['localhost']['python_executable_local'] }} \
+  {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+  {{ inventory_hostname }}"
+  delegate_to: localhost
+  register: host_ip
+
+- name: Download license rpm
+  get_url:
+    owner: "{{ ansible_user_id }}"
+    group: "{{ ansible_user_id }}"
+    mode: 0744
+    url: "http://{{ host_ip.stdout }}/powerai-enterprise-license/{{ file }}"
+    dest: "{{ ansible_env.HOME }}"
+
+- name: Install powerai-enterprise-license
   yum:
-    name: powerai-license
-    state: latest
+    name: "{{ ansible_env.HOME }}/{{ file }}"
+    state: present
   become: yes
 
-- name: Silently accept POWER AI license agreement
-  shell: "env IBM_POWERAI_LICENSE_ACCEPT=yes /opt/DL/license/bin/accept-powerai-license.sh"
+- name: Configure license script to run silently
+  replace:
+    path: /opt/DL/powerai-enterprise/license/bin/accept-powerai-enterprise-license.sh
+    regexp: '\$1'
+    replace: 'yes'
+  become: yes
+
+- name: Accept POWER AI Enterprise license agreement
+  shell: /opt/DL/powerai-enterprise/license/bin/accept-powerai-enterprise-license.sh
   become: yes
