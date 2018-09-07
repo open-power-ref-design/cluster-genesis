@@ -926,88 +926,93 @@ class software(object):
                                      'Create from an RPM file\n'
                                      'Create from an existing repository',
                                      'dir\nrpm\nrepo',
-                                     'Repository source? ')
-            if ch == 'rpm':
+                                     'Repository source? ', allow_none=True)
+            if ch != 'N':
+                if ch == 'rpm':
+                    repo = PowerupRepoFromRpm(repo_id, repo_name)
 
-                repo = PowerupRepoFromRpm(repo_id, repo_name)
-
-                if f'{repo_id}_src_rpm_dir' in self.sw_vars:
-                    src_path = self.sw_vars[f'{repo_id}_src_rpm_dir']
-                else:
-                    # default is to search recursively under all /home/ directories
-                    src_path = '/home/**/*.rpm'
-                rpm_path = repo.get_rpm_path(src_path)
-                if rpm_path:
-                    self.sw_vars[f'{repo_id}_src_rpm_dir'] = rpm_path
-                    repo.copy_rpm()
-                    repodata_dir = repo.extract_rpm()
-                    if repodata_dir:
-                        content = repo.get_yum_dotrepo_content(repo_dir=repodata_dir,
-                                                               gpgcheck=0, local=True)
+                    if f'{repo_id}_src_rpm_dir' in self.sw_vars:
+                        src_path = self.sw_vars[f'{repo_id}_src_rpm_dir']
                     else:
-                        content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+                        # default is to search recursively under all /home/
+                        # directories
+                        src_path = '/home/**/*.rpm'
+                    rpm_path = repo.get_rpm_path(src_path)
+                    if rpm_path:
+                        self.sw_vars[f'{repo_id}_src_rpm_dir'] = rpm_path
+                        repo.copy_rpm()
+                        repodata_dir = repo.extract_rpm()
+                        if repodata_dir:
+                            content = repo.get_yum_dotrepo_content(
+                                repo_dir=repodata_dir, gpgcheck=0, local=True)
+                        else:
+                            content = repo.get_yum_dotrepo_content(gpgcheck=0,
+                                                                   local=True)
+                            repo.create_meta()
+                        repo.write_yum_dot_repo_file(content)
+                        content = repo.get_yum_dotrepo_content(
+                            repo_dir=repodata_dir, gpgcheck=0, client=True)
+                        filename = repo_id + '-powerup.repo'
+                        self.sw_vars['yum_powerup_repo_files'][filename] = content
+                    else:
+                        self.log.info('No path chosen. Skipping create custom '
+                                      'repository.')
+
+                elif ch == 'dir':
+                    repo = PowerupRepoFromDir(repo_id, repo_name)
+
+                    if f'{repo_id}_src_dir' in self.sw_vars:
+                        src_dir = self.sw_vars[f'{repo_id}_src_dir']
+                    else:
+                        src_dir = None
+                    src_dir, dest_dir = repo.copy_dirs(src_dir)
+                    if src_dir:
+                        self.sw_vars[f'{repo_id}_src_dir'] = src_dir
                         repo.create_meta()
+                        content = repo.get_yum_dotrepo_content(gpgcheck=0,
+                                                               local=True)
+                        repo.write_yum_dot_repo_file(content)
+                        content = repo.get_yum_dotrepo_content(gpgcheck=0,
+                                                               client=True)
+                        filename = repo_id + '-powerup.repo'
+                        self.sw_vars['yum_powerup_repo_files'][filename] = content
+                elif ch == 'repo':
+                    baseurl = 'http://'
+
+                    if f'{repo_id}_alt_url' in self.sw_vars:
+                        alt_url = self.sw_vars[f'{repo_id}_alt_url']
+                    else:
+                        alt_url = None
+
+                    repo = PowerupYumRepoFromRepo(repo_id, repo_name)
+
+                    new = True
+                    if os.path.isfile(f'/etc/yum.repos.d/{repo_id}.repo') and \
+                            os.path.exists(repo.get_repo_dir()):
+                        new = False
+
+                    url = repo.get_repo_url(baseurl)
+                    if not url == baseurl:
+                        self.sw_vars[f'{repo_id}_alt_url'] = url
+                    # Set up access to the repo
+                    content = repo.get_yum_dotrepo_content(url, gpgcheck=0)
                     repo.write_yum_dot_repo_file(content)
-                    content = repo.get_yum_dotrepo_content(repo_dir=repodata_dir,
-                                                           gpgcheck=0, client=True)
-                    filename = repo_id + '-powerup.repo'
-                    self.sw_vars['yum_powerup_repo_files'][filename] = content
-                else:
-                    self.log.info('No path chosen. Skipping create custom repository.')
 
-            elif ch == 'dir':
-                repo = PowerupRepoFromDir(repo_id, repo_name)
+                    repo.sync()
 
-                if f'{repo_id}_src_dir' in self.sw_vars:
-                    src_dir = self.sw_vars[f'{repo_id}_src_dir']
-                else:
-                    src_dir = None
-                src_dir, dest_dir = repo.copy_dirs(src_dir)
-                if src_dir:
-                    self.sw_vars[f'{repo_id}_src_dir'] = src_dir
-                    repo.create_meta()
+                    if new:
+                        repo.create_meta()
+                    else:
+                        repo.create_meta(update=True)
+
+                    # Setup local access to the new repo copy in /srv/repo/
                     content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
                     repo.write_yum_dot_repo_file(content)
+                    # Prep setup of POWER-Up client access to the repo copy
                     content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
                     filename = repo_id + '-powerup.repo'
                     self.sw_vars['yum_powerup_repo_files'][filename] = content
-            elif ch == 'repo':
-                baseurl = 'http://'
-
-                if f'{repo_id}_alt_url' in self.sw_vars:
-                    alt_url = self.sw_vars[f'{repo_id}_alt_url']
-                else:
-                    alt_url = None
-
-                repo = PowerupYumRepoFromRepo(repo_id, repo_name)
-
-                new = True
-                if os.path.isfile(f'/etc/yum.repos.d/{repo_id}.repo') and \
-                        os.path.exists(repo.get_repo_dir()):
-                    new = False
-
-                url = repo.get_repo_url(baseurl)
-                if not url == baseurl:
-                    self.sw_vars[f'{repo_id}_alt_url'] = url
-                # Set up access to the repo
-                content = repo.get_yum_dotrepo_content(url, gpgcheck=0)
-                repo.write_yum_dot_repo_file(content)
-
-                repo.sync()
-
-                if new:
-                    repo.create_meta()
-                else:
-                    repo.create_meta(update=True)
-
-                # Setup local access to the new repo copy in /srv/repo/
-                content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
-                repo.write_yum_dot_repo_file(content)
-                # Prep setup of POWER-Up client access to the repo copy
-                content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
-                filename = repo_id + '-powerup.repo'
-                self.sw_vars['yum_powerup_repo_files'][filename] = content
-            self.log.info('Repository setup complete')
+                self.log.info('Repository setup complete')
         # Display status
         self.status_prep()
 
