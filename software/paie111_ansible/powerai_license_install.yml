@@ -23,14 +23,3 @@
     name: "{{ ansible_env.HOME }}/{{ file }}"
     state: present
   become: yes
-
-- name: Configure license script to run silently
-  replace:
-    path: /opt/DL/powerai-enterprise/license/bin/accept-powerai-enterprise-license.sh
-    regexp: '\$1'
-    replace: 'yes'
-  become: yes
-
-- name: Accept POWER AI Enterprise license agreement
-  shell: /opt/DL/powerai-enterprise/license/bin/accept-powerai-enterprise-license.sh
-  become: yes

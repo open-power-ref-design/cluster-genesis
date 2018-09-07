@@ -1227,6 +1227,10 @@ class software(object):
                     self.sw_vars['ansible_inventory'],
                     self.sw_vars['content_files']['anaconda'])
             elif (task['description'] ==
+                    "Check PowerAI Enterprise License acceptance"):
+                _interactive_paie_license_accept(
+                    self.sw_vars['ansible_inventory'])
+            elif (task['description'] ==
                     "Install IBM Spectrum Conductor"):
                 _set_spectrum_conductor_install_env(
                     self.sw_vars['ansible_inventory'], 'spark')
@@ -1325,6 +1329,58 @@ def _interactive_anaconda_license_accept(ansible_inventory, ana_path):
             log.error("Anaconda license acceptance required to continue!")
             sys.exit('Exiting')
     return rc
+
+
+def _interactive_paie_license_accept(ansible_inventory):
+    log = logger.getlogger()
+
+    cmd = (f'ansible-inventory --inventory {ansible_inventory} --list')
+    resp, err, rc = sub_proc_exec(cmd, shell=True)
+    inv = json.loads(resp)
+
+
+    accept_cmd = ('sudo /opt/DL/powerai-enterprise/license/bin/'
+                  'accept-powerai-enterprise-license.sh ')
+    check_cmd = ('/opt/DL/powerai-enterprise/license/bin/'
+                 'check-powerai-enterprise-license.sh ')
+
+
+    print(bold('Acceptance of the PowerAI Enterprise license is required on '
+               'all nodes in the cluster.'))
+    rlinput(f'Press Enter to run interactively on each hosts')
+
+    for hostname, hostvars in inv['_meta']['hostvars'].items():
+        base_cmd = f'ssh -t {hostvars["ansible_user"]}@{hostname} '
+        if "ansible_ssh_common_args" in hostvars:
+            base_cmd += f'{hostvars["ansible_ssh_common_args"]} '
+        if "ansible_ssh_private_key_file" in hostvars:
+            base_cmd += f'-i {hostvars["ansible_ssh_private_key_file"]} '
+
+        cmd = base_cmd + check_cmd
+        resp, err, rc = sub_proc_exec(cmd)
+        if rc == 0:
+            print(bold('PowerAI Enterprise license already accepted on '
+                       f'{hostname}'))
+        else:
+            run = True
+            while run:
+                print(bold('\nRunning PowerAI Enterprise license script on '
+                           f'{hostname}'))
+                cmd = base_cmd + accept_cmd
+                rc = sub_proc_display(cmd)
+                if rc == 0:
+                    print(f'\nLicense accepted on {hostname}.')
+                    run = False
+                else:
+                    print(f'\nWARNING: License not accepted on {hostname}!')
+                    choice, item = get_selection(['Retry', 'Continue', 'Exit'])
+                    if choice == "1":
+                        pass
+                    elif choice == "2":
+                        run = False
+                    elif choice == "3":
+                        log.debug('User chooses to exit.')
+                        sys.exit('Exiting')
 
 
 def _set_spectrum_conductor_install_env(ansible_inventory, package):
