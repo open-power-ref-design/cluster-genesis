@@ -23,7 +23,6 @@ import glob
 import os
 import re
 from shutil import copy2, copytree, rmtree, Error
-import code
 
 import lib.logger as logger
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, rlinput, \

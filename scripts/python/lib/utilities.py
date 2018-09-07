@@ -29,6 +29,7 @@ from shutil import copy2, Error
 from subprocess import Popen, PIPE
 from tabulate import tabulate
 import lib.logger as logger
+import code
 
 PATTERN_MAC = '[\da-fA-F]{2}:){5}[\da-fA-F]{2}'
 CalledProcessError = subprocess.CalledProcessError
@@ -253,6 +254,9 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk=''):
 
     fileglob and repo_chk are mutually exclusive.
 
+    If neither fileglob nor repo_chk are specified, and the url does not end in '/'
+    then the url is assumed to be looking for a file.
+
     Inputs:
         url (str). Valid URLs are http:, https:, and file:
         fileglob (str) standard linux fileglobs with *, ? or []
@@ -270,7 +274,8 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk=''):
         if url.endswith('sss'):
             url = None
             break
-        url = url if url.endswith('/') else url + '/'
+        if repo_chk or fileglob:
+            url = url if url.endswith('/') else url + '/'
         try:
             cmd = f'curl --max-time 2 -I {url}'
             url_info, err, rc = sub_proc_exec(cmd)
@@ -287,9 +292,9 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk=''):
                         ss = repo_mrkr[repo_chk]
                     elif fileglob:
                         ss = fileglob
-                    else:
-                        self.log.error('Either a fileglob or repo_chk'
-                                       'value must be supplied')
+                    elif url[-1] != '/':
+                        ss = os.path.basename(url)
+                        url = os.path.dirname(url)
                     cmd = ('wget -r -l 10 -nd -np --spider '
                            f'--accept={ss} {url}')
                     reply, err, rc = sub_proc_exec(cmd)

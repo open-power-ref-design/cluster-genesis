@@ -660,7 +660,7 @@ class software(object):
         # Get Anaconda
         ana_name = 'Anaconda content'
         ana_src = self.files[ana_name]
-        ana_url = 'https://repo.continuum.io/archive/Anaconda2-5.2.0-Linux-ppc64le.sh'
+        ana_url = 'https://repo.continuum.io/archive/'
         if f'{ana_name}_alt_url' in self.sw_vars:
             alt_url = self.sw_vars[f'{ana_name}_alt_url']
         else:
