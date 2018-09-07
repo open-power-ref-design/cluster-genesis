@@ -489,10 +489,18 @@ def get_src_path(src_name):
     log = logger.getlogger()
     while True:
         cmd = (f'find /home -name {src_name}')
-        resp, err, rc = sub_proc_exec(cmd)
-        if rc != 0:
+        resp1, err, rc1 = sub_proc_exec(cmd)
+        if rc1 != 0:
             log.error(f'Error searching for {src_name}')
+
+        cmd = (f'find /root -name {src_name}')
+        resp2, err, rc2 = sub_proc_exec(cmd)
+        if rc2 != 0:
+            log.error(f'Error searching for {src_name}')
+        if rc1 != 0 and rc2 != 0:
             return None
+
+        resp = resp1 + resp2
         if not resp:
             cmd = (f'find / -name {src_name}')
             resp, err, rc = sub_proc_exec(cmd)
