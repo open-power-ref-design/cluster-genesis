@@ -347,6 +347,18 @@ def get_args(parser_args=False):
         help='Display software install module preparation status')
 
     parser_software.add_argument(
+        '--eval',
+        default=False,
+        action='store_true',
+        help='Install the evaluation version of software if available')
+
+    parser_software.add_argument(
+        '--non-interactive',
+        default=False,
+        action='store_true',
+        help='Runs the software phase with minimal user interaction')
+
+    parser_software.add_argument(
         '-a', '--all',
         action='store_true',
         help='Run all software prep and install steps')
@@ -424,9 +436,9 @@ def _check_post_deploy(args, subparser):
 def _check_software(args, subparser):
     if not args.setup and not args.install and not args.name and not args.README \
             and not args.init_clients and not args.all:
-        subparser.error('one of the arguments --about --prep --status-prep'
-                        '--init-clients --install -a/--all plus a software '
-                        'installer module name is required')
+        subparser.error('one of the arguments --about --prep --status --eval'
+                        '--init-clients --install --non-interactive -a/--all '
+                        'plus a software installer module name is required')
 
 
 def is_arg_present(arg):

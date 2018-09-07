@@ -703,7 +703,7 @@ class Gen(object):
                                'class named "software"')
                 sys.exit(1)
             else:
-                soft = software_module.software()
+                soft = software_module.software(self.args.eval, self.args.non_interactive)
             if self.args.prep is True or self.args.all is True:
                 try:
                     soft.setup()
