@@ -116,7 +116,7 @@ class software(object):
         # regular extression of [0-9]{0,3} Other asterisks are converted to regular
         # expression of .+
         self.files = {'Anaconda content': 'Anaconda2-[56].[2-9]*.[0-9]*-Linux-ppc64le.sh',
-                      'CUDA dnn content': 'cudnn-9.[2-9]*-linux-ppc64le-v7.[2-9]*.tgz',
+                      'CUDA dnn content': 'cudnn-9.[2-9]*-linux-ppc64le-v7.[2-9]**.tgz',
                       'CUDA nccl2 content': 'nccl_2.2.1[3-9]-1+cuda9.[2-9]*_ppc64le.tgz',
                       'PowerAI content': 'mldl-repo-local-[5-9]*.[3-9]*.[0-9]**.ppc64le.rpm',
                       'Spectrum conductor content': 'conductor[2-9]*.[3-9]*.[0-9]*.[0-9]*_ppc64le.bin',
@@ -584,15 +584,15 @@ class software(object):
         ch = 'S'
         if get_yesno(prompt=pr_str, yesno='Y/n'):
             if platform.machine() == self.arch:
-                ch, item = get_selection('Download dependent packages from Enabled repos\n'
-                                         'Create from files in a local Directory\n'
-                                         'Sync from an external Repository\n'
+                ch, item = get_selection('Sync required dependent packages from Enabled YUM repos\n'
+                                         'Create from package files in a local Directory\n'
+                                         'Sync from an alternate Repository\n'
                                          'Skip',
                                          'E\nD\nR\nS',
                                          'Repository source? ')
             else:
-                ch, item = get_selection('Create from files in a local Directory\n'
-                                         'Sync from an external Repository\n'
+                ch, item = get_selection('Create from package files in a local Directory\n'
+                                         'Sync from an alternate Repository\n'
                                          'Skip',
                                          'D\nR\nS',
                                          'Repository source? ')
@@ -706,19 +706,20 @@ class software(object):
         if ch in 'YF':
             # if not exists or ch == 'F':
             url = repo.get_repo_url(baseurl, alt_url)
-            if not url == baseurl:
-                self.sw_vars[f'{vars_key}-alt-url'] = url
-            dest_dir = repo.sync_ana(url)
-            dest_dir = dest_dir[4 + dest_dir.find('/srv'):5 + dest_dir.find('free')]
-            # form .condarc channel entry. Note that conda adds
-            # the corresponding 'noarch' channel automatically.
-            channel = f'  - http://{{{{ host_ip.stdout }}}}{dest_dir}'
-            if channel not in self.sw_vars['ana_powerup_repo_channels']:
-                self.sw_vars['ana_powerup_repo_channels'].append(channel)
-            noarch_url = os.path.split(url.rstrip('/'))[0] + '/noarch/'
-            rejlist = ','.join(self.pkgs['anaconda_free_pkgs']['reject_list'])
+            if url:
+                if not url == baseurl:
+                    self.sw_vars[f'{vars_key}-alt-url'] = url
+                dest_dir = repo.sync_ana(url)
+                dest_dir = dest_dir[4 + dest_dir.find('/srv'):5 + dest_dir.find('free')]
+                # form .condarc channel entry. Note that conda adds
+                # the corresponding 'noarch' channel automatically.
+                channel = f'  - http://{{{{ host_ip.stdout }}}}{dest_dir}'
+                if channel not in self.sw_vars['ana_powerup_repo_channels']:
+                    self.sw_vars['ana_powerup_repo_channels'].append(channel)
+                noarch_url = os.path.split(url.rstrip('/'))[0] + '/noarch/'
+                rejlist = ','.join(self.pkgs['anaconda_free_pkgs']['reject_list'])
 
-            repo.sync_ana(noarch_url, rejlist=rejlist)
+                repo.sync_ana(noarch_url, rejlist=rejlist)
 
         # Setup Anaconda Main Repo.  (not a YUM repo)
         repo_id = 'anaconda'
@@ -743,21 +744,22 @@ class software(object):
         if ch in 'YF':
             # if not exists or ch == 'F':
             url = repo.get_repo_url(baseurl, alt_url)
-            if not url == baseurl:
-                self.sw_vars[f'{vars_key}-alt-url'] = url
+            if url:
+                if not url == baseurl:
+                    self.sw_vars[f'{vars_key}-alt-url'] = url
 
-            al = ','.join(self.pkgs['anaconda_main_pkgs']['accept_list'])
+                al = ','.join(self.pkgs['anaconda_main_pkgs']['accept_list'])
 
-            dest_dir = repo.sync_ana(url, acclist=al)
-            # dest_dir = repo.sync_ana(url)
-            dest_dir = dest_dir[4 + dest_dir.find('/srv'):5 + dest_dir.find('main')]
-            # form .condarc channel entry. Note that conda adds
-            # the corresponding 'noarch' channel automatically.
-            channel = f'  - http://{{{{ host_ip.stdout }}}}{dest_dir}'
-            if channel not in self.sw_vars['ana_powerup_repo_channels']:
-                self.sw_vars['ana_powerup_repo_channels'].insert(0, channel)
-            noarch_url = os.path.split(url.rstrip('/'))[0] + '/noarch/'
-            repo.sync_ana(noarch_url)
+                dest_dir = repo.sync_ana(url, acclist=al)
+                # dest_dir = repo.sync_ana(url)
+                dest_dir = dest_dir[4 + dest_dir.find('/srv'):5 + dest_dir.find('main')]
+                # form .condarc channel entry. Note that conda adds
+                # the corresponding 'noarch' channel automatically.
+                channel = f'  - http://{{{{ host_ip.stdout }}}}{dest_dir}'
+                if channel not in self.sw_vars['ana_powerup_repo_channels']:
+                    self.sw_vars['ana_powerup_repo_channels'].insert(0, channel)
+                noarch_url = os.path.split(url.rstrip('/'))[0] + '/noarch/'
+                repo.sync_ana(noarch_url)
 
         # Setup Python package repository. (pypi)
         repo_id = 'pypi'
@@ -782,7 +784,7 @@ class software(object):
             url = repo.get_repo_url(baseurl, alt_url, name=repo_name)
             if url == baseurl:
                 repo.sync(pkg_list)
-            else:
+            elif url:
                 self.sw_vars[f'{repo_id}_alt_url'] = url
                 repo.sync(pkg_list, url + 'simple')
 
@@ -850,29 +852,30 @@ class software(object):
         ch = repo.get_action(exists)
         if ch in 'YF':
             url = repo.get_repo_url(baseurl, alt_url)
-            if not url == baseurl:
-                self.sw_vars[f'{repo_id}_alt_url'] = url
-                content = repo.get_yum_dotrepo_content(url, gpgcheck=0)
-            else:
-                content = repo.get_yum_dotrepo_content(url, gpgkey=gpgkey)
-            repo.write_yum_dot_repo_file(content)
-
-            try:
-                repo.sync()
-            except UserException as exc:
-                self.log.error(f'Repo sync error: {exc}')
-
-            if not exists:
-                repo.create_meta()
-            else:
-                repo.create_meta(update=True)
-
-            if not exists or ch == 'F':
-                content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+            if url:
+                if not url == baseurl:
+                    self.sw_vars[f'{repo_id}_alt_url'] = url
+                    content = repo.get_yum_dotrepo_content(url, gpgcheck=0)
+                else:
+                    content = repo.get_yum_dotrepo_content(url, gpgkey=gpgkey)
                 repo.write_yum_dot_repo_file(content)
-                content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
-                filename = repo_id + '-powerup.repo'
-                self.sw_vars['yum_powerup_repo_files'][filename] = content
+
+                try:
+                    repo.sync()
+                except UserException as exc:
+                    self.log.error(f'Repo sync error: {exc}')
+
+                if not exists:
+                    repo.create_meta()
+                else:
+                    repo.create_meta(update=True)
+
+                if not exists or ch == 'F':
+                    content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+                    repo.write_yum_dot_repo_file(content)
+                    content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
+                    filename = repo_id + '-powerup.repo'
+                    self.sw_vars['yum_powerup_repo_files'][filename] = content
 
         # Setup EPEL Repo
         repo_id = 'epel-ppc64le'
@@ -896,12 +899,14 @@ class software(object):
         if ch in 'YF':
             if not exists or ch == 'F':
                 url = repo.get_repo_url(baseurl, alt_url)
-                if not url == baseurl:
-                    self.sw_vars[f'{repo_id}_alt_url'] = url
-                    content = repo.get_yum_dotrepo_content(url, gpgkey=gpgkey)
-                else:
-                    content = repo.get_yum_dotrepo_content(url, gpgkey=gpgkey, metalink=True)
-                repo.write_yum_dot_repo_file(content)
+                if url:
+                    if not url == baseurl:
+                        self.sw_vars[f'{repo_id}_alt_url'] = url
+                        content = repo.get_yum_dotrepo_content(url, gpgkey=gpgkey)
+                    else:
+                        content = repo.get_yum_dotrepo_content(url, gpgkey=gpgkey,
+                                                               metalink=True)
+                    repo.write_yum_dot_repo_file(content)
 
             repo.sync()
             if not exists:

@@ -239,61 +239,70 @@ def rlinput(prompt, prefill=''):
 
 
 def get_url(url='http://', fileglob='', prompt_name='', repo_chk=''):
-    """Input a URL from user. Valid URLs are http:, https:, and file:.
-    The URL is checked for validity using curl and the user can continue
-    modifying it indefinitely until a response is obtained or he can enter
-    'S' to skip (stop) entry.
+    """Input a URL from user. The URL is checked for validity using curl and
+    wget and the user can continue modifying it indefinitely until a response
+    is obtained or he can enter 'sss' to skip (stop) entry.
+
+    If a fileglob is specified, the specified url is
+    searched recursively 'crawled' up to 10 levels deep looking for matches. The
+    user is then prompted to choose one of the matching items.
+
+    If repo_chk is specified, the url is searched recursively looking for a
+    marker specific to that repo type. If multiple markers are found, the user is
+    again prompted to make a selection.
+
+    fileglob and repo_chk are mutually exclusive.
+
+    Inputs:
+        url (str). Valid URLs are http:, https:, and file:
+        fileglob (str) standard linux fileglobs with *, ? or []
+        repo_chk (str) 'yum', 'ana' or 'pypi'
+        prompt_name (str) Used for prompting only.
+    Output:
+        url (str) URL for one file or repository directory
     """
+    print(f'Enter {prompt_name} URL. ("sss" at end of URL to skip)')
+    if fileglob:
+        print('Do not include filenames in the URL. A search of the URL')
+        print('will be made up to 10 levels deep')
     while True:
-        url = rlinput(f'Enter {prompt_name} URL (S to skip): ', url)
-        if url == 'S':
+        url = rlinput(f'Enter URL: ', url)
+        if url.endswith('sss'):
             url = None
             break
-        if type == 'directory':
-            url = url if url.endswith('/') else url + '/'
+        url = url if url.endswith('/') else url + '/'
         try:
             cmd = f'curl --max-time 2 -I {url}'
-            reply, err, rc = sub_proc_exec(cmd)
+            url_info, err, rc = sub_proc_exec(cmd)
         except:
             pass
         else:
             if 'http:' in url or 'https:' in url:
-                response = re.search(r'HTTP\/\d+.\d+\s+200\s+ok', reply, re.IGNORECASE)
-                if response and not fileglob:
+                response = re.search(r'HTTP\/\d+.\d+\s+200\s+ok', url_info, re.IGNORECASE)
+                if response:
+                    repo_mrkr = {'yum': '/repodata/', 'ana': 'repodata.json',
+                                 'pypi': '/simple/'}
                     print(response.group(0))
-                    cmd = f'curl -G {url}'
-                    reply, err, rc = sub_proc_exec(cmd)
-                    if rc == 0:
-                        if repo_chk == 'yum':
-                            ss = r'href=["\']repodata\/+["\']'
-                        elif repo_chk == 'ana':
-                            ss = r'href=["\']repodata.json["\']'
-                        elif repo_chk == 'pypi':
-                            ss = r'href=["\']simple\/["\']'
-                        elif repo_chk == '':
-                            ss = r'Content-Length:\s+[1-9]\d+'
-
-                        repodata = re.search(ss, reply)
-                        if repodata:
-                            if repo_chk == '':
-                                print(response.group(0))
-                            else:
-                                print('\nRepository data found.')
-                            if get_yesno('Use the specified URL '):
-                                break
-                        else:
-                            print('No repodata found')
+                    if repo_chk:
+                        ss = repo_mrkr[repo_chk]
+                    elif fileglob:
+                        ss = fileglob
                     else:
-                        print(f'Error reading url.  {resp}')
-                elif response:
-                    cmd = f'wget -r -l 10 -nd -np --spider --accept={fileglob} {url}'
+                        self.log.error('Either a fileglob or repo_chk'
+                                       'value must be supplied')
+                    cmd = ('wget -r -l 10 -nd -np --spider '
+                           f'--accept={ss} {url}')
                     reply, err, rc = sub_proc_exec(cmd)
                     err = err.replace('%2B', '+')
                     if rc == 0:
-                        regx = fileglob.replace('.', '\.')
-                        regx = regx.replace('+', '\+')
-                        regx = regx.replace(']*', '][0-9]{0,3}')
-                        regx = regx.replace('*', '.+')
+                        if repo_chk:
+                            regx = 'http.+' + repo_mrkr[repo_chk]
+                        elif fileglob:
+                            regx = fileglob.replace('.', '\.')
+                            regx = regx.replace('+', '\+')
+                            regx = regx.replace(']*', '][0-9]{0,3}')
+                            regx = regx.replace('*', '.*')
+                            regx = 'http.+' + regx
                         _found = re.findall(regx, err)
                         # remove dups
                         found = []
@@ -303,21 +312,28 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk=''):
                         if found:
                             ch, sel = get_selection(found, allow_none=True)
                             if ch != 'N':
-                                url = re.search('http.+' + regx, err).group(0)
+                                if repo_chk:
+                                    sel = sel.rstrip('/')
+                                    url = os.path.dirname(sel)
+                                else:
+                                    url = sel
                                 break
                         else:
                             print('No file match found.')
+                    else:
+                        print(f'Error reading url.  {reply}')
+
                 else:
                     print('Invalid url')
                     err = re.search('curl: .+', err)
                     if err:
                         print(err.group(0))
-                    tmp = re.search(r'HTTP\/\d+.\d+\s+.+', reply)
+                    tmp = re.search(r'HTTP\/\d+.\d+\s+.+', url_info)
                     if tmp:
                         print(tmp.group(0))
 
             elif 'file:///' in url:
-                response = re.search(r'Content-Length:\s+\d+', reply)
+                response = re.search(r'Content-Length:\s+\d+', url_info)
                 if response:
                     if repo_chk == 'yum':
                         ss = '/repodata'
@@ -325,24 +341,22 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk=''):
                         ss = '/repodata.json'
                     elif repo_chk == 'pypi':
                         ss = '/simple'
-                    elif repo_chk == '':
-                        ss = ''
-                    try:
-                        cmd = f'curl --max-time 2 -I {url}{ss}'
-                        reply, err, rc = sub_proc_exec(cmd)
-                    except:
-                        pass
+                    if repo_chk:
+                        ss = url + ss
+                    elif fileglob:
+                        ss = url + fileglob
+                    ss = '/' + ss.lstrip('file:/')
+                    files = glob(ss, recursive=True)
+
+                    if files:
+                        ch, sel = get_selection(files, allow_none=True)
+                        if ch != 'N':
+                            url = 'file://' + os.path.dirname(sel) + '/'
+                            code.interact(banner='url', local=dict(globals(), **locals()))
+                            break
                     else:
-                        response = re.search(r'Content-Length:\s+\d+', reply)
-                        if response:
-                            if repo_chk == '':
-                                print('\nFile or directory found.')
-                            else:
-                                print('\nRepository data found.')
-                            if get_yesno('Use the specified URL '):
-                                break
-                        else:
-                            print('No data found.')
+                        print('No match found.')
+
             elif 'file:' in url:
                 print('Proper file url format: "file:///path/to/file')
                 response = ''
