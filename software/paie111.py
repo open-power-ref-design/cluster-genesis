@@ -284,7 +284,7 @@ class software(object):
             # PowerAI Enterprise license status
             if item == 'PowerAI Enterprise license':
                 item_dir = get_name_dir(item)
-                exists = glob.glob(f'/srv/{item_dir}/**/{self.files[item]}',
+                exists = glob.glob(f'/srv/{item_dir}/**/{self.globs[item]}',
                                    recursive=True)
                 if exists:
                     self.state[item] = ('PowerAI Enterprise license is present')
@@ -509,7 +509,7 @@ class software(object):
         # Get PowerAI Enterprise license file
         name = 'PowerAI Enterprise license'
         heading1(f'Set up {name.title()} \n')
-        lic_src = self.files[name]
+        lic_src = self.globs[name]
         exists = self.status_prep(name)
         lic_url = ''
 
