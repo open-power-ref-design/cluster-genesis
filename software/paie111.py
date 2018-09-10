@@ -100,6 +100,7 @@ class software(object):
         self.state = {'EPEL Repository': '-',
                       'CUDA Toolkit Repository': '-',
                       'PowerAI Base Repository': '-',
+                      'PowerAI Enterprise license': '-',
                       'Dependent Packages Repository': '-',
                       'Python Package Repository': '-',
                       'CUDA dnn content': '-',
@@ -280,6 +281,14 @@ class software(object):
                         and repodata and content:
                     self.state[item] = f'{item} is setup'
 
+            # PowerAI Enterprise license status
+            if item == 'PowerAI Enterprise license':
+                item_dir = get_name_dir(item)
+                exists = glob.glob(f'/srv/{item_dir}/**/{self.files[item]}',
+                                   recursive=True)
+                if exists:
+                    self.state[item] = ('PowerAI Enterprise license is present')
+
             # CUDA status
             if item == 'CUDA Toolkit Repository':
                 repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
@@ -456,7 +465,7 @@ class software(object):
         name = 'PowerAI content'
         heading1('Setting up the PowerAI base repository\n')
         pai_src = self.globs['PowerAI content']
-        pai_url = ''
+        pai_url = ''  # No default public url exists
         repo_id = 'power-ai'
         repo_name = 'IBM PowerAI Base'
 
@@ -497,6 +506,29 @@ class software(object):
             else:
                 self.log.info('No source selected. Skipping PowerAI repository creation.')
 
+        # Get PowerAI Enterprise license file
+        name = 'PowerAI Enterprise license'
+        heading1(f'Set up {name.title()} \n')
+        lic_src = self.files[name]
+        exists = self.status_prep(name)
+        lic_url = ''
+
+        if f'{name}_alt_url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{name}_alt_url']
+        else:
+            alt_url = 'http://'
+
+        if exists:
+            self.log.info('PowerAI Enterprise license exists already in the POWER-Up server')
+
+        if not exists or get_yesno(f'Copy a new {name.title()} file '):
+            src_path, dest_path, state = setup_source_file(name, lic_src, lic_url,
+                                                           alt_url=alt_url)
+            if src_path and 'http' in src_path:
+                self.sw_vars[f'{name}_alt_url'] = os.path.dirname(src_path) + '/'
+            if dest_path:
+                self.sw_vars['content_files'][get_name_dir(name)] = dest_path
+
         # Get Spectrum Conductor
         name = 'Spectrum conductor content'
         heading1(f'Set up {name.title()} \n')
@@ -514,7 +546,7 @@ class software(object):
             self.log.info('Spectrum conductor content exists already in the POWER-Up server')
 
         if not exists or get_yesno(f'Copy a new {name.title()} file '):
-            src_path, dest_path, state = setup_source_file(name, spc_src, pai_url,
+            src_path, dest_path, state = setup_source_file(name, spc_src, spc_url,
                                                            alt_url=alt_url, src2=entitlement)
             if src_path and 'http' in src_path:
                 self.sw_vars[f'{name}_alt_url'] = os.path.dirname(src_path) + '/'
@@ -1230,6 +1262,10 @@ class software(object):
                     self.sw_vars['ansible_inventory'],
                     self.sw_vars['content_files']['anaconda'])
             elif (task['description'] ==
+                    "Check PowerAI Enterprise License acceptance"):
+                _interactive_paie_license_accept(
+                    self.sw_vars['ansible_inventory'])
+            elif (task['description'] ==
                     "Install IBM Spectrum Conductor"):
                 _set_spectrum_conductor_install_env(
                     self.sw_vars['ansible_inventory'], 'spark')
@@ -1336,6 +1372,58 @@ def _interactive_anaconda_license_accept(ansible_inventory, ana_path):
             log.error("Anaconda license acceptance required to continue!")
             sys.exit('Exiting')
     return rc
+
+
+def _interactive_paie_license_accept(ansible_inventory):
+    log = logger.getlogger()
+
+    cmd = (f'ansible-inventory --inventory {ansible_inventory} --list')
+    resp, err, rc = sub_proc_exec(cmd, shell=True)
+    inv = json.loads(resp)
+
+
+    accept_cmd = ('sudo /opt/DL/powerai-enterprise/license/bin/'
+                  'accept-powerai-enterprise-license.sh ')
+    check_cmd = ('/opt/DL/powerai-enterprise/license/bin/'
+                 'check-powerai-enterprise-license.sh ')
+
+
+    print(bold('Acceptance of the PowerAI Enterprise license is required on '
+               'all nodes in the cluster.'))
+    rlinput(f'Press Enter to run interactively on each hosts')
+
+    for hostname, hostvars in inv['_meta']['hostvars'].items():
+        base_cmd = f'ssh -t {hostvars["ansible_user"]}@{hostname} '
+        if "ansible_ssh_common_args" in hostvars:
+            base_cmd += f'{hostvars["ansible_ssh_common_args"]} '
+        if "ansible_ssh_private_key_file" in hostvars:
+            base_cmd += f'-i {hostvars["ansible_ssh_private_key_file"]} '
+
+        cmd = base_cmd + check_cmd
+        resp, err, rc = sub_proc_exec(cmd)
+        if rc == 0:
+            print(bold('PowerAI Enterprise license already accepted on '
+                       f'{hostname}'))
+        else:
+            run = True
+            while run:
+                print(bold('\nRunning PowerAI Enterprise license script on '
+                           f'{hostname}'))
+                cmd = base_cmd + accept_cmd
+                rc = sub_proc_display(cmd)
+                if rc == 0:
+                    print(f'\nLicense accepted on {hostname}.')
+                    run = False
+                else:
+                    print(f'\nWARNING: License not accepted on {hostname}!')
+                    choice, item = get_selection(['Retry', 'Continue', 'Exit'])
+                    if choice == "1":
+                        pass
+                    elif choice == "2":
+                        run = False
+                    elif choice == "3":
+                        log.debug('User chooses to exit.')
+                        sys.exit('Exiting')
 
 
 def _set_spectrum_conductor_install_env(ansible_inventory, package):

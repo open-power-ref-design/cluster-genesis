@@ -1,6 +1,6 @@
 globs:
     Anaconda content: Anaconda2-[56].[2-9]*.[0-9]*-Linux-ppc64le.sh
-    CUDA dnn content: cudnn-9.[2-9]*-linux-ppc64le-v7.[2-9]*.tgz
+    CUDA dnn content: cudnn-9.[2-9]*-linux-ppc64le-v7.[2-9]**.tgz
     CUDA nccl2 content: nccl_2.2.1[3-9]-1+cuda9.[2-9]*_ppc64le.tgz
     PowerAI content: mldl-repo-local-[5-9]*.[3-9]*.[0-9]**.ppc64le.rpm
     Spectrum conductor content: conductor[2-9]*.[3-9]*.[0-9]*.[0-9]*_ppc64le.bin
@@ -10,7 +10,7 @@ globs:
 
 globs_eval:
     Anaconda content: Anaconda2-[56].[2-9]*.[0-9]*-Linux-ppc64le.sh
-    CUDA dnn content: cudnn-9.[2-9]*-linux-ppc64le-v7.[2-9]*.tgz
+    CUDA dnn content: cudnn-9.[2-9]*-linux-ppc64le-v7.[2-9]**.tgz
     CUDA nccl2 content: nccl_2.2.1[3-9]-1+cuda9.[2-9]*_ppc64le.tgz
     PowerAI content: mldl-repo-local-[5-9]*.[3-9]*.[0-9]**.ppc64le.rpm
     Spectrum conductor content: conductoreval[2-9]*.[3-9]*.[0-9]*.[0-9]*_ppc64le.bin
