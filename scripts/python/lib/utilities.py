@@ -29,7 +29,6 @@ from shutil import copy2, Error
 from subprocess import Popen, PIPE
 from tabulate import tabulate
 import lib.logger as logger
-import code
 
 PATTERN_MAC = '[\da-fA-F]{2}:){5}[\da-fA-F]{2}'
 CalledProcessError = subprocess.CalledProcessError
