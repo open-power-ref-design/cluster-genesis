@@ -36,7 +36,8 @@ def setup_source_file(name, src_glob, url='', alt_url='http://',
     directory. The source file can include file globs and can come from a URL
     or the local disk. Local disk searching starts in the
     /home directory and then expands to the entire file system if no matches
-    found in any home directory. URLs must point to the directory with the file.
+    found in any home directory. URLs must point to the directory with the file
+    or a parent directory.
     Inputs:
         src_glob (str): Source file name to look for. Can include file globs
         src2(str): An additional file to be copied from the same source as src_glob.
@@ -220,13 +221,13 @@ class PowerupRepo(object):
                 alt_url = f'http://host/repos/{self.repo_id}/'
             tmp = get_url(alt_url, prompt_name=self.repo_name, repo_chk=self.repo_type)
             if tmp is None:
-                return None
+                url = None
             else:
                 if tmp[-1] != '/':
                     tmp = tmp + '/'
                 alt_url = tmp
         if ch == 'N':
-            url = 'N'
+            url = None
         else:
             url = alt_url if ch == 'A' else url
         return url
@@ -549,19 +550,22 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
         if not os.path.isdir(self.pypirepo_dir):
             os.mkdir(self.pypirepo_dir)
         pkg_cnt = len(pkg_list.split())
-        print(f'Downloading {pkg_cnt} python packages plus dependencies:\n{pkg_list}\n')
+        print(f'Downloading {pkg_cnt} python packages plus dependencies:\n')
 
+        pkg_list2 = pkg_list.split()
         if alt_url:
             host = re.search(r'http://([^/]+)', alt_url).group(1)
-            cmd = (f'python2.7 -m pip download --platform ppc64le --no-deps '
-                   f'--index-url={alt_url} -d {self.pypirepo_dir} {pkg_list} '
-                   f'--trusted-host {host}')
-            resp, err, rc = sub_proc_exec(cmd, shell=True)
-            if rc != 0:
-                self.log.error('Error occured while downloading python package: '
-                               f'{pkg_list}. \nResp: {resp} \nRet code: {rc} \nerr: {err}')
+            for pkg in pkg_list2:
+                print(pkg)
+                cmd = (f'python2.7 -m pip download --platform ppc64le --no-deps '
+                       f'--index-url={alt_url} -d {self.pypirepo_dir} {pkg} '
+                       f'--trusted-host {host}')
+                resp, err, rc = sub_proc_exec(cmd, shell=True)
+                if rc != 0:
+                    self.log.error('Error occured while downloading python package: '
+                                   f'{pkg_list}. \nResp: {resp} \nRet code: {rc} '
+                                   f'\nerr: {err}')
         else:
-            pkg_list2 = pkg_list.split()
             for pkg in pkg_list2:
                 print(pkg)
                 cmd = (f'python2.7 -m pip download --platform ppc64le  --no-deps '
@@ -570,12 +574,6 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
                 if rc != 0:
                     self.log.error('Error occured while downloading python packages: '
                                    f'\nResp: {resp} \nRet code: {rc} \nerr: {err}')
-#            cmd = (f'python2.7 -m pip download --platform ppc64le  --no-deps '
-#                   f'-d {self.pypirepo_dir} {pkg_list}')
-#            resp, err, rc = sub_proc_exec(cmd, shell=True)
-#            if rc != 0:
-#                self.log.error('Error occured while downloading python packages: '
-#                               f'\nResp: {resp} \nRet code: {rc} \nerr: {err}')
         if not os.path.isdir(self.pypirepo_dir + '/simple'):
             os.mkdir(self.pypirepo_dir + '/simple')
         dir_list = os.listdir(self.pypirepo_dir)

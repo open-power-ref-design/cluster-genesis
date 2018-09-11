@@ -702,7 +702,7 @@ class software(object):
         if ch in 'YF':
             # if not exists or ch == 'F':
             url = repo.get_repo_url(baseurl, alt_url)
-            if url != 'N':
+            if url:
                 if not url == baseurl:
                     self.sw_vars[f'{vars_key}-alt-url'] = url
                 dest_dir = repo.sync_ana(url)
@@ -740,7 +740,7 @@ class software(object):
         if ch in 'YF':
             # if not exists or ch == 'F':
             url = repo.get_repo_url(baseurl, alt_url)
-            if url != 'N':
+            if url:
                 if not url == baseurl:
                     self.sw_vars[f'{vars_key}-alt-url'] = url
 
@@ -780,7 +780,7 @@ class software(object):
             url = repo.get_repo_url(baseurl, alt_url, name=repo_name)
             if url == baseurl:
                 repo.sync(pkg_list)
-            elif url != 'N':
+            elif url:
                 self.sw_vars[f'{repo_id}_alt_url'] = url
                 repo.sync(pkg_list, url + 'simple')
 
@@ -848,7 +848,7 @@ class software(object):
         ch = repo.get_action(exists)
         if ch in 'YF':
             url = repo.get_repo_url(baseurl, alt_url)
-            if url != 'N':
+            if url:
                 if not url == baseurl:
                     self.sw_vars[f'{repo_id}_alt_url'] = url
                     content = repo.get_yum_dotrepo_content(url, gpgcheck=0)
@@ -895,7 +895,7 @@ class software(object):
         if ch in 'YF':
             if not exists or ch == 'F':
                 url = repo.get_repo_url(baseurl, alt_url)
-                if url != 'N':
+                if url:
                     if not url == baseurl:
                         self.sw_vars[f'{repo_id}_alt_url'] = url
                         content = repo.get_yum_dotrepo_content(url, gpgkey=gpgkey)
