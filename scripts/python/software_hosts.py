@@ -199,18 +199,17 @@ def _create_new_software_inventory(software_hosts_file_path):
 # Hosts are defined with an FQDN or IP address
 #   e.g.:
 #   [master]
-#   host1.domain.com  # master host1
-#   host2.domain.com  # master host2
+#   host1.domain.com  # master host
 #
-#   [worker]
-#   host3.domain.com  # worker host1
-#   host4.domain.com  # worker host2
+#   [compute]
+#   host3.domain.com  # compute host 1
+#   host4.domain.com  # compute host 2
 
 [master]
-  # define first master host on this line before the "#"
+  # define master host on this line before the "#"
 
-[worker]
-  # define first worker host on this line before the "#"
+[compute]
+  # define first compute host on this line before the "#"
 
 """)
     hosts = None
