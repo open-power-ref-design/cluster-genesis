@@ -524,7 +524,7 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
         filename = ''
         while '</tr>' not in row:
             line = file_handle.readline()
-            name = re.search(r'href="(.+)"', line)
+            name = re.search(r'href="(.*?)"', line)
             row += line
             if name:
                 filename = name.group(1)
