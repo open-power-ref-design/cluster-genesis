@@ -7,10 +7,10 @@ Overview
 --------
 The PowerAI Enterprise software installation can be automated using the POWER-Up software. POWER-Up can run on OpenPOWER or x_86 architecture.
 
-The PowerAI Enterprise Software Install Module provides for rapid installation of the PowerAI Enterprise software to a cluster of POWER8 or POWER9 servers.
+The PowerAI Enterprise Software Install Module provides for rapid installation of the PowerAI Enterprise software or PowerAI Enterprise evaluation software to a cluster of POWER8 or POWER9 servers.
 The install module creates a web based software installation server on one of the cluster nodes or another node with access to the cluster.
 The software server is populated with repositories and files needed for installation of PowerAI Enterprise.
-Once the software server is setup, installation scripts orchestrate the software installation to one or more client nodes. Note that the software installer node requires access to several open source repositories during the 'preparation' phase. During the preparation phase, packages which PowerAI Enterprise is dependent on are staged on the POWER-Up installer node. After completion of the preparation phase, the installation requires no further access to the open source repositories.
+Once the software server is setup, installation scripts orchestrate the software installation to one or more client nodes. Note that the software installer node requires access to several open source repositories during the 'preparation' phase. During the preparation phase, packages which PowerAI Enterprise is dependent on are staged on the POWER-Up installer node. After completion of the preparation phase, the installation requires no further access to the open source repositories and can thus enable installation to servers which do not have internet access.
 
 The POWER-Up software installer does not currently support installation of PowerAI Enterprise onto the node running the POWER-Up software installer.
 If it is necessary to install PowerAI Enterprise onto the node running the POWER-Up software, this can be done manually or can be accomplished by running the POWER-Up software on an additional node in the cluster.
@@ -59,6 +59,15 @@ For additional information, see :ref:`installing`::
     $ ./scripts/install.sh
 
     $ source scripts/setup-env
+
+**NOTES:**
+
+- You can install multiple copies of the POWER-Up software, however there is only one software server created and there are no safeguards built in to protect against concurrent modifications of the software server content, data files or client nodes.
+- If you want to run the POWER-Up software as another user, you must make sure that the PATH environment variable includes the install paths. This is most readily accomplished by logging in as the user who installed POWER-Up and then becoming the new user as;
+
+    -  sudo -s -u <user> "PATH=$PATH"
+
+- To set up another user's account to be able to use an existing POWER-Up installation, copy the PATH updates written to the installer's .bashrc file to the new user's .bashrc file.
 
 Installation of PowerAI Enterprise
 ----------------------------------
@@ -122,6 +131,11 @@ At any time, you can check the status of the POWER-Up software server by running
 
     $ pup software --status paie*
 
+
+To use the automated installer with the evaluation version of PowerAI Enterprise, include the --eval switch in all pup commands. ie::
+
+    $ pup software --status --eval paie*
+
 Note: The POWER-Up software installer runs python installation modules. Inclusion of the '.py' in the software module name is optional. ie For PowerAI Enterprise version 1.1.1, paie111 or paie111.py are both acceptable.
 
 **Hint: The POWER-Up command line interface supports tab autocompletion.**
@@ -131,22 +145,6 @@ Preparation is run with the following POWER-Up command::
     $ pup software --prep paie*
 
 Preparation is interactive and may be rerun if needed. Respond to the prompts as appropriate for your environment. Note that the EPEL, Cuda, dependencies and Anaconda repositories can be replicated from the public web sites or from alternate sites accessible on your intranet environment or from local disk (ie from a mounted USB drive). Most other files come from the local file system except for the Anaconda package which can be downloaded from the public internet during the preparation step.
-
-**Hint: You can browse the content of the POWER-Up software server by pointing a web browser at the POWER-Up installer node. Individual files can be copied to client nodes using wget or curl.**
-
-**Dependent software packages**
-The PowerAI Enterprise software is dependent on additional open source software that is not shipped with PowerAI Enterprise.
-These dependent packages are downloaded to the POWER-Up software server from enabled yum repositories during the preparation phase and are subsequently available to the client nodes during the install phase.
-Additional software packages can be installed in the 'dependencies' repo on the POWER-Up software server by listing them in the power-up/software/dependent-packages.list file.
-Entries in this file can be delimited by spaces or commas and can appear on multiple lines.
-Note that packages listed in the dependent-packages.list file are not automatically installed on client nodes unless needed by the PowerAI software.
-They can be installed on a client node explicitly using yum on the client node (ie yum install pkg-name). Alternatively, they can be installed on all client nodes at once using Ansible (run from within the power-up/software/ directory)::
-
-    $ ansible all -i software_hosts -m yum -a "name=pkg-name"
-
-or on a subset of nodes (eg the master nodes) ::
-
-    $ ansible master -i software_hosts -m yum -a "name=pkg-name"
 
 
 Initialization of the Client Nodes
@@ -175,3 +173,24 @@ NOTES:
 
 After completion of the installation of the PowerAI Enterprise software, you must configure Spectrum Conductor Deep Learning Impact and apply any outstanding fixes.
 Go to https://www.ibm.com/support/knowledgecenter/SSFHA8, choose your version of PowerAI Enterprise and then use the search bar to search for ‘Configure IBM Spectrum Conductor Deep Learning Impact’.
+
+Additional Notes
+~~~~~~~~~~~~~~~~
+
+You can browse the content of the POWER-Up software server by pointing a web browser
+at the POWER-Up installer node. Individual files can be copied to client nodes using wget or
+curl if desired.
+
+**Dependent software packages**
+The PowerAI Enterprise software is dependent on additional open source software that is not shipped with PowerAI Enterprise.
+Some of these dependent packages are downloaded to the POWER-Up software server from enabled yum repositories during the preparation phase and are subsequently available to the client nodes during the install phase.
+Additional software packages can be installed in the 'dependencies' repo on the POWER-Up software server by listing them in the power-up/software/dependent-packages.list file.
+Entries in this file can be delimited by spaces or commas and can appear on multiple lines.
+Note that packages listed in the dependent-packages.list file are not automatically installed on client nodes unless needed by the PowerAI software.
+They can be installed on a client node explicitly using yum on the client node (ie yum install pkg-name). Alternatively, they can be installed on all client nodes at once using Ansible (run from within the power-up/playbooks/ directory)::
+
+    $ ansible all -i software_hosts -m yum -a "name=pkg-name"
+
+or on a subset of nodes (eg the master nodes) ::
+
+    $ ansible master -i software_hosts -m yum -a "name=pkg-name"
