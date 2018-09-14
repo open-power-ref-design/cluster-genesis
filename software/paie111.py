@@ -248,8 +248,41 @@ class software(object):
         self.status_prep(which)
 
     def status_prep(self, which='all'):
+
+        def yum_repo_status(item):
+            if item == 'PowerAI Base Repository':
+                content = glob.glob(os.path.join(self.root_dir, self.repo_id[item],
+                                    self.globs['PowerAI content']))
+            else:
+                content = True
+            repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
+                                 '/**/repodata', recursive=True)
+            sw_vars_data = (f'{self.repo_id[item]}-powerup.repo' in
+                            self.sw_vars['yum_powerup_repo_files'])
+            if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[item]}-local.repo') \
+                    and repodata and sw_vars_data and content:
+                self.state[item] = f'{item} is setup'
+
+        def content_status(item):
+            item_dir = get_name_dir(item)
+            exists = glob.glob(f'/srv/{item_dir}/**/{self.globs[item]}',
+                               recursive=True)
+            if 'Spectrum' in item:
+                exists2 = glob.glob(f'/srv/{item_dir}/**/'
+                                    f'{self.globs[item + " entitlement"]}',
+                                    recursive=True)
+            else:
+                exists2 = True
+            if exists and exists2:
+                self.state[item] = ('Present in the POWER-Up server')
+
         for item in self.state:
             self.state[item] = '-'
+
+            # yum repos status
+            if item in self.repo_id and 'Python' not in item:
+                yum_repo_status(item)
+
             # Firewall status
             if item == 'Firewall':
                 cmd = 'firewall-cmd --list-all'
@@ -264,14 +297,8 @@ class software(object):
                 if 'HTTP/1.1 200 OK' in resp:
                     self.state[item] = 'Nginx is configured and running'
 
-            # Anaconda content status
-            if item == 'Anaconda content':
-                item_dir = get_name_dir(item)
-                exists = glob.glob(f'/srv/{item_dir}/**/{self.globs[item]}',
-                                   recursive=True)
-                if exists:
-                    self.state['Anaconda content'] = ('Anaconda is present in the '
-                                                      'POWER-Up server')
+            if 'content' in item:
+                content_status(item)
 
             # Anaconda Repo Free status
             if item == 'Anaconda Free Repository':
@@ -291,53 +318,6 @@ class software(object):
                 if repodata and repodata_noarch:
                     self.state[item] = f'{item} is setup'
 
-            # cudnn status
-            if item == 'CUDA dnn content':
-                item_dir = get_name_dir(item)
-                exists = glob.glob(f'/srv/{item_dir}/**/{self.globs[item]}', recursive=True)
-                if exists:
-                    self.state['CUDA dnn content'] = ('CUDA DNN is present in the '
-                                                      'POWER-Up server')
-
-            # cuda nccl2 status
-            if item == 'CUDA nccl2 content':
-                item_dir = get_name_dir(item)
-                exists = glob.glob(f'/srv/{item_dir}/**/{self.globs[item]}', recursive=True)
-                if exists:
-                    self.state[item] = ('CUDA nccl2 is present in the '
-                                        'POWER-Up server')
-
-            # Spectrum conductor status
-            if item == 'Spectrum conductor content':
-                item_dir = get_name_dir(item)
-                exists = glob.glob(f'/srv/{item_dir}/**/'
-                                   f'{self.globs[item]}', recursive=True)
-                exists2 = glob.glob(f'/srv/{item_dir}/**/'
-                                    f'{self.globs[item + " entitlement"]}', recursive=True)
-                if exists and exists2:
-                    self.state[item] = \
-                        'Spectrum Conductor is present in the POWER-Up server'
-
-            # Spectrum DLI status
-            if item == 'Spectrum DLI content':
-                item_dir = get_name_dir(item)
-                exists = glob.glob(f'/srv/{item_dir}/**/{self.globs[item]}',
-                                   recursive=True)
-                exists2 = glob.glob(f'/srv/{item_dir}/**/'
-                                    f'{self.globs[item + " entitlement"]}', recursive=True)
-                if exists and exists2:
-                    self.state[item] = ('Spectrum DLI is present in the '
-                                        'POWER-Up server')
-            # PowerAI status
-            if item == 'PowerAI Base Repository':
-                content = glob.glob(os.path.join(self.root_dir, self.repo_id[item],
-                                    self.globs['PowerAI content']))
-                repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
-                                     '/**/repodata', recursive=True)
-                if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[item]}-local.repo') \
-                        and repodata and content:
-                    self.state[item] = f'{item} is setup'
-
             # PowerAI Enterprise license status
             if item == 'PowerAI Enterprise license':
                 item_dir = get_name_dir(item)
@@ -345,30 +325,6 @@ class software(object):
                                    recursive=True)
                 if exists:
                     self.state[item] = ('PowerAI Enterprise license is present')
-
-            # CUDA status
-            if item == 'CUDA Toolkit Repository':
-                repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
-                                     '/**/repodata', recursive=True)
-                if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[item]}-local.repo') \
-                        and repodata:
-                    self.state[item] = f'{item} is setup'
-
-            # EPEL status
-            if item == 'EPEL Repository':
-                repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
-                                     '/**/repodata', recursive=True)
-                if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[item]}-local.repo') \
-                        and repodata:
-                    self.state[item] = f'{item} is setup'
-
-            # Dependent Packages status
-            if item == 'Dependent Packages Repository':
-                repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
-                                     '/**/repodata', recursive=True)
-                if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[item]}-local.repo') \
-                        and repodata:
-                    self.state[item] = f'{item} is setup'
 
             # Python Packages status
             if item == 'Python Package Repository':
@@ -741,24 +697,25 @@ class software(object):
             repo = PowerupYumRepoFromRepo(repo_id, repo_name)
 
             url = repo.get_repo_url(baseurl)
-            if not url == baseurl:
-                self.sw_vars[f'{repo_id}_alt_url'] = url
-            # Set up access to the repo
-            content = repo.get_yum_dotrepo_content(url, gpgcheck=0)
-            repo.write_yum_dot_repo_file(content)
-
-            repo.sync()
-            repo.create_meta()
-
-            # Setup local access to the new repo copy in /srv/repo/
-            if platform.machine() == self.arch:
-                content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+            if url:
+                if not url == baseurl:
+                    self.sw_vars[f'{repo_id}_alt_url'] = url
+                # Set up access to the repo
+                content = repo.get_yum_dotrepo_content(url, gpgcheck=0)
                 repo.write_yum_dot_repo_file(content)
-            # Prep setup of POWER-Up client access to the repo copy
-            content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
-            filename = repo_id + '-powerup.repo'
-            self.sw_vars['yum_powerup_repo_files'][filename] = content
-            self.log.info('Repository setup complete')
+
+                repo.sync()
+                repo.create_meta()
+
+                # Setup local access to the new repo copy in /srv/repo/
+                if platform.machine() == self.arch:
+                    content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+                    repo.write_yum_dot_repo_file(content)
+                # Prep setup of POWER-Up client access to the repo copy
+                content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
+                filename = repo_id + '-powerup.repo'
+                self.sw_vars['yum_powerup_repo_files'][filename] = content
+                self.log.info('Repository setup complete')
 
         else:
             print(f'{repo_name} repository not updated')

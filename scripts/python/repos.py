@@ -225,11 +225,10 @@ class PowerupRepo(object):
             else:
                 if tmp[-1] != '/':
                     tmp = tmp + '/'
+                url = tmp
                 alt_url = tmp
         if ch == 'N':
             url = None
-        else:
-            url = alt_url if ch == 'A' else url
         return url
 
     def copy_to_srv(self, src_path, dst):
