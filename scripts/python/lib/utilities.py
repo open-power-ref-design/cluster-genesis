@@ -238,18 +238,52 @@ def rlinput(prompt, prefill=''):
         readline.set_startup_hook()
 
 
-def get_url(url='http://', fileglob='', prompt_name='', repo_chk=''):
+def files_present(url, fileglobs, _all=True):
+    """Return true if any/all of the fileglobs are present in the url.
+    """
+    any_present = False
+    all_present = True
+    fileglobsstr = ','.join(fileglobs)
+    if fileglobs:
+        cmd = (f'wget -r -l 10 -nd -np --spider --accept={fileglobsstr} {url}')
+        reply, err, rc = sub_proc_exec(cmd)
+        err = err.replace('%2B', '+')
+        if rc == 0:
+            for fileglob in fileglobs:
+                regx = fileglob_to_regx(fileglob)
+                res = re.findall(regx, err)
+                any_present = any_present or res != []
+                all_present = all_present and res != []
+    if not fileglobs:
+        return True
+    if _all:
+        return all_present
+    else:
+        return any_present
+
+
+def fileglob_to_regx(fileglob):
+    regx = fileglob.replace('.', '\.')
+    regx = regx.replace('+', '\+')
+    regx = regx.replace(']*', '][0-9]{0,3}')
+    regx = regx.replace('*', '.*')
+    regx = 'http.+' + regx
+    return regx
+
+
+def get_url(url='http://', fileglob='', prompt_name='', repo_chk='', contains=[],
+            excludes=[], filelist=[]):
     """Input a URL from user. The URL is checked for validity using curl and
     wget and the user can continue modifying it indefinitely until a response
     is obtained or he can enter 'sss' to skip (stop) entry.
 
-    If a fileglob is specified, the specified url is
-    searched recursively 'crawled' up to 10 levels deep looking for matches. The
-    user is then prompted to choose one of the matching items.
+    If a fileglob is specified, the specified url is searched
+    recursively (crawled) up to 10 levels deep looking for matches.
 
     If repo_chk is specified, the url is searched recursively looking for a
-    marker specific to that repo type. If multiple markers are found, the user is
-    again prompted to make a selection.
+    marker specific to that repo type. If multiple URL's are found, the
+    list of found url's is filtered using 'contains', 'excludes' and
+    'files_present'. The user is again prompted to make a selection.
 
     fileglob and repo_chk are mutually exclusive.
 
@@ -260,6 +294,13 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk=''):
         url (str). Valid URLs are http:, https:, and file:
         fileglob (str) standard linux fileglobs with *, ? or []
         repo_chk (str) 'yum', 'ana' or 'pypi'
+        contains (list of strings) Filter criteria to be used in combination with
+            repo_chk. After finding repos of the type in 'repo_chk', the list is
+            restricted to those urls that contain elements from 'contains' and no
+            elements of 'excludes'.
+        excludes (list of strings)
+        filelist (list of strings) Can be globs. Used to validate a repo. The
+            specified files must be present
         prompt_name (str) Used for prompting only.
     Output:
         url (str) URL for one file or repository directory
@@ -273,9 +314,10 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk=''):
         if url.endswith('sss'):
             url = None
             break
-        if repo_chk or fileglob:
+        if repo_chk:
             url = url if url.endswith('/') else url + '/'
         try:
+            # Basic response test
             cmd = f'curl --max-time 2 -I {url}'
             url_info, err, rc = sub_proc_exec(cmd)
         except:
@@ -302,28 +344,52 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk=''):
                         if repo_chk:
                             regx = 'http.+' + repo_mrkr[repo_chk]
                         elif fileglob:
-                            regx = fileglob.replace('.', '\.')
-                            regx = regx.replace('+', '\+')
-                            regx = regx.replace(']*', '][0-9]{0,3}')
-                            regx = regx.replace('*', '.*')
-                            regx = 'http.+' + regx
+                            regx = fileglob_to_regx(fileglob)
                         _found = re.findall(regx, err)
                         # remove dups
+                        _found = list(set(_found))
+
                         found = []
-                        for item in _found:
-                            if item not in found:
-                                found.append(item)
+                        # Include items containing any element of 'contains'
+                        # and exclude items containing any element of 'excludes'
+                        # If no item meets criteria, then use any / all
+                        # items but include a warning.
+                        if repo_chk:
+                            for _url in _found:
+                                if (any([item for item in contains if item in
+                                         _url]) and not any([item for item in
+                                                             excludes if item
+                                                             in _url])):
+                                    found.append(_url)
+
                         if found:
-                            ch, sel = get_selection(found, allow_none=True)
+                            _list = found
+                        elif _found:
+                            _list = _found
+                            print(bold('\nWarning. The following url(s) were '
+                                       'found but do not match the '
+                                       'search criteria\n'))
+                        else:
+                            _list = []
+                        if _list:
+                            ch, sel = get_selection(_list, allow_none=True)
                             if ch != 'N':
                                 if repo_chk:
                                     sel = sel.rstrip('/')
                                     url = os.path.dirname(sel)
+                                    if files_present(url, filelist):
+                                        break
+                                    else:
+                                        print('\nChosen URL does not appear to '
+                                              'be valid. File check failed.')
+                                        if get_yesno('Use selection anyway'):
+                                            break
                                 else:
                                     url = sel
-                                break
+                                    break
+
                         else:
-                            print('No file match found.')
+                            print('No match found.')
                     else:
                         print(f'Error reading url.  {reply}')
 
@@ -356,7 +422,6 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk=''):
                         ch, sel = get_selection(files, allow_none=True)
                         if ch != 'N':
                             url = 'file://' + os.path.dirname(sel) + '/'
-                            code.interact(banner='url', local=dict(globals(), **locals()))
                             break
                     else:
                         print('No match found.')

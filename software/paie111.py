@@ -740,25 +740,27 @@ class software(object):
 
             repo = PowerupYumRepoFromRepo(repo_id, repo_name)
 
-            url = repo.get_repo_url(baseurl)
-            if not url == baseurl:
-                self.sw_vars[f'{repo_id}_alt_url'] = url
-            # Set up access to the repo
-            content = repo.get_yum_dotrepo_content(url, gpgcheck=0)
-            repo.write_yum_dot_repo_file(content)
-
-            repo.sync()
-            repo.create_meta()
-
-            # Setup local access to the new repo copy in /srv/repo/
-            if platform.machine() == self.arch:
-                content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+            url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
+                                    filelist=['bzip2-*'])
+            if url:
+                if not url == baseurl:
+                    self.sw_vars[f'{repo_id}_alt_url'] = url
+                # Set up access to the repo
+                content = repo.get_yum_dotrepo_content(url, gpgcheck=0)
                 repo.write_yum_dot_repo_file(content)
-            # Prep setup of POWER-Up client access to the repo copy
-            content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
-            filename = repo_id + '-powerup.repo'
-            self.sw_vars['yum_powerup_repo_files'][filename] = content
-            self.log.info('Repository setup complete')
+
+                repo.sync()
+                repo.create_meta()
+
+                # Setup local access to the new repo copy in /srv/repo/
+                if platform.machine() == self.arch:
+                    content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+                    repo.write_yum_dot_repo_file(content)
+                # Prep setup of POWER-Up client access to the repo copy
+                content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
+                filename = repo_id + '-powerup.repo'
+                self.sw_vars['yum_powerup_repo_files'][filename] = content
+                self.log.info('Repository setup complete')
 
         else:
             print(f'{repo_name} repository not updated')
@@ -809,9 +811,11 @@ class software(object):
         repo = PowerupAnaRepoFromRepo(repo_id, repo_name)
 
         ch = repo.get_action(exists)
-        if ch in 'YF':
+        if ch in 'Y':
             # if not exists or ch == 'F':
-            url = repo.get_repo_url(baseurl, alt_url)
+            url = repo.get_repo_url(baseurl, alt_url, contains=['free', 'linux',
+                                    'ppc64le'], excludes=['noarch', 'main'],
+                                    filelist=['conda-4.3*'])
             if url:
                 if not url == baseurl:
                     self.sw_vars[f'{vars_key}-alt-url'] = url
@@ -847,9 +851,10 @@ class software(object):
         repo = PowerupAnaRepoFromRepo(repo_id, repo_name)
 
         ch = repo.get_action(exists)
-        if ch in 'YF':
-            # if not exists or ch == 'F':
-            url = repo.get_repo_url(baseurl, alt_url)
+        if ch in 'Y':
+            url = repo.get_repo_url(baseurl, alt_url, contains=['main', 'linux',
+                                    'ppc64le'], excludes=['noarch', 'free'],
+                                    filelist=['numpy-1.15*'])
             if url:
                 if not url == baseurl:
                     self.sw_vars[f'{vars_key}-alt-url'] = url
@@ -887,7 +892,8 @@ class software(object):
 
         pkg_list = ' '.join(self.pkgs['python_pkgs'])
         if not exists or ch == 'Y':
-            url = repo.get_repo_url(baseurl, alt_url, name=repo_name)
+            url = repo.get_repo_url(baseurl, alt_url, name=repo_name,
+                                    contains=repo_id, filelist=['Flask-*'])
             if url == baseurl:
                 repo.sync(pkg_list)
             elif url:
@@ -956,8 +962,9 @@ class software(object):
         repo = PowerupYumRepoFromRepo(repo_id, repo_name)
 
         ch = repo.get_action(exists)
-        if ch in 'YF':
-            url = repo.get_repo_url(baseurl, alt_url)
+        if ch in 'Y':
+            url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
+                                    filelist=['cuda-*'])
             if url:
                 if not url == baseurl:
                     self.sw_vars[f'{repo_id}_alt_url'] = url
@@ -971,17 +978,19 @@ class software(object):
                 except UserException as exc:
                     self.log.error(f'Repo sync error: {exc}')
 
+                # recheck status after sync.
+                exists = self.status_prep(which='CUDA Toolkit Repository')
+
                 if not exists:
                     repo.create_meta()
                 else:
                     repo.create_meta(update=True)
 
-                if not exists or ch == 'F':
-                    content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
-                    repo.write_yum_dot_repo_file(content)
-                    content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
-                    filename = repo_id + '-powerup.repo'
-                    self.sw_vars['yum_powerup_repo_files'][filename] = content
+                content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+                repo.write_yum_dot_repo_file(content)
+                content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
+                filename = repo_id + '-powerup.repo'
+                self.sw_vars['yum_powerup_repo_files'][filename] = content
 
         # Setup EPEL Repo
         repo_id = 'epel-ppc64le'
@@ -1002,25 +1011,27 @@ class software(object):
         repo = PowerupYumRepoFromRepo(repo_id, repo_name)
 
         ch = repo.get_action(exists)
-        if ch in 'YF':
-            if not exists or ch == 'F':
-                url = repo.get_repo_url(baseurl, alt_url)
-                if url:
-                    if not url == baseurl:
-                        self.sw_vars[f'{repo_id}_alt_url'] = url
-                        content = repo.get_yum_dotrepo_content(url, gpgkey=gpgkey)
-                    else:
-                        content = repo.get_yum_dotrepo_content(url, gpgkey=gpgkey,
-                                                               metalink=True)
-                    repo.write_yum_dot_repo_file(content)
+        if ch in 'Y':
+            url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
+                                    filelist=['epel-release-*'])
+            if url:
+                if not url == baseurl:
+                    self.sw_vars[f'{repo_id}_alt_url'] = url
+                    content = repo.get_yum_dotrepo_content(url, gpgkey=gpgkey)
+                else:
+                    content = repo.get_yum_dotrepo_content(url, gpgkey=gpgkey,
+                                                           metalink=True)
+                repo.write_yum_dot_repo_file(content)
 
-            repo.sync()
-            if not exists:
-                repo.create_meta()
-            else:
-                repo.create_meta(update=True)
+            if url:
+                repo.sync()
+                # recheck status after sync.
+                exists = self.status_prep(which='EPEL Repository')
+                if not exists:
+                    repo.create_meta()
+                else:
+                    repo.create_meta(update=True)
 
-            if not exists or ch == 'F':
                 content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
                 repo.write_yum_dot_repo_file(content)
                 content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)

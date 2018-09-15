@@ -192,11 +192,7 @@ class PowerupRepo(object):
             print(f'\nDo you want to sync the local {self.repo_name}\nrepository'
                   ' at this time?\n')
             print('This can take a few minutes.\n')
-            if exists_prompt_yn:
-                ch = 'Y' if get_yesno(prompt='Sync Repo? ', yesno='Y/n') else 'n'
-            else:
-                items = 'Yes,no,Sync repository and Force recreation of metadata files'
-                ch, item = get_selection(items, 'Y,n,F', sep=',')
+            ch = 'Y' if get_yesno(prompt='Sync Repo? ', yesno='Y/n') else 'n'
         else:
             print(f'\nDo you want to create a local {self.repo_name}\n repository'
                   ' at this time?\n')
@@ -204,10 +200,12 @@ class PowerupRepo(object):
             ch = 'Y' if get_yesno(prompt='Create Repo? ', yesno='Y/n') else 'n'
         return ch
 
-    def get_repo_url(self, url, alt_url=None, name=''):
+    def get_repo_url(self, url, alt_url=None, name='', contains=[], excludes=[],
+                     filelist=[]):
         """Allows the user to choose the default url or enter an alternate
         Inputs:
-            repo_url: (str) URL or metalink for the external repo source
+            repo_url: (str) URL or metalink for the default external repo source
+            alt_url: (str) An alternate url that the user can modify
         """
         if name:
             print(f'\nChoice for source of {name} repository:')
@@ -219,17 +217,14 @@ class PowerupRepo(object):
         if ch == 'A':
             if not alt_url:
                 alt_url = f'http://host/repos/{self.repo_id}/'
-            tmp = get_url(alt_url, prompt_name=self.repo_name, repo_chk=self.repo_type)
-            if tmp is None:
-                url = None
-            else:
-                if tmp[-1] != '/':
-                    tmp = tmp + '/'
-                alt_url = tmp
-        if ch == 'N':
+            url = get_url(alt_url, prompt_name=self.repo_name,
+                          repo_chk=self.repo_type, contains=contains,
+                          excludes=excludes, filelist=filelist)
+            if url:
+                if url[-1] != '/':
+                    url = url + '/'
+        elif ch == 'N':
             url = None
-        else:
-            url = alt_url if ch == 'A' else url
         return url
 
     def copy_to_srv(self, src_path, dst):
