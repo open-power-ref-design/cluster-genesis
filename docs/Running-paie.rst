@@ -47,8 +47,7 @@ POWER-Up Node  Prerequisites;
 
     $ df -h /srv
 
-From your home directory install the POWER-Up software and initialize the environment.
-For additional information, see :ref:`installing`::
+#. From your home directory install the POWER-Up software and initialize the environment. For additional information see :ref:`installing`::
 
     $ sudo yum install git
 
@@ -60,14 +59,12 @@ For additional information, see :ref:`installing`::
 
     $ source scripts/setup-env
 
+
 **NOTES:**
 
-- You can install multiple copies of the POWER-Up software, however there is only one software server created and there are no safeguards built in to protect against concurrent modifications of the software server content, data files or client nodes.
-- If you want to run the POWER-Up software as another user, you must make sure that the PATH environment variable includes the install paths. This is most readily accomplished by logging in as the user who installed POWER-Up and then becoming the new user as;
+- Multiple users can install and use the PAIE installer software, however there is only one software server created and there are no safeguards built in to protect against concurrent modifications of the software server content, data files or client nodes.
+- Each user of the PAIE installer software must install the POWER-Up software following the steps above.
 
-    -  sudo -s -u <user> "PATH=$PATH"
-
-- To set up another user's account to be able to use an existing POWER-Up installation, copy the PATH updates written to the installer's .bashrc file to the new user's .bashrc file.
 
 Installation of PowerAI Enterprise
 ----------------------------------
