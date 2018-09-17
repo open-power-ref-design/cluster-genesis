@@ -191,3 +191,65 @@ They can be installed on a client node explicitly using yum on the client node (
 or on a subset of nodes (eg the master nodes) ::
 
     $ ansible master -i software_hosts -m yum -a "name=pkg-name"
+
+Uninstalling the POWER-Up Software
+----------------------------------
+To uninstall the POWER-Up software and remove the software repositories, follow the instructions below;
+
+#. Stop and remove the nginx web server::
+
+    $ sudo nginx -s stop
+    $ sudo yum erase nginx -y
+
+#. If you wish to remove the http service from the firewall on this node::
+
+    $ sudo firewall-cmd --permanent --remove-service=http
+    $ sudo firewall-cmd --reload
+
+#. If you wish to stop and disable the firewall service on this node::
+
+    $ sudo systemctl stop firewalld.service
+    $ sudo systemctl disable firewalld.service
+
+#. Remove the yum.repo files created by the PAIE installer::
+
+    $ sudo rm /etc/yum.repos.d/cuda-local.repo
+    $ sudo rm /etc/yum.repos.d/cuda.repo
+    $ sudo rm /etc/yum.repos.d/dependencies-local.repo
+    $ sudo rm /etc/yum.repos.d/dependencies.repo
+    $ sudo rm /etc/yum.repos.d/epel-ppc64le-local.repo
+    $ sudo rm /etc/yum.repos.d/epel-ppc64le.repo
+    $ sudo rm /etc/yum.repos.d/power-ai-local.repo
+    $ sudo rm /etc/yum.repos.d/nginx.repo
+
+#. Remove the software server content and repositories::
+
+    $ sudo rm -rf /srv/anaconda
+    $ sudo rm -rf /srv/cuda-dnn
+    $ sudo rm -rf /srv/cuda-nccl2
+    $ sudo rm -rf /srv/power-ai
+    $ sudo rm -rf /srv/powerai-enterprise-license
+    $ sudo rm -rf /srv/spectrum-dli
+    $ sudo rm -rf /srv/spectrum-conductor
+    $ sudo rm -rf /srv/repos
+
+#. Remove the yum cache data::
+
+    $ sudo rm -rf /var/cache/yum/ppc64le/7Server/cuda/
+    $ sudo rm -rf /var/cache/yum/ppc64le/7Server/cuda-local/
+    $ sudo rm -rf /var/cache/yum/ppc64le/7Server/dependencies/
+    $ sudo rm -rf /var/cache/yum/ppc64le/7Server/dependencies-local/
+    $ sudo rm -rf /var/cache/yum/ppc64le/7Server/epel-ppc64le/
+    $ sudo rm -rf /var/cache/yum/ppc64le/7Server/epel-ppc64le-local/
+    $ sudo rm -rf /var/cache/yum/ppc64le/7Server/power-ai-local/
+    $ sudo rm -rf /var/cache/yum/ppc64le/7Server/nginx/
+
+#. Uninstall the PowerAI Enterprise license program from the installer node. If you extracted the PowerAI Enterprise package on this node and accepted the enterprise license::
+
+    $ sudo yum erase powerai-enterprise-license -y
+
+#. Uninstall the PowerUp Software
+    - Assuming you installed to your home directory, from your home directory
+      execute::
+
+        $ rm -rf /power-up
