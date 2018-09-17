@@ -1,4 +1,4 @@
-"""Cluster Genesis 'gen' command argument parser"""
+"""POWER-Up 'pup.py' command argument parser"""
 
 # Copyright 2018 IBM Corp.
 #
@@ -19,7 +19,7 @@
 from enum import Enum
 from argparse import ArgumentParser, RawTextHelpFormatter
 
-PROJECT = 'Cluster Genesis'
+PROJECT = 'POWER-Up'
 SETUP_CMD = 'setup'
 CONFIG_CMD = 'config'
 VALIDATE_CMD = 'validate'
@@ -34,7 +34,7 @@ DEPLOY_DESC = 'Deploy cluster'
 POST_DEPLOY_DESC = 'Configure cluster nodes and data switches'
 UTIL_DESC = 'Execute utility functions'
 SOFTWARE_DESC = 'Install software stack on client nodes'
-GITHUB = 'https://github.com/open-power-ref-design-toolkit/cluster-genesis'
+GITHUB = 'https://github.com/open-power-ref-design-toolkit/power-up'
 EPILOG = 'home page:\n  %s' % GITHUB
 ABSENT = '\u009fabsent\u009c'
 LOG_LEVEL_CHOICES = ['nolog', 'debug', 'info', 'warning', 'error', 'critical']
@@ -53,12 +53,13 @@ class Cmd(Enum):
 
 
 def get_args(parser_args=False):
-    """Get 'gen' command arguments"""
+    """Get 'pup' command arguments"""
 
     parser = ArgumentParser(
         description=PROJECT,
         epilog=EPILOG,
-        formatter_class=RawTextHelpFormatter)
+        formatter_class=RawTextHelpFormatter,
+        prog='pup')
     subparsers = parser.add_subparsers()
     common_parser = ArgumentParser(add_help=False)
 
@@ -448,7 +449,7 @@ def is_arg_present(arg):
 
 
 def get_parsed_args():
-    """Get parsed 'gen' command arguments"""
+    """Get parsed 'pup' command arguments"""
 
     parser, parser_setup, parser_config, parser_validate, parser_deploy, \
         parser_post_deploy, parser_software = get_args(parser_args=True)
