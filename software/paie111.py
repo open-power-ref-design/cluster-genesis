@@ -237,8 +237,8 @@ class software(object):
                 '- dli-1.2.0.0_ppc64le.bin\n'
                 '- dli_entitlement.dat\n\n'
                 'The following files must also be downloaded to this node;\n'
-                '- cudnn-9.2-linux-ppc64le-v7.1.tgz\n'
-                '- nccl_2.2.12-1+cuda9.2_ppc64le.tgz\n'
+                '- cudnn-9.2-linux-ppc64le-v7.2.1.38.tgz\n'
+                '- nccl_2.2.13-1+cuda9.2_ppc64le.tgz\n'
                 'For installation status: pup software --status paie111\n'
                 'To redisplay this README: pup software --README paie111\n\n'
                 'Note: The \'pup\' cli supports tab autocompletion.\n\n')
