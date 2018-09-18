@@ -237,8 +237,8 @@ class software(object):
                 '- dli-1.2.0.0_ppc64le.bin\n'
                 '- dli_entitlement.dat\n\n'
                 'The following files must also be downloaded to this node;\n'
-                '- cudnn-9.2-linux-ppc64le-v7.1.tgz\n'
-                '- nccl_2.2.12-1+cuda9.2_ppc64le.tgz\n'
+                '- cudnn-9.2-linux-ppc64le-v7.2.1.38.tgz\n'
+                '- nccl_2.2.13-1+cuda9.2_ppc64le.tgz\n'
                 'For installation status: pup software --status paie111\n'
                 'To redisplay this README: pup software --README paie111\n\n'
                 'Note: The \'pup\' cli supports tab autocompletion.\n\n')
@@ -248,8 +248,41 @@ class software(object):
         self.status_prep(which)
 
     def status_prep(self, which='all'):
+
+        def yum_repo_status(item):
+            if item == 'PowerAI Base Repository':
+                content = glob.glob(os.path.join(self.root_dir, self.repo_id[item],
+                                    self.globs['PowerAI content']))
+            else:
+                content = True
+            repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
+                                 '/**/repodata', recursive=True)
+            sw_vars_data = (f'{self.repo_id[item]}-powerup.repo' in
+                            self.sw_vars['yum_powerup_repo_files'])
+            if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[item]}-local.repo') \
+                    and repodata and sw_vars_data and content:
+                self.state[item] = f'{item} is setup'
+
+        def content_status(item):
+            item_dir = get_name_dir(item)
+            exists = glob.glob(f'/srv/{item_dir}/**/{self.globs[item]}',
+                               recursive=True)
+            if 'Spectrum' in item:
+                exists2 = glob.glob(f'/srv/{item_dir}/**/'
+                                    f'{self.globs[item + " entitlement"]}',
+                                    recursive=True)
+            else:
+                exists2 = True
+            if exists and exists2:
+                self.state[item] = ('Present in the POWER-Up server')
+
         for item in self.state:
             self.state[item] = '-'
+
+            # yum repos status
+            if item in self.repo_id and 'Python' not in item:
+                yum_repo_status(item)
+
             # Firewall status
             if item == 'Firewall':
                 cmd = 'firewall-cmd --list-all'
@@ -264,14 +297,8 @@ class software(object):
                 if 'HTTP/1.1 200 OK' in resp:
                     self.state[item] = 'Nginx is configured and running'
 
-            # Anaconda content status
-            if item == 'Anaconda content':
-                item_dir = get_name_dir(item)
-                exists = glob.glob(f'/srv/{item_dir}/**/{self.globs[item]}',
-                                   recursive=True)
-                if exists:
-                    self.state['Anaconda content'] = ('Anaconda is present in the '
-                                                      'POWER-Up server')
+            if 'content' in item:
+                content_status(item)
 
             # Anaconda Repo Free status
             if item == 'Anaconda Free Repository':
@@ -291,53 +318,6 @@ class software(object):
                 if repodata and repodata_noarch:
                     self.state[item] = f'{item} is setup'
 
-            # cudnn status
-            if item == 'CUDA dnn content':
-                item_dir = get_name_dir(item)
-                exists = glob.glob(f'/srv/{item_dir}/**/{self.globs[item]}', recursive=True)
-                if exists:
-                    self.state['CUDA dnn content'] = ('CUDA DNN is present in the '
-                                                      'POWER-Up server')
-
-            # cuda nccl2 status
-            if item == 'CUDA nccl2 content':
-                item_dir = get_name_dir(item)
-                exists = glob.glob(f'/srv/{item_dir}/**/{self.globs[item]}', recursive=True)
-                if exists:
-                    self.state[item] = ('CUDA nccl2 is present in the '
-                                        'POWER-Up server')
-
-            # Spectrum conductor status
-            if item == 'Spectrum conductor content':
-                item_dir = get_name_dir(item)
-                exists = glob.glob(f'/srv/{item_dir}/**/'
-                                   f'{self.globs[item]}', recursive=True)
-                exists2 = glob.glob(f'/srv/{item_dir}/**/'
-                                    f'{self.globs[item + " entitlement"]}', recursive=True)
-                if exists and exists2:
-                    self.state[item] = \
-                        'Spectrum Conductor is present in the POWER-Up server'
-
-            # Spectrum DLI status
-            if item == 'Spectrum DLI content':
-                item_dir = get_name_dir(item)
-                exists = glob.glob(f'/srv/{item_dir}/**/{self.globs[item]}',
-                                   recursive=True)
-                exists2 = glob.glob(f'/srv/{item_dir}/**/'
-                                    f'{self.globs[item + " entitlement"]}', recursive=True)
-                if exists and exists2:
-                    self.state[item] = ('Spectrum DLI is present in the '
-                                        'POWER-Up server')
-            # PowerAI status
-            if item == 'PowerAI Base Repository':
-                content = glob.glob(os.path.join(self.root_dir, self.repo_id[item],
-                                    self.globs['PowerAI content']))
-                repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
-                                     '/**/repodata', recursive=True)
-                if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[item]}-local.repo') \
-                        and repodata and content:
-                    self.state[item] = f'{item} is setup'
-
             # PowerAI Enterprise license status
             if item == 'PowerAI Enterprise license':
                 item_dir = get_name_dir(item)
@@ -345,30 +325,6 @@ class software(object):
                                    recursive=True)
                 if exists:
                     self.state[item] = ('PowerAI Enterprise license is present')
-
-            # CUDA status
-            if item == 'CUDA Toolkit Repository':
-                repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
-                                     '/**/repodata', recursive=True)
-                if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[item]}-local.repo') \
-                        and repodata:
-                    self.state[item] = f'{item} is setup'
-
-            # EPEL status
-            if item == 'EPEL Repository':
-                repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
-                                     '/**/repodata', recursive=True)
-                if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[item]}-local.repo') \
-                        and repodata:
-                    self.state[item] = f'{item} is setup'
-
-            # Dependent Packages status
-            if item == 'Dependent Packages Repository':
-                repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
-                                     '/**/repodata', recursive=True)
-                if os.path.isfile(f'/etc/yum.repos.d/{self.repo_id[item]}-local.repo') \
-                        and repodata:
-                    self.state[item] = f'{item} is setup'
 
             # Python Packages status
             if item == 'Python Package Repository':

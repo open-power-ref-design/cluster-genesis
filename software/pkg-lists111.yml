@@ -9,7 +9,8 @@ yum_pkgs: [kernel, kernel-tools, kernel-tools-libs, dejavu-serif-fonts, bzip2, o
     libpng-devel, libffi-devel, openssl-devel, krb5-devel, pkgconfig, openssl-libs,
     libkadm5, libcom_err-devel, libselinux-devel, libverto-devel, keyutils-libs-devel,
     krb5-libs, pcre-devel, libsepol-devel, libcom_err, e2fsprogs, e2fsprogs-libs, libss,
-    yum-utils]
+    yum-utils, wget, python, python-libs, python-setuptools, python-devel,
+    python-backports-ssl_match_hostname, python-ipaddress, python-backports]
 
 anaconda_free_pkgs:
     reject_list: [continuum-docs-*,cudatoolkit-*,cudnn-*,tensorflow-*,caffe-*,
