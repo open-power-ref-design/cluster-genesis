@@ -210,22 +210,31 @@ class PowerupRepo(object):
         if name:
             print(f'\nChoice for source of {name} repository:')
         if url:
-            ch, item = get_selection('Public mirror.Alternate web site', 'P.A',
-                                     'Select source: ', '.', allow_none=True)
+            sel_txt = 'Public mirror.Alternate web site'
+            sel_chcs = 'P.A'
         else:
-            ch = 'A'
-        if ch == 'A':
-            if not alt_url:
-                alt_url = f'http://host/repos/{self.repo_id}/'
-            url = get_url(alt_url, prompt_name=self.repo_name,
-                          repo_chk=self.repo_type, contains=contains,
-                          excludes=excludes, filelist=filelist)
-            if url:
-                if url[-1] != '/':
-                    url = url + '/'
-        elif ch == 'N':
-            url = None
-        return url
+            sel_txt = 'Alternate web site'
+            sel_chcs = 'A'
+        _url = None
+        while _url is None:
+            ch, item = get_selection(sel_txt, sel_chcs,
+                                     'Choice: ', '.', allow_none=True)
+            if ch == 'P':
+                _url = url
+                break
+            if ch == 'A':
+                if not alt_url:
+                    alt_url = f'http://host/repos/{self.repo_id}/'
+                _url = get_url(alt_url, prompt_name=self.repo_name,
+                               repo_chk=self.repo_type, contains=contains,
+                               excludes=excludes, filelist=filelist)
+                if _url and _url[-1] != '/':
+                    _url = _url + '/'
+                    break
+            elif ch == 'N':
+                _url = None
+                break
+        return _url
 
     def copy_to_srv(self, src_path, dst):
         dst_dir = f'{self.repo_base_dir}/{dst}'

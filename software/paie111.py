@@ -885,6 +885,12 @@ class software(object):
         heading1(f'Set up {name.title()} \n')
         nccl2_src = self.globs[name]
         nccl2_url = ''
+
+        if f'{name}_alt_url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{name}_alt_url']
+        else:
+            alt_url = None
+
         exists = self.status_prep(name)
 
         if exists:

@@ -366,9 +366,10 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk='', contains=[]
                             _list = found
                         elif _found:
                             _list = _found
-                            print(bold('\nWarning. The following url(s) were '
-                                       'found but do not match the '
-                                       'search criteria\n'))
+                            if repo_chk:
+                                print(bold('\nWarning. The following url(s) were '
+                                           'found but do not match the '
+                                           'search criteria'))
                         else:
                             _list = []
                         if _list:
