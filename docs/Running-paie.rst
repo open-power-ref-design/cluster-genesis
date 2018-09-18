@@ -252,4 +252,4 @@ To uninstall the POWER-Up software and remove the software repositories, follow 
     - Assuming you installed to your home directory, from your home directory
       execute::
 
-        $ rm -rf /power-up
+        $ sudo rm -rf /power-up
