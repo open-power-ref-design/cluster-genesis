@@ -249,7 +249,6 @@ To uninstall the POWER-Up software and remove the software repositories, follow 
     $ sudo yum erase powerai-enterprise-license -y
 
 #. Uninstall the PowerUp Software
-    - Assuming you installed to your home directory, from your home directory
-      execute::
+    - Assuming you installed from your home directory, execute::
 
-        $ sudo rm -rf /power-up
+        $ sudo rm -rf ~/power-up
