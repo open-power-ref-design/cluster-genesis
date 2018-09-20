@@ -1,16 +1,87 @@
-yum_pkgs: [kernel, kernel-tools, kernel-tools-libs, dejavu-serif-fonts, bzip2, opencv,
-    opencv-devel, opencv-python, snappy-devel, curl, bind-utils, iproute, acl,
-    net-tools, kernel-bootwrapper, kernel-devel, kernel-headers, gcc, gcc-c++,
-    libXdmcp, elfutils-libelf-devel, java-1.8.0-openjdk, libmpc, libatomic,
-    glibc-devel, glibc-headers, mpfr, kernel-headers, zlib-devel, boost-system,
-    libgfortran, boost-python, boost-thread, boost-filesystem, java-1.8.0-openjdk-devel,
-    scipy, PyYAML, pyparsing, python-pillow, python-matplotlib, pciutils, libgcc,
-    libgomp, libstdc++, libstdc++-devel, cpp, gcc-c++, gcc-gfortran, freetype-devel,
-    libpng-devel, libffi-devel, openssl-devel, krb5-devel, pkgconfig, openssl-libs,
-    libkadm5, libcom_err-devel, libselinux-devel, libverto-devel, keyutils-libs-devel,
-    krb5-libs, pcre-devel, libsepol-devel, libcom_err, e2fsprogs, e2fsprogs-libs, libss,
-    yum-utils, wget, python, python-libs, python-setuptools, python-devel,
-    python-backports-ssl_match_hostname, python-ipaddress, python-backports]
+yum_pkgs:
+    - acl
+    - bind-utils
+    - bind-libs
+    - boost-python
+    - boost-system
+    - boost-thread
+    - boost-filesystem
+    - bzip2
+    - cpp
+    - curl
+    - dejavu-serif-fonts
+    - e2fsprogs
+    - e2fsprogs-libs
+    - elfutils-libelf-devel
+    - freetype-devel
+    - GeoIP
+    - gcc
+    - gcc-c++
+    - gcc-gfortran
+    - glibc
+    - glibc-devel
+    - glibc-headers
+    - iproute
+    - java-1.8.0-openjdk
+    - java-1.8.0-openjdk-devel
+    - kernel
+    - kernel-headers
+    - kernel-tools
+    - kernel-tools-libs
+    - kernel-bootwrapper
+    - kernel-devel
+    - kernel-headers
+    - keyutils-libs-devel
+    - krb5-devel
+    - krb5-libs
+    - libatomic
+    - libcap
+    - libcom_err
+    - libcom_err-devel
+    - libidn
+    - libkadm5
+    - libmpc
+    - libgcc
+    - libgfortran
+    - libgomp
+    - libstdc++
+    - libstdc++-devel
+    - libsepol-devel
+    - libcom_err
+    - libss
+    - libpng-devel
+    - libffi-devel
+    - libselinux-devel
+    - libverto-devel
+    - libXdmcp
+    - libxml2
+    - mpfr
+    - net-tools
+    - opencv
+    - opencv-devel
+    - opencv-python
+    - openssl-devel
+    - openssl-libs
+    - PyYAML
+    - pyparsing
+    - python-pillow
+    - python-matplotlib
+    - pciutils
+    - pkgconfig
+    - pcre-devel
+    - python
+    - python-libs
+    - python-setuptools
+    - python-devel
+    - python-backports-ssl_match_hostname
+    - python-ipaddress
+    - python-backports
+    - scipy
+    - snappy-devel
+    - wget
+    - yum-utils
+    - zlib
+    - zlib-devel
 
 anaconda_free_pkgs:
     reject_list: [continuum-docs-*,cudatoolkit-*,cudnn-*,tensorflow-*,caffe-*,
