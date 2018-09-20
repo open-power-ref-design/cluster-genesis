@@ -821,14 +821,8 @@ def get_ansible_inventory():
                       .format(software_hosts_file_path))
             # If no software inventory file exists create one using template
             else:
-                print("Software inventory file not found.")
-                if click.confirm('Do you want to create a new inventory from '
-                                 'a template?'):
-                    _create_new_software_inventory(software_hosts_file_path)
-                elif click.confirm('Do you want to exit the program?'):
-                    sys.exit(1)
-                else:
-                    continue
+                rlinput("Press enter to create client node inventory")
+                _create_new_software_inventory(software_hosts_file_path)
 
             # Print software inventory file contents
             if os.path.isfile(software_hosts_file_path):
