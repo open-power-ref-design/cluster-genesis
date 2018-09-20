@@ -336,14 +336,11 @@ def _check_known_hosts(host_list):
         for known_hosts in known_hosts_files:
             cmd = (f'ssh-keygen -F {host} -f {known_hosts}')
             resp, err, rc = sub_proc_exec(cmd)
-            if rc == 1:
-                print(f'No host key found in {known_hosts} for {host}')
+            if rc != 0:
                 cmd = (f'ssh-keyscan -H {host}')
                 resp, err, rc = sub_proc_exec(cmd)
-                print(f'The following keys were collected:')
-                print(resp)
-                if get_yesno(f'Add key(s) to {known_hosts}? '):
-                    append_line(known_hosts, resp, check_exists=False)
+                print(f'Adding \'{host}\' host keys to \'{known_hosts}\'')
+                append_line(known_hosts, resp, check_exists=False)
 
 
 def _validate_ansible_ping(software_hosts_file_path, hosts_list):
