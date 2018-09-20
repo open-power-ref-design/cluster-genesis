@@ -33,6 +33,7 @@ import socket
 from subprocess import CalledProcessError
 import sys
 from getpass import getpass
+from time import sleep
 
 from inventory import generate_dynamic_inventory
 from lib.exception import UserException
@@ -458,26 +459,27 @@ def configure_ssh_keys(software_hosts_file_path):
         "ansible_ssh_common_args='-o StrictHostKeyChecking=no'")
 
     hostvars = get_ansible_hostvars(software_hosts_file_path)
-    global_user = None
-    global_pass = None
-    for host in _validate_inventory_count(software_hosts_file_path):
-        if global_user is None and 'ansible_user' not in hostvars[host]:
-            print(bold('\nOne or more hosts does not have \'ansible_user\' '
-                       'defined in inventory'))
-            global_user = rlinput('Please input a global client SSH login '
-                                  'username: ')
-            add_software_hosts_global_var(software_hosts_file_path,
-                                          f'ansible_user={global_user}')
-        if global_pass is None and 'ansible_ssh_pass' not in hostvars[host]:
-            print(bold('\nOne or more hosts does not have '
-                       '\'ansible_ssh_pass\' defined in inventory'))
-            global_pass = getpass('Please input a global client SSH login '
-                                  'password: ')
-        if global_user is not None and global_pass is not None:
-            break
 
     run = True
     while run:
+        global_user = None
+        global_pass = None
+        header_printed = False
+        header_msg = bold('\nGlobal client SSH login credentials required')
+        for host in _validate_inventory_count(software_hosts_file_path):
+            if global_user is None and 'ansible_user' not in hostvars[host]:
+                print(header_msg)
+                header_printed = True
+                global_user = rlinput('username: ')
+                add_software_hosts_global_var(software_hosts_file_path,
+                                              f'ansible_user={global_user}')
+            if (global_pass is None and
+                    'ansible_ssh_pass' not in hostvars[host]):
+                if not header_printed:
+                    print(header_msg)
+                global_pass = getpass('password: ')
+            if global_user is not None and global_pass is not None:
+                break
         heading1("Copying SSH Public Keys to Hosts\n")
         rc = copy_ssh_key_pair_to_hosts(ssh_key, software_hosts_file_path,
                                         global_pass)
@@ -492,7 +494,9 @@ def configure_ssh_keys(software_hosts_file_path):
                 log.debug('User chooses to exit.')
                 sys.exit('Exiting')
         else:
-            log.info("SSH key successfully copied to all hosts")
+            print()
+            log.info("SSH key successfully copied to all hosts\n")
+            sleep(4)
             run = False
 
     add_software_hosts_global_var(software_hosts_file_path,
@@ -702,9 +706,10 @@ def copy_ssh_key_pair_to_hosts(private_key_path, software_hosts_file_path,
         if 'ansible_ssh_pass' not in hostvars[host]:
             cmd = f'SSHPASS=\'{global_pass}\' sshpass -e ' + cmd
 
-        rc = sub_proc_display(cmd, shell=True)
+        resp, err, rc = sub_proc_exec(cmd, shell=True)
         if rc != 0:
             all_zero_returns = False
+            print(err)
 
     return all_zero_returns
 
