@@ -58,7 +58,6 @@ def setup_source_file(name, src_glob, url='', alt_url='http://',
             only a single match is found it is used without choice and returned.
         dest_path (str)
     """
-    state = False
     src_path = None
     dest_path = None
     log = logger.getlogger()
@@ -66,76 +65,83 @@ def setup_source_file(name, src_glob, url='', alt_url='http://',
     exists = glob.glob(f'/srv/{name_src}/**/{src_glob}', recursive=True)
     if exists:
         dest_path = exists[0]
-        state = True
-    ch, item = get_selection('Copy from URL\nSearch local Disk', 'U\nD', allow_none=True)
-    if ch == 'U':
-        if url:
-            ch, item = get_selection('Public mirror.Alternate web site', 'P.A',
-                                     'Select source: ', '.')
-        if ch == 'P':
-            _url = url
-        else:
-            _url = alt_url if alt_url else 'http://'
-        rc = -9
-        while _url is not None and rc != 0:
-            _url = get_url(_url, fileglob=src_glob)
-            if _url:
+    copied = False
+    ch = ''
+    while not copied:
+        ch, item = get_selection('Copy from URL\nSearch local Disk', 'U\nD',
+                                 allow_none=True)
+
+        if ch == 'U':
+            if url:
+                ch1, item = get_selection('Public mirror.Alternate web site', 'P.A',
+                                          'Select source: ', '.')
+                if ch1 == 'P':
+                    _url = url
+            else:
+                _url = alt_url if alt_url else 'http://'
+            rc = -9
+            while _url is not None and rc != 0:
+                _url = get_url(_url, fileglob=src_glob)
+                if _url:
+                    dest_dir = f'/srv/{name_src}'
+                    if not os.path.exists(dest_dir):
+                        os.mkdir(dest_dir)
+                    cmd = f'wget -r -l 1 -nH -np --cut-dirs=1 -P {dest_dir} {_url}'
+                    rc = sub_proc_display(cmd)
+                    if rc != 0:
+                        log.error(f'Failed downloading {name} source to'
+                                  f' /srv/{name_src}/ directory. \n{rc}')
+                        copied = False
+                    else:
+                        src_path = _url
+                        dest_path = os.path.join(dest_dir, os.path.basename(_url))
+                        copied = True
+                    if src2:
+                        _url2 = os.path.join(os.path.dirname(_url), src2)
+                        cmd = f'wget -r -l 1 -nH -np --cut-dirs=1 -P {dest_dir} {_url2}'
+                        rc = sub_proc_display(cmd)
+                        if rc != 0:
+                            log.error(f'Failed downloading {name} source file {src2} to'
+                                      f' /srv/{name_src}/ directory. \n{rc}')
+                            copied = False
+                        else:
+                            src_path = _url
+                            copied = copied and True
+        elif ch == 'D':
+            src_path = get_src_path(src_glob)
+            if src_path:
                 dest_dir = f'/srv/{name_src}'
                 if not os.path.exists(dest_dir):
                     os.mkdir(dest_dir)
-                cmd = f'wget -r -l 1 -nH -np --cut-dirs=1 -P {dest_dir} {_url}'
-                rc = sub_proc_display(cmd)
-                if rc != 0:
-                    log.error(f'Failed downloading {name} source to'
-                              f' /srv/{name_src}/ directory. \n{rc}')
-                else:
-                    src_path = _url
-                    dest_path = os.path.join(dest_dir, os.path.basename(_url))
-                    state = True
-                if src2:
-                    _url2 = os.path.join(os.path.dirname(_url), src2)
-                    cmd = f'wget -r -l 1 -nH -np --cut-dirs=1 -P {dest_dir} {_url2}'
-                    rc = sub_proc_display(cmd)
-                    if rc != 0:
-                        log.error(f'Failed downloading {name} source file {src2} to'
-                                  f' /srv/{name_src}/ directory. \n{rc}')
-                        state = False
-                    else:
-                        src_path = _url
-                        state = state and True
-    elif ch == 'D':
-        src_path = get_src_path(src_glob)
-        if src_path:
-            dest_dir = f'/srv/{name_src}'
-            if not os.path.exists(dest_dir):
-                os.mkdir(dest_dir)
-            try:
-                copy2(src_path, dest_dir)
-            except Error as err:
-                log.debug(f'Failed copying {name} source file to /srv/{name_src}/ '
-                          f'directory. \n{err}')
-            else:
-                log.info(f'Successfully installed {name} source file '
-                         'into the POWER-Up software server.')
-                dest_path = os.path.join(dest_dir, os.path.basename(src_path))
-                state = True
-            if src2:
                 try:
-                    src2_path = os.path.join(os.path.dirname(src_path), src2)
-                    copy2(src2_path, dest_dir)
+                    copy2(src_path, dest_dir)
                 except Error as err:
                     log.debug(f'Failed copying {name} source file to /srv/{name_src}/ '
                               f'directory. \n{err}')
-                    state = False
+                    copied = False
                 else:
-                    log.info(f'Successfully installed {name} source file {src2} '
+                    log.info(f'Successfully installed {name} source file '
                              'into the POWER-Up software server.')
-                    state = state and True
-    else:
-        log.info(f'No {name.capitalize()} source file copied to POWER-Up '
-                 'server directory')
+                    dest_path = os.path.join(dest_dir, os.path.basename(src_path))
+                    copied = True
+                if src2:
+                    try:
+                        src2_path = os.path.join(os.path.dirname(src_path), src2)
+                        copy2(src2_path, dest_dir)
+                    except Error as err:
+                        log.debug(f'Failed copying {name} source file to /srv/{name_src}/ '
+                                  f'directory. \n{err}')
+                        copied = False
+                    else:
+                        log.info(f'Successfully installed {name} source file {src2} '
+                                 'into the POWER-Up software server.')
+                        copied = copied and True
+        elif ch == 'N':
+            log.info(f'No {name.capitalize()} source file copied to POWER-Up '
+                     'server directory')
+            break
 
-    return src_path, dest_path, state
+    return src_path, dest_path, copied
 
 
 def get_name_dir(name):
