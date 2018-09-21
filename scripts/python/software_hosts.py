@@ -307,6 +307,9 @@ def _validate_host_list_network(host_list):
                           .format(host, exc))
                 raise UserException("Unable to resolve hostname '{}'!"
                                     .format(host))
+        else:
+            raise UserException('Client nodes must be defined using hostnames '
+                                f'(IP address found: {host})!')
 
     # Ping IP
     try:
