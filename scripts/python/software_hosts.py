@@ -33,7 +33,6 @@ import socket
 from subprocess import CalledProcessError
 import sys
 from getpass import getpass
-from time import sleep
 
 from inventory import generate_dynamic_inventory
 from lib.exception import UserException
@@ -241,18 +240,19 @@ def _set_software_hosts_owner_mode(software_hosts_file_path):
         os.chmod(software_hosts_file_path, 0o644)
 
 
-def _validate_inventory_count(software_hosts_file_path):
-    """Validate > 0 hosts are defined in inventory
+def _validate_inventory_count(software_hosts_file_path, min_hosts):
+    """Validate minimum number of hosts are defined in inventory
     Calls Ansible to process inventory which validates file syntax.
 
     Args:
         software_hosts_file_path (str): Path to software inventory file
+        min_hosts (int): Minimum number of hosts required to pass
 
     Returns:
         list: List of hosts defined in software inventory file
 
     Raises:
-        UserException: Ansible reports host count of less than one
+        UserException: Ansible reports host count of less than min_hosts
     """
     log = logger.getlogger()
     host_count = None
@@ -270,7 +270,7 @@ def _validate_inventory_count(software_hosts_file_path):
             if match:
                 host_count = int(match.group(1))
                 log.debug("Ansible host count: {}".format(host_count))
-                if host_count < 1:
+                if host_count < min_hosts:
                     raise UserException("Ansible reporting host count of less "
                                         "than one ({})!".format(host_count))
                 count_verified = True
@@ -463,7 +463,7 @@ def configure_ssh_keys(software_hosts_file_path):
         global_pass = None
         header_printed = False
         header_msg = bold('\nGlobal client SSH login credentials required')
-        for host in _validate_inventory_count(software_hosts_file_path):
+        for host in _validate_inventory_count(software_hosts_file_path, 0):
             if global_user is None and 'ansible_user' not in hostvars[host]:
                 print(header_msg)
                 header_printed = True
@@ -493,7 +493,6 @@ def configure_ssh_keys(software_hosts_file_path):
         else:
             print()
             log.info("SSH key successfully copied to all hosts\n")
-            sleep(4)
             run = False
 
     add_software_hosts_global_var(software_hosts_file_path,
@@ -686,7 +685,7 @@ def copy_ssh_key_pair_to_hosts(private_key_path, software_hosts_file_path,
         bool: True iff rc of all commands are "0"
     """
     log = logger.getlogger()
-    hosts_list = _validate_inventory_count(software_hosts_file_path)
+    hosts_list = _validate_inventory_count(software_hosts_file_path, 0)
     all_zero_returns = True
 
     hostvars = get_ansible_hostvars(software_hosts_file_path)
@@ -762,7 +761,7 @@ def validate_software_inventory(software_hosts_file_path):
     """
     # Validate file syntax and host count
     try:
-        hosts_list = _validate_inventory_count(software_hosts_file_path)
+        hosts_list = _validate_inventory_count(software_hosts_file_path, 1)
     except UserException as exc:
         print("Inventory validation error: {}".format(exc))
         return False
@@ -826,15 +825,9 @@ def get_ansible_inventory():
                 rlinput("Press enter to create client node inventory")
                 _create_new_software_inventory(software_hosts_file_path)
 
-            # Print software inventory file contents
-            if os.path.isfile(software_hosts_file_path):
-                print("--------------------------------------------------")
-                with open(software_hosts_file_path, 'r') as hosts_file:
-                    print(hosts_file.read())
-                print("--------------------------------------------------")
             # If still no software inventory file exists prompt user to
             # exit (else start over to create one).
-            else:
+            if not os.path.isfile(software_hosts_file_path):
                 print("No inventory file found at '{}'"
                       .format(software_hosts_file_path))
                 if click.confirm('Do you want to exit the program?'):
@@ -850,7 +843,9 @@ def get_ansible_inventory():
             menu_items = []
 
             # Validate software inventory
-            print("Validating software inventory...")
+            inv_count = len(_validate_inventory_count(software_hosts_file_path,
+                                                      0))
+            print(f'Validating software inventory ({inv_count} nodes)...')
             if validate_software_inventory(software_hosts_file_path):
                 print(bold("Validation passed!"))
             else:
