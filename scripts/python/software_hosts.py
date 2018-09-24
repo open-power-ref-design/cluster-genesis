@@ -759,28 +759,21 @@ def validate_software_inventory(software_hosts_file_path):
     Returns:
         bool: True is validation passes
     """
-    # Validate file syntax and host count
     try:
+        # Validate file syntax and host count
         hosts_list = _validate_inventory_count(software_hosts_file_path, 1)
+
+        # Validate hostname resolution and network connectivity
+        _validate_host_list_network(hosts_list)
+
+        # Ensure hosts keys exist in known_hosts
+        _check_known_hosts(hosts_list)
+
+        # Validate complete Ansible connectivity
+        _validate_ansible_ping(software_hosts_file_path, hosts_list)
+
     except UserException as exc:
         print("Inventory validation error: {}".format(exc))
-        return False
-
-    # Validate hostname resolution and network connectivity
-    try:
-        _validate_host_list_network(hosts_list)
-    except UserException as exc:
-        print("Inventory network validation error: {}".format(exc))
-        return False
-
-    # Ensure hosts keys exist in known_hosts
-    _check_known_hosts(hosts_list)
-
-    # Validate complete Ansible connectivity
-    try:
-        _validate_ansible_ping(software_hosts_file_path, hosts_list)
-    except UserException as exc:
-        print("Inventory validation error:\n{}".format(exc))
         return False
 
     # If no exceptions were caught validation passed
