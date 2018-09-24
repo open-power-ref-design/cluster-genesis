@@ -83,11 +83,11 @@ Installation of the PowerAI Enterprise software involves the following steps;
 Preparation of the client nodes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Before beginning automated installation, you should have completed the 'Setup for automated installer steps' at <TBD>
+Before beginning automated installation, you should have completed the 'Setup for automated installer steps' at https://www.ibm.com/support/knowledgecenter/SSFHA8_1.1.1/enterprise/powerai_auto_install_setup.html
 
 Before proceeding with preparation of the POWER-Up server, you will need to gather the following information;
 
--  hostname for each client node
+-  Fully qualified domain name (FQDN) for each client node
 -  Userid and password or private ssh key for accessing the client nodes. Note that for running an automated installation, the same user id and password must exist on all client nodes and must be configured with sudo access.
 
 Preparation of the POWER-Up Software Server
