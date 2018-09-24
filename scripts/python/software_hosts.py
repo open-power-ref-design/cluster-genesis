@@ -240,13 +240,15 @@ def _set_software_hosts_owner_mode(software_hosts_file_path):
         os.chmod(software_hosts_file_path, 0o644)
 
 
-def _validate_inventory_count(software_hosts_file_path, min_hosts):
+def _validate_inventory_count(software_hosts_file_path, min_hosts,
+                              group='all'):
     """Validate minimum number of hosts are defined in inventory
     Calls Ansible to process inventory which validates file syntax.
 
     Args:
         software_hosts_file_path (str): Path to software inventory file
         min_hosts (int): Minimum number of hosts required to pass
+        group (str, optional): Ansible group name (defaults to 'all')
 
     Returns:
         list: List of hosts defined in software inventory file
@@ -257,8 +259,8 @@ def _validate_inventory_count(software_hosts_file_path, min_hosts):
     log = logger.getlogger()
     host_count = None
     host_list = []
-    raw_host_list = bash_cmd('ansible all -i {} --list-hosts'
-                             .format(software_hosts_file_path))
+    raw_host_list = bash_cmd(f'ansible {group} -i {software_hosts_file_path} '
+                             '--list-hosts')
 
     # Iterate over ansible '--list-hosts' output
     count_verified = False
@@ -410,6 +412,36 @@ def _validate_ansible_ping(software_hosts_file_path, hosts_list):
         raise UserException(msg)
     log.debug("Software inventory Ansible ping validation passed")
     return True
+
+
+def _validate_master_node_count(software_hosts_file_path, min_count,
+                                max_count=0):
+    """Validate number of nodes are defined in inventory's 'master'
+    group. Either an exact or minimum count can be validated.
+
+    Args:
+        software_hosts_file_path (str): Path to software inventory file
+        min_count (int): Minimum number of master nodes
+        max_count (int, optional): Maximum number of master nodes. If
+                                   set to 0 no maximum value is checked.
+
+    Returns:
+        bool: True validation passes
+
+    Raises:
+        UserException: Minimum or exact count is not present
+    """
+    host_count = len(_validate_inventory_count(software_hosts_file_path, 0,
+                                               group='master'))
+
+    if host_count < min_count:
+        raise UserException(f'Inventory requires at least {min_count} master '
+                            f'node(s) ({host_count} found)!')
+    elif max_count != 0 and host_count > max_count:
+        raise UserException(f'Inventory requires at most {max_count} master '
+                            f'node(s) ({host_count} found)!')
+    else:
+        return True
 
 
 def configure_ssh_keys(software_hosts_file_path):
@@ -765,6 +797,9 @@ def validate_software_inventory(software_hosts_file_path):
 
         # Validate hostname resolution and network connectivity
         _validate_host_list_network(hosts_list)
+
+        # Validate  master node count is exactly 1
+        _validate_master_node_count(software_hosts_file_path, 1, 1)
 
         # Ensure hosts keys exist in known_hosts
         _check_known_hosts(hosts_list)
