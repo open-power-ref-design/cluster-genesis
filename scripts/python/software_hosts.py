@@ -33,6 +33,7 @@ import socket
 from subprocess import CalledProcessError
 import sys
 from getpass import getpass
+from socket import gethostname, getfqdn
 
 from inventory import generate_dynamic_inventory
 from lib.exception import UserException
@@ -447,6 +448,28 @@ def _validate_master_node_count(software_hosts_file_path, min_count,
         return True
 
 
+def _validate_installer_is_not_client(host_list):
+    """Validate the installer node is not listed as a client
+
+    Args:
+        host_list (list): List of hostnames
+
+    Returns:
+        bool: True validation passes
+
+    Raises:
+        UserException: If installer is listed as client
+    """
+    hostname = gethostname()
+    fqdn = getfqdn()
+
+    if hostname in host_list or fqdn in host_list:
+        raise UserException(f'Inventory requires at most {max_count} master '
+                            f'node(s) ({host_count} found)!')
+    else:
+        return True
+
+
 def configure_ssh_keys(software_hosts_file_path):
     """Configure SSH keys for Ansible software hosts
 
@@ -797,6 +820,9 @@ def validate_software_inventory(software_hosts_file_path):
     try:
         # Validate file syntax and host count
         hosts_list = _validate_inventory_count(software_hosts_file_path, 1)
+
+        # Validate installer is not in inventory
+        _validate_installer_is_not_client(hosts_list)
 
         # Validate hostname resolution and network connectivity
         _validate_host_list_network(hosts_list)
