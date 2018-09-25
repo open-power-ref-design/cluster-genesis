@@ -413,6 +413,12 @@ def _validate_ansible_ping(software_hosts_file_path, hosts_list):
 
                 return _validate_ansible_ping(software_hosts_file_path,
                                               hosts_list)
+        elif 'Permission denied' in msg:
+            print('"Permission denied" detected')
+            if get_yesno('Configure Client Nodes for SSH Key Access? '):
+                configure_ssh_keys(software_hosts_file_path)
+                return _validate_ansible_ping(software_hosts_file_path,
+                                              hosts_list)
         raise UserException(msg)
     log.debug("Software inventory Ansible ping validation passed")
     return True
