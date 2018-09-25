@@ -476,6 +476,37 @@ def _validate_installer_is_not_client(host_list):
         return True
 
 
+def _validate_client_hostnames(software_hosts_file_path, hosts_list):
+    """Validate hostnames listed in inventory match client hostnames
+
+    Args:
+        software_hosts_file_path (str): Path to software inventory file
+        host_list (list): List of hostnames or IP addresses
+
+    Returns:
+        bool: True if all client hostnames match
+
+    Raises:
+        UserException: If any hostname does not match
+    """
+    base_cmd = (f'{get_ansible_path()} -i {software_hosts_file_path} ')
+    msg = ""
+
+    for host in hosts_list:
+        cmd = base_cmd + f'{host} -a "hostname --fqdn"'
+        resp, err, rc = sub_proc_exec(cmd, shell=True)
+
+        hostname = resp.splitlines()[-1]
+
+        if hostname != host:
+            msg += (f"Inventory hostname mis-match: '{host}' is reporting "
+                    f"an FQDN of '{hostname}'\n")
+    if msg != "":
+        raise UserException(msg)
+    else:
+        return True
+
+
 def configure_ssh_keys(software_hosts_file_path):
     """Configure SSH keys for Ansible software hosts
 
@@ -841,6 +872,9 @@ def validate_software_inventory(software_hosts_file_path):
 
         # Validate complete Ansible connectivity
         _validate_ansible_ping(software_hosts_file_path, hosts_list)
+
+        # Validate hostnames listed in inventory match client hostnames
+        _validate_client_hostnames(software_hosts_file_path, hosts_list)
 
     except UserException as exc:
         print("Inventory validation error: {}".format(exc))
