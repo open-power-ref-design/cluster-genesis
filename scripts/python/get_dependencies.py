@@ -43,23 +43,24 @@ def main(name):
         self.log.error('file must be of type yaml ending in ".yml"')
         sys.exit('Exit due to critical error')
     try:
-        pkgs = yaml.load(open(path))
+        packages = yaml.load(open(path))
     except IOError:
         self.log.error(f'Error opening the pkg lists file {path}')
         sys.exit('Exit due to critical error')
-    pkg_list = pkgs['yum_pkgs']
+    pkg_list = packages['yum_pkgs']
 
     pkg_list_str = ' '.join(pkg_list)
     # To generate the complete dependency list add --recursive
     cmd = ('repoquery  --archlist=ppc64le,noarch --requires --resolve '
-           f'--pkgnarrow=all {pkg_list_str}')
+           f'--recursive --pkgnarrow=all {pkg_list_str}')
     resp, err, rc = sub_proc_exec(cmd)
     pkgs = list(set(resp.splitlines()))
     pkgs = pkg_list + pkgs
+    packages['yum_pkgs'] = pkgs
 
     try:
         with open(GEN_SOFTWARE_PATH + name.rstrip('.yml') + '-plus-deps.yml', 'w') as f:
-            yaml.dump(pkgs, f, default_flow_style=False)
+            yaml.dump(packages, f, default_flow_style=False)
     except IOError:
         self.log.error(f'Error opening the pkg lists file {path}')
         sys.exit('Exit due to critical error')
