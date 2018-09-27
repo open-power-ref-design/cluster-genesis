@@ -1116,7 +1116,7 @@ class software(object):
                 yaml.dump(self.sw_vars, f, default_flow_style=False)
 
     def _add_dependent_packages(self, repo_dir, dep_list):
-        cmd = (f'yumdownloader --resolve --archlist={self.arch} --destdir '
+        cmd = (f'yumdownloader --archlist={self.arch} --destdir '
                f'{repo_dir} {dep_list}')
         resp, err, rc = sub_proc_exec(cmd)
         if rc != 0:
