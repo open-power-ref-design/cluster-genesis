@@ -10,4 +10,5 @@
     # - tensorboard
     - power-mldl
     - power-ddl
+    - power-snapml
   become: yes
