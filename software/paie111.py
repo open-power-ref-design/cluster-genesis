@@ -1513,6 +1513,8 @@ def _set_spectrum_conductor_install_env(ansible_inventory, package):
                       f'CLUSTERADMIN: {hostvars["ansible_user"]}\n')
         replace_regex(envs_path, '^DLI_CONDA_HOME:\s*$',
                       f'DLI_CONDA_HOME: /opt/anaconda2\n')
+        replace_regex(envs_path, '^DLI_FRAMEWORK_HOME:\s*$',
+                      f'DLI_FRAMEWORK_HOME: /opt/DL\n')
 
     env_validated = False
     while not env_validated:

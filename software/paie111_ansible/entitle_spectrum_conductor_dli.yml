@@ -55,3 +55,16 @@
     out.stdout is not search("EGO\s*:\s*Entitled") or
     out.stdout is not search("Conductor\s*:\s*Entitled") or
     out.stdout is not search("Conductor Deep Learning Impact\s*:\s*Entitled")
+
+- name: Include configuration environment variables
+  include_vars:
+    file: envs_spectrum_conductor_dli.yml
+    name: envs
+
+- name: Once services are started, set recursive permissions for DLI_SHARED_FS
+  shell: "{{ item }}"
+  loop:
+    - setfacl -R -d -m u:$CLUSTERADMIN:rwx $DLI_SHARED_FS
+    - setfacl -R -d -m o::--- $DLI_SHARED_FS
+  environment: "{{ envs }}"
+  become: yes

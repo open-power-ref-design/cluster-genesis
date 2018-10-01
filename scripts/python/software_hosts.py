@@ -865,7 +865,7 @@ def validate_software_inventory(software_hosts_file_path):
         _validate_host_list_network(hosts_list)
 
         # Validate  master node count is exactly 1
-        _validate_master_node_count(software_hosts_file_path, 1, 1)
+        _validate_master_node_count(software_hosts_file_path, 1, 5)
 
         # Ensure hosts keys exist in known_hosts
         _check_known_hosts(hosts_list)

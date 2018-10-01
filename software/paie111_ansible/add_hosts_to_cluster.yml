@@ -20,9 +20,17 @@
     file: envs_spectrum_conductor_dli.yml
     name: envs
 
-- name: If adding management host run egoconfig mghost
+- name: Run egoconfig mghost on first management host
   shell: "source /opt/ibm/spectrumcomputing/profile.platform && \
-  egoconfig mghost $DLI_SHARED_FS"
+  egoconfig mghost $DLI_SHARED_FS -f"
+  environment: "{{ envs }}"
+  args:
+    executable: /bin/bash
+  when: ansible_host == groups['master'][0]
+
+- name: Run egoconfig mghost on additional management hosts
+  shell: "source /opt/ibm/spectrumcomputing/profile.platform && \
+  egoconfig mghost $DLI_SHARED_FS -f"
   environment: "{{ envs }}"
   args:
     executable: /bin/bash
