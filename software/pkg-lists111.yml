@@ -151,7 +151,7 @@ python_pkgs:
 - munch==2.3.2
 - netaddr==0.7.19
 - netifaces==0.10.7
-- numpy==1.15.0
+- numpy==1.12.1
 - openstacksdk==0.17.1
 - osc-lib==1.11.0
 - oslo.config==6.4.0
