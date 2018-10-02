@@ -1312,6 +1312,11 @@ class software(object):
 
         self._unlock_vault()
 
+        _set_spectrum_conductor_install_env(self.sw_vars['ansible_inventory'],
+                                            'spark')
+        _set_spectrum_conductor_install_env(self.sw_vars['ansible_inventory'],
+                                            'dli')
+
         install_tasks = yaml.load(open(GEN_SOFTWARE_PATH +
                                        'paie111_install_procedure.yml'))
         for task in install_tasks:
@@ -1324,14 +1329,6 @@ class software(object):
                     "Check PowerAI Enterprise License acceptance"):
                 _interactive_paie_license_accept(
                     self.sw_vars['ansible_inventory'])
-            elif (task['description'] ==
-                    "Install IBM Spectrum Conductor"):
-                _set_spectrum_conductor_install_env(
-                    self.sw_vars['ansible_inventory'], 'spark')
-            elif (task['description'] ==
-                    "Install IBM Spectrum Conductor DLI"):
-                _set_spectrum_conductor_install_env(
-                    self.sw_vars['ansible_inventory'], 'dli')
             extra_args = ''
             if 'hosts' in task:
                 extra_args = f"--limit \'{task['hosts']},localhost\'"
@@ -1515,6 +1512,7 @@ def _set_spectrum_conductor_install_env(ansible_inventory, package):
                       f'DLI_CONDA_HOME: /opt/anaconda2\n')
 
     env_validated = False
+    init = True
     while not env_validated:
         try:
             for key, value in yaml.load(open(envs_path)).items():
@@ -1523,12 +1521,17 @@ def _set_spectrum_conductor_install_env(ansible_inventory, package):
             else:
                 env_validated = True
         except IOError:
-            print('Failed to load Spectrum Conductor configuration')
+            print(f'Failed to load Spectrum Conductor {package} configuration')
 
         if not env_validated:
-            print('\nSpectrum Conductor Configuration variables incomplete!')
-            _ = input('Press enter to edit configuration file')
+            print(f'\nSpectrum Conductor {package} configuration variables '
+                  'incomplete!')
+            _ = input(f'Press enter to edit {package} configuration file')
             click.edit(filename=envs_path)
+        elif init and get_yesno(f'Edit Spectrum Conductor {package} '
+                                'configuration? '):
+            click.edit(filename=envs_path)
+        init = False
 
     user_name = os.getlogin()
     if os.getuid() == 0 and user_name != 'root':
@@ -1537,7 +1540,8 @@ def _set_spectrum_conductor_install_env(ansible_inventory, package):
         os.chown(envs_path, user_uid, user_gid)
         os.chmod(envs_path, 0o644)
 
-    print('Spectrum Conductor configuration variables successfully loaded\n')
+    print(f'Spectrum Conductor {package} configuration variables successfully '
+          'loaded\n')
 
 
 class YAMLVault(yaml.YAMLObject):
