@@ -40,6 +40,7 @@
   shell: "source /opt/anaconda2/bin/activate dli && pip install \
          --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
          hanziconv gensim --trusted-host {{ host_ip.stdout }}"
+  become: yes
 
 - name: Install PowerAI deep learning dependencies
   shell: "PATH=/opt/anaconda2/bin:$PATH {{ item }}"
