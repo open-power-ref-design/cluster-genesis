@@ -160,6 +160,7 @@ class software(object):
                       'PowerAI Enterprise license': '-',
                       'Dependent Packages Repository': '-',
                       'Python Package Repository': '-',
+                      'CUDA content': '-',
                       'CUDA dnn content': '-',
                       'CUDA nccl2 content': '-',
                       'Anaconda content': '-',
@@ -856,6 +857,81 @@ class software(object):
                 self.sw_vars[f'{repo_id}_alt_url'] = url
                 repo.sync(pkg_list, url + 'simple')
 
+        # Setup Cuda required packages only
+        name = 'Cuda content'
+        heading1('Retrieve and set up Cuda source RPM \n')
+        cuda_src = self.files['CUDA content']
+        # Note cuda_url is a redirected link
+        cuda_url = ('https://developer.nvidia.com/compute/cuda/9.2/Prod2/'
+                    f'local_installers/{cuda_src[:-4]}')
+        repo_id = 'cuda'
+        repo_name = 'Cuda toolkit and drivers'
+        repo = PowerupRepoFromRpm(repo_id, repo_name)
+        base_dir = repo.get_repo_base_dir()
+        dest_path = os.path.join(base_dir, repo_id, cuda_src)
+
+        if f'{name}_alt_url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{name}_alt_url']
+        else:
+            alt_url = 'http://'
+
+        exists = self.status_prep(which='CUDA content')
+        if exists:
+            self.log.info(f'The {name} exists already '
+                          'in the POWER-Up server.')
+
+        if f'{name}_alt_url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{name}_alt_url']
+        else:
+            alt_url = 'http://'
+
+        if not exists or get_yesno(f'Recopy {name}'):
+            dest_path = ''
+            ch, item = get_selection('Public mirror.Alternate location', 'P.A',
+                                     'Select source: ', '.')
+            if ch == 'P':
+                cmd = f'curl -I {cuda_url}'
+                resp, err, rc = sub_proc_exec(cmd)
+                if '302 Found' in resp:
+                    dest_path = os.path.join(base_dir, repo_id, cuda_src)
+                    # Need to change name on download
+                    cmd = f'wget -O {dest_path} {cuda_url}'
+                    rc = sub_proc_display(cmd)
+                    if not rc:
+                        self.log.error(f'Failed copying {name}. rc: {rc}')
+                        dest_path = ''
+            elif ch == 'A':
+                src_path, dest_path, state = \
+                    setup_source_file(name, cuda_src, '', alt_url=alt_url)
+                if 'http' in src_path:
+                    self.sw_vars[f'{name}_alt_url'] = os.path.dirname(src_path) + '/'
+                if not state:
+                    self.log.error(f'Failed copying {name}. rc: {rc}')
+                    dest_path = ''
+
+        # Set up the cuda toolkit/drivers repo
+        exists_content = self.status_prep(which='CUDA content')
+        exists = self.status_prep(which='CUDA Toolkit Repository')
+        if dest_path or (exists_content and not exists):
+            repo_id = 'cuda'
+            repo_name = 'CUDA Toolkit'
+
+            heading1(f'Create {repo_id.title()} Repository.')
+            repo = PowerupRepoFromRpm(repo_id, repo_name)
+
+            repodata_dir = repo.extract_rpm(dest_path)
+            if repodata_dir:
+                self.log.info(f'Successfully created {repo_name} repository')
+                content = repo.get_yum_dotrepo_content(repo_dir=repodata_dir,
+                                                       gpgcheck=0, local=True)
+                repo.write_yum_dot_repo_file(content)
+                content = repo.get_yum_dotrepo_content(repo_dir=repodata_dir,
+                                                       gpgcheck=0, client=True)
+                filename = repo_id + '-powerup.repo'
+                self.sw_vars['yum_powerup_repo_files'][filename] = content
+            else:
+                self.log.error(f'Failed creating {repo_name} repository')
+
         # Get cudnn tar file
         name = 'CUDA dnn content'
         heading1(f'Set up {name.title()} \n')
@@ -905,54 +981,54 @@ class software(object):
             if src_path and 'http' in src_path:
                 self.sw_vars[f'{name}_alt_url'] = os.path.dirname(src_path) + '/'
 
-        # Setup CUDA
-        repo_id = 'cuda'
-        repo_name = 'CUDA Toolkit'
-        baseurl = 'http://developer.download.nvidia.com/compute/cuda/repos/rhel7/ppc64le'
-        gpgkey = f'{baseurl}/7fa2af80.pub'
-        heading1(f'Set up {repo_name} repository\n')
-        if f'{repo_id}_alt_url' in self.sw_vars:
-            alt_url = self.sw_vars[f'{repo_id}_alt_url']
-        else:
-            alt_url = None
-
-        exists = self.status_prep(which='CUDA Toolkit Repository')
-        if exists:
-            self.log.info('The CUDA Toolkit Repository exists already'
-                          ' in the POWER-Up server')
-
-        repo = PowerupYumRepoFromRepo(repo_id, repo_name)
-
-        ch = repo.get_action(exists)
-        if ch in 'Y':
-            url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
-                                    filelist=['cuda-*'])
-            if url:
-                if not url == baseurl:
-                    self.sw_vars[f'{repo_id}_alt_url'] = url
-                    content = repo.get_yum_dotrepo_content(url, gpgcheck=0)
-                else:
-                    content = repo.get_yum_dotrepo_content(url, gpgkey=gpgkey)
-                repo.write_yum_dot_repo_file(content)
-
-                try:
-                    repo.sync()
-                except UserException as exc:
-                    self.log.error(f'Repo sync error: {exc}')
-
-                # recheck status after sync.
-                exists = self.status_prep(which='CUDA Toolkit Repository')
-
-                if not exists:
-                    repo.create_meta()
-                else:
-                    repo.create_meta(update=True)
-
-                content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
-                repo.write_yum_dot_repo_file(content)
-                content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
-                filename = repo_id + '-powerup.repo'
-                self.sw_vars['yum_powerup_repo_files'][filename] = content
+#        # Setup CUDA
+#        repo_id = 'cuda'
+#        repo_name = 'CUDA Toolkit'
+#        baseurl = 'http://developer.download.nvidia.com/compute/cuda/repos/rhel7/ppc64le'
+#        gpgkey = f'{baseurl}/7fa2af80.pub'
+#        heading1(f'Set up {repo_name} repository\n')
+#        if f'{repo_id}_alt_url' in self.sw_vars:
+#            alt_url = self.sw_vars[f'{repo_id}_alt_url']
+#        else:
+#            alt_url = None
+#
+#        exists = self.status_prep(which='CUDA Toolkit Repository')
+#        if exists:
+#            self.log.info('The CUDA Toolkit Repository exists already'
+#                          ' in the POWER-Up server')
+#
+#        repo = PowerupYumRepoFromRepo(repo_id, repo_name)
+#
+#        ch = repo.get_action(exists)
+#        if ch in 'Y':
+#            url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
+#                                    filelist=['cuda-*'])
+#            if url:
+#                if not url == baseurl:
+#                    self.sw_vars[f'{repo_id}_alt_url'] = url
+#                    content = repo.get_yum_dotrepo_content(url, gpgcheck=0)
+#                else:
+#                    content = repo.get_yum_dotrepo_content(url, gpgkey=gpgkey)
+#                repo.write_yum_dot_repo_file(content)
+#
+#                try:
+#                    repo.sync()
+#                except UserException as exc:
+#                    self.log.error(f'Repo sync error: {exc}')
+#
+#                # recheck status after sync.
+#                exists = self.status_prep(which='CUDA Toolkit Repository')
+#
+#                if not exists:
+#                    repo.create_meta()
+#                else:
+#                    repo.create_meta(update=True)
+#
+#                content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+#                repo.write_yum_dot_repo_file(content)
+#                content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
+#                filename = repo_id + '-powerup.repo'
+#                self.sw_vars['yum_powerup_repo_files'][filename] = content
 
         # Setup EPEL Repo
         repo_id = 'epel-ppc64le'
