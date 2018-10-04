@@ -984,55 +984,6 @@ class software(object):
             if src_path and 'http' in src_path:
                 self.sw_vars[f'{name}_alt_url'] = os.path.dirname(src_path) + '/'
 
-#        # Setup CUDA
-#        repo_id = 'cuda'
-#        repo_name = 'CUDA Toolkit'
-#        baseurl = 'http://developer.download.nvidia.com/compute/cuda/repos/rhel7/ppc64le'
-#        gpgkey = f'{baseurl}/7fa2af80.pub'
-#        heading1(f'Set up {repo_name} repository\n')
-#        if f'{repo_id}_alt_url' in self.sw_vars:
-#            alt_url = self.sw_vars[f'{repo_id}_alt_url']
-#        else:
-#            alt_url = None
-#
-#        exists = self.status_prep(which='CUDA Toolkit Repository')
-#        if exists:
-#            self.log.info('The CUDA Toolkit Repository exists already'
-#                          ' in the POWER-Up server')
-#
-#        repo = PowerupYumRepoFromRepo(repo_id, repo_name)
-#
-#        ch = repo.get_action(exists)
-#        if ch in 'Y':
-#            url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
-#                                    filelist=['cuda-*'])
-#            if url:
-#                if not url == baseurl:
-#                    self.sw_vars[f'{repo_id}_alt_url'] = url
-#                    content = repo.get_yum_dotrepo_content(url, gpgcheck=0)
-#                else:
-#                    content = repo.get_yum_dotrepo_content(url, gpgkey=gpgkey)
-#                repo.write_yum_dot_repo_file(content)
-#
-#                try:
-#                    repo.sync()
-#                except UserException as exc:
-#                    self.log.error(f'Repo sync error: {exc}')
-#
-#                # recheck status after sync.
-#                exists = self.status_prep(which='CUDA Toolkit Repository')
-#
-#                if not exists:
-#                    repo.create_meta()
-#                else:
-#                    repo.create_meta(update=True)
-#
-#                content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
-#                repo.write_yum_dot_repo_file(content)
-#                content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
-#                filename = repo_id + '-powerup.repo'
-#                self.sw_vars['yum_powerup_repo_files'][filename] = content
-
         # Setup EPEL Repo
         repo_id = 'epel-ppc64le'
         repo_name = 'Extra Packages for Enterprise Linux 7 (EPEL) - ppc64le'
