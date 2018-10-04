@@ -893,6 +893,9 @@ class software(object):
                 cmd = f'curl -I {cuda_url}'
                 resp, err, rc = sub_proc_exec(cmd)
                 if '302 Found' in resp:
+                    dest_dir = os.path.join(base_dir, repo_id)
+                    if not os.path.exists(dest_dir):
+                        os.mkdir(dest_dir)
                     dest_path = os.path.join(base_dir, repo_id, cuda_src)
                     # Need to change name on download
                     cmd = f'wget -O {dest_path} {cuda_url}'
