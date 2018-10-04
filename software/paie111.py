@@ -897,7 +897,7 @@ class software(object):
                     # Need to change name on download
                     cmd = f'wget -O {dest_path} {cuda_url}'
                     rc = sub_proc_display(cmd)
-                    if not rc:
+                    if rc != 0:
                         self.log.error(f'Failed copying {name}. rc: {rc}')
                         dest_path = ''
             elif ch == 'A':
