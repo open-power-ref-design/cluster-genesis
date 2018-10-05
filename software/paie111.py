@@ -160,7 +160,9 @@ class software(object):
                       'PowerAI Enterprise license': '-',
                       'Dependent Packages Repository': '-',
                       'Python Package Repository': '-',
-                      'CUDA content': '-',
+                      'CUDA toolkit content': '-',
+                      'CUDA driver content': '-',
+                      'CUDA patch content': '-',
                       'CUDA dnn content': '-',
                       'CUDA nccl2 content': '-',
                       'Anaconda content': '-',
@@ -857,37 +859,50 @@ class software(object):
                 self.sw_vars[f'{repo_id}_alt_url'] = url
                 repo.sync(pkg_list, url + 'simple')
 
-        # Setup Cuda required packages only
-        name = 'Cuda content'
-        heading1('Retrieve and set up Cuda source RPM \n')
-        cuda_src = self.files['CUDA content']
+        def add_to_repo(repo, repo_id, repo_name, dest_path):
+            heading1(f'Create {repo_id.title()} Repository.')
+            #repo = PowerupRepoFromRpm(repo_id, repo_name)
+
+            repodata_dir = repo.extract_rpm(dest_path)
+            if repodata_dir:
+                repo.create_meta()
+                self.log.info(f'Successfully created {repo_name} repository')
+                content = repo.get_yum_dotrepo_content(repo_dir=repodata_dir,
+                                                       gpgcheck=0, local=True)
+                repo.write_yum_dot_repo_file(content)
+                content = repo.get_yum_dotrepo_content(repo_dir=repodata_dir,
+                                                       gpgcheck=0, client=True)
+                filename = repo_id + '-powerup.repo'
+                self.sw_vars['yum_powerup_repo_files'][filename] = content
+            else:
+                self.log.error(f'Failed creating {repo_name} repository')
+
+        # Cuda aggregate repo
+        # Setup Cuda patch content
+        name = 'Cuda patch content'
+        heading1('Retrieve and set up Cuda patch source RPM \n')
+        cuda_src = self.files['CUDA patch content']
         # Note cuda_url is a redirected link
         cuda_url = ('https://developer.nvidia.com/compute/cuda/9.2/Prod2/'
-                    f'local_installers/{cuda_src[:-4]}')
+                    f'patches/1/{cuda_src[:-4]}')
         repo_id = 'cuda'
         repo_name = 'Cuda toolkit and drivers'
         repo = PowerupRepoFromRpm(repo_id, repo_name)
         base_dir = repo.get_repo_base_dir()
-        dest_path = os.path.join(base_dir, repo_id, cuda_src)
 
         if f'{name}_alt_url' in self.sw_vars:
             alt_url = self.sw_vars[f'{name}_alt_url']
         else:
             alt_url = 'http://'
 
-        exists = self.status_prep(which='CUDA content')
+        exists = self.status_prep(which='CUDA patch content')
         if exists:
             self.log.info(f'The {name} exists already '
                           'in the POWER-Up server.')
 
-        if f'{name}_alt_url' in self.sw_vars:
-            alt_url = self.sw_vars[f'{name}_alt_url']
-        else:
-            alt_url = 'http://'
-
         if not exists or get_yesno(f'Recopy {name}'):
             dest_path = ''
-            ch, item = get_selection('Public mirror.Alternate location', 'P.A',
+            ch, item = get_selection('Public web site.Alternate location', 'P.A',
                                      'Select source: ', '.')
             if ch == 'P':
                 cmd = f'curl -I {cuda_url}'
@@ -912,18 +927,79 @@ class software(object):
                     self.log.error(f'Failed copying {name}. rc: {rc}')
                     dest_path = ''
 
-        # Set up the cuda toolkit/drivers repo
-        exists_content = self.status_prep(which='CUDA content')
+            if dest_path:
+                self.sw_vars['content_files'][get_name_dir(name)] = dest_path
+                add_to_repo(repo, repo_id, repo_name, dest_path)
+
+        #exists_content = self.status_prep(which='CUDA patch content')
+        #exists = self.status_prep(which='CUDA Toolkit Repository')
+        #if dest_path or (exists_content and not exists):
+        #if dest_path:
+        #    add_to_repo(repo, repo_id, repo_name, dest_path)
+
+        # Setup Cuda toolkit required packages only
+        name = 'Cuda toolkit content'
+        heading1('Retrieve and set up Cuda toolkit source RPM \n')
+        cuda_src = self.files['CUDA toolkit content']
+        # Note cuda_url is a redirected link
+        cuda_url = ('https://developer.nvidia.com/compute/cuda/9.2/Prod2/'
+                    f'local_installers/{cuda_src[:-4]}')
+        #repo_id = 'cuda'
+        #repo_name = 'Cuda toolkit and drivers'
+        #repo = PowerupRepoFromRpm(repo_id, repo_name)
+        base_dir = repo.get_repo_base_dir()
+        #dest_path = os.path.join(base_dir, repo_id, cuda_src)
+
+        if f'{name}_alt_url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{name}_alt_url']
+        else:
+            alt_url = 'http://'
+
+        exists = self.status_prep(which='CUDA toolkit content')
+        if exists:
+            self.log.info(f'The {name} exists already '
+                          'in the POWER-Up server.')
+
+        dest_path = ''
+        if not exists or get_yesno(f'Recopy {name}'):
+            ch, item = get_selection('Public web site.Alternate location', 'P.A',
+                                     'Select source: ', '.')
+            if ch == 'P':
+                cmd = f'curl -I {cuda_url}'
+                resp, err, rc = sub_proc_exec(cmd)
+                if '302 Found' in resp:
+                    dest_dir = os.path.join(base_dir, repo_id)
+                    if not os.path.exists(dest_dir):
+                        os.mkdir(dest_dir)
+                    dest_path = os.path.join(base_dir, repo_id, cuda_src)
+                    # Need to change name on download
+                    cmd = f'wget -O {dest_path} {cuda_url}'
+                    rc = sub_proc_display(cmd)
+                    if rc != 0:
+                        self.log.error(f'Failed copying {name}. rc: {rc}')
+            elif ch == 'A':
+                src_path, dest_path, state = \
+                    setup_source_file(name, cuda_src, '', alt_url=alt_url)
+                if 'http' in src_path:
+                    self.sw_vars[f'{name}_alt_url'] = os.path.dirname(src_path) + '/'
+                if not state:
+                    self.log.error(f'Failed copying {name}. rc: {rc}')
+
+            if dest_path:
+                self.sw_vars['content_files'][get_name_dir(repo_id)] = dest_path
+
+        # Add to the cuda toolkit/drivers repo
+        exists_content = self.status_prep(which='CUDA toolkit content')
         exists = self.status_prep(which='CUDA Toolkit Repository')
         if dest_path or (exists_content and not exists):
-            repo_id = 'cuda'
-            repo_name = 'CUDA Toolkit'
+            #repo_name = 'CUDA Toolkit'
 
             heading1(f'Create {repo_id.title()} Repository.')
-            repo = PowerupRepoFromRpm(repo_id, repo_name)
+            #repo = PowerupRepoFromRpm(repo_id, repo_name)
 
             repodata_dir = repo.extract_rpm(dest_path)
             if repodata_dir:
+                repo.create_meta()
                 self.log.info(f'Successfully created {repo_name} repository')
                 content = repo.get_yum_dotrepo_content(repo_dir=repodata_dir,
                                                        gpgcheck=0, local=True)

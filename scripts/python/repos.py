@@ -409,7 +409,8 @@ class PowerupRepoFromRpm(PowerupRepo):
 
         repodata_dir = glob.glob(f'{extract_dir}/**/repodata', recursive=True)
         if repodata_dir:
-            return os.path.dirname(repodata_dir[0])
+            self.repo_dir = os.path.dirname(repodata_dir[0])
+            return self.repo_dir
         else:
             return None
 
