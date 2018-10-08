@@ -60,6 +60,30 @@ class software(object):
         self.non_int = non_int
         yaml.add_constructor(YAMLVault.yaml_tag, YAMLVault.from_yaml)
 
+        self.state = {'EPEL Repository': '-',
+                      'CUDA Toolkit Repository': '-',
+                      'PowerAI content': '-',
+                      'PowerAI Base Repository': '-',
+                      'PowerAIE license content': '-',
+                      'Dependent Packages Repository': '-',
+                      'Python Package Repository': '-',
+                      'CUDA dnn content': '-',
+                      'CUDA nccl2 content': '-',
+                      'Anaconda content': '-',
+                      'Anaconda Free Repository': '-',
+                      'Anaconda Main Repository': '-',
+                      'Spectrum conductor content': '-',
+                      'Spectrum conductor content entitlement': '-',
+                      'Spectrum DLI content': '-',
+                      'Spectrum DLI content entitlement': '-',
+                      'Nginx Web Server': '-',
+                      'Firewall': '-'}
+        self.repo_id = {'EPEL Repository': 'epel-ppc64le',
+                        'CUDA Toolkit Repository': 'cuda',
+                        'PowerAI Base Repository': 'powerai',
+                        'Dependent Packages Repository': 'dependencies',
+                        'Python Package Repository': 'pypi'}
+
         try:
             self.pkgs = yaml.load(open(GEN_SOFTWARE_PATH + 'pkg-lists111.yml'))
         except IOError:
@@ -151,26 +175,7 @@ class software(object):
         self.root_dir = '/srv/'
         self.repo_dir = self.root_dir + 'repos/{repo_id}/rhel' + self.rhel_ver + \
             '/{repo_id}'
-        self.state = {'EPEL Repository': '-',
-                      'CUDA Toolkit Repository': '-',
-                      'PowerAI Base Repository': '-',
-                      'PowerAI Enterprise license': '-',
-                      'Dependent Packages Repository': '-',
-                      'Python Package Repository': '-',
-                      'CUDA dnn content': '-',
-                      'CUDA nccl2 content': '-',
-                      'Anaconda content': '-',
-                      'Anaconda Free Repository': '-',
-                      'Anaconda Main Repository': '-',
-                      'Spectrum conductor content': '-',
-                      'Spectrum DLI content': '-',
-                      'Nginx Web Server': '-',
-                      'Firewall': '-'}
-        self.repo_id = {'EPEL Repository': 'epel-ppc64le',
-                        'CUDA Toolkit Repository': 'cuda',
-                        'PowerAI Base Repository': 'power-ai',
-                        'Dependent Packages Repository': 'dependencies',
-                        'Python Package Repository': 'pypi'}
+
         # When searching for files in other web servers, the fileglobs are converted to
         # regular expressions. An asterisk (*) after a bracket is converted to a
         # regular extression of [0-9]{0,3} Other asterisks are converted to regular
@@ -188,6 +193,35 @@ class software(object):
             else:
                 self.globs = file_lists['globs']
                 self.files = file_lists['files']
+
+        # If empty, initialize software_vars content and repo info
+        # from software server directory
+        update = False
+        for item in self.state:
+            if 'content' in item:
+                item_key = get_name_dir(item)
+                item_dir = item_key
+                if item_dir.endswith('-entitlement'):
+                    item_dir = item_dir[:-12]
+                exists = glob.glob(f'/srv/{item_dir}/**/{self.files[item]}',
+                                   recursive=True)
+                if not exists:
+                    exists = glob.glob(f'/srv/{item_dir}/**/{self.globs[item]}',
+                                       recursive=True)
+                    if exists:
+                        self.sw_vars['content_files'][item_key] = exists[0]
+
+                if item_key not in self.sw_vars['content_files']:
+                    update = True
+                    if exists:
+                        self.sw_vars['content_files'][item_key] = exists[0]
+                    else:
+                        self.sw_vars['content_files'][item_key] = ''
+        if update:
+            self.log.info('Content installation pointers were updated.\n'
+                          'To insure content levels are correct, run \n'
+                          'pup software --prep <module name>\n')
+
         if 'ansible_inventory' not in self.sw_vars:
             self.sw_vars['ansible_inventory'] = None
         if 'ansible_become_pass' not in self.sw_vars:
@@ -247,44 +281,61 @@ class software(object):
     def status_prep(self, which='all'):
 
         def yum_repo_status(item):
-            if item == 'PowerAI Base Repository':
-                content = glob.glob(os.path.join(self.root_dir, self.repo_id[item],
-                                    self.globs['PowerAI content']))
-            else:
-                content = True
             repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
                                  '/**/repodata', recursive=True)
             sw_vars_data = (f'{self.repo_id[item]}-powerup.repo' in
                             self.sw_vars['yum_powerup_repo_files'])
-            if repodata and sw_vars_data and content:
+            if repodata and sw_vars_data:
                 self.state[item] = f'{item} is setup'
 
         def content_status(item):
-            item_dir = get_name_dir(item)
+            ver_mis = False
+            item_key = get_name_dir(item)
+            item_dir = item_key
+            if item_dir.endswith('-entitlement'):
+                item_dir = item_dir[:-12]
             exists = glob.glob(f'/srv/{item_dir}/**/{self.globs[item]}',
                                recursive=True)
-            if 'Spectrum' in item:
-                exists2 = glob.glob(f'/srv/{item_dir}/**/'
-                                    f'{self.globs[item + " entitlement"]}',
-                                    recursive=True)
-            else:
-                exists2 = True
-            if exists and exists2:
-                self.state[item] = ('Present in the POWER-Up server')
 
+            sw_vars_data = item_key in self.sw_vars['content_files']
+
+            if exists and sw_vars_data:
+                if self.files[item] in self.sw_vars['content_files'][item_key]:
+                    self.state[item] = ('Present in the POWER-Up server')
+                else:
+                    ver_mis = True
+                    self.state[item] = (Color.yellow +
+                                        'Present but not at release level' +
+                                        Color.endc)
+            return ver_mis
+
+        ver_mis = False
         for item in self.state:
             self.state[item] = '-'
 
+            # Content files status
+            if 'content' in item:
+                ret = content_status(item)
+                ver_mis = ver_mis or ret
+                continue
+
             # yum repos status
-            if item in self.repo_id and 'Python' not in item:
-                yum_repo_status(item)
+            if item in self.repo_id:
+                if 'Python' in item:
+                    if os.path.exists(f'/srv/repos/{self.repo_id[item]}/simple/') and \
+                            len(os.listdir(f'/srv/repos/{self.repo_id[item]}/simple/')) >= 1:
+                        self.state[item] = f'{item} is setup'
+                else:
+                    yum_repo_status(item)
+                continue
 
             # Firewall status
             if item == 'Firewall':
                 cmd = 'firewall-cmd --list-all'
                 resp, err, rc = sub_proc_exec(cmd)
                 if re.search(r'services:\s+.+http', resp):
-                    self.state[item] = 'Firewall is running and configured for http'
+                    self.state[item] = "Running and configured for http"
+                continue
 
             # Nginx web server status
             if item == 'Nginx Web Server':
@@ -292,9 +343,7 @@ class software(object):
                 resp, err, rc = sub_proc_exec(cmd)
                 if 'HTTP/1.1 200 OK' in resp:
                     self.state[item] = 'Nginx is configured and running'
-
-            if 'content' in item:
-                content_status(item)
+                continue
 
             # Anaconda Repo Free status
             if item == 'Anaconda Free Repository':
@@ -304,6 +353,7 @@ class software(object):
                                      '/linux-ppc64le/repodata.json', recursive=True)
                 if repodata and repodata_noarch:
                     self.state[item] = f'{item} is setup'
+                continue
 
             # Anaconda Main repo status
             if item == 'Anaconda Main Repository':
@@ -313,36 +363,27 @@ class software(object):
                                      '/linux-ppc64le/repodata.json', recursive=True)
                 if repodata and repodata_noarch:
                     self.state[item] = f'{item} is setup'
-
-            # PowerAI Enterprise license status
-            if item == 'PowerAI Enterprise license':
-                item_dir = get_name_dir(item)
-                exists = glob.glob(f'/srv/{item_dir}/**/{self.globs[item]}',
-                                   recursive=True)
-                if exists:
-                    self.state[item] = ('PowerAI Enterprise license is present')
-
-            # Python Packages status
-            if item == 'Python Package Repository':
-                if os.path.exists(f'/srv/repos/{self.repo_id[item]}/simple/') and \
-                        len(os.listdir(f'/srv/repos/{self.repo_id[item]}/simple/')) >= 1:
-                    self.state[item] = f'{item} is setup'
+                continue
 
         exists = True
         if which == 'all':
             heading1('Preparation Summary')
             for item in self.state:
-                print(f'  {item:<30} : ' + self.state[item])
+                status = self.state[item]
+                it = (item + '                              ')[:38]
+                print(f'  {it:<39} : ' + status)
                 exists = exists and self.state[item] != '-'
 
-            gtg = 'Preparation complete'
+            gtg = 'Preparation complete. '
+            if ver_mis:
+                gtg += 'Some content is not at release level.'
             for item in self.state.values():
                 if item == '-':
                     gtg = f'{Color.red}Preparation incomplete{Color.endc}'
             print(f'\n{bold(gtg)}\n')
-
         else:
             exists = self.state[which] != '-'
+
         return exists
 
     def setup(self, eval_ver=False, non_int=False):
@@ -476,7 +517,7 @@ class software(object):
         heading1('Setting up the PowerAI base repository\n')
         pai_src = self.globs['PowerAI content']
         pai_url = ''  # No default public url exists
-        repo_id = 'power-ai'
+        repo_id = 'powerai'
         repo_name = 'IBM PowerAI Base'
 
         if f'{name}_alt_url' in self.sw_vars:
@@ -517,7 +558,7 @@ class software(object):
                 self.log.info('No source selected. Skipping PowerAI repository creation.')
 
         # Get PowerAI Enterprise license file
-        name = 'PowerAI Enterprise license'
+        name = 'PowerAIE license content'
         heading1(f'Set up {name.title()} \n')
         lic_src = self.globs[name]
         exists = self.status_prep(name)
