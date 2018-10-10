@@ -71,12 +71,13 @@ def setup_source_file(name, src_glob, url='', alt_url='http://',
         ch, item = get_selection('Copy from URL\nSearch local Disk', 'U\nD',
                                  allow_none=True)
 
-        _url = alt_url if alt_url else 'http://'
-        if ch == 'U' and url:
-            ch1, item = get_selection('Public web site.Alternate web site', 'P.A',
-                                      'Select source: ', '.')
-            if ch1 == 'P':
-                _url = url
+        if ch == 'U':
+            _url = alt_url if alt_url else 'http://'
+            if url:
+                ch1, item = get_selection('Public web site.Alternate web site', 'P.A',
+                                          'Select source: ', '.')
+                if ch1 == 'P':
+                    _url = url
             rc = -9
             while _url is not None and rc != 0:
                 _url = get_url(_url, fileglob=src_glob)
