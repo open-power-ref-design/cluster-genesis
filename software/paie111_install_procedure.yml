@@ -26,6 +26,9 @@
 - description: Install Anaconda installer
   tasks: anaconda_install.yml
 
+- description: Complete System Setup
+  tasks: complete_system_setup.yml
+
 - description: Install PowerAI Enterprise License Script
   tasks: powerai_license_install.yml
 
@@ -55,5 +58,5 @@
 - description: Add all hosts to cluster
   tasks: add_hosts_to_cluster.yml
 
-- description: Post-Install Configurations
-  tasks: post_install_config.yml
+- description: PowerAI tuning recommendations
+  tasks: powerai_tuning.yml
