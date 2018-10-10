@@ -32,11 +32,11 @@ from lib.exception import UserException
 
 def setup_source_file(name, src_glob, url='', alt_url='http://',
                       dest_dir=None, src2=None):
-    """Interactive selection of a source file and copy it to the /srv/<dest>
+    """Interactive selection of a source file and copy it to the /srv/<dest_dir>
     directory. The source file can include file globs and can come from a URL
-    or the local disk. Local disk searching starts in the
-    /home directory and then expands to the entire file system if no matches
-    found in any home directory. URLs must point to the directory with the file
+    or the local disk. Local disk searching starts in the /home and /root
+    directory and then expands to the entire file system if no matches
+    found in those directories. URLs must point to the directory with the file
     or a parent directory.
     Inputs:
         src_glob (str): Source file name to look for. Can include file globs
@@ -71,14 +71,12 @@ def setup_source_file(name, src_glob, url='', alt_url='http://',
         ch, item = get_selection('Copy from URL\nSearch local Disk', 'U\nD',
                                  allow_none=True)
 
-        if ch == 'U':
-            if url:
-                ch1, item = get_selection('Public mirror.Alternate web site', 'P.A',
-                                          'Select source: ', '.')
-                if ch1 == 'P':
-                    _url = url
-            else:
-                _url = alt_url if alt_url else 'http://'
+        _url = alt_url if alt_url else 'http://'
+        if ch == 'U' and url:
+            ch1, item = get_selection('Public web site.Alternate web site', 'P.A',
+                                      'Select source: ', '.')
+            if ch1 == 'P':
+                _url = url
             rc = -9
             while _url is not None and rc != 0:
                 _url = get_url(_url, fileglob=src_glob)
