@@ -47,11 +47,19 @@ POWER-Up Node  Prerequisites;
 
     $ df -h /srv
 
-#. From your home directory install the POWER-Up software and initialize the environment. For additional information see :ref:`installing`::
+#. Install the version of POWER-Up software appropriate for the version of PowerAI Enterprise you wish to install. The versions listed in the table below are the versions tested with the corresponding release of PowerAI Enterprise;
+
+.. csv-table::
+   :header: "PowerAI Enterprise Release", "POWER-Up software installer vs", "EOL date"
+
+   "1.1.0", "software-install-b2.5", "14 Sep 2018"
+   "1.1.1", "software-install-b2.9"
+
+From your home directory install the POWER-Up software and initialize the environment. For additional information see :ref:`installing`::
 
     $ sudo yum install git
 
-    $ git clone https://github.com/open-power-ref-design-toolkit/power-up -b software-install-b2
+    $ git clone https://github.com/open-power-ref-design-toolkit/power-up -b software-install-b2.n
 
     $ cd power-up
 
@@ -59,8 +67,11 @@ POWER-Up Node  Prerequisites;
 
     $ source scripts/setup-env
 
-
 **NOTES:**
+
+- The latest functional enhancements and defect fixes can be obtained by cloning the software installer without specifying the tag release. Generally, you should use a release level specified in the table above unless you are experiencing problems.::
+
+    git clone https://github.com/open-power-ref-design-toolkit/power-up -b software-install-b2
 
 - Multiple users can install and use the PAIE installer software, however there is only one software server created and there are no safeguards built in to protect against concurrent modifications of the software server content, data files or client nodes.
 - Each user of the PAIE installer software must install the POWER-Up software following the steps above.
@@ -93,8 +104,8 @@ Before proceeding with preparation of the POWER-Up server, you will need to gath
 Preparation of the POWER-Up Software Server
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Before beginning installation of PowerAI Enterprise, the files listed below need to be copied onto the software server node.
-The files can be copied anywhere, but the POWER-Up software can locate them quicker if the files are under one of the /home/ directories.
-Note that the PAIE installer will stop searching for installation files if required files are found under the /home directory or a sub directory of /home.
+The files can be copied anywhere, but the POWER-Up software can locate them quicker if the files are under a subdirectory of one of the /home/ directories or the /root directory.
+Note that the PAIE installer will stop searching for installation files if required files are found under one of the directories mentioned above.
 
 -  PowerAI Enterprise binary file. (powerai-enterprise-\*_ppc64le.bin)
 -  Cuda cudnn (cudnn-9.2-linux-ppc64le-v7.*.tgz)
