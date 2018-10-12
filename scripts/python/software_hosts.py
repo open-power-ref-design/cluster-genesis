@@ -338,6 +338,9 @@ def _check_known_hosts(host_list):
     user_name, user_home_dir = get_user_and_home()
     if os.environ['USER'] == 'root' and user_name != 'root':
         known_hosts_files.append('/root/.ssh/known_hosts')
+        if not os.path.isdir('/root/.ssh'):
+            os.mkdir('/root/.ssh')
+            os.chmod('/root/.ssh', 0o700)
 
     for host in host_list:
         for known_hosts in known_hosts_files:
