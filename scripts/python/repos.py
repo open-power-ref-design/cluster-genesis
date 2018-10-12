@@ -570,7 +570,7 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
             host = re.search(r'http://([^/]+)', alt_url).group(1)
             for pkg in pkg_list2:
                 print(pkg)
-                cmd = (f'python2.7 -m pip download --platform ppc64le --no-deps '
+                cmd = (f'python -m pip download --platform ppc64le --no-deps '
                        f'--index-url={alt_url} -d {self.pypirepo_dir} {pkg} '
                        f'--trusted-host {host}')
                 resp, err, rc = sub_proc_exec(cmd, shell=True)
@@ -581,7 +581,7 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
         else:
             for pkg in pkg_list2:
                 print(pkg)
-                cmd = (f'python2.7 -m pip download --platform ppc64le  --no-deps '
+                cmd = (f'python -m pip download --platform ppc64le  --no-deps '
                        f'-d {self.pypirepo_dir} {pkg}')
                 resp, err, rc = sub_proc_exec(cmd, shell=True)
                 if rc != 0:
