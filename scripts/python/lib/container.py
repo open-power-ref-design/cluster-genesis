@@ -324,6 +324,9 @@ class Container(object):
                 cmd.append(pkg)
             self.run_command(cmd, stdout=self.fd)
 
+        # Install additional python modules
+        self.run_command(['pip', 'install', 'ipaddress'], stdout=self.fd)
+
         # Create project directory
         self.run_command(['mkdir', '-p', self.cont_package_path],
                          stdout=self.fd)
