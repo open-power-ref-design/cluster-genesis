@@ -38,7 +38,7 @@ fi
 sshpass -e ssh -t $1@$2 'sudo yum -y install yum-utils'
 
 sshpass -e scp ./dependent-packages-paie111.list \
-    $1@$2:/home/$1/dependent-packages-paie111.list
+    $1@$2:dependent-packages-paie111.list
 
 sshpass -e ssh -t $1@$2 'mkdir -p tempdl && sudo yumdownloader --archlist=ppc64le \
     --resolve --destdir tempdl $(tr "\n" " " < dependent-packages-paie111.list)'
