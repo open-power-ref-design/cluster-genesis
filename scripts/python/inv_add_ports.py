@@ -85,7 +85,7 @@ class InventoryAddPorts(object):
         # MAC address in the DHCP leases table, then remove any MAC addresses
         # which do not have a  DHCP table entry.
         for switch in mgmt_sw_cfg_mac_lists.keys():
-            for port in mgmt_sw_cfg_mac_lists[switch]:
+            for port in list(mgmt_sw_cfg_mac_lists[switch].keys()):
                 port_macs = mgmt_sw_cfg_mac_lists[switch][port]
                 found_mac = False
                 for mac in dhcp_mac_ip.keys():

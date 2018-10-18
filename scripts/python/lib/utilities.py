@@ -21,6 +21,8 @@ import subprocess
 import fileinput
 from shutil import copy2
 from netaddr import IPNetwork
+from pyghmi.ipmi import command
+from pyghmi.ipmi.private import session
 
 from lib.config import Config
 import lib.logger as logger
@@ -42,7 +44,11 @@ def bash_cmd(cmd):
     command = ['bash', '-c', cmd]
     log.debug('Run subprocess: %s' % ' '.join(command))
     output = subprocess.check_output(command, universal_newlines=True,
-                                     stderr=subprocess.STDOUT).decode('utf-8')
+                                     stderr=subprocess.STDOUT)
+    try:
+        output = output.decode('utf-8')
+    except AttributeError:
+        pass
     log.debug(output)
 
     return output
@@ -156,7 +162,11 @@ def sub_proc_exec(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE):
     """
     proc = subprocess.Popen(cmd.split(), stdout=stdout, stderr=stderr)
     stdout, stderr = proc.communicate()
-    return stdout.decode("utf-8"), proc.returncode
+    try:
+        stdout = stdout.decode('utf-8')
+    except AttributeError:
+        pass
+    return stdout, proc.returncode
 
 
 def sub_proc_display(cmd, stdout=None, stderr=None):
@@ -213,3 +223,33 @@ def scan_ping_network(network_type='all', config_path=None):
         cmd = 'fping -a -r0 -g ' + net_c + '/' + str(netprefix)
         result, err = sub_proc_exec(cmd)
         print(result)
+
+def bmc_ipmi_login(node, userid, password):
+    """Open new IPMI connection
+
+    Args:
+        node (str): BMC hostname or IP address
+        userid (str): IPMI login userid
+        password (str): IPMI login password
+
+    Returns:
+        object: pyghmi.ipmi.command instance
+    """
+    log = logger.getlogger()
+    log.debug(f'Attempting to open IPMI connection to: {node} / '
+              f'{userid} / {password}')
+    session.Session.initting_sessions = {}
+    return command.Command(bmc=node,
+                           userid=userid,
+                           password=password)
+
+def bmc_ipmi_logout(bmc):
+    """Logout and close IPMI connection
+
+    Args:
+        bmc (pyghmi.ipmi.command object): command instance to logout
+    """
+    log = logger.getlogger()
+    rc = bmc.ipmi_session.logout()
+    log.debug(f'Closing IPMI connection to: {bmc.bmc} rc: {rc["success"]}')
+    del bmc.ipmi_session.initialized

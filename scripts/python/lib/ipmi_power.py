@@ -16,10 +16,10 @@
 # limitations under the License.
 
 import sys
-from pyghmi.ipmi import command as ipmi_command
 from pyghmi import exceptions as pyghmi_exception
 
 import lib.logger as logger
+from lib.utilities import bmc_ipmi_login
 
 
 class IpmiPower(object):
@@ -35,10 +35,9 @@ class IpmiPower(object):
 
     def _command(self, bmc):
         try:
-            self.ipmi_cmd = ipmi_command.Command(
-                bmc=bmc['ipv4'],
-                userid=bmc['userid'],
-                password=bmc['password'])
+            self.ipmi_cmd = bmc_ipmi_login(bmc['ipv4'],
+                                           bmc['userid'],
+                                           bmc['password'])
         except pyghmi_exception.IpmiException as exc:
             self.log.error(
                 'IPMI \'Command\' failed - Rack: %s - IP: %s, %s' %

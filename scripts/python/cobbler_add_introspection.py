@@ -16,7 +16,7 @@
 # limitations under the License.
 
 import sys
-import xmlrpclib
+import xmlrpc.client
 
 from lib.logger import Logger
 import lib.genesis as gen
@@ -30,7 +30,7 @@ COBBLER_PROFILE = 'introspection'
 
 class CobblerAddIntrospection(object):
     def __init__(self, log):
-        cobbler_server = xmlrpclib.Server("http://127.0.0.1/cobbler_api")
+        cobbler_server = xmlrpc.client.Server("http://127.0.0.1/cobbler_api")
         token = cobbler_server.login(COBBLER_USER, COBBLER_PASS)
 
         new_system_create = cobbler_server.new_system(token)

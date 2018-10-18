@@ -729,7 +729,7 @@ class Inventory(object):
 
         for interface in self.inv.nodes[node_index][self.InvKey.INTERFACES]:
             for key, value in interface.items():
-                if isinstance(value, basestring):
+                if isinstance(value, str):
                     value_split = []
                     for _value in value.split():
                         if old_name == _value or old_name in _value.split('.'):

@@ -16,7 +16,7 @@
 # limitations under the License.
 
 import sys
-import xmlrpclib
+import xmlrpc.client
 
 import lib.logger as logger
 import lib.genesis as gen
@@ -27,7 +27,7 @@ COBBLER_PASS = gen.get_cobbler_pass()
 
 def cobbler_set_netboot_enabled(netboot_enabled_value):
     log = logger.getlogger()
-    cobbler_server = xmlrpclib.Server("http://127.0.0.1/cobbler_api")
+    cobbler_server = xmlrpc.client.Server("http://127.0.0.1/cobbler_api")
     token = cobbler_server.login(COBBLER_USER, COBBLER_PASS)
 
     for system in cobbler_server.get_systems():
