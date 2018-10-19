@@ -794,11 +794,6 @@ class software(object):
         heading1(f'Set up {repo_name} repository')
         # list to str
         dep_list = ' '.join(self.pkgs['yum_pkgs'])
-        # Generate simple text list for use by get-dependent-packages.sh
-        # utility script.
-        with open(os.path.join(GEN_SOFTWARE_PATH,
-                  'dependent-packages-paie111.list'), 'w') as f:
-            f.write(dep_list)
 
         file_more = GEN_SOFTWARE_PATH + 'dependent-packages.list'
         if os.path.isfile(file_more):
