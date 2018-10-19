@@ -20,26 +20,11 @@ os_image_urls:
     images:
       - url: http://releases.ubuntu.com/14.04.5/ubuntu-14.04.5-server-amd64.iso
         sha1sum: 5e567024c385cc8f90c83d6763c6e4f1cd5deb6f
-  - name: ubuntu-14.04.5-server-ppc64el
+  - name: ubuntu-16.04.5-server-amd64
     images:
-      - url: http://cdimage.ubuntu.com/releases/14.04.5/release/ubuntu-14.04.5-server-ppc64el.iso
-        sha1sum: f4843944ca1927375bd3a0dbeb744f5764876dae
-      - url: http://us.ports.ubuntu.com/dists/trusty-updates/main/installer-ppc64el/20101020ubuntu318.41/images/xenial-netboot/mini.iso
-        filename: ubuntu-14.04.5-server-ppc64el.mini.iso
-        sha1sum: b167507d2a65fa81f199cd2125079beb499023c6
-  - name: ubuntu-16.04.3-server-amd64
+      - url: http://releases.ubuntu.com/16.04/ubuntu-16.04.5-server-amd64.iso
+        sha1sum: 24636fd103a2a43c95659f1c3c63718e
+  - name: ubuntu-16.04.5-server-ppc64el
     images:
-      - url: http://old-releases.ubuntu.com/releases/16.04.3/ubuntu-16.04.3-server-amd64.iso
-        sha1sum: f3532991e031cae75bcf5e695afb844dd278fff9
-  - name: ubuntu-16.04.4-server-amd64
-    images:
-      - url: http://releases.ubuntu.com/16.04/ubuntu-16.04.4-server-amd64.iso
-        sha1sum: ee834fbeb94cc55972b38caafa2029c29625e2e8
-  - name: ubuntu-16.04.3-server-ppc64el
-    images:
-      - url: http://cdimage.ubuntu.com/releases/16.04.3/release/ubuntu-16.04.3-server-ppc64el.iso
-        sha1sum: 3048e855b83787a23dc7fdd7e72496e264059d44
-  - name: ubuntu-16.04.4-server-ppc64el
-    images:
-      - url: http://cdimage.ubuntu.com/releases/16.04.4/release/ubuntu-16.04.4-server-ppc64el.iso
-        sha1sum: 8c9ead9f40b14ccc3cd30443c2eb362dfbb071ad
+      - url: http://cdimage.ubuntu.com/releases/16.04.5/release/ubuntu-16.04.5-server-ppc64el.iso
+        sha1sum: 2c17e6d6c34ba6d99c68ebcc6832ec20

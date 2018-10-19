@@ -273,9 +273,8 @@ def get_dhcp_pool_start():
 def check_os_profile(profile):
     ubuntu_lts_pointers = {
         "ubuntu-14.04-server-amd64": "ubuntu-14.04.5-server-amd64",
-        "ubuntu-14.04-server-ppc64el": "ubuntu-14.04.5-server-ppc64el",
-        "ubuntu-16.04-server-amd64": "ubuntu-16.04.4-server-amd64",
-        "ubuntu-16.04-server-ppc64el": "ubuntu-16.04.4-server-ppc64el"}
+        "ubuntu-16.04-server-amd64": "ubuntu-16.04.5-server-amd64",
+        "ubuntu-16.04-server-ppc64el": "ubuntu-16.04.5-server-ppc64el"}
     if profile in list(ubuntu_lts_pointers):
         return ubuntu_lts_pointers[profile]
     else:
