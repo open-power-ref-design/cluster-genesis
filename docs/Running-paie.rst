@@ -50,10 +50,11 @@ POWER-Up Node  Prerequisites;
 #. Install the version of POWER-Up software appropriate for the version of PowerAI Enterprise you wish to install. The versions listed in the table below are the versions tested with the corresponding release of PowerAI Enterprise;
 
 .. csv-table::
-   :header: "PowerAI Enterprise Release", "POWER-Up software installer vs", "EOL date"
+   :header: "PowerAI Enterprise Release", "POWER-Up software installer vs", "Notes", "EOL date"
 
-   "1.1.0", "software-install-b2.5", "14 Sep 2018"
+   "1.1.0", "software-install-b2.5", "", "14 Sep 2018"
    "1.1.1", "software-install-b2.9"
+   "1.1.1", "software-install-b2.10", "Updates for x86 based installer node"
 
 From your home directory install the POWER-Up software and initialize the environment. For additional information see :ref:`installing`::
 
