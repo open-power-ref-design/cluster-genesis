@@ -55,6 +55,8 @@ class software(object):
     """
     def __init__(self, eval_ver=False, non_int=False):
         self.log = logger.getlogger()
+        self.my_name = sys.modules[__name__].__name__
+        print(f'My name: {self.my_name}')
         self.yum_powerup_repo_files = []
         self.eval_ver = eval_ver
         self.non_int = non_int
@@ -254,24 +256,24 @@ class software(object):
                 'PowerAI Enterprise installation involves three steps;\n'
                 '\n  1 - Preparation. Prepares the installer node software server.\n'
                 '       The preparation phase may be run multiple times if needed.\n'
-                '       usage: pup software --prep paie111\n'
+                '       usage: pup software --prep paie112\n'
                 '\n  2 - Initialization of client nodes\n'
-                '       usage: pup software --init-clients paie111\n'
+                '       usage: pup software --init-clients paie112\n'
                 '\n  3 - Installation. Install software on the client nodes\n'
-                '       usage: pup software --install paie111\n\n'
+                '       usage: pup software --install paie112\n\n'
                 'Before beginning, the following files should be extracted from the\n'
                 'PowerAI Enterprise binary file and present on this node;\n'
-                '- mldl-repo-local-5.3.0-201808300520.15a25e3.ppc64le.rpm\n'
-                '- powerai-enterprise-license-1.1.1-104.65c2f3e.ppc64le.rpm\n'
+                '- mldl-repo-local-5.4.0-201810270571.66c790a.ppc64le.rpm\n'
+                '- powerai-enterprise-license-1.1.2-122.6ae8777.ppc64le.rpm\n'
                 '- conductor2.3.0.0_ppc64le.bin\n'
                 '- conductor_entitlement.dat\n'
-                '- dli-1.2.0.0_ppc64le.bin\n'
+                '- dli-1.2.1.0_ppc64le.bin\n'
                 '- dli_entitlement.dat\n\n'
                 'The following files must also be downloaded to this node;\n'
-                '- cudnn-9.2-linux-ppc64le-v7.2.1.38.tgz\n'
-                '- nccl_2.2.13-1+cuda9.2_ppc64le.tgz\n'
-                'For installation status: pup software --status paie111\n'
-                'To redisplay this README: pup software --README paie111\n\n'
+                '- cudnn-10.0-linux-ppc64le-v7.3.1.20.tgz\n'
+                '- nccl_2.3.4-1+cuda10.0_ppc64le.txz\n'
+                'For installation status: pup software --status paie112\n'
+                'To redisplay this README: pup software --README paie112\n\n'
                 'Note: The \'pup\' cli supports tab autocompletion.\n\n')
         print(text)
 
@@ -1315,10 +1317,10 @@ class software(object):
 
         print("\nValidating sudo password on all clients...")
 
-        sudo_test = f'{GEN_SOFTWARE_PATH}paie111_ansible/sudo_test.yml'
+        sudo_test = f'{GEN_SOFTWARE_PATH}{self.my_name}_ansible/sudo_test.yml'
         cmd = (f'{get_ansible_playbook_path()} '
                f'-i {self.sw_vars["ansible_inventory"]} '
-               f'{GEN_SOFTWARE_PATH}paie111_ansible/run.yml '
+               f'{GEN_SOFTWARE_PATH}{self.my_name}_ansible/run.yml '
                f'--extra-vars "task_file={sudo_test}" ')
         if ansible_become_pass is not None:
             cmd += f'--extra-vars "ansible_become_pass={ansible_become_pass}" '
@@ -1401,7 +1403,7 @@ class software(object):
                                             'dli')
 
         install_tasks = yaml.load(open(GEN_SOFTWARE_PATH +
-                                       'paie111_install_procedure.yml'))
+                                       f'{self.my_name}_install_procedure.yml'))
         for task in install_tasks:
             heading1(f"Client Node Action: {task['description']}")
             if task['description'] == "Install Anaconda installer":
@@ -1420,25 +1422,25 @@ class software(object):
 
     def _run_ansible_tasks(self, tasks_path, extra_args=''):
         log = logger.getlogger()
-        tasks_path = 'paie111_ansible/' + tasks_path
+        tasks_path = f'{self.my_name}_ansible/' + tasks_path
         if self.sw_vars['ansible_become_pass'] is not None:
             extra_args += ' --vault-password-file ' + self.vault_pass_file
         elif 'become:' in open(f'{GEN_SOFTWARE_PATH}{tasks_path}').read():
             extra_args += ' --ask-become-pass'
         if self.eval_ver:
-            cmd = ('{0} -i {1} {2}paie111_ansible/run.yml '
-                   '--extra-vars "task_file={2}{3}" '
-                   '--extra-vars "@{2}{4}" {5}'
-                   .format(get_ansible_playbook_path(),
-                           self.sw_vars['ansible_inventory'], GEN_SOFTWARE_PATH,
-                           tasks_path, 'software-vars-eval.yml', extra_args))
+            cmd = (f'{get_ansible_playbook_path()} -i '
+                   f'{self.sw_vars["ansible_inventory"]} '
+                   f'{GEN_SOFTWARE_PATH}{self.my_name}_ansible/run.yml '
+                   f'--extra-vars "task_file={GEN_SOFTWARE_PATH}{tasks_path}" '
+                   f'--extra-vars "@{GEN_SOFTWARE_PATH}{software-vars-eval.yml}" '
+                   f'{extra_args}')
         else:
-            cmd = ('{0} -i {1} {2}paie111_ansible/run.yml '
-                   '--extra-vars "task_file={2}{3}" '
-                   '--extra-vars "@{2}{4}" {5}'
-                   .format(get_ansible_playbook_path(),
-                           self.sw_vars['ansible_inventory'], GEN_SOFTWARE_PATH,
-                           tasks_path, 'software-vars.yml', extra_args))
+            cmd = (f'{get_ansible_playbook_path()} -i '
+                   f'{self.sw_vars["ansible_inventory"]} '
+                   f'{GEN_SOFTWARE_PATH}{self.my_name}_ansible/run.yml '
+                   f'--extra-vars "task_file={GEN_SOFTWARE_PATH}{tasks_path}" '
+                   f'--extra-vars "@{GEN_SOFTWARE_PATH}{software-vars.yml}" '
+                   f'{extra_args}')
         run = True
         while run:
             log.info(f'Running Ansible tasks found in \'{tasks_path}\' ...')
@@ -1570,23 +1572,23 @@ def _set_spectrum_conductor_install_env(ansible_inventory, package):
     hostname, hostvars = inv['_meta']['hostvars'].popitem()
 
     if package == 'spark':
-        envs_path = (f'{GEN_SOFTWARE_PATH}/paie111_ansible/'
+        envs_path = (f'{GEN_SOFTWARE_PATH}/{self.my_name}_ansible/'
                      'envs_spectrum_conductor.yml')
         if not os.path.isfile(envs_path):
-            copy2(f'{GEN_SOFTWARE_PATH}/paie111_ansible/'
+            copy2(f'{GEN_SOFTWARE_PATH}/{self.my_name}_ansible/'
                   'envs_spectrum_conductor_template.yml',
-                  f'{GEN_SOFTWARE_PATH}/paie111_ansible/'
+                  f'{GEN_SOFTWARE_PATH}/{self.my_name}_ansible/'
                   'envs_spectrum_conductor.yml')
 
         replace_regex(envs_path, '^CLUSTERADMIN:\s*$',
                       f'CLUSTERADMIN: {hostvars["ansible_user"]}\n')
     elif package == 'dli':
-        envs_path = (f'{GEN_SOFTWARE_PATH}/paie111_ansible/'
+        envs_path = (f'{GEN_SOFTWARE_PATH}/{self.my_name}_ansible/'
                      'envs_spectrum_conductor_dli.yml')
         if not os.path.isfile(envs_path):
-            copy2(f'{GEN_SOFTWARE_PATH}/paie111_ansible/'
+            copy2(f'{GEN_SOFTWARE_PATH}/{self.my_name}_ansible/'
                   'envs_spectrum_conductor_dli_template.yml',
-                  f'{GEN_SOFTWARE_PATH}/paie111_ansible/'
+                  f'{GEN_SOFTWARE_PATH}/{self.my_name}_ansible/'
                   'envs_spectrum_conductor_dli.yml')
 
         replace_regex(envs_path, '^CLUSTERADMIN:\s*$',
