@@ -25,8 +25,8 @@ import re
 from shutil import copy2, copytree, rmtree, Error
 
 import lib.logger as logger
-from lib.utilities import sub_proc_display, sub_proc_exec, heading1, rlinput, \
-    get_url, get_dir, get_yesno, get_selection, get_file_path, get_src_path, bold
+from lib.utilities import sub_proc_display, sub_proc_exec, get_url, \
+    get_dir, get_yesno, get_selection, get_file_path, get_src_path, bold
 from lib.exception import UserException
 
 
@@ -568,6 +568,7 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
         pkg_list2 = pkg_list.split()
         if alt_url:
             host = re.search(r'http://([^/]+)', alt_url).group(1)
+            cmd = host  # Dummy assign to silence tox
             # wait on 'f' string formatting since 'pkg' is not available yet
             cmd = ("f'python -m pip download --python-version 27 "
                    "--platform ppc64le --no-deps --index-url={alt_url} "
@@ -646,69 +647,69 @@ class PowerupRepoFromDir(PowerupRepo):
             return src_dir, dest_dir
 
 
-def create_repo_from_rpm_pkg(pkg_name, pkg_file, src_dir, dst_dir, web=None):
-        heading1(f'Setting up the {pkg_name} repository')
-        ver = ''
-        src_installed, src_path = setup_source_file(cuda_src, cuda_dir, 'PowerAI')
-        ver = re.search(r'\d+\.\d+\.\d+', src_path).group(0) if src_path else ''
-        self.log.debug(f'{pkg_name} source path: {src_path}')
-        cmd = f'rpm -ihv --test --ignorearch {src_path}'
-        resp1, err1, rc = sub_proc_exec(cmd)
-        cmd = f'diff /opt/DL/repo/rpms/repodata/ /srv/repos/DL-{ver}/repo/rpms/repodata/'
-        resp2, err2, rc = sub_proc_exec(cmd)
-        if 'is already installed' in err1 and resp2 == '' and rc == 0:
-            repo_installed = True
-        else:
-            repo_installed = False
-
-        # Create the repo and copy it to /srv directory
-        if src_path:
-            if not ver:
-                self.log.error('Unable to find the version in {src_path}')
-                ver = rlinput('Enter a version to use (x.y.z): ', '5.1.0')
-            ver0 = ver.split('.')[0]
-            ver1 = ver.split('.')[1]
-            ver2 = ver.split('.')[2]
-            # First check if already installed
-            if repo_installed:
-                print(f'\nRepository for {src_path} already exists')
-                print('in the POWER-Up software server.\n')
-                r = get_yesno('Do you wish to recreate the repository')
-
-            if not repo_installed or r == 'yes':
-                cmd = f'rpm -ihv  --force --ignorearch {src_path}'
-                rc = sub_proc_display(cmd)
-                if rc != 0:
-                    self.log.info('Failed creating PowerAI repository')
-                    self.log.info(f'Failing cmd: {cmd}')
-                else:
-                    shutil.rmtree(f'/srv/repos/DL-{ver}', ignore_errors=True)
-                    try:
-                        shutil.copytree('/opt/DL', f'/srv/repos/DL-{ver}')
-                    except shutil.Error as exc:
-                        print(f'Copy error: {exc}')
-                    else:
-                        self.log.info('Successfully created PowerAI repository')
-        else:
-            if src_installed:
-                self.log.debug('PowerAI source file already in place and no '
-                               'update requested')
-            else:
-                self.log.error('PowerAI base was not installed.')
-
-        if ver:
-            dot_repo = {}
-            dot_repo['filename'] = f'powerai-{ver}.repo'
-            dot_repo['content'] = (f'[powerai-{ver}]\n'
-                                   f'name=PowerAI-{ver}-powerup\n'
-                                   'baseurl=http://{host}}/repos/'
-                                   f'DL-{ver}/repo/rpms\n'
-                                   'enabled=1\n'
-                                   'gpgkey=http://{host}/repos/'
-                                   f'DL-{ver}/repo/mldl-public-key.asc\n'
-                                   'gpgcheck=0\n')
-            if dot_repo not in self.sw_vars['yum_powerup_repo_files']:
-                self.sw_vars['yum_powerup_repo_files'].append(dot_repo)
+# def create_repo_from_rpm_pkg(pkg_name, pkg_file, src_dir, dst_dir, web=None):
+#        heading1(f'Setting up the {pkg_name} repository')
+#        ver = ''
+#        src_installed, src_path = setup_source_file(cuda_src, cuda_dir, 'PowerAI')
+#        ver = re.search(r'\d+\.\d+\.\d+', src_path).group(0) if src_path else ''
+#        self.log.debug(f'{pkg_name} source path: {src_path}')
+#        cmd = f'rpm -ihv --test --ignorearch {src_path}'
+#        resp1, err1, rc = sub_proc_exec(cmd)
+#        cmd = f'diff /opt/DL/repo/rpms/repodata/ /srv/repos/DL-{ver}/repo/rpms/repodata/'
+#        resp2, err2, rc = sub_proc_exec(cmd)
+#        if 'is already installed' in err1 and resp2 == '' and rc == 0:
+#            repo_installed = True
+#        else:
+#            repo_installed = False
+#
+#        # Create the repo and copy it to /srv directory
+#        if src_path:
+#            if not ver:
+#                self.log.error('Unable to find the version in {src_path}')
+#                ver = rlinput('Enter a version to use (x.y.z): ', '5.1.0')
+#            ver0 = ver.split('.')[0]
+#            ver1 = ver.split('.')[1]
+#            ver2 = ver.split('.')[2]
+#            # First check if already installed
+#            if repo_installed:
+#                print(f'\nRepository for {src_path} already exists')
+#                print('in the POWER-Up software server.\n')
+#                r = get_yesno('Do you wish to recreate the repository')
+#
+#            if not repo_installed or r == 'yes':
+#                cmd = f'rpm -ihv  --force --ignorearch {src_path}'
+#                rc = sub_proc_display(cmd)
+#                if rc != 0:
+#                    self.log.info('Failed creating PowerAI repository')
+#                    self.log.info(f'Failing cmd: {cmd}')
+#                else:
+#                    shutil.rmtree(f'/srv/repos/DL-{ver}', ignore_errors=True)
+#                    try:
+#                        shutil.copytree('/opt/DL', f'/srv/repos/DL-{ver}')
+#                    except shutil.Error as exc:
+#                        print(f'Copy error: {exc}')
+#                    else:
+#                        self.log.info('Successfully created PowerAI repository')
+#        else:
+#            if src_installed:
+#                self.log.debug('PowerAI source file already in place and no '
+#                               'update requested')
+#            else:
+#                self.log.error('PowerAI base was not installed.')
+#
+#        if ver:
+#            dot_repo = {}
+#            dot_repo['filename'] = f'powerai-{ver}.repo'
+#            dot_repo['content'] = (f'[powerai-{ver}]\n'
+#                                   f'name=PowerAI-{ver}-powerup\n'
+#                                   'baseurl=http://{host}}/repos/'
+#                                   f'DL-{ver}/repo/rpms\n'
+#                                   'enabled=1\n'
+#                                   'gpgkey=http://{host}/repos/'
+#                                   f'DL-{ver}/repo/mldl-public-key.asc\n'
+#                                   'gpgcheck=0\n')
+#            if dot_repo not in self.sw_vars['yum_powerup_repo_files']:
+#                self.sw_vars['yum_powerup_repo_files'].append(dot_repo)
 
 
 if __name__ == '__main__':
@@ -731,10 +732,3 @@ if __name__ == '__main__':
         print(args)
 
     logger.create(args.log_lvl_print, args.log_lvl_file)
-
-    repo = local_epel_repo(args.repo_name)
-    repo.yum_create_remote()
-    repo.sync()
-    repo.create()
-    repo.yum_create_local()
-    client_file = repo.get_yum_client_powerup()

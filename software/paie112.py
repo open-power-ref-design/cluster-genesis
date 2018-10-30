@@ -24,7 +24,7 @@ import os
 import platform
 import re
 import sys
-from shutil import copy2, Error
+from shutil import copy2
 import calendar
 import time
 import yaml
@@ -37,14 +37,11 @@ import click
 import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
     PowerupAnaRepoFromRepo, PowerupRepoFromRpm, setup_source_file, \
-    PowerupPypiRepoFromRepo, powerup_file_from_disk, get_name_dir
+    PowerupPypiRepoFromRepo, get_name_dir
 from software_hosts import get_ansible_inventory, validate_software_inventory
-from lib.utilities import sub_proc_display, sub_proc_exec, heading1, get_url, \
-    Color, get_selection, get_yesno, get_dir, get_file_path, get_src_path, \
-    rlinput, bold, ansible_pprint, replace_regex
-from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path, \
-    get_playbooks_path, get_ansible_vault_path
-from lib.exception import UserException
+from lib.utilities import sub_proc_display, sub_proc_exec, heading1, Color, \
+    get_selection, get_yesno, rlinput, bold, ansible_pprint, replace_regex
+from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path
 
 
 class software(object):
@@ -105,7 +102,7 @@ class software(object):
                     self.sw_vars = {}
                     self.sw_vars['init-time'] = time.ctime()
                     self.README()
-                    _ = input('\nPress enter to continue')
+                    input('\nPress enter to continue')
                 # clear out any licensed version of PowerAI files
                 else:
                     self.sw_vars['content_files']['powerai-enterprise-license'] = ''
@@ -127,7 +124,7 @@ class software(object):
                     self.sw_vars = {}
                     self.sw_vars['init-time'] = time.ctime()
                     self.README()
-                    _ = input('\nPress enter to continue')
+                    input('\nPress enter to continue')
                 # clear out any eval version of PowerAI Enterprise files
                 else:
                     self.sw_vars['content_files']['powerai-enterprise-license'] = ''
@@ -187,7 +184,7 @@ class software(object):
         except IOError:
             self.log.info('Error while reading installation file lists for PowerAI Enterprise')
             sys.exit('exiting')
-            _ = input('\nPress enter to continue')
+            input('\nPress enter to continue')
         else:
             if self.eval_ver:
                 self.globs = file_lists['globs_eval']
@@ -1286,7 +1283,7 @@ class software(object):
 
         print("\nPlease provide the client sudo password below. Note: All "
               "client nodes must use the same password!")
-        client_sudo_pass_validated = False
+        # client_sudo_pass_validated = False
 
         ansible_become_pass = getpass(prompt="Client sudo password: ")
 
@@ -1343,6 +1340,7 @@ class software(object):
             return False
 
     def _unlock_vault(self, validate=True):
+        log = logger.getlogger()
         while True:
             if self.sw_vars['ansible_become_pass'] is None:
                 return False
@@ -1383,7 +1381,6 @@ class software(object):
                 if not resp:
                     sys.exit('Installation ended by user')
 
-        log = logger.getlogger()
         if self.sw_vars['ansible_inventory'] is None:
             self.sw_vars['ansible_inventory'] = get_ansible_inventory()
         else:
@@ -1566,34 +1563,35 @@ def _interactive_paie_license_accept(ansible_inventory):
 
 
 def _set_spectrum_conductor_install_env(ansible_inventory, package):
+    mod_name = sys.modules[__name__].__name__
     cmd = (f'ansible-inventory --inventory {ansible_inventory} --list')
     resp, err, rc = sub_proc_exec(cmd, shell=True)
     inv = json.loads(resp)
     hostname, hostvars = inv['_meta']['hostvars'].popitem()
 
     if package == 'spark':
-        envs_path = (f'{GEN_SOFTWARE_PATH}/{self.my_name}_ansible/'
+        envs_path = (f'{GEN_SOFTWARE_PATH}/{mod_name}_ansible/'
                      'envs_spectrum_conductor.yml')
         if not os.path.isfile(envs_path):
-            copy2(f'{GEN_SOFTWARE_PATH}/{self.my_name}_ansible/'
+            copy2(f'{GEN_SOFTWARE_PATH}/{mod_name}_ansible/'
                   'envs_spectrum_conductor_template.yml',
-                  f'{GEN_SOFTWARE_PATH}/{self.my_name}_ansible/'
+                  f'{GEN_SOFTWARE_PATH}/{mod_name}_ansible/'
                   'envs_spectrum_conductor.yml')
 
-        replace_regex(envs_path, '^CLUSTERADMIN:\s*$',
+        replace_regex(envs_path, r'^CLUSTERADMIN:\s*$',
                       f'CLUSTERADMIN: {hostvars["ansible_user"]}\n')
     elif package == 'dli':
-        envs_path = (f'{GEN_SOFTWARE_PATH}/{self.my_name}_ansible/'
+        envs_path = (f'{GEN_SOFTWARE_PATH}/{mod_name}_ansible/'
                      'envs_spectrum_conductor_dli.yml')
         if not os.path.isfile(envs_path):
-            copy2(f'{GEN_SOFTWARE_PATH}/{self.my_name}_ansible/'
+            copy2(f'{GEN_SOFTWARE_PATH}/{mod_name}_ansible/'
                   'envs_spectrum_conductor_dli_template.yml',
-                  f'{GEN_SOFTWARE_PATH}/{self.my_name}_ansible/'
+                  f'{GEN_SOFTWARE_PATH}/{mod_name}_ansible/'
                   'envs_spectrum_conductor_dli.yml')
 
-        replace_regex(envs_path, '^CLUSTERADMIN:\s*$',
+        replace_regex(envs_path, r'^CLUSTERADMIN:\s*$',
                       f'CLUSTERADMIN: {hostvars["ansible_user"]}\n')
-        replace_regex(envs_path, '^DLI_CONDA_HOME:\s*$',
+        replace_regex(envs_path, r'^DLI_CONDA_HOME:\s*$',
                       f'DLI_CONDA_HOME: /opt/anaconda2\n')
 
     env_validated = False
@@ -1611,7 +1609,7 @@ def _set_spectrum_conductor_install_env(ansible_inventory, package):
         if not env_validated:
             print(f'\nSpectrum Conductor {package} configuration variables '
                   'incomplete!')
-            _ = input(f'Press enter to edit {package} configuration file')
+            input(f'Press enter to edit {package} configuration file')
             click.edit(filename=envs_path)
         elif init and get_yesno(f'Edit Spectrum Conductor {package} '
                                 'configuration? '):
