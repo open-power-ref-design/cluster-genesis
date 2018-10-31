@@ -55,6 +55,7 @@ POWER-Up Node  Prerequisites;
    "1.1.0", "software-install-b2.5", "", "14 Sep 2018"
    "1.1.1", "software-install-b2.9"
    "1.1.1", "software-install-b2.10", "Updates for x86 based installer node"
+   "1.1.1", "software-install-b2.11", "Enable cuda replicate on x86 installer node"
 
 From your home directory install the POWER-Up software and initialize the environment. For additional information see :ref:`installing`::
 
