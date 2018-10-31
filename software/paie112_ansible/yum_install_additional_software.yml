@@ -12,4 +12,5 @@
     - acl
     - net-tools
     - dejavu-serif-fonts
+    - nfs-utils
   become: yes

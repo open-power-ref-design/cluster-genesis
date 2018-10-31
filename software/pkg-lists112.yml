@@ -361,6 +361,24 @@ yum_pkgs:
 - yum-utils-1.1.31-46.el7_5.noarch
 - zlib-1.2.7-17.el7.ppc64le
 - zlib-devel-1.2.7-17.el7.ppc64le
+# nfs-utils and dependencies
+- nfs-utils
+- gssproxy
+- libevent
+- libnfsidmap
+- keyutils
+- libtirpc
+- rpcbind
+- quota
+- libcollection
+- libini_config
+- libbasicobjects
+- libref_array
+- tcp_wrappers
+- libverto
+- libverto-libevent
+- libpath_utils
+- quota-nls
 cuda_pkgs:
 - cuda-10-0-10.0.130-1.ppc64le.rpm
 - cuda-10.0.130-1.ppc64le.rpm

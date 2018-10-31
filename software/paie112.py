@@ -53,7 +53,6 @@ class software(object):
     def __init__(self, eval_ver=False, non_int=False):
         self.log = logger.getlogger()
         self.my_name = sys.modules[__name__].__name__
-        print(f'My name: {self.my_name}')
         self.yum_powerup_repo_files = []
         self.eval_ver = eval_ver
         self.non_int = non_int

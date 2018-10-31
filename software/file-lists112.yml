@@ -1,5 +1,5 @@
 globs:
-    Anaconda content: Anaconda2-[56].[3-9]*.[0-9]*-Linux-ppc64le.sh
+    Anaconda content: Anaconda3-[56].[3-9].[0-9]*-Linux-ppc64le.sh
     CUDA dnn content: cudnn-10.0-linux-ppc64le-v7.[3-9].[0-9].[0-9]*.tgz
     CUDA nccl2 content: nccl_2.3.[4-9]-1+cuda10.0_ppc64le.txz
     CUDA toolkit content: cuda-repo-rhel7-10-0-local-10.0.[1-9][0-9][0-9]*-[0-9]*.[0-9]**.ppc64le.rpm
@@ -12,7 +12,7 @@ globs:
     Spectrum DLI content entitlement: dli_entitlement.dat
 
 globs_eval:
-    Anaconda content: Anaconda2-[56].[3-9]*.[0-9]*-Linux-ppc64le.sh
+    Anaconda content: Anaconda3-[56].[3-9].[0-9]*-Linux-ppc64le.sh
     CUDA dnn content: cudnn-10.0-linux-ppc64le-v7.[3-9].[0-9].[0-9]*.tgz
     CUDA nccl2 content: nccl_2.3.[4-9]-1+cuda10.0_ppc64le.txz
     CUDA toolkit content: cuda-repo-rhel7-10-0-local-10.0.[1-9][0-9][0-9]*-[0-9]*.[0-9]**.ppc64le.rpm
@@ -25,7 +25,7 @@ globs_eval:
     Spectrum DLI content entitlement: dlieval_entitlement.dat
 
 files:
-    Anaconda content: Anaconda2-5.3.0-Linux-ppc64le.sh
+    Anaconda content: Anaconda3-5.3.0-Linux-ppc64le.sh
     CUDA dnn content: cudnn-10.0-linux-ppc64le-v7.3.1.20.tgz
     CUDA nccl2 content: nccl_2.3.4-1+cuda10.0_ppc64le.txz
     CUDA toolkit content: cuda-repo-rhel7-10-0-local-10.0.130-410.48-1.0-1.ppc64le.rpm
@@ -38,7 +38,7 @@ files:
     Spectrum DLI content entitlement: dli_entitlement.dat
 
 files_eval:
-    Anaconda content: Anaconda2-5.3.0-Linux-ppc64le.sh
+    Anaconda content: Anaconda3-5.3.0-Linux-ppc64le.sh
     CUDA dnn content: cudnn-10.0-linux-ppc64le-v7.3.1.20.tgz
     CUDA nccl2 content: nccl_2.3.4-1+cuda10.0_ppc64le.txz
     CUDA toolkit content: cuda-repo-rhel7-10-0-local-10.0.130-410.48-1.0-1.ppc64le.rpm
