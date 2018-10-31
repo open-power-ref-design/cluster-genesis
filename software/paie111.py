@@ -667,20 +667,12 @@ class software(object):
 
         ch = 'S'
         if get_yesno(prompt=pr_str, yesno='Y/n'):
-            if platform.machine() == self.arch:
-                ch, item = get_selection('Sync required packages from public repo\n'
-                                         'Create from package files in a local Directory\n'
-                                         'Sync from an alternate Repository\n'
-                                         'Skip',
-                                         'E\nD\nR\nS',
-                                         'Repository source? ')
-            else:
-                ch, item = get_selection('Create from package files in a local Directory\n'
-                                         'Sync from an alternate Repository\n'
-                                         'Skip',
-                                         'D\nR\nS',
-                                         'Repository source? ')
-
+            ch, item = get_selection('Sync required packages from public repo\n'
+                                     'Create from package files in a local Directory\n'
+                                     'Sync from an alternate Repository\n'
+                                     'Skip',
+                                     'E\nD\nR\nS',
+                                     'Repository source? ')
         if ch == 'E':
             repo = PowerupRepo(repo_id, repo_name)
             repo_dir = repo.get_repo_dir()
