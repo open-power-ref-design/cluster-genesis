@@ -5,7 +5,7 @@
 
 - name: Set installation directory variable
   set_fact:
-    install_dir: "/opt/anaconda"
+    install_dir: "/opt/anaconda3"
 
 - name: Get route to client
   command: "{{ hostvars['localhost']['python_executable_local'] }} \

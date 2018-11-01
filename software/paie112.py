@@ -33,6 +33,7 @@ from getpass import getpass
 import pwd
 import grp
 import click
+import code
 
 import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
@@ -690,7 +691,7 @@ class software(object):
 
         elif ch == 'D':
             repo = PowerupRepoFromDir(repo_id, repo_name)
-
+            repo_dir = repo.get_repo_dir()
             if f'{repo_id}_src_dir' in self.sw_vars:
                 src_dir = self.sw_vars[f'{repo_id}_src_dir']
             else:
@@ -710,9 +711,9 @@ class software(object):
                 alt_url = None
 
             repo = PowerupYumRepoFromRepo(repo_id, repo_name)
-
+            repo_dir = repo.get_repo_dir()
             url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
-                                    filelist=['cuda-9-2-*'])
+                                    filelist=['cuda-10-*-*'])
             if url:
                 if not url == baseurl:
                     self.sw_vars[f'{repo_id}_alt_url'] = url
@@ -731,6 +732,15 @@ class software(object):
 
         else:
             print(f'{repo_name} repository not updated')
+        if ch != 'S':
+            repo_dir += '/cuda-[1-9][0-9].[0-9]*.[0-9]*'
+            #code.interact(banner='here', local=dict(globals(), **locals()))
+            files = glob.glob(repo_dir, recursive=True)
+            if files:
+                self.sw_vars['cuda'] = re.search(r'cuda-\d+\.\d+\.\d+',
+                                                 ' '.join(files)).group(0)
+            else:
+                self.log.error('No cuda toolkit file found in cuda repository')
 
         # Get cudnn tar file
         name = 'CUDA dnn content'
@@ -1393,10 +1403,12 @@ class software(object):
 
         self._unlock_vault()
 
+        ana_ver = re.search(r'(anaconda\d)-\d', self.sw_vars['content_files']
+                             ['anaconda'], re.IGNORECASE).group(1).lower()
         _set_spectrum_conductor_install_env(self.sw_vars['ansible_inventory'],
                                             'spark')
         _set_spectrum_conductor_install_env(self.sw_vars['ansible_inventory'],
-                                            'dli')
+                                            'dli', ana_ver)
 
         install_tasks = yaml.load(open(GEN_SOFTWARE_PATH +
                                        f'{self.my_name}_install_procedure.yml'))
@@ -1428,14 +1440,14 @@ class software(object):
                    f'{self.sw_vars["ansible_inventory"]} '
                    f'{GEN_SOFTWARE_PATH}{self.my_name}_ansible/run.yml '
                    f'--extra-vars "task_file={GEN_SOFTWARE_PATH}{tasks_path}" '
-                   f'--extra-vars "@{GEN_SOFTWARE_PATH}{software-vars-eval.yml}" '
+                   f'--extra-vars "@{GEN_SOFTWARE_PATH}software-vars-eval.yml" '
                    f'{extra_args}')
         else:
             cmd = (f'{get_ansible_playbook_path()} -i '
                    f'{self.sw_vars["ansible_inventory"]} '
                    f'{GEN_SOFTWARE_PATH}{self.my_name}_ansible/run.yml '
                    f'--extra-vars "task_file={GEN_SOFTWARE_PATH}{tasks_path}" '
-                   f'--extra-vars "@{GEN_SOFTWARE_PATH}{software-vars.yml}" '
+                   f'--extra-vars "@{GEN_SOFTWARE_PATH}software-vars.yml" '
                    f'{extra_args}')
         run = True
         while run:
@@ -1561,7 +1573,7 @@ def _interactive_paie_license_accept(ansible_inventory):
                         sys.exit('Exiting')
 
 
-def _set_spectrum_conductor_install_env(ansible_inventory, package):
+def _set_spectrum_conductor_install_env(ansible_inventory, package, ana_ver=None):
     mod_name = sys.modules[__name__].__name__
     cmd = (f'ansible-inventory --inventory {ansible_inventory} --list')
     resp, err, rc = sub_proc_exec(cmd, shell=True)
@@ -1591,7 +1603,7 @@ def _set_spectrum_conductor_install_env(ansible_inventory, package):
         replace_regex(envs_path, r'^CLUSTERADMIN:\s*$',
                       f'CLUSTERADMIN: {hostvars["ansible_user"]}\n')
         replace_regex(envs_path, r'^DLI_CONDA_HOME:\s*$',
-                      f'DLI_CONDA_HOME: /opt/anaconda2\n')
+                      f'DLI_CONDA_HOME: /opt/{ana_ver}\n')
 
     env_validated = False
     init = True
