@@ -47,10 +47,14 @@ anaconda_main_pkgs:
   - get_terminal_size*
   - h5py*
   - hdf5*
+  - hypothesis*
   - icu*
+  - imageio*
   - ipython*
   - ipython_genutils*
   - jpeg*
+  - keras-applications*
+  - keras-preprocessing*
   - leveldb*
   - libgfortran-ng*
   - libiconv*
@@ -62,6 +66,7 @@ anaconda_main_pkgs:
   - libxml2*
   - matplotlib*
   - networkx*
+  - ninja*
   - nose*
   - numpy*
   - olefile*
@@ -93,10 +98,18 @@ anaconda_main_pkgs:
   - six*
   - snappy*
   - subprocess32*
+  - tabulate*
+  - typing*
   - traitlets*
   - wcwidth*
   - xz*
   - yaml*
+python3_specific_pkgs:
+- deprecation==2.0.5
+- docutils>=0.10
+- enum34==1.1.6
+- '"futures>=2.2.0,<4.0.0"'
+- os_service_types==1.2.0
 python_pkgs:
 - alembic==0.8.2
 - appdirs==1.4.3

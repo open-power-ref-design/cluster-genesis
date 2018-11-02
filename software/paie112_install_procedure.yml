@@ -38,29 +38,29 @@
 - description: Install Deep Learning frameworks
   tasks: install_frameworks.yml
 
-# - description: Configure a system for IBM Spectrum Conductor Deep Learning Impact
-#   tasks: configure_spectrum_conductor.yml
-#
-# - description: Install IBM Spectrum Conductor
-#   tasks: install_spectrum_conductor_with_spark.yml
-#
-# - description: Entitle IBM Spectrum Conductor
-#   tasks: entitle_spectrum_conductor_with_spark.yml
-#   hosts: master[0]
-#
-# - description: Install IBM Spectrum Conductor DLI
-#   tasks: install_spectrum_conductor_dli.yml
-#
-# - description: Entitle and Start IBM Spectrum Conductor DLI
-#   tasks: entitle_spectrum_conductor_dli.yml
-#   hosts: master[0]
-#
-# - description: Provide permission for DLI cluster admin to write audit directory
-#   tasks: permit_dli_admin_write_audit.yml
-#   hosts: master[0]
-#
-# - description: Add all hosts to cluster
-#   tasks: add_hosts_to_cluster.yml
-#
-# - description: PowerAI tuning recommendations
-#   tasks: powerai_tuning.yml
+- description: Configure a system for IBM Spectrum Conductor Deep Learning Impact
+  tasks: configure_spectrum_conductor.yml
+
+- description: Install IBM Spectrum Conductor
+  tasks: install_spectrum_conductor_with_spark.yml
+
+- description: Entitle IBM Spectrum Conductor
+  tasks: entitle_spectrum_conductor_with_spark.yml
+  hosts: master[0]
+
+- description: Install IBM Spectrum Conductor DLI
+  tasks: install_spectrum_conductor_dli.yml
+
+- description: Entitle and Start IBM Spectrum Conductor DLI
+  tasks: entitle_spectrum_conductor_dli.yml
+  hosts: master[0]
+
+- description: Provide permission for DLI cluster admin to write audit directory
+  tasks: permit_dli_admin_write_audit.yml
+  hosts: master[0]
+
+- description: Add all hosts to cluster
+  tasks: add_hosts_to_cluster.yml
+
+- description: PowerAI tuning recommendations
+  tasks: powerai_tuning.yml

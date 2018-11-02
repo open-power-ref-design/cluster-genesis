@@ -14,7 +14,7 @@
   shell: "curl -G \
   http://{{ host_ip.stdout }}/{{ file }} \
   | tar -C /usr/local/cuda/targets/ppc64le-linux/ --strip-components=1 \
-  --no-same-owner -xvf"
+  --no-same-owner -xJv"
   args:
     warn: no
   become: yes

@@ -5,7 +5,7 @@
     name: envs
 
 - name: Grant permission to DLI admin to write audit directory
-  shell "setfacl –m u:${{ envs['CLUSTERADMIN'] }}:rwx /opt/DL/powerai-enterprise/audit"
+  shell: "setfacl -m u:{{ envs['CLUSTERADMIN'] }}:rwx /opt/DL/powerai-enterprise/audit"
   args:
     executable: /bin/bash
   register: out
@@ -19,4 +19,4 @@
         Output from 'setfacl':
         {{ out.stdout }}
   when: >
-    out.rc != 0 or
+    out.rc != 0

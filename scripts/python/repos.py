@@ -554,7 +554,7 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
         super(PowerupPypiRepoFromRepo, self).__init__(repo_id, repo_name, arch, rhel_ver)
         self.repo_type = 'pypi'
 
-    def sync(self, pkg_list, alt_url=None):
+    def sync(self, pkg_list, alt_url=None, py_ver=27):
         """
         inputs:
             pkg_list (str): list of packages separated by space(s). Packages can
@@ -563,18 +563,18 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
         if not os.path.isdir(self.pypirepo_dir):
             os.mkdir(self.pypirepo_dir)
         pkg_cnt = len(pkg_list.split())
-        print(f'Downloading {pkg_cnt} python packages plus dependencies:\n')
+        print(f'Downloading {pkg_cnt} python{py_ver} packages plus dependencies:\n')
 
         pkg_list2 = pkg_list.split()
         if alt_url:
             host = re.search(r'http://([^/]+)', alt_url).group(1)
             cmd = host  # Dummy assign to silence tox
             # wait on 'f' string formatting since 'pkg' is not available yet
-            cmd = ("f'python -m pip download --python-version 27 "
+            cmd = ("f'python -m pip download --python-version {py_ver} "
                    "--platform ppc64le --no-deps --index-url={alt_url} "
                    "-d {self.pypirepo_dir} {pkg} --trusted-host {host}'")
         else:
-            cmd = ("f'python -m pip download --python-version 27 "
+            cmd = ("f'python -m pip download --python-version {py_ver} "
                    "--platform ppc64le --no-deps -d {self.pypirepo_dir} {pkg}'")
         for pkg in pkg_list2:
             print(pkg)

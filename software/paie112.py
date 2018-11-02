@@ -33,7 +33,6 @@ from getpass import getpass
 import pwd
 import grp
 import click
-import code
 
 import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
@@ -734,7 +733,6 @@ class software(object):
             print(f'{repo_name} repository not updated')
         if ch != 'S':
             repo_dir += '/cuda-[1-9][0-9].[0-9]*.[0-9]*'
-            #code.interact(banner='here', local=dict(globals(), **locals()))
             files = glob.glob(repo_dir, recursive=True)
             if files:
                 self.sw_vars['cuda'] = re.search(r'cuda-\d+\.\d+\.\d+',
@@ -1037,13 +1035,17 @@ class software(object):
 
         pkg_list = ' '.join(self.pkgs['python_pkgs'])
         if not exists or ch == 'Y':
+            pkg_list = ' '.join(self.pkgs['python_pkgs'])
+            pkg3_list = ' '.join(self.pkgs['python3_specific_pkgs'])
             url = repo.get_repo_url(baseurl, alt_url, name=repo_name,
                                     contains=repo_id, filelist=['Flask-*'])
             if url == baseurl:
                 repo.sync(pkg_list)
+                repo.sync(pkg3_list, py_ver=36)
             elif url:
                 self.sw_vars[f'{repo_id}_alt_url'] = url
                 repo.sync(pkg_list, url + 'simple')
+                repo.sync(pkg3_list, url + 'simple', py_ver=36)
 
         # Setup EPEL Repo
         repo_id = 'epel-ppc64le'
@@ -1404,7 +1406,7 @@ class software(object):
         self._unlock_vault()
 
         ana_ver = re.search(r'(anaconda\d)-\d', self.sw_vars['content_files']
-                             ['anaconda'], re.IGNORECASE).group(1).lower()
+                            ['anaconda'], re.IGNORECASE).group(1).lower()
         _set_spectrum_conductor_install_env(self.sw_vars['ansible_inventory'],
                                             'spark')
         _set_spectrum_conductor_install_env(self.sw_vars['ansible_inventory'],
