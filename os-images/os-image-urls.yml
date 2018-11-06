@@ -28,3 +28,13 @@ os_image_urls:
     images:
       - url: http://cdimage.ubuntu.com/releases/16.04.5/release/ubuntu-16.04.5-server-ppc64el.iso
         sha1sum: ccc734b96543e29127e0864bf88f17faea667100
+  - name: ubuntu-18.04.1-live-server-amd64
+    images: &1804amd64
+      - url: http://releases.ubuntu.com/18.04/ubuntu-18.04.1-live-server-amd64.iso
+        sha1sum: a1c3272c6cfc96e1d3024825fbe1e015e4350be4
+  - name: ubuntu-18.04.1-server-amd64
+    images: *1804amd64
+  - name: ubuntu-18.04.1-server-ppc64el
+    images:
+      - url: http://cdimage.ubuntu.com/releases/18.04.1/release/ubuntu-18.04.1-server-ppc64el.iso
+        sha1sum: 6be16a8a5c2cd2113e5bab8a676583c79c20cf02

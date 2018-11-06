@@ -143,6 +143,8 @@ def cobbler_add_distro(path, name):
                 os_version = 'trusty'
             elif item.startswith('16.04'):
                 os_version = 'xenial'
+            elif item.startswith('18.04'):
+                os_version = 'bionic'
         kernel_options = (
             "netcfg/dhcp_timeout=1024 "
             "netcfg/choose_interface=auto "
