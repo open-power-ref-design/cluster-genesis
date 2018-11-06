@@ -11,11 +11,27 @@ anaconda_main_pkgs:
   accept_list:
   - absl-py-*
   - astor-0.7.1-*
+  - boost-*
+  - dask-core-*
+  - ffmpeg-*
+  - flask-*
+  - freeglut-*
   - gast-*
+  - glib-*
+  - graphite2-*
   - grpcio-*
+  - harfbuzz-*
+  - jasper-*
+  - jinja2-*
+  - kiwisolver-*
   - termcolor-*
+  - libboost-*
   - libgcc-ng-*
+  - libglu-*
+  - libopus-*
   - libstdcxx-ng-*
+  - libuuid-*
+  - lmdb-*
   - python-2.7.1*
   - ncurses-*
   - openssl-1.*
@@ -26,13 +42,18 @@ anaconda_main_pkgs:
   - readline-*
   - zlib-*
   - setuptools-*
+  - libboost-*
   - libffi-*
+  - libxcb-*
+  - libvpx-*
   - pip-1*
+  - py-boost-*
   - certifi-*
   - libedit-*
   - scikit-learn*
   - openblas-devel*
   - openblas*
+  - backports.functools_lru_cache-*
   - backports.shutil_get_terminal_size*
   - blas*
   - cairo*
@@ -64,6 +85,7 @@ anaconda_main_pkgs:
   - libstdcxx-ng
   - libtiff*
   - libxml2*
+  - linecache2-*
   - matplotlib*
   - networkx*
   - ninja*
@@ -74,6 +96,7 @@ anaconda_main_pkgs:
   - pathlib2*
   - pexpect*
   - pickleshare*
+  - psutil-*
   - pillow*
   - pixman*
   - prompt_toolkit*
@@ -99,9 +122,12 @@ anaconda_main_pkgs:
   - snappy*
   - subprocess32*
   - tabulate*
+  - traceback2-*
   - typing*
   - traitlets*
+  - unittest2-*
   - wcwidth*
+  - werkzeug-*
   - xz*
   - yaml*
 python3_specific_pkgs:
@@ -398,8 +424,9 @@ yum_pkgs:
 - opencv-devel-2.4.5-3.el7.ppc64le
 - opencv-python-2.4.5-3.el7.ppc64le
 - OpenEXR-libs-1.7.1-7.el7.ppc64le
-- openssl-devel-1.0.2k-12.el7.ppc64le
-- openssl-libs-1.0.2k-12.el7.ppc64le
+- openssl-1.0.2k-16.el7.ppc64le
+- openssl-devel-1.0.2k-16.el7.ppc64le
+- openssl-libs-1.0.2k-16.el7.ppc64le
 - orc-0.4.26-1.el7.ppc64le
 - p11-kit-0.23.5-3.el7.ppc64le
 - p11-kit-trust-0.23.5-3.el7.ppc64le
