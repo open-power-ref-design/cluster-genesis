@@ -1015,6 +1015,47 @@ class software(object):
                 noarch_url = os.path.split(url.rstrip('/'))[0] + '/noarch/'
                 repo.sync_ana(noarch_url)
 
+        # Setup Anaconda conda-forge Repo.  (not a YUM repo)
+        repo_id = 'anaconda'
+        repo_name = 'Conda-forge noarch Repository'
+        baseurl = 'https://conda.anaconda.org/conda-forge/noarch'
+        heading1(f'Set up {repo_name}\n')
+
+        vars_key = get_name_dir(repo_name)  # format the name
+        if f'{vars_key}-alt-url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{vars_key}-alt-url']
+        else:
+            alt_url = None
+
+        exists = self.status_prep(which='Anaconda Main Repository')
+        if exists:
+            self.log.info('The Anaconda Repository exists already'
+                          ' in the POWER-Up server\n')
+
+        repo = PowerupAnaRepoFromRepo(repo_id, repo_name)
+
+        ch = repo.get_action(exists)
+        if ch in 'Y':
+            url = repo.get_repo_url(baseurl, alt_url, contains=['main', 'linux',
+                                    'ppc64le'], excludes=['noarch', 'free'],
+                                    filelist=['numpy-1.15*'])
+            if url:
+                if not url == baseurl:
+                    self.sw_vars[f'{vars_key}-alt-url'] = url
+
+                al = ','.join(self.pkgs['anaconda_main_pkgs']['accept_list'])
+
+                dest_dir = repo.sync_ana(url, acclist=al)
+                # dest_dir = repo.sync_ana(url)
+                dest_dir = dest_dir[4 + dest_dir.find('/srv'):5 + dest_dir.find('main')]
+                # form .condarc channel entry. Note that conda adds
+                # the corresponding 'noarch' channel automatically.
+                channel = f'  - http://{{{{ host_ip.stdout }}}}{dest_dir}'
+                if channel not in self.sw_vars['ana_powerup_repo_channels']:
+                    self.sw_vars['ana_powerup_repo_channels'].insert(0, channel)
+                noarch_url = os.path.split(url.rstrip('/'))[0] + '/noarch/'
+                repo.sync_ana(noarch_url)
+
         # Setup Python package repository. (pypi)
         repo_id = 'pypi'
         repo_name = 'Python Package'
