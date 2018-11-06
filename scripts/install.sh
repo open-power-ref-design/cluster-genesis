@@ -37,7 +37,7 @@ elif [[ $ID == "rhel" ]]; then
         debootstrap gcc vim bridge-utils cpp flex bison unzip cmake \
         fping gcc-c++ patch perl-ExtUtils-MakeMaker perl-Thread-Queue \
         ncurses-devel bash-completion yum-utils createrepo sshpass \
-        python-tabulate openssl-devel
+        python-tabulate openssl-devel tcpdump
     sudo systemctl start lxc.service
     sudo systemctl start libvirtd
 
