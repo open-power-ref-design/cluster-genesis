@@ -1,3 +1,6 @@
+conda_forge_noarch_pkgs:
+  accept_list:
+  - configparser-3.5.*
 anaconda_free_pkgs:
   reject_list:
   - continuum-docs-*
@@ -8,6 +11,9 @@ anaconda_free_pkgs:
   - anaconda-oss-docs-*
   - anaconda-docs-*
 anaconda_main_pkgs:
+  reject_list:
+  - anaconda-oss-docs-*
+  - anaconda-docs-*
   accept_list:
   - absl-py-*
   - astor-0.7.1-*

@@ -23,6 +23,7 @@ import glob
 import os
 import re
 from shutil import copy2, copytree, rmtree, Error
+import time
 
 import lib.logger as logger
 from lib.utilities import sub_proc_display, sub_proc_exec, get_url, \
@@ -214,6 +215,12 @@ class PowerupRepo(object):
         Inputs:
             repo_url: (str) URL or metalink for the default external repo source
             alt_url: (str) An alternate url that the user can modify
+            contains: (list of strings) Filter criteria. The presented list is
+                restricted to those urls that contain elements from 'contains' and no
+                elements of 'excludes'.
+            excludes: (list of strings)
+            filelist: (list of strings) Can be globs. Used to validate a repo. The
+                specified files must be present
         """
         if name:
             print(f'\nChoice for source of {name} repository:')
@@ -460,21 +467,36 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
         self.repo_type = 'ana'
 
     def sync_ana(self, url, rejlist='', acclist=''):
-        """Syncs an Anaconda repository using wget or copy?. The corresponding
-        'noarch' repo is also synced.
+        """Syncs an Anaconda repository using wget or rsync.
         """
+        def _get_table_row(file_handle):
+            """read lines from file handle until end of table row </tr> found
+            return:
+                row: (str) with the balance of the table row.
+                filename: (str) with the name of the file referenced in the row.
+            """
+            row = ''
+            filename = ''
+            while '</tr>' not in row and '</table>' not in row:
+                line = file_handle.readline()
+                name = re.search(r'href="(.*?)"', line)
+                row += line
+                if name:
+                    filename = name.group(1)
+            return row, filename
+
         if 'http:' in url or 'https:' in url:
-            dest_dir = f'/srv/repos/{self.repo_id}' + url[url.find('/pkgs/'):]
+            if '/pkgs/' in url:
+                dest_dir = f'/srv/repos/{self.repo_id}' + url[url.find('/pkgs/'):]
+            elif '/conda-forge' in url:
+                dest_dir = f'/srv/repos/{self.repo_id}' + url[url.find('/conda-forge'):]
             self.log.info(f'Syncing {self.repo_name}')
             self.log.info('This can take many minutes or hours for large repositories\n')
-
-            # remove directory path components up to '/pkgs'
-            cd_cnt = url[3 + url.find('://'):url.find('/pkgs')].count('/')
 
             if acclist:
                 ctrl = '--accept'
                 _list = acclist
-                if 'index.html' not in _list:
+                if 'index.html' not in _list and '/conda-forge' not in url:
                     _list += ',index.html'
                 if 'repodata.json' not in _list:
                     _list += ',repodata.json'
@@ -483,6 +505,12 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
             else:
                 ctrl = '--reject'
                 _list = rejlist
+
+            # remove directory path components up to '/pkgs'
+            if '/pkgs' in url:
+                cd_cnt = url[3 + url.find('://'):url.find('/pkgs')].count('/')
+            elif '/conda-forge' in url:
+                cd_cnt = url[3 + url.find('://'):url.find('/conda-forge')].count('/')
             cmd = (f"wget -m -nH --cut-dirs={cd_cnt} {ctrl} '{_list}' "
                    f"-P /srv/repos/{self.repo_id} {url}")
             rc = sub_proc_display(cmd, shell=True)
@@ -505,43 +533,47 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
             else:
                 self.log.info(f'{self.repo_name} sync finished successfully')
 
-        filelist = os.listdir(dest_dir)
-        filecnt = 0
-        dest = dest_dir + 'index.html'
-        src = dest_dir + 'index-src.html'
-        os.rename(dest, src)
-        with open(src, 'r') as s, open(dest, 'w') as d:
-            while True:
-                line = s.readline()
-                if not line:
-                    break
-                if '<tr>' not in line:
+        # Filter content of index.html
+        if '/conda-forge' not in dest_dir:
+            filelist = os.listdir(dest_dir)
+            filecnt = 0
+            dest = dest_dir + 'index.html'
+            src = dest_dir + 'index-src.html'
+            os.rename(dest, src)
+            line = ''
+            with open(src, 'r') as s, open(dest, 'w') as d:
+                while '<tr>' not in line:
+                    line = s.readline()
+                    d.write(line)
+                d.write(line)
+                row = ''
+                while '</table>' not in row:
+                    row, filename = _get_table_row(s)
+                    if filename in filelist or 'Filename' in row:
+                        d.write(row)
+                        filecnt += 1
+                d.write(row)
+                while True:
+                    line = s.readline()
+                    if not line:
+                        break
+                    ts = re.search(r'Updated: (.+) - Files:', line)
+                    if ts:
+                        ts = ts.group(1).replace('+', '\\+')
+                        line = re.sub(ts, time.asctime(), line)
                     line = re.sub(r'Files:\s+\d+', f'Files: {filecnt-2}', line)
                     d.write(line)
-                else:
-                    # start of html table row
-                    row, filename = self._get_table_row(s)
-                    if filename in filelist:
-                        line += row
-                        filecnt += 1
-                        d.write(line)
+        else:
+            # Remove index.html files retrieved from conda-forge so they don't
+            # interfere with web browser viewing
+            idx_path = os.path.join(dest_dir, 'index.html')
+            if os.path.isfile(idx_path):
+                os.remove(idx_path)
+            idx_path = os.path.join(dest_dir[:dest_dir.find('conda-forge')],
+                                    'index.html')
+            if os.path.isfile(idx_path):
+                os.remove(idx_path)
         return dest_dir
-
-    def _get_table_row(self, file_handle):
-        """read lines from file handle until end of table row </tr> found
-        return:
-            row: (str) with the balance of the table row.
-            filename: (str) with the name of the file referenced.
-        """
-        row = ''
-        filename = ''
-        while '</tr>' not in row:
-            line = file_handle.readline()
-            name = re.search(r'href="(.*?)"', line)
-            row += line
-            if name:
-                filename = name.group(1)
-        return row, filename
 
 
 class PowerupPypiRepoFromRepo(PowerupRepo):
