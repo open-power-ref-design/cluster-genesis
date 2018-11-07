@@ -45,7 +45,7 @@ $SNIPPET('password')
 d-i user-setup/allow-password-weak boolean true
 d-i user-setup/encrypt-home boolean false
 tasksel tasksel/first multiselect standard
-d-i pkgsel/include string openssh-server vlan bridge-utils vim python ifenslave ntp ntpdate
+d-i pkgsel/include string openssh-server vlan bridge-utils vim python ifenslave
 d-i pkgsel/update-policy select none
 d-i grub-installer/only_debian boolean false
 d-i grub-installer/with_other_os boolean false
