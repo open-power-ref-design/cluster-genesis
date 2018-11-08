@@ -140,8 +140,8 @@
     - "pip install --retries 1 --timeout 5 \
       --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
       numpy==1.12.1 pbr==4.2.0  --trusted-host {{ host_ip.stdout }}"
-    - "{{ install_dir }}/bin/conda install --yes --no-update-dependencies -c \
-      anaconda pyopenssl==18.0.0"
+    - "{{ install_dir }}/bin/conda install --yes --no-update-dependencies \
+      pyopenssl==18.0.0"
     - "pip install --retries 1 --timeout 5 \
       --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
       requests==2.14.2 elasticsearch==5.2.0 Flask==0.12.2 Flask-Cors==3.0.3 \

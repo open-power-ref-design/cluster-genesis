@@ -1,6 +1,7 @@
 conda_forge_noarch_pkgs:
   accept_list:
   - configparser-3.5.*
+  - networkx-*
 anaconda_free_pkgs:
   reject_list:
   - continuum-docs-*
@@ -17,7 +18,10 @@ anaconda_main_pkgs:
   accept_list:
   - absl-py-*
   - astor-0.7.1-*
+  - atomicwrites-*
+  - attrs-*
   - boost-*
+  - cryptography-*
   - dask-core-*
   - ffmpeg-*
   - flask-*
@@ -38,6 +42,7 @@ anaconda_main_pkgs:
   - libstdcxx-ng-*
   - libuuid-*
   - lmdb-*
+  - more-itertools-*
   - python-2.7.1*
   - ncurses-*
   - openssl-1.*
@@ -54,6 +59,7 @@ anaconda_main_pkgs:
   - libvpx-*
   - pip-1*
   - py-boost-*
+  - pyopenssl-*
   - certifi-*
   - libedit-*
   - scikit-learn*
@@ -63,7 +69,9 @@ anaconda_main_pkgs:
   - backports.shutil_get_terminal_size*
   - blas*
   - cairo*
+  - cffi-*
   - chardet*
+  - click-*
   - cycler*
   - cython*
   - decorator*
@@ -93,7 +101,6 @@ anaconda_main_pkgs:
   - libxml2*
   - linecache2-*
   - matplotlib*
-  - networkx*
   - ninja*
   - nose*
   - numpy*
@@ -105,15 +112,18 @@ anaconda_main_pkgs:
   - psutil-*
   - pillow*
   - pixman*
+  - pluggy-*
   - prompt_toolkit*
   - protobuf*
   - ptyprocess*
+  - py-*
   - pycairo*
   - pygments*
   - pyparsing*
   - python-dateutil*
   - python-leveldb*
   - python-lmdb*
+  - pytest-*
   - pytz*
   - pywavelets*
   - pyyaml*
@@ -128,6 +138,7 @@ anaconda_main_pkgs:
   - snappy*
   - subprocess32*
   - tabulate*
+  - tqdm-*
   - traceback2-*
   - typing*
   - traitlets*
