@@ -33,6 +33,10 @@ iface lo inet loopback
 auto {{ interface['iface'] }}
 iface {{ interface['iface'] }}{% if 'method' in interface %} inet {{ interface['method'] }}{% endif %}
 
+    {% if interface.gateway is defined %}
+    pre-up /sbin/route del default
+    {% endif %}
+
     {% for key, value in interface.iteritems() %}
         {% if key not in ['label', 'description', 'iface', 'method'] %}
     {{ key }} {{ value }}
