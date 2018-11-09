@@ -133,10 +133,20 @@ def cobbler_add_systems(cfg_file=None):
                 ks_meta,
                 token)
         kernel_options = inv.get_nodes_os_kernel_options(index)
+        if 'ubuntu-18.04' in cobbler_profile.lower():
+            if kernel_options is None:
+                kernel_options = ''
+            if 'netcfg/do_not_use_netplan=true' not in kernel_options:
+                kernel_options += ' netcfg/do_not_use_netplan=true'
         if kernel_options is not None:
             cobbler_server.modify_system(
                 new_system_create,
                 "kernel_options",
+                kernel_options,
+                token)
+            cobbler_server.modify_system(
+                new_system_create,
+                "kernel_options_post",
                 kernel_options,
                 token)
         comment = ""
