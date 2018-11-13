@@ -54,6 +54,17 @@
   when: ansible_distribution == 'Ubuntu'
   notify: Reboot
 
+- name: Add nameservers to resolved.conf.j2 (Ubuntu 18.04+)
+  template:
+    src: "{{ playbook_dir }}/templates/resolved.conf.j2"
+    dest: "/etc/systemd/resolved.conf"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+    backup: yes
+  when: ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'bionic'
+  notify: Reboot
+
 - name: Generate RHEL/CentOS interfaces files
   template:
     src: "{{ playbook_dir }}/templates/interfaces_rhel.j2"

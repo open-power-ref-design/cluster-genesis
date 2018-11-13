@@ -55,5 +55,6 @@ in-target mkdir /root/.ssh; \
 in-target /bin/chmod 700 /root/.ssh; \
 in-target /usr/bin/wget http://$http_server/authorized_keys -O /root/.ssh/authorized_keys; \
 in-target /bin/chmod 600 /root/.ssh/authorized_keys; \
+$SNIPPET('set_ubuntu_resolv_conf')
 $SNIPPET('kickstart_done')
 d-i finish-install/reboot_in_progress note
