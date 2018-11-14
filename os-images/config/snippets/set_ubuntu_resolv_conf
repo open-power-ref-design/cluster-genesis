@@ -15,6 +15,6 @@
 ## limitations under the License.
 ##
 #if $os_version == 'bionic'
-    #echo "in-target rm /etc/resolv.conf;"
-    #echo "in-target ln -s /run/systemd/resolve/resolv.conf /etc/resolv.conf;"
+    #echo "in-target rm /etc/resolv.conf; \\\n"
+    #echo "in-target ln -s /run/systemd/resolve/resolv.conf /etc/resolv.conf; \\"
 #end if
