@@ -57,7 +57,7 @@ For bare metal deploy, POWER-Up goes through the following steps when you enter 
     - configures the management switches
     - discovers and validates the cluster hardware
     - creates a container for hosting the rest of the POWER-Up software
-    - deploys operating systems to you cluster node
+    - deploys operating systems to your cluster node
     - sets up ssh keys and user accounts on your cluster nodes
     - configures networking on your cluster nodes
     - configures your data switches
