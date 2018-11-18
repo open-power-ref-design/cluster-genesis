@@ -706,7 +706,7 @@ class Gen(object):
                 soft = software_module.software(self.args.eval, self.args.non_interactive)
             if self.args.prep is True or self.args.all is True:
                 try:
-                    soft.setup()
+                    soft.prep()
                 except AttributeError as exc:
                     print(exc.message)
                     print('The software class needs to implement a '
