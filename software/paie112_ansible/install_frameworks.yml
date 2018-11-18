@@ -8,6 +8,7 @@
     # - caffe-ibm
     # - tensorflow
     # - tensorboard
-    - power-mldl
+    - power-mldl-py3
     - power-ddl
+    - power-snapml
   become: yes

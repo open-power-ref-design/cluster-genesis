@@ -5,7 +5,7 @@
 
 - name: Set installation directory variable
   set_fact:
-    install_dir: "/opt/anaconda2"
+    install_dir: "/opt/anaconda3"
 
 - name: Get route to client
   command: "{{ hostvars['localhost']['python_executable_local'] }} \
@@ -14,26 +14,26 @@
   delegate_to: localhost
   register: host_ip
 
-- name: Check if anaconda2 bin directory already exists
+- name: Check if anaconda bin directory already exists
   stat:
     path: "{{ install_dir }}/bin"
-  register: anaconda2_dir
+  register: anaconda_dir
 
 - name: Install Anaconda
   shell: "{{ ansible_env.HOME }}/{{ file }} \
           -b -p {{ install_dir }} -f"
   args:
     executable: /bin/bash
-  when: anaconda2_dir.stat.isdir is not defined or not anaconda2_dir.stat.isdir
+  when: anaconda_dir.stat.isdir is not defined or not anaconda_dir.stat.isdir
   become: yes
 
-- name: Add Anaconda2 install location to PATH in user's bashrc
+- name: Add Anaconda install location to PATH in user's bashrc
   lineinfile:
     path: "{{ ansible_env.HOME }}/.bashrc"
     regexp: ".*PATH=.*{{ install_dir }}/bin.*"
     line: "export PATH=\"{{ install_dir }}/bin:$PATH\""
 
-- name: Add Anaconda2 install location to PATH in root's bashrc
+- name: Add Anaconda install location to PATH in root's bashrc
   lineinfile:
     path: "/root/.bashrc"
     regexp: ".*PATH=.*{{ install_dir }}/bin.*"

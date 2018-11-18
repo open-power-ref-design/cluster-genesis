@@ -1,0 +1,4 @@
+---
+- name: Check POWER AI Enterprise license
+  shell: /opt/DL/powerai-enterprise/license/bin/check-powerai-enterprise-license.sh
+  become: yes

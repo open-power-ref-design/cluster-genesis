@@ -37,7 +37,7 @@ errors = []
 for changed_file in get_changed_files().splitlines():
     with open(changed_file, 'r') as f:
         for line in f:
-            match = re.search("Copyright (\d{4}) IBM", line)
+            match = re.search(r"Copyright (\d{4}) IBM", line)
             if match:
                 if match and match.group(1) != current_year:
                     no_errors = False

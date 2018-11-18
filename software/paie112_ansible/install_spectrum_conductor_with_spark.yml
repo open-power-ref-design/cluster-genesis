@@ -20,10 +20,10 @@
 
 - name: Include configuration environment variables
   include_vars:
-    file: envs_spectrum_conductor_with_spark.yml
+    file: envs_spectrum_conductor.yml
     name: envs
 
-- name: Install IBM Spectrum Conductor with Spark
+- name: Install IBM Spectrum Conductor
   shell: "{{ ansible_env.HOME }}/{{ file }} --quiet"
   environment: "{{ envs }}"
   args:

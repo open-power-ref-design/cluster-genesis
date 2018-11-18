@@ -1,6 +1,6 @@
 ---
 - name: Clean yum packages
-  command: yum clean packages
+  command: yum clean all
   args:
     warn: no
   become: yes

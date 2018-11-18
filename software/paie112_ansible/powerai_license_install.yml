@@ -1,7 +1,7 @@
 ---
-- name: Get filename from software-vars.yml
+- name: Get enterprise license filename from software-vars.yml
   set_fact:
-    file: "{{ content_files['anaconda'].split('/', 2)[-1] }}"
+    file: "{{ content_files['poweraie-license'].split('/')[-1] }}"
 
 - name: Get route to client
   command: "{{ hostvars['localhost']['python_executable_local'] }} \
@@ -10,11 +10,16 @@
   delegate_to: localhost
   register: host_ip
 
-- name: Download Anaconda
+- name: Download license rpm
   get_url:
     owner: "{{ ansible_user_id }}"
     group: "{{ ansible_user_id }}"
     mode: 0744
-    checksum: md5:e894dcc547a1c7d67deb04f6bba7223a
-    url: "http://{{ host_ip.stdout }}/{{ file }}"
+    url: "http://{{ host_ip.stdout }}/poweraie-license/{{ file }}"
     dest: "{{ ansible_env.HOME }}"
+
+- name: Install powerai-enterprise-license
+  yum:
+    name: "{{ ansible_env.HOME }}/{{ file }}"
+    state: present
+  become: yes

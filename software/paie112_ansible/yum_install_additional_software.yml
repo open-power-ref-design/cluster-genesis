@@ -11,5 +11,7 @@
     - iproute
     - acl
     - net-tools
+    - openssl
     - dejavu-serif-fonts
+    - nfs-utils
   become: yes

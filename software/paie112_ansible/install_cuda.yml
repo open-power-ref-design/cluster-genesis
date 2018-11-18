@@ -1,0 +1,14 @@
+---
+- name: Get pkg name from software-vars.yml
+  set_fact:
+    #file: "{{ content_files['cuda'].split('/', 2)[-1] }}"
+    pkg: "{{ cuda }}"
+
+- name: Install cuda software package
+  yum:
+    name: "{{ pkg }}"
+    state: latest
+  become: yes
+  notify: Reboot
+
+- meta: flush_handlers
