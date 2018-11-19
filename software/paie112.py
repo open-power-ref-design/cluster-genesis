@@ -1128,6 +1128,74 @@ class software(object):
 
             if url:
                 repo.sync()
+               #add missing packages 
+                
+                repo_dir = repo.get_repo_dir() + '/Packages/l'
+                os.chdir(repo_dir)
+                
+                cmd = ('wget -nc https://kojipkgs.fedoraproject.org//packages/libglvnd/'
+                    '1.0.1/0.1.git5baa1e5.el7/ppc64le/'
+                    'libglvnd-1.0.1-0.1.git5baa1e5.el7.ppc64le.rpm')
+                resp, err, rc = sub_proc_exec(cmd, shell=True)
+                if rc != 0:
+                   self.log.warning(f'Failed executing {cmd}')
+
+                cmd = ('wget -nc https://kojipkgs.fedoraproject.org//packages/libglvnd/'
+                    '1.0.1/0.1.git5baa1e5.el7/ppc64le/'
+                    'libglvnd-1.0.1-0.1.git5baa1e5.el7.ppc64le.rpm')
+                resp, err, rc = sub_proc_exec(cmd, shell=True)
+                if rc != 0:
+                   self.log.warning(f'Failed executing {cmd}') 
+                
+                cmd = ('wget -nc https://kojipkgs.fedoraproject.org//packages/libglvnd/'
+                     '1.0.1/0.1.git5baa1e5.el7/ppc64le/'
+                     'libglvnd-core-devel-1.0.1-0.1.git5baa1e5.el7.ppc64le.rpm')
+                resp, err, rc = sub_proc_exec(cmd, shell=True)
+                if rc != 0:
+                   self.log.warning(f'Failed executing {cmd}')
+
+                cmd = ('wget -nc https://kojipkgs.fedoraproject.org//packages/libglvnd/'
+                     '1.0.1/0.1.git5baa1e5.el7/ppc64le/'
+                     'libglvnd-devel-1.0.1-0.1.git5baa1e5.el7.ppc64le.rpm')
+                resp, err, rc = sub_proc_exec(cmd, shell=True)
+                if rc != 0:
+                   self.log.warning(f'Failed executing {cmd}')
+
+                cmd = ('wget -nc https://kojipkgs.fedoraproject.org//packages/libglvnd/'
+                     '1.0.1/0.1.git5baa1e5.el7/ppc64le/'
+                     'libglvnd-egl-1.0.1-0.1.git5baa1e5.el7.ppc64le.rpm')
+                resp, err, rc = sub_proc_exec(cmd, shell=True)
+                if rc != 0:
+                   self.log.warning(f'Failed executing {cmd}')
+
+                cmd = ('wget -nc https://kojipkgs.fedoraproject.org//packages/libglvnd/'
+                     '1.0.1/0.1.git5baa1e5.el7/ppc64le/'
+                     'libglvnd-gles-1.0.1-0.1.git5baa1e5.el7.ppc64le.rpm')
+                resp, err, rc = sub_proc_exec(cmd, shell=True)
+                if rc != 0:
+                   self.log.warning(f'Failed executing {cmd}')
+
+                cmd = ('wget -nc https://kojipkgs.fedoraproject.org//packages/libglvnd/'
+                     '1.0.1/0.1.git5baa1e5.el7/ppc64le/'
+                     'libglvnd-glx-1.0.1-0.1.git5baa1e5.el7.ppc64le.rpm')
+                resp, err, rc = sub_proc_exec(cmd, shell=True)
+                if rc != 0:
+                   self.log.warning(f'Failed executing {cmd}')
+
+                cmd = ('wget -nc https://kojipkgs.fedoraproject.org//packages/libglvnd/'
+                     '1.0.1/0.1.git5baa1e5.el7/ppc64le/'
+                     'libglvnd-opengl-1.0.1-0.1.git5baa1e5.el7.ppc64le.rpm')
+                resp, err, rc = sub_proc_exec(cmd, shell=True)
+                if rc != 0:
+                   self.log.warning(f'Failed executing {cmd}')
+
+                cmd = ('wget -nc https://kojipkgs.fedoraproject.org//packages/libglvnd/'
+                     '1.0.1/0.1.git5baa1e5.el7/ppc64le/'
+                     'libglvnd-debuginfo-1.0.1-0.1.git5baa1e5.el7.ppc64le.rpm')
+                resp, err, rc = sub_proc_exec(cmd, shell=True)
+                if rc != 0:
+                   self.log.warning(f'Failed executing {cmd}')
+
                 # recheck status after sync.
                 exists = self.status_prep(which='EPEL Repository')
                 if not exists:
