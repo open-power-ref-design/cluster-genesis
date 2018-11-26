@@ -431,3 +431,11 @@ cuda_pkgs:
 - xorg-x11-drv-nvidia-devel-396.44-1.el7.ppc64le
 - xorg-x11-drv-nvidia-gl-396.44-1.el7.ppc64le
 - xorg-x11-drv-nvidia-libs-396.44-1.el7.ppc64le
+- libglvnd-1.0.1-0.6.git5baa1e5.el7.ppc64le
+- libglvnd-core-devel-1.0.1-0.6.git5baa1e5.el7.ppc64le
+- libglvnd-debuginfo-1.0.1-0.6.git5baa1e5.el7.ppc64le
+- libglvnd-devel-1.0.1-0.6.git5baa1e5.el7.ppc64le
+- libglvnd-egl-1.0.1-0.6.git5baa1e5.el7.ppc64le
+- libglvnd-gles-1.0.1-0.6.git5baa1e5.el7.ppc64le
+- libglvnd-glx-1.0.1-0.6.git5baa1e5.el7.ppc64le
+- libglvnd-opengl-1.0.1-0.6.git5baa1e5.el7.ppc64le
