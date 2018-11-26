@@ -599,3 +599,11 @@ cuda_pkgs:
 - nvidia-persistenced-410.72-1.el7.ppc64le
 - nvidia-settings-410.72-1.el7.ppc64le
 - nvidia-xconfig-410.72-1.el7.ppc64le
+- libglvnd-1.0.1-0.6.git5baa1e5.el7.ppc64le
+- libglvnd-core-devel-1.0.1-0.6.git5baa1e5.el7.ppc64le
+- libglvnd-debuginfo-1.0.1-0.6.git5baa1e5.el7.ppc64le
+- libglvnd-devel-1.0.1-0.6.git5baa1e5.el7.ppc64le
+- libglvnd-egl-1.0.1-0.6.git5baa1e5.el7.ppc64le
+- libglvnd-gles-1.0.1-0.6.git5baa1e5.el7.ppc64le
+- libglvnd-glx-1.0.1-0.6.git5baa1e5.el7.ppc64le
+- libglvnd-opengl-1.0.1-0.6.git5baa1e5.el7.ppc64le
