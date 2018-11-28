@@ -56,6 +56,7 @@ POWER-Up Node  Prerequisites;
    "1.1.1", "software-install-b2.9"
    "1.1.1", "software-install-b2.10", "Updates for x86 based installer node"
    "1.1.1", "software-install-b2.11", "Enable cuda replicate on x86 installer node"
+   "1.1.2", "software-install-b2.12", "Support for installation of PAIE 1.1.2"
 
 From your home directory install the POWER-Up software and initialize the environment. For additional information see :ref:`installing`::
 
