@@ -83,6 +83,35 @@ if ! docker container ls &> /dev/null; then
     sudo usermod -aG docker $USER  # user needs to logout & login
 fi
 
+net_ipv4_conf='net.ipv4.conf.all.forwarding'
+ipv4_forwarding=$(/sbin/sysctl $net_ipv4_conf)
+sysctl_docker='/usr/lib/sysctl.d/99-docker.conf'
+
+if [[ $ipv4_forwarding == "net.ipv4.conf.all.forwarding = 0" ]]; then
+    echo "IPV4 forwarding OFF"
+
+    if ! ls $sysctl_docker &>/dev/null; then
+        echo "Creating $sysctl_docker"
+        touch $sysctl_docker
+        chmod 644 $sysctl_docker
+    fi
+
+    if ! grep $net_ipv4_conf $sysctl_docker &>/dev/null; then
+        echo "Adding '$net_ipv4_conf=1' to $sysctl_docker"
+        echo "$net_ipv4_conf=1" >> $sysctl_docker
+    elif grep "$net_ipv4_conf=0" $sysctl_docker &>/dev/null; then
+        echo "Replacing '$net_ipv4_conf=0' with '$net_ipv4_conf=1' in $sysctl_docker"
+        sed -i "s/$net_ipv4_conf=0/$net_ipv4_conf=1/" $sysctl_docker
+    fi
+
+    sudo systemctl restart docker
+
+    ipv4_forwarding=$(/sbin/sysctl $net_ipv4_conf)
+    if [[ $ipv4_forwarding == "net.ipv4.conf.all.forwarding = 0" ]]; then
+        echo "ERROR: Unable to enable IPV4 forwarding!"
+        echo "Ensure '/sbin/sysctl $net_ipv4_conf' is set to '1'"
+    fi
+
 sudo -E -H pip install --upgrade pip==18.0
 sudo -E -H pip install --upgrade setuptools
 sudo -E -H pip install --upgrade wheel
