@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# Copyright 2017 IBM Corp.
+#!/usr/bin/env python3
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -14,9 +14,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
 
 import sys
 import os.path
@@ -75,7 +72,7 @@ def validate_data_mac_table_files(log, inv):
     validation = True
 
     if inv.is_passive_data_switches():
-        for switch_ip, x in inv.get_data_switches().iteritems():
+        for switch_ip, x in inv.get_data_switches().items():
             file_path = get_mac_table_file_path(switch_ip)
             if not os.path.isfile(file_path):
                 validation = False
@@ -137,18 +134,18 @@ def check_duplicate_files(log, inv):
                                 return True
 
                 if inv.is_passive_data_switches():
-                    for switch_ip_2, x in inv.get_data_switches().iteritems():
+                    for switch_ip_2, x in inv.get_data_switches().items():
                         file_path_2 = get_mac_table_file_path(switch_ip_2)
                         if os.path.isfile(file_path_2):
                             if compare_files(file_path_1, file_path_2, log):
                                 return True
 
     if inv.is_passive_data_switches():
-        for switch_ip_1, x in inv.get_data_switches().iteritems():
+        for switch_ip_1, x in inv.get_data_switches().items():
             file_path_1 = get_mac_table_file_path(switch_ip_1)
 
             if os.path.isfile(file_path_1):
-                for switch_ip_2, x in inv.get_data_switches().iteritems():
+                for switch_ip_2, x in inv.get_data_switches().items():
                     if switch_ip_1 != switch_ip_2:
                         file_path_2 = get_mac_table_file_path(switch_ip_2)
                         if compare_files(file_path_1, file_path_2, log):

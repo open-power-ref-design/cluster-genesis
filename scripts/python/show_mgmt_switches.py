@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# Copyright 2017 IBM Corp.
+#!/usr/bin/env python3
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -14,9 +14,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
 
 import sys
 import os.path
@@ -35,7 +32,7 @@ ssh_log = FILE_PATH + '/gen_ssh.log'
 def rlinput(prompt, prefill=''):
     readline.set_startup_hook(lambda: readline.insert_text(prefill))
     try:
-        return raw_input(prompt)
+        return input(prompt)
     finally:
         readline.set_startup_hook()
 
@@ -59,7 +56,8 @@ def main(log, inv_file):
         print('Switch access information not present in: {}'.format(inv_file))
         print('Cluster Genesis may be in "passive" mode')
     else:
-        output = subprocess.check_output(['bash', '-c', 'ip route'])
+        output = subprocess.check_output(['bash', '-c', 'ip route']
+                                         ).decode("utf-8")
         if mgmt_network_ext_cidr in output:
             key_addr = 'addr_ext'
         elif mgmt_network_gen in output:
@@ -104,7 +102,8 @@ def main(log, inv_file):
             password = rlinput("Enter a password for the management switch (last char = '.' to terminate): ", password)
             if password[-1:] == '.':
                 sys.exit(0)
-            output = subprocess.check_output(['bash', '-c', 'ip route'])
+            output = subprocess.check_output(['bash', '-c', 'ip route']
+                                             ).decode("utf-8")
             if mgmt_network_ext_cidr in output:
                 addr = addr[:addr.find('/')]
                 break
@@ -153,7 +152,7 @@ def print_lines(str, line_list):
 def get_int_input(prompt_str, minn, maxx):
     while 1:
         try:
-            input = int(raw_input(prompt_str))
+            input = int(input(prompt_str))
             if not (minn <= input <= maxx):
                 raise ValueError()
             else:

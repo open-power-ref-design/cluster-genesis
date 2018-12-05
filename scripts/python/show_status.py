@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
@@ -15,9 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # python ./show_status.py /home/rhel72/config-test.yml DEBUG
-
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
 
 import os
 import sys
@@ -42,7 +39,7 @@ FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 def rlinput(prompt, prefill=''):
     readline.set_startup_hook(lambda: readline.insert_text(prefill))
     try:
-        return raw_input(prompt)
+        return input(prompt)
     finally:
         readline.set_startup_hook()
 
@@ -58,7 +55,8 @@ def main(log, inv_file):
     vlan_mgmt_client = inv.get_vlan_mgmt_client_network()
     bridge_vlan_mgmt_client = 'br' + str(vlan_mgmt_client)
 
-    output = subprocess.check_output(['bash', '-c', 'brctl show'])
+    output = subprocess.check_output(['bash', '-c', 'brctl show']
+                                     ).decode("utf-8")
     if bridge_vlan_mgmt not in output:
         print('    Management bridge {} not found\n'.format(bridge_vlan_mgmt))
     else:
@@ -71,7 +69,8 @@ def main(log, inv_file):
             ['bash', '-c', 'brctl show ' + bridge_vlan_mgmt_client]))
 
     print('Container Status: \n')
-    output = subprocess.check_output(['bash', '-c', 'sudo lxc-ls -f'])
+    output = subprocess.check_output(['bash', '-c', 'sudo lxc-ls -f']
+                                     ).decode("utf-8")
     if GEN_CONTAINER_NAME + ' ' in output:
         print(output)
     else:
@@ -154,7 +153,7 @@ def print_lines(str, line_list):
 def get_int_input(prompt_str, minn, maxx):
     while 1:
         try:
-            input = int(raw_input(prompt_str))
+            input = int(input(prompt_str))
             if not (minn <= input <= maxx):
                 raise ValueError()
             else:

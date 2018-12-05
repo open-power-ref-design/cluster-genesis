@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
@@ -14,9 +14,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
 
 import argparse
 import os.path
@@ -61,8 +58,9 @@ def _create_nat_gateway_rule(network, remove=False):
     log = logger.getlogger()
     network = str(IPNetwork(network).cidr)
     # Check if POSTROUTING nat rule already exists for client network
-    output = subprocess.check_output(
-        ['bash', '-c', 'iptables -L POSTROUTING -t nat']).splitlines()
+    output = subprocess.check_output(['bash', '-c',
+                                      'iptables -L POSTROUTING -t nat']
+                                     ).decode("utf-8").splitlines()
     for line in output:
         if "MASQUERADE" in line and network in line:
             log.debug('Found existing MASQUERADE NAT rule for {}: {}'.

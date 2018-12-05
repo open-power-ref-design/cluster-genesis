@@ -1,0 +1,14 @@
+---
+- name: Load the latest kernel
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - kernel
+    - kernel-tools
+    - kernel-tools-libs
+    - kernel-bootwrapper
+  become: yes
+  notify: Reboot
+
+- meta: flush_handlers

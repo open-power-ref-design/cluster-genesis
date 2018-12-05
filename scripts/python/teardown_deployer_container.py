@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
@@ -15,24 +15,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
-
 import argparse
 import os.path
 import sys
-from subprocess import Popen, PIPE
 
 from lib.config import Config
+from lib.container import Container
 from lib.exception import UserException
-from lib.genesis import DEFAULT_CONTAINER_NAME, GEN_PATH
+from lib.genesis import GEN_PATH
 import lib.logger as logger
-
-
-def _sub_proc_exec(cmd):
-    data = Popen(cmd.split(), stdout=PIPE, stderr=PIPE)
-    stdout, stderr = data.communicate()
-    return stdout, stderr
 
 
 def teardown_deployer_container(config_path):
@@ -40,23 +31,12 @@ def teardown_deployer_container(config_path):
     This function is idempotent.
     """
     log = logger.getlogger()
-    try:
-        cfg = Config(config_path)
-    except UserException:
-        log.error('Unable to open Cluster Genesis config.yml file')
-        sys.exit(1)
-
-    for vlan in cfg.yield_depl_netw_client_vlan('pxe'):
-        break
-    name = '{}-pxe{}'.format(DEFAULT_CONTAINER_NAME, vlan)
-    container_list, stderr = _sub_proc_exec('lxc-ls')
-    log.info('Found containers: {}'.format(container_list))
-    if name not in container_list:
-        log.info('container name: {} does not exist.'.format(name))
+    container = Container(config_path)
+    if container.cont is None:
+        log.info(f'container name: {container.name} does not exist.')
     else:
-        log.info('Destroying container: {}'.format(name))
-        result, stderr = _sub_proc_exec('lxc-stop -n {}'.format(name))
-        result, stderr = _sub_proc_exec('lxc-destroy -s -n {}'.format(name))
+        log.info(f'Destroying container: {container.name}')
+        container.cont.remove(force=True)
 
 
 if __name__ == '__main__':

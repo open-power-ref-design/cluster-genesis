@@ -1,0 +1,441 @@
+anaconda_free_pkgs:
+  reject_list:
+  - continuum-docs-*
+  - cudatoolkit-*
+  - cudnn-*
+  - tensorflow-*
+  - caffe-*
+  - anaconda-oss-docs-*
+  - anaconda-docs-*
+anaconda_main_pkgs:
+  accept_list:
+  - absl-py-*
+  - astor-0.7.1-*
+  - gast-*
+  - grpcio-*
+  - termcolor-*
+  - libgcc-ng-*
+  - libstdcxx-ng-*
+  - python-2.7.1*
+  - ncurses-*
+  - openssl-1.*
+  - ca-certificates-*
+  - tk-*
+  - sqlite-3.*
+  - wheel-*
+  - readline-*
+  - zlib-*
+  - setuptools-*
+  - libffi-*
+  - pip-1*
+  - certifi-*
+  - libedit-*
+  - scikit-learn*
+  - openblas-devel*
+  - openblas*
+  - backports.shutil_get_terminal_size*
+  - blas*
+  - cairo*
+  - chardet*
+  - cycler*
+  - cython*
+  - decorator*
+  - enum34*
+  - fontconfig*
+  - freetype*
+  - functools32*
+  - get_terminal_size*
+  - h5py*
+  - hdf5*
+  - icu*
+  - ipython*
+  - ipython_genutils*
+  - jpeg*
+  - leveldb*
+  - libgfortran-ng*
+  - libiconv*
+  - libopenblas*
+  - libpng*
+  - libprotobuf*
+  - libstdcxx-ng
+  - libtiff*
+  - libxml2*
+  - matplotlib*
+  - networkx*
+  - nose*
+  - numpy*
+  - olefile*
+  - pandas*
+  - pathlib2*
+  - pexpect*
+  - pickleshare*
+  - pillow*
+  - pixman*
+  - prompt_toolkit*
+  - protobuf*
+  - ptyprocess*
+  - pycairo*
+  - pygments*
+  - pyparsing*
+  - python-dateutil*
+  - python-leveldb*
+  - python-lmdb*
+  - pytz*
+  - pywavelets*
+  - pyyaml*
+  - redis*
+  - redis-py*
+  - requests*
+  - scandir*
+  - scikit-image*
+  - scipy*
+  - simplegeneric*
+  - six*
+  - snappy*
+  - subprocess32*
+  - traitlets*
+  - wcwidth*
+  - xz*
+  - yaml*
+python_pkgs:
+- alembic==0.8.2
+- appdirs==1.4.3
+- asn1crypto==0.24.0
+- Babel==2.6.0
+- boto>=2.32
+- '"botocore>=1.12.19,<1.13.0"'
+- boto3
+- bz2file
+- certifi==2018.4.16
+- cffi==1.11.5
+- chardet==3.0.4
+- click==6.7
+- cliff==2.13.0
+- cmd2==0.8.8
+- contextlib2==0.5.5
+- cryptography==2.3
+- debtcollector==1.20.0
+- decorator==4.3.0
+- deprecation==2.0.5
+- docutils>=0.10
+- dogpile.cache==0.6.7
+- easydict==1.6
+- elasticsearch==5.2.0
+- enum34==1.1.6
+- Flask==0.12.2
+- Flask==1.0.2
+- Flask-Cors==3.0.3
+- Flask-HTTPAuth==3.2.2
+- Flask-Script==2.0.5
+- funcsigs==1.0.2
+- functools32==3.2.3-2
+- '"futures>=2.2.0,<4.0.0"'
+- gensim
+- hanziconv
+- idna==2.7
+- ipaddress==1.0.22
+- iso8601==0.1.12
+- itsdangerous==0.24
+- Jinja2==2.10
+- jmespath==0.9.3
+- jsonpatch==1.23
+- jsonpointer==2.0
+- jsonschema==2.6.0
+- Keras==2.0.5
+- keystoneauth1==3.10.0
+- Mako==1.0.7
+- MarkupSafe==1.0
+- mongoengine==0.11.0
+- monotonic==1.5
+- msgpack==0.5.6
+- munch==2.3.2
+- netaddr==0.7.19
+- netifaces==0.10.7
+- numpy==1.12.1
+- openstacksdk==0.17.1
+- osc-lib==1.11.0
+- oslo.config==6.4.0
+- oslo.i18n==3.21.0
+- oslo.serialization==2.27.0
+- oslo.utils==3.36.4
+- os_service_types==1.2.0
+- packaging==17.1
+- pathlib==1.0.1
+- pbr==4.2.0
+- positional==1.2.1
+- prettytable==0.7.2
+- protobuf==3.6.0
+- pycparser==2.18
+- pymongo==3.7.1
+- pyOpenSSL==17.1.0
+- pyOpenSSL==18.0.0
+- pyparsing==2.2.0
+- pyperclip==1.6.4
+- python_cinderclient==4.0.1
+- '"python-dateutil<3.0.0,>=2.1"'
+- python-editor==1.0.3
+- python-gflags==2.0
+- python_glanceclient==2.12.1
+- python_heatclient==1.2.0
+- python_keystoneclient==3.1.0
+- python_keystoneclient==3.8.0
+- python_novaclient==11.0.0
+- python_openstackclient==3.16.0
+- python_swiftclient==3.6.0
+- pytz==2018.5
+- PyYAML==3.13
+- requests==2.14.2
+- requests==2.19.1
+- requestsexceptions==1.4.0
+- rfc3986==1.1.0
+- '"s3transfer>=0.1.10,<0.2.0"'
+- scipy==1.0.1
+- scipy==1.1.0
+- setuptools==39.0.1
+- setuptools==40.0.0
+- simplejson==3.16.0
+- six==1.11.0
+- smart_open>=1.2.1
+- SQLAlchemy==1.1.13
+- SQLAlchemy==1.2.10
+- stevedore==1.29.0
+- subprocess32==3.5.2
+- Theano==1.0.2
+- unicodecsv==0.14.1
+- '"urllib3>=1.20,<1.24"'
+- warlock==1.3.0
+- wcwidth==0.1.7
+- Werkzeug==0.14.1
+- wrapt==1.10.11
+yum_pkgs:
+- acl-2.2.51-14.el7.ppc64le
+- agg-2.5-18.el7.ppc64le
+- atlas-3.10.1-12.el7.ppc64le
+- bind-libs-9.9.4-61.el7_5.1.ppc64le
+- bind-libs-9.9.4-61.el7.ppc64le
+- bind-libs-lite-9.9.4-61.el7_5.1.ppc64le
+- bind-license-9.9.4-61.el7_5.1.noarch
+- bind-utils-9.9.4-61.el7_5.1.ppc64le
+- bind-utils-9.9.4-61.el7.ppc64le
+- blas-3.4.2-8.el7.ppc64le
+- boost-filesystem-1.53.0-27.el7.ppc64le
+- boost-python-1.53.0-27.el7.ppc64le
+- boost-system-1.53.0-27.el7.ppc64le
+- boost-thread-1.53.0-27.el7.ppc64le
+- bzip2-1.0.6-13.el7.ppc64le
+- cdparanoia-libs-10.2-17.el7.ppc64le
+- cifs-utils-6.2-10.el7.ppc64le
+- copy-jdk-configs-3.3-10.el7_5.noarch
+- cpp-4.8.5-28.el7_5.1.ppc64le
+- curl-7.29.0-46.el7.ppc64le
+- dejavu-fonts-common-2.33-6.el7.noarch
+- dejavu-sans-fonts-2.33-6.el7.noarch
+- dejavu-serif-fonts-2.33-6.el7.noarch
+- e2fsprogs-1.42.9-12.el7_5.ppc64le
+- e2fsprogs-libs-1.42.9-12.el7_5.ppc64le
+- elfutils-libelf-devel-0.170-4.el7.ppc64le
+- freetype-devel-2.4.11-15.el7.ppc64le
+- gcc-4.8.5-28.el7_5.1.ppc64le
+- gcc-c++-4.8.5-28.el7_5.1.ppc64le
+- gcc-gfortran-4.8.5-28.el7_5.1.ppc64le
+- gd-2.0.35-26.el7.ppc64le
+- GeoIP-1.5.0-11.el7.ppc64le
+- giflib-4.1.6-9.el7.ppc64le
+- glibc-2.17-222.el7.ppc64le
+- glibc-devel-2.17-222.el7.ppc64le
+- glibc-headers-2.17-222.el7.ppc64le
+- gstreamer-0.10.36-7.el7.ppc64le
+- gstreamer-plugins-base-0.10.36-10.el7.ppc64le
+- gstreamer-tools-0.10.36-7.el7.ppc64le
+- ilmbase-1.0.3-7.el7.ppc64le
+- iproute-4.11.0-14.el7.ppc64le
+- iso-codes-3.46-2.el7.noarch
+- java-1.8.0-openjdk-1.8.0.181-3.b13.el7_5.ppc64le
+- java-1.8.0-openjdk-devel-1.8.0.181-3.b13.el7_5.ppc64le
+- java-1.8.0-openjdk-headless-1.8.0.181-3.b13.el7_5.ppc64le
+- javapackages-tools-3.4.1-11.el7.noarch
+- kernel-3.10.0-862.11.6.el7.ppc64le
+- kernel-3.10.0-862.9.1.el7.ppc64le
+- kernel-bootwrapper-3.10.0-862.11.6.el7.ppc64le
+- kernel-bootwrapper-3.10.0-862.9.1.el7.ppc64le
+- kernel-devel-3.10.0-862.11.6.el7.ppc64le
+- kernel-devel-3.10.0-862.9.1.el7.ppc64le
+- kernel-headers-3.10.0-862.11.6.el7.ppc64le
+- kernel-headers-3.10.0-862.9.1.el7.ppc64le
+- kernel-tools-3.10.0-862.11.6.el7.ppc64le
+- kernel-tools-3.10.0-862.9.1.el7.ppc64le
+- kernel-tools-libs-3.10.0-862.11.6.el7.ppc64le
+- kernel-tools-libs-3.10.0-862.9.1.el7.ppc64le
+- keyutils-libs-devel-1.5.8-3.el7.ppc64le
+- krb5-devel-1.15.1-19.el7.ppc64le
+- krb5-libs-1.15.1-19.el7.ppc64le
+- lapack-3.4.2-8.el7.ppc64le
+- libatomic-4.8.5-28.el7_5.1.ppc64le
+- libcap-2.22-9.el7.ppc64le
+- libcom_err-1.42.9-12.el7_5.ppc64le
+- libcom_err-devel-1.42.9-12.el7_5.ppc64le
+- libffi-devel-3.0.13-18.el7.ppc64le
+- libfontenc-1.1.3-3.el7.ppc64le
+- libgcc-4.8.5-28.el7_5.1.ppc64le
+- libgfortran-4.8.5-28.el7_5.1.ppc64le
+- libgomp-4.8.5-28.el7_5.1.ppc64le
+- libICE-1.0.9-9.el7.ppc64le
+- libidn-1.28-4.el7.ppc64le
+- libkadm5-1.15.1-19.el7.ppc64le
+- libmpc-1.0.1-3.el7.ppc64le
+- libogg-1.3.0-7.el7.ppc64le
+- libpng-devel-1.5.13-7.el7_2.ppc64le
+- libselinux-devel-2.5-12.el7.ppc64le
+- libsepol-devel-2.5-8.1.el7.ppc64le
+- libSM-1.2.2-2.el7.ppc64le
+- libss-1.42.9-12.el7_5.ppc64le
+- libstdc++-4.8.5-28.el7_5.1.ppc64le
+- libstdc++-devel-4.8.5-28.el7_5.1.ppc64le
+- libtheora-1.1.1-8.el7.ppc64le
+- libv4l-0.9.5-4.el7.ppc64le
+- libverto-devel-0.2.5-4.el7.ppc64le
+- libvisual-0.4.0-16.el7.ppc64le
+- libvorbis-1.3.3-8.el7.1.ppc64le
+- libwebp-0.3.0-7.el7.ppc64le
+- libXdmcp-1.1.2-6.el7.ppc64le
+- libXfont-1.5.2-1.el7.ppc64le
+- libxml2-2.9.1-6.el7_2.3.ppc64le
+- libXpm-3.5.12-1.el7.ppc64le
+- libXtst-1.2.3-1.el7.ppc64le
+- libXv-1.0.11-1.el7.ppc64le
+- libyaml-0.1.4-11.el7_0.ppc64le
+- lksctp-tools-1.0.17-2.el7.ppc64le
+- mpfr-3.1.1-4.el7.ppc64le
+- net-tools-2.0-0.22.20131004git.el7.ppc64le
+- nspr-4.19.0-1.el7_5.ppc64le
+- nss-3.36.0-5.el7_5.ppc64le
+- nss-softokn-3.36.0-5.el7_5.ppc64le
+- nss-softokn-freebl-3.36.0-5.el7_5.ppc64le
+- nss-sysinit-3.36.0-5.el7_5.ppc64le
+- nss-tools-3.36.0-5.el7_5.ppc64le
+- nss-util-3.36.0-1.el7_5.ppc64le
+- numpy-1.7.1-13.el7.ppc64le
+- numpy-f2py-1.7.1-13.el7.ppc64le
+- opencv-2.4.5-3.el7.ppc64le
+- opencv-core-2.4.5-3.el7.ppc64le
+- opencv-devel-2.4.5-3.el7.ppc64le
+- opencv-python-2.4.5-3.el7.ppc64le
+- OpenEXR-libs-1.7.1-7.el7.ppc64le
+- openssl-devel-1.0.2k-12.el7.ppc64le
+- openssl-libs-1.0.2k-12.el7.ppc64le
+- orc-0.4.26-1.el7.ppc64le
+- pciutils-3.5.1-3.el7.ppc64le
+- pcre-devel-8.32-17.el7.ppc64le
+- pkgconfig-0.27.1-4.el7.ppc64le
+- pyparsing-1.5.6-9.el7.noarch
+- python-2.7.5-69.el7_5.ppc64le
+- python-backports-1.0-8.el7.ppc64le
+- python-backports-ssl_match_hostname-3.5.0.1-1.el7.noarch
+- python-devel-2.7.5-69.el7_5.ppc64le
+- python-ipaddress-1.0.16-2.el7.noarch
+- python-javapackages-3.4.1-11.el7.noarch
+- python-libs-2.7.5-69.el7_5.ppc64le
+- python-matplotlib-1.2.0-15.el7.ppc64le
+- python-nose-1.3.7-1.el7.noarch
+- python-pillow-2.0.0-19.gitd1c6db8.el7.ppc64le
+- python-setuptools-0.9.8-7.el7.noarch
+- pytz-2016.10-2.el7.noarch
+- PyYAML-3.10-11.el7.ppc64le
+- scipy-0.12.1-6.el7.ppc64le
+- SDL-1.2.15-14.el7.ppc64le
+- snappy-devel-1.1.0-3.el7.ppc64le
+- suitesparse-4.0.2-10.el7.ppc64le
+- t1lib-5.1.2-14.el7.ppc64le
+- texlive-base-2012-38.20130427_r30134.el7.noarch
+- texlive-dvipng-bin-svn26509.0-38.20130427_r30134.el7.ppc64le
+- texlive-dvipng-svn26689.1.14-38.el7.noarch
+- texlive-kpathsea-bin-svn27347.0-38.20130427_r30134.el7.ppc64le
+- texlive-kpathsea-lib-2012-38.20130427_r30134.el7.ppc64le
+- texlive-kpathsea-svn28792.0-38.el7.noarch
+- ttmkfdir-3.0.9-42.el7.ppc64le
+- tzdata-java-2018e-3.el7.noarch
+- wget-1.14-15.el7_4.1.ppc64le
+- xml-common-0.6.3-39.el7.noarch
+- xorg-x11-fonts-Type1-7.5-9.el7.noarch
+- xorg-x11-font-utils-7.5-20.el7.ppc64le
+- yum-utils-1.1.31-46.el7_5.noarch
+- zlib-1.2.7-17.el7.ppc64le
+- zlib-devel-1.2.7-17.el7.ppc64le
+cuda_pkgs:
+- cuda-9-2-9.2.148-1.ppc64le
+- cuda-9.2.148-1.ppc64le
+- cuda-command-line-tools-9-2-9.2.148-1.ppc64le
+- cuda-compiler-9-2-9.2.148-1.ppc64le
+- cuda-core-9-2-9.2.148-1.ppc64le
+- cuda-cublas-9-2-9.2.148-1.ppc64le
+- cuda-cublas-dev-9-2-9.2.148-1.ppc64le
+- cuda-cudart-9-2-9.2.148-1.ppc64le
+- cuda-cudart-dev-9-2-9.2.148-1.ppc64le
+- cuda-cufft-9-2-9.2.148-1.ppc64le
+- cuda-cufft-dev-9-2-9.2.148-1.ppc64le
+- cuda-cuobjdump-9-2-9.2.148-1.ppc64le
+- cuda-cupti-9-2-9.2.148-1.ppc64le
+- cuda-curand-9-2-9.2.148-1.ppc64le
+- cuda-curand-dev-9-2-9.2.148-1.ppc64le
+- cuda-cusolver-9-2-9.2.148-1.ppc64le
+- cuda-cusolver-dev-9-2-9.2.148-1.ppc64le
+- cuda-cusparse-9-2-9.2.148-1.ppc64le
+- cuda-cusparse-dev-9-2-9.2.148-1.ppc64le
+- cuda-demo-suite-9-2-9.2.148-1.ppc64le
+- cuda-documentation-9-2-9.2.148-1.ppc64le
+- cuda-driver-dev-9-2-9.2.148-1.ppc64le
+- cuda-drivers-396.37-1.ppc64le
+- cuda-gdb-9-2-9.2.148-1.ppc64le
+- cuda-gdb-src-9-2-9.2.148-1.ppc64le
+- cuda-gpu-library-advisor-9-2-9.2.148-1.ppc64le
+- cuda-libraries-9-2-9.2.148-1.ppc64le
+- cuda-libraries-dev-9-2-9.2.148-1.ppc64le
+- cuda-license-9-2-9.2.148-1.ppc64le
+- cuda-memcheck-9-2-9.2.148-1.ppc64le
+- cuda-minimal-build-9-2-9.2.148-1.ppc64le
+- cuda-misc-headers-9-2-9.2.148-1.ppc64le
+- cuda-npp-9-2-9.2.148-1.ppc64le
+- cuda-npp-dev-9-2-9.2.148-1.ppc64le
+- cuda-nsight-9-2-9.2.148-1.ppc64le
+- cuda-nvcc-9-2-9.2.148-1.ppc64le
+- cuda-nvdisasm-9-2-9.2.148-1.ppc64le
+- cuda-nvgraph-9-2-9.2.148-1.ppc64le
+- cuda-nvgraph-dev-9-2-9.2.148-1.ppc64le
+- cuda-nvml-dev-9-2-9.2.148-1.ppc64le
+- cuda-nvprof-9-2-9.2.148-1.ppc64le
+- cuda-nvprune-9-2-9.2.148-1.ppc64le
+- cuda-nvrtc-9-2-9.2.148-1.ppc64le
+- cuda-nvrtc-dev-9-2-9.2.148-1.ppc64le
+- cuda-nvtx-9-2-9.2.148-1.ppc64le
+- cuda-nvvp-9-2-9.2.148-1.ppc64le
+- cuda-runtime-9-2-9.2.148-1.ppc64le
+- cuda-samples-9-2-9.2.148-1.ppc64le
+- cuda-toolkit-9-2-9.2.148-1.ppc64le
+- cuda-tools-9-2-9.2.148-1.ppc64le
+- cuda-visual-tools-9-2-9.2.148-1.ppc64le
+- nvidia-kmod-396.37-2.el7.ppc64le
+- xorg-x11-drv-nvidia-396.37-1.el7.ppc64le
+- xorg-x11-drv-nvidia-devel-396.37-1.el7.ppc64le
+- xorg-x11-drv-nvidia-gl-396.37-1.el7.ppc64le
+- xorg-x11-drv-nvidia-libs-396.37-1.el7.ppc64le
+- cuda-cublas-9-2-9.2.148.1-1.ppc64le
+- cuda-cublas-dev-9-2-9.2.148.1-1.ppc64le
+- cuda-cuobjdump-9-2-9.2.148.1-1.ppc64le
+- cuda-cupti-9-2-9.2.148.1-1.ppc64le
+- cuda-gdb-9-2-9.2.148.1-1.ppc64le
+- cuda-nvdisasm-9-2-9.2.148.1-1.ppc64le
+- cuda-nvprof-9-2-9.2.148.1-1.ppc64le
+- cuda-drivers-396.44-1.ppc64le
+- nvidia-kmod-396.44-2.el7.ppc64le
+- xorg-x11-drv-nvidia-396.44-1.el7.ppc64le
+- xorg-x11-drv-nvidia-devel-396.44-1.el7.ppc64le
+- xorg-x11-drv-nvidia-gl-396.44-1.el7.ppc64le
+- xorg-x11-drv-nvidia-libs-396.44-1.el7.ppc64le
+- libglvnd-1.0.1-0.6.git5baa1e5.el7.ppc64le
+- libglvnd-core-devel-1.0.1-0.6.git5baa1e5.el7.ppc64le
+- libglvnd-debuginfo-1.0.1-0.6.git5baa1e5.el7.ppc64le
+- libglvnd-devel-1.0.1-0.6.git5baa1e5.el7.ppc64le
+- libglvnd-egl-1.0.1-0.6.git5baa1e5.el7.ppc64le
+- libglvnd-gles-1.0.1-0.6.git5baa1e5.el7.ppc64le
+- libglvnd-glx-1.0.1-0.6.git5baa1e5.el7.ppc64le
+- libglvnd-opengl-1.0.1-0.6.git5baa1e5.el7.ppc64le

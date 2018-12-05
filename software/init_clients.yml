@@ -1,0 +1,22 @@
+---
+- name: Gather localhost facts
+  hosts: localhost
+  gather_facts: True
+  tasks: []
+
+- name: Init clients to access the POWER-Up server
+  hosts: all
+  tasks:
+    - name: Get route to client
+      command: "{{ hostvars['localhost']['python_executable_local'] }} \
+      {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+      {{ inventory_hostname }}"
+      delegate_to: localhost
+      register: host_ip
+
+    - name: Add yum repo "{{ item.key }}"
+      copy:
+        content: "{{ item.value }}"
+        dest: "/etc/yum.repos.d/{{ item.key }}"
+      with_dict: "{{ yum_powerup_repo_files }}"
+      become: yes

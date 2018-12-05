@@ -1,0 +1,17 @@
+---
+- name: Install additional software packages
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - wget
+    - bzip2
+    - curl
+    - bind-utils
+    - iproute
+    - acl
+    - net-tools
+    - openssl
+    - dejavu-serif-fonts
+    - nfs-utils
+  become: yes

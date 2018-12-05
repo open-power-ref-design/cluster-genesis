@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
@@ -15,9 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
-
 import argparse
 import os
 import re
@@ -32,14 +29,18 @@ import lib.logger as logger
 from lib.config import Config
 from lib.exception import UserCriticalException
 from lib.genesis import Color, GEN_PATH
+from lib.utilities import line_in_file, sub_proc_exec
 
 IPR = IPRoute()
+OPSYS = platform.dist()[0]
+IFCFG_PATH = '/etc/sysconfig/network-scripts/'
 
 
 def enable_deployer_network(config_path=None):
     """creates or modifies the network elements on the deployer which allow
-    communication between the Genesis container and the cluster nodes
-    and switches. The management networks can utilize the default linux
+    communication between the POWER-Up container and the cluster nodes
+    and switches. Management networks such as those used for switch
+    management port access can utilize the default linux
     container bridge in which case they carry untagged traffic or they can
     specify a bridge with a tagged vlan. PXE and IPMI networks always include a
     bridge. The IPMI bridge can be tagged or untagged. The PXE bridge must be
@@ -72,7 +73,8 @@ def enable_deployer_network(config_path=None):
                         vlan=vlan[i])
 
     LOG.debug('=== Configuring deployer client networks ===')
-    type_ = cfg.get_depl_netw_client_type()
+    # type; ie pxe or ipmi
+    _type = cfg.get_depl_netw_client_type()
     dev_label = cfg.get_depl_netw_client_device()
     interface_ipaddr = cfg.get_depl_netw_client_intf_ip()
     container_ipaddr = cfg.get_depl_netw_client_cont_ip()
@@ -87,7 +89,7 @@ def enable_deployer_network(config_path=None):
                         container_ipaddr=container_ipaddr[i],
                         bridge_ipaddr=bridge_ipaddr[i],
                         vlan=vlan[i],
-                        type_=type_[i])
+                        _type=_type[i])
 
 
 def _create_network(
@@ -97,7 +99,25 @@ def _create_network(
         container_ipaddr=None,
         bridge_ipaddr=None,
         vlan=None,
-        type_='mgmt'):
+        _type='mgmt'):
+    """ Creates a network between the container interface and a physical interface.
+    If no bridge ip address is specified, the connection is via the default lxc
+    bridge. If a bridge ip address and vlan are specified, a bridge is created.
+    Inputs:
+        dev_label (str): Name of the physical device providing external connectivity
+            for the network.
+        interface_ipaddr (str): ipv4 address of the phsical device specified by
+            dev_label. If the address does not already exist on the interface it is
+            added.
+        netprefix (int): Size in bits of the network address.
+        container_ipaddr (str): ip address of the management interface in the
+        PowerUp container.
+        bridge_ipaddr (str): ip address of the bridge connecting the container and
+        the physical device.
+        vlan (int):
+        type (str): Type of interface being served by the network (mgmt, pxe, ipmi)
+        to be created.
+    """
 
     ifc_addresses = _get_ifc_addresses()
 
@@ -106,7 +126,7 @@ def _create_network(
         raise UserCriticalException('External interface {} not found.'
                                     .format(dev_label))
 
-    # if a bridge_ipaddr is not specied, then a bridge will not be created.
+    # if no bridge_ipaddr is specied (ie None), then a bridge will not be created.
     if not bridge_ipaddr:
         # if address not already on device, then add it.
         if not interface_ipaddr + '/' + str(netprefix) in ifc_addresses[dev_label]:
@@ -122,23 +142,10 @@ def _create_network(
         # definition file. If not, then write a definition file.
         ifc_file_list = _get_ifcs_file_list()
 
-        ifc_cfgd = False
-        addr_cfgd = False
         for filename in ifc_file_list:
-            f = open(filename, 'r')
-            interfaces = f.read()
-            f.close()
-            if re.findall(r'^ *auto\s+' + dev_label + '\s', interfaces, re.MULTILINE):
-                ifc_cfgd = True
-                LOG.debug('Device {} already configured in network configuration file {}'.
-                          format(dev_label, filename))
-            interfaces = interfaces.split('iface')
-            for line in interfaces:
-                if dev_label in line:
-                    if re.findall(r'^ *address\s+' + interface_ipaddr, line, re.MULTILINE):
-                        addr_cfgd = True
-                        LOG.debug('Address {} configured in {}'.
-                                  format(interface_ipaddr, filename))
+            ifc_cfgd, addr_cfgd = _is_ifc_configured(filename, dev_label, interface_ipaddr)
+            if ifc_cfgd:
+                break
 
         broadcast = None
         netmask = str(IPNetwork('255.255.255.255/' + str(netprefix)).netmask)
@@ -154,8 +161,8 @@ def _create_network(
         # Check for existing addresses on the external interface and
         # remove any that lie within the mgmt subnet. You only need to remove
         # the first address found in the subnet since any additional ones are
-        # secondary and removed when the first (primary) is removed.
-
+        # secondary and removed when the first (primary) is removed. Note that
+        # this does not remove addresses from netwrok config files.
         cidr = IPNetwork(bridge_ipaddr + '/' + str(netprefix))
         network = IPNetwork(cidr)
         network_addr = str(network.network)
@@ -177,7 +184,7 @@ def _create_network(
                     mask=pfx)
 
         # Prepare to setup the bridge
-        br_label = 'br-' + type_
+        br_label = 'br-' + _type
         if vlan and vlan != 4095:
             br_label = br_label + '-' + str(vlan)
         link = dev_label
@@ -202,17 +209,14 @@ def _create_network(
             raise UserCriticalException('Failed to bring up interface {} '.
                                         format(link))
 
-        # set bridge file write mode to 'w' (write) or 'a' (add)
-        if type_ == 'mgmt':
-            mode = 'a'
-        else:
-            mode = 'w'
+        # set bridge file write mode to 'w' (write) or 'a' (append)
+        mode = 'a' if _type == 'mgmt' else 'w'
 
         if IPR.link_lookup(ifname=br_label):
             LOG.info('{}NOTE: bridge {} is already configured.{}'.format(Color.bold,
                      br_label, Color.endc))
             print("Enter to continue, or 'T' to terminate deployment")
-            resp = raw_input("\nEnter or 'T': ")
+            resp = input("\nEnter or 'T': ")
             if resp == 'T':
                 sys.exit('POWER-Up stopped at user request')
 
@@ -225,33 +229,113 @@ def _create_network(
         _setup_bridge(br_label, bridge_ipaddr, netprefix, link)
 
 
-def _write_ifc_cfg_file(ifc, ip=None, mask=None, broadcast=None, ifc_cfgd=False):
+def _is_ifc_configured(ifc_cfg_file, dev_label, interface_ipaddr):
+    """Looks through an interface config file to see if the interface specified
+    by dev_label is configured and if the address specified by interface_ipaddr
+    is configured on that interface.
+    """
+    ifc_cfgd = False
+    addr_cfgd = False
+    f = open(ifc_cfg_file, 'r')
+    interfaces = f.read()
+    f.close()
+    if OPSYS == 'Ubuntu':
+        ssdl = fr'^ *auto\s+{dev_label}\s'
+        ssad = fr'^ *address\s+{interface_ipaddr}'
+        split_str = 'iface'
+    elif OPSYS == 'redhat':
+        ssdl = fr'^ *DEVICE="?{dev_label}"?'
+        ssad = fr'^ *IPADDR="?{interface_ipaddr}"?'
+        split_str = 'NAME='
+    if re.search(ssdl, interfaces, re.MULTILINE):
+        ifc_cfgd = True
+        LOG.debug('Device {} already configured in network configuration file {}'.
+                  format(dev_label, ifc_cfg_file))
+    interfaces = interfaces.split(split_str)
+    for line in interfaces:
+        if dev_label in line:
+            if re.findall(ssad, line, re.MULTILINE):
+                addr_cfgd = True
+                LOG.debug('Address {} configured in {}'.
+                          format(interface_ipaddr, ifc_cfg_file))
+    return ifc_cfgd, addr_cfgd
+
+
+def _get_ip_addr_num(file_path):
+    """Get the next IPADDR index num to use for adding an ip addr to an
+    ifcfg file.
+    """
+    num = ''
+    with open(file_path, 'r') as f:
+        data = f.read()
+    data = data.splitlines()
+    for line in data:
+        found = re.search(r'IPADDR(\d?)=', line)
+        if found:
+            if found.group(1) == '':
+                num = 0
+            else:
+                num = str(int(found.group(1)) + 1)
+    return num
+
+
+def _write_ifc_cfg_file(ifc, ip=None, mask=None, broadcast=None, ifc_cfgd=False,
+                        bridge=None):
     """ Writes an interface specific configuration file
     Args:
         ifc (str) interface name
         ip (str) interface ipv4 address
         mask (str) interface netmask
         broadcast (str) interface broadcast address
+        ifc_cfgd (bin): Used for Ubuntu to indicate whether the physical
+            interface is already defined. If not add 'auto' statement.
+        bridge (str): If present, add a 'BRIDGE' statement to Red Hat interface
     """
-    file_name = GEN_PATH + ifc + '-genesis-generated'
-    LOG.debug('Writing {} config file'.format(file_name))
-    f = open(file_name, 'w')
-    f.write('# Cluster genesis generated\n')
-    if not ifc_cfgd:
-        f.write('auto {}\n'.format(ifc))
-    if ip:
-        f.write('iface {} inet static\n'.format(ifc))
-        f.write('    address {}\n'.format(ip))
-        f.write('    netmask {}\n'.format(mask))
-        if broadcast:
-            f.write('    broadcast {}\n'.format(broadcast))
-    else:
-        f.write('iface {} inet dhcp\n'.format(ifc))
-    f.close()
-    os.system(
-        'sudo cp {} /etc/network/interfaces.d/{}'
-        .format(file_name, ifc + '-genesis-generated'))
-    os.system('rm ' + file_name)
+    if OPSYS == 'Ubuntu':
+        file_path = GEN_PATH + ifc + '-powerup-generated'
+        LOG.debug('Writing {} config file'.format(file_path))
+        f = open(file_path, 'w')
+        f.write('# POWERUp generated\n')
+        if not ifc_cfgd:
+            f.write('auto {}\n'.format(ifc))
+        if ip:
+            f.write('iface {} inet static\n'.format(ifc))
+            f.write('    address {}\n'.format(ip))
+            f.write('    netmask {}\n'.format(mask))
+            if broadcast:
+                f.write('    broadcast {}\n'.format(broadcast))
+        else:
+            f.write('iface {} inet dhcp\n'.format(ifc))
+        f.close()
+        os.system(
+            'sudo cp {} /etc/network/interfaces.d/{}'
+            .format(file_path, ifc + '-powerup-generated'))
+        os.system('rm ' + file_path)
+    elif OPSYS == 'redhat':
+        file_path = IFCFG_PATH + f'ifcfg-{ifc}'
+        if not os.path.isfile(file_path):
+            LOG.error(f'No interface config file exists for {ifc}.'
+                      f'Creating {IFCFG_PATH}ifcfg-{ifc}')
+            with open(file_path, 'w') as f:
+                f.write(f'DEVICE="{ifc}"')
+                f.write('ONBOOT=yes')
+                f.write('BOOTPROTO=none')
+                f.write('TYPE=Ethernet')
+                f.write('NM_CONTROLLED=no')
+        LOG.info('Writing {} config file'.format(file_path))
+        line_in_file(file_path, r'^ *ONBOOT=.+', 'ONBOOT=yes', backup='-powerup-bkup.orig')
+        line_in_file(file_path, r'^ *BOOTPROTO=.+', 'BOOTPROTO=none')
+        line_in_file(file_path, r'^ *NM_CONTROLLED=.+', 'NM_CONTROLLED=no')
+        if ip:
+            ifc_cfgd, addr_cfgd = _is_ifc_configured(file_path, ifc, ip)
+            if not addr_cfgd:
+                ipaddr_num = _get_ip_addr_num(file_path)
+                with open(file_path, 'a') as f:
+                    f.write(f'IPADDR{ipaddr_num}={ip}\n')
+                    f.write(f'NETMASK{ipaddr_num}={mask}')
+        if bridge:
+            with open(file_path, 'a') as f:
+                f.write(f'BRIDGE={bridge}')
 
 
 def _write_br_cfg_file(bridge, ip=None, prefix=None, ifc=None, mode='w'):
@@ -260,7 +344,7 @@ def _write_br_cfg_file(bridge, ip=None, prefix=None, ifc=None, mode='w'):
     mode is set to 'a' (append) and the bridge config file exists, the
     specified interface is added to the bridge config file.  If mode is
     unspecified or set to 'w' (write), the config file is created or
-    overwritten.
+    overwritten. The interface specified by 'ifc' is attached to the bridge.
     Args:
         bridge (str) bridge name
         ip (str) ipv4 address to be added to the bridge
@@ -268,16 +352,15 @@ def _write_br_cfg_file(bridge, ip=None, prefix=None, ifc=None, mode='w'):
             network portion of the ip address
         ifc (str) name of the interface to be added to the bridge.
     """
-    opsys = platform.dist()[0]
-    LOG.debug('OS: ' + opsys)
-    if opsys not in ('Ubuntu', 'redhat'):
+    LOG.debug('OS: ' + OPSYS)
+    if OPSYS not in ('debian', 'Ubuntu', 'redhat'):
         LOG.error('Unsupported Operating System')
         raise UserCriticalException('Unsupported Operating System')
     network = IPNetwork(ip + '/' + str(prefix))
     network_addr = str(network.network)
     broadcast = str(network.broadcast)
     netmask = str(network.netmask)
-    if opsys == 'Ubuntu':
+    if OPSYS in ('debian', 'Ubuntu'):
         if mode == 'a' and os.path.exists('/etc/network/interfaces.d/' + bridge):
             LOG.debug('Appending to bridge config file {} IP addr {}'.
                       format(bridge, ip))
@@ -333,27 +416,44 @@ def _write_br_cfg_file(bridge, ip=None, prefix=None, ifc=None, mode='w'):
                 'sudo cp {}{} /etc/network/interfaces.d/{}'
                 .format(GEN_PATH, bridge, bridge))
             os.system('rm ' + GEN_PATH + bridge)
-
-        os.system('cp /etc/lxc/lxc-usernet ' + GEN_PATH)
-        f = open(GEN_PATH + 'lxc-usernet', 'r')
-        data = f.read()
-        f.close()
-        username = os.getlogin()
-        perm = re.findall(username + r'\s+veth\s+' + bridge, data, re.MULTILINE)
-        permlxcbr0 = re.findall(username + r'\s+veth\s+lxcbr0', data, re.MULTILINE)
-        if not perm or not permlxcbr0:
-            LOG.debug('Updating lxc user network permissions')
-            f = open(GEN_PATH + 'lxc-usernet', 'a')
-            if not permlxcbr0:
-                f.write(username + ' veth lxcbr0 10\n')
-            if not perm:
-                f.write(username + ' veth ' + bridge + ' 10\n')
-            f.close()
-
-            os.system('sudo cp ' + GEN_PATH + 'lxc-usernet /etc/lxc/lxc-usernet')
         return
-    LOG.error('Support for Red Hat not yet implemented')
-    raise UserCriticalException('Support for Red Hat not yet implemented')
+    elif OPSYS == 'redhat':
+        # Create the ifc config file
+        # non vlan ifc
+        if '.' not in ifc:
+            _write_ifc_cfg_file(ifc, bridge=bridge)
+        # vlan ifc
+        else:
+            file_path = IFCFG_PATH + f'ifcfg-{ifc}'
+            with open(file_path, 'w') as f:
+                LOG.debug(f'Writing vlan config file:\n{file_path}')
+                f.write(f'DEVICE={ifc}\n')
+                f.write('ONBOOT=yes\n')
+                f.write('BOOTPROTO=none\n')
+                f.write('NM_CONTROLLED=no\n')
+                f.write('VLAN=yes\n')
+                f.write(f'BRIDGE={bridge}')
+
+        # Create the bridge config file
+        file_path = f'{IFCFG_PATH}ifcfg-{bridge}'
+        if mode == 'a' and os.path.isfile(file_path):
+            LOG.debug(f'Appending to bridge config file {bridge} IP addr {ip}')
+            ifc_cfgd, addr_cfgd = _is_ifc_configured(file_path, ifc, ip)
+            if not addr_cfgd:
+                ipaddr_num = _get_ip_addr_num(file_path)
+                with open(file_path, 'a') as f:
+                    f.write(f'IPADDR{ipaddr_num}={ip}\n')
+                    f.write(f'PREFIX{ipaddr_num}={prefix}')
+        else:
+            with open(file_path, 'w') as f:
+                f.write(f'DEVICE={bridge}\n')
+                f.write('ONBOOT=yes\n')
+                f.write('TYPE=Bridge\n')
+                f.write(f'IPADDR={ip}\n')
+                f.write(f'PREFIX={prefix}\n')
+                f.write('BOOTPROTO=none\n')
+                f.write('NM_CONTROLLED=no\n')
+                f.write('DELAY=0')
 
 
 def _get_ifc_addresses():
@@ -373,14 +473,20 @@ def _get_ifc_addresses():
 def _get_ifcs_file_list():
     """ Returns the absolute path for all interface definition files
     """
-    opsys = platform.dist()[0]
-    if opsys == 'Ubuntu':
+    if OPSYS in ('debian', 'Ubuntu'):
         path = '/etc/network/'
         pathd = '/etc/network/interfaces.d/'
         file_list = []
         file_list.append(path + 'interfaces')
         for filename in os.listdir(pathd):
             file_list.append(pathd + filename)
+    elif OPSYS == 'redhat':
+        path = '/etc/sysconfig/network-scripts/'
+        file_list = []
+        for filename in os.listdir(path):
+            _file = re.search(r'(?!.*\.orig$)ifcfg-.+', filename)
+            if _file:
+                file_list.append(path + _file.group(0))
     return file_list
 
 
@@ -443,7 +549,8 @@ def _is_ifc_attached_elsewhere(ifc, bridge):
     Returns:
         True if the interface is already being used (is unavailable)
     """
-    br_list = subprocess.check_output(['bash', '-c', 'brctl show']).splitlines()
+    br_list, err, rc = sub_proc_exec('brctl show')
+    br_list = br_list.splitlines()
     output = []
     for line in br_list[1:]:
         if line.startswith('\t'):
@@ -457,7 +564,16 @@ def _is_ifc_attached_elsewhere(ifc, bridge):
 
 
 def _is_ifc_attached(ifc, bridge):
-    br_list = subprocess.check_output(['bash', '-c', 'brctl show']).splitlines()
+    """ Checks to see if ifc is in use on a bridge other than that specified
+    Args:
+        ifc (str) interface name
+        bridge (str) name of bridge the interface is intended for
+    Returns:
+        True if the interface is already being used (is unavailable)
+    """
+
+    br_list = subprocess.check_output(['bash', '-c', 'brctl show']
+                                      ).decode("utf-8").splitlines()
     output = []
     for line in br_list[1:]:
         if line.startswith('\t'):

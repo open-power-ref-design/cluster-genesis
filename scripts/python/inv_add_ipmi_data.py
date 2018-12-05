@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# Copyright 2017 IBM Corp.
+#!/usr/bin/env python3
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -15,15 +15,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
-
 import sys
-from pyghmi.ipmi import command as ipmi_command
 import pyghmi.exceptions as ipmi_exc
 
 from lib.inventory import Inventory
 from lib.logger import Logger
+from lib.utilities import bmc_ipmi_login
 
 
 class IpmiData(object):
@@ -47,10 +44,10 @@ class IpmiData(object):
 
         for _, _, self.group, self.index, self.node in \
                 self.inv.yield_nodes():
-            ipmi_cmd = ipmi_command.Command(
-                bmc=self.node[self.inv.INV_IPV4_IPMI],
-                userid=self.node[self.inv.INV_USERID_IPMI],
-                password=self.node[self.inv.INV_PASSWORD_IPMI])
+            ipmi_cmd = bmc_ipmi_login(
+                self.node[self.inv.INV_IPV4_IPMI],
+                self.node[self.inv.INV_USERID_IPMI],
+                self.node[self.inv.INV_PASSWORD_IPMI])
 
             components = []
             try:

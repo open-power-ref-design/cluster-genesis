@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# Copyright 2017 IBM Corp.
+#!/usr/bin/env python3
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -15,13 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
 import sys
 import re
-from pyghmi.ipmi import command as ipmi_command
 from pyghmi import exceptions as pyghmi_exception
 
+from lib.utilities import bmc_ipmi_login
 from lib.inventory import Inventory
 from lib.logger import Logger
 
@@ -39,10 +37,7 @@ class IpmiSetStaticIP(object):
     def __init__(self, log, inv_file):
         inv = Inventory(log, inv_file)
         for rack_id, ipv4, _userid, _password in inv.yield_ipmi_access_info():
-            ipmi_cmd = ipmi_command.Command(
-                bmc=ipv4,
-                userid=_userid,
-                password=_password)
+            ipmi_cmd = bmc_ipmi_login(ipv4, _userid, _password)
 
             try:
                 inv = ipmi_cmd.get_net_configuration(

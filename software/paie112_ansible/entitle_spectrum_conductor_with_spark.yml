@@ -1,0 +1,26 @@
+---
+- name: Get filename from software-vars.yml
+  set_fact:
+    file: "{{ content_files['spectrum-conductor-entitlement'].split('/')[-1] }}"
+
+- name: Get route to client
+  command: "{{ hostvars['localhost']['python_executable_local'] }} \
+  {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+  {{ inventory_hostname }}"
+  delegate_to: localhost
+  register: host_ip
+
+- name: Download entitlement file
+  get_url:
+    owner: "{{ ansible_user_id }}"
+    group: "{{ ansible_user_id }}"
+    mode: 0744
+    url: "http://{{ host_ip.stdout }}/spectrum-conductor/{{ file }}"
+    dest: "{{ ansible_env.HOME }}"
+
+- name: Entitle IBM Spectrum Conductor with Spark
+  shell: "source /opt/ibm/spectrumcomputing/profile.platform && \
+  egoconfig join {{ groups['master'][0] }} -f && \
+  egoconfig setentitlement {{ ansible_env.HOME }}/{{ file }}"
+  args:
+    executable: /bin/bash

@@ -16,9 +16,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
-
 from enum import Enum
 from orderedattrdict import AttrDict, DefaultAttrDict
 
@@ -212,9 +209,9 @@ class Inventory(object):
 
     def _flatten(self, data):
         def items():
-            for key, value in data.iteritems():
+            for key, value in iter(data.items()):
                 if isinstance(value, dict):
-                    for subkey, subvalue in self._flatten(value).iteritems():
+                    for subkey, subvalue in iter(self._flatten(value).items()):
                         yield key + '.' + subkey, subvalue
                 else:
                     yield key, value
@@ -224,7 +221,7 @@ class Inventory(object):
         nodes = []
         flat = self._flatten(self.nodes)
 
-        for item_key, item_values in flat.iteritems():
+        for item_key, item_values in iter(flat.items()):
             for index, item_value in enumerate(item_values):
                 if len(nodes) <= index:
                     nodes.append(DefaultAttrDict(dict))
@@ -731,8 +728,8 @@ class Inventory(object):
                                 "MAC: %s" % set_mac)
 
         for interface in self.inv.nodes[node_index][self.InvKey.INTERFACES]:
-            for key, value in interface.iteritems():
-                if isinstance(value, basestring):
+            for key, value in iter(interface.items()):
+                if isinstance(value, str):
                     value_split = []
                     for _value in value.split():
                         if old_name == _value or old_name in _value.split('.'):

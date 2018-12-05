@@ -1,0 +1,55 @@
+---
+- name: If the cluster has been started, shut it down
+  shell: "source /opt/ibm/spectrumcomputing/profile.platform && \
+  egosh user logon -u Admin -x Admin && \
+  egoshutdown.sh || true"
+  args:
+    executable: /bin/bash
+  become: yes
+  when: ansible_host == groups['master'][0]
+
+- name: Join hosts to cluster
+  shell: "source /opt/ibm/spectrumcomputing/profile.platform && \
+  egoconfig join {{ groups['master'][0] }} -f"
+  args:
+    executable: /bin/bash
+  when: ansible_host != groups['master'][0]
+
+- name: Include configuration environment variables
+  include_vars:
+    file: envs_spectrum_conductor_dli.yml
+    name: envs
+
+- name: If adding management host run egoconfig mghost
+  shell: "source /opt/ibm/spectrumcomputing/profile.platform && \
+  egoconfig mghost $DLI_SHARED_FS"
+  environment: "{{ envs }}"
+  args:
+    executable: /bin/bash
+  when: >
+    ansible_host in groups['master'] and
+    ansible_host != groups['master'][0]
+
+- name: Start the first management host
+  shell: "source /opt/ibm/spectrumcomputing/profile.platform && \
+  egosh ego start && sleep 60"
+  args:
+    executable: /bin/bash
+  become: yes
+  when: ansible_host == groups['master'][0]
+
+- name: Start all hosts
+  shell: "source /opt/ibm/spectrumcomputing/profile.platform && \
+  egosh ego start && sleep 60"
+  args:
+    executable: /bin/bash
+  become: yes
+  when: ansible_host != groups['master'][0]
+
+- name: Verify that the host has joined the cluster
+  shell: "source /opt/ibm/spectrumcomputing/profile.platform && \
+  egosh user logon -u Admin -x Admin && \
+  egosh resource list"
+  args:
+    executable: /bin/bash
+  when: ansible_host != groups['master'][0]

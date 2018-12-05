@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
@@ -14,9 +14,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
 
 import argparse
 import os
@@ -90,7 +87,7 @@ def cobbler_install(config_path=None):
             log.warning(error.output)
             print("\nPress enter to remove Cobbler and attempt to ")
             print("re-install, or 'T' to terminate.")
-            resp = raw_input("\nEnter or 'T': ")
+            resp = input("\nEnter or 'T': ")
             log.debug("User response = \'{}\'".format(resp))
             if resp == 'T':
                 sys.exit('POWER-Up stopped at user request')

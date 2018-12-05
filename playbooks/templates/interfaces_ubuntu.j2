@@ -37,7 +37,7 @@ iface {{ interface['iface'] }}{% if 'method' in interface %} inet {{ interface['
     pre-up /sbin/route del default
     {% endif %}
 
-    {% for key, value in interface.iteritems() %}
+    {% for key, value in interface.items() %}
         {% if key not in ['label', 'description', 'iface', 'method'] %}
     {{ key }} {{ value }}
         {% endif %}

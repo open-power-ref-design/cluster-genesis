@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
@@ -15,16 +15,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
-
 import argparse
 import time
-from pyghmi.ipmi import command as ipmi_command
 from pyghmi import exceptions as pyghmi_exception
 
 from lib.inventory import Inventory
 import lib.logger as logger
+from lib.utilities import bmc_ipmi_login
 
 
 def ipmi_set_power(state, config_path=None, client_list=None, max_attempts=5,
@@ -73,13 +70,10 @@ def ipmi_set_power(state, config_path=None, client_list=None, max_attempts=5,
             nodes[ipv4] = [rack_id, ipv4]
             for i in range(2):
                 try:
-                    bmc_dict[ipv4] = ipmi_command.Command(
-                        bmc=ipv4,
-                        userid=userid,
-                        password=password)
+                    bmc_dict[ipv4] = bmc_ipmi_login(ipv4, userid, password)
                 except pyghmi_exception.IpmiException as error:
                     log.error('IPMI login attempt {}, address {}\nIPMI error'
-                              'message: {}'.format(i, ipv4, error.message))
+                              'message: {}'.format(i, ipv4, str(error)))
                     time.sleep(1)
                 else:
                     break

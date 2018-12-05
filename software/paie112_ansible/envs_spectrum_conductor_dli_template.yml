@@ -1,0 +1,23 @@
+---
+#// IBM Spectrum Conductor Deep Learning Impact Config //#
+## The following variables are required:
+CLUSTERADMIN:
+DLI_SHARED_FS:
+DLI_CONDA_HOME:
+## DLI defaults to 5000 and 5001 for DLI_INSIGHTS_MONITOR_PORT
+## and DLI_INSIGHTS_OPTIMIZER_PORT but these ports are registered
+## in /etc/services in RHEL 7.5 and cause installation of DLI to
+## fail.
+DLI_INSIGHTS_MONITOR_PORT: 5993
+DLI_INSIGHTS_OPTIMIZER_PORT: 5994
+IBM_SPECTRUM_CONDUCTOR_DEEP_LEARNING_IMPACT_LICENSE_ACCEPT: y
+
+## The following variables are optional:
+# DLI_MONGODB_PORT:
+# DLI_REDIS_PORT:
+# DLI_DLPD_REST_PORT:
+# DLI_ELASTIC_ENABLE:
+# DLI_RDMA_ENABLE:
+# DLI_RDMA_DEVICE_NAME:
+# DLI_RDMA_DEVICE_PORT:
+# DLI_RDMA_BUFFER_SIZE:

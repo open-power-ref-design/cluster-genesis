@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
@@ -14,9 +14,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
 
 import argparse
 import sys
@@ -34,7 +31,7 @@ from lib.genesis import GEN_PATH, Color
 def rlinput(prompt, prefill=''):
     readline.set_startup_hook(lambda: readline.insert_text(prefill))
     try:
-        return raw_input(prompt)
+        return input(prompt)
     finally:
         readline.set_startup_hook()
 
@@ -178,7 +175,7 @@ def main(_class, host):
             sw.configure_interface(cfg['ifc_addr'], cfg['ifc_netmask'], cfg['vlan'])
             print('Created interface vlan {}'.format(cfg['vlan']))
         except SwitchException as exc:
-            print (exc)
+            print(exc)
 
     def _delete_inband_ifc(cfg):
         print('Testing remove interface')

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """Cluster Genesis 'teardown' command"""
 
 # Copyright 2018 IBM Corp.
@@ -16,9 +16,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
 
 import sys
 import os.path
@@ -78,7 +75,7 @@ class Teardown(object):
         self.config_file_path = os.path.abspath(self.config_file_path)
 
         print('\nUsing {}'.format(self.config_file_path))
-        resp = raw_input('Enter to continue. "T" to terminate ')
+        resp = input('Enter to continue. "T" to terminate ')
         if resp == 'T':
             sys.exit('POWER-Up stopped at user request')
 

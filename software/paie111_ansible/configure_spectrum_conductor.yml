@@ -1,0 +1,174 @@
+---
+- name: Get route to client
+  command: "{{ hostvars['localhost']['python_executable_local'] }} \
+  {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+  {{ inventory_hostname }}"
+  delegate_to: localhost
+  register: host_ip
+
+- name: Install NCCL1 from the PowerAI repository
+  yum:
+    name: libnccl*
+    state: latest
+  become: yes
+
+- name: Check if Anaconda dli environment already exists
+  stat:
+    path: /opt/anaconda2/envs/dli
+  register: conda_dli_env
+
+- name: "Create an Anaconda environment named dli for installing IBM \
+         Spectrum Conductor Deep Learning Impact"
+  shell: /opt/anaconda2/bin/conda create --name dli --yes pip python=2.7
+  when: not conda_dli_env.stat.exists
+  become: yes
+
+- name: Activate dli and install dependencies
+  shell: "source /opt/anaconda2/bin/activate dli && {{ item }}"
+  loop:
+    - "/opt/anaconda2/bin/conda install --yes --no-update-dependencies \
+      cython==0.25.2 h5py==2.7.0 ipython==5.3.0 \
+      python-lmdb==0.92 matplotlib==2.0.2 networkx==1.11 \
+      nose==1.3.7 pandas==0.20.3 pillow==4.1.1 python-dateutil==2.6.1 \
+      pyyaml==3.12 requests==2.13.0 scipy==1.1.0 six==1.11.0 \
+      scikit-image==0.13.0 redis-py==2.10.5 chardet==3.0.4"
+    - "pip install --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
+      Keras==2.0.5 easydict==1.6 python-gflags==2.0 --trusted-host \
+      {{ host_ip.stdout }}"
+  become: yes
+
+- name: Install additional packages for large model support
+  shell: "source /opt/anaconda2/bin/activate dli && pip install \
+         --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
+         hanziconv gensim --trusted-host {{ host_ip.stdout }}"
+  become: yes
+
+- name: Install PowerAI deep learning dependencies
+  shell: "PATH=/opt/anaconda2/bin:$PATH {{ item }}"
+  loop:
+    - /opt/DL/tensorflow/bin/install_dependencies -n dli -y
+    - /opt/DL/tensorboard/bin/install_dependencies -n dli -y
+  become: yes
+
+- name: Check if Anaconda dli-pytorch environment already exists
+  stat:
+    path: /opt/anaconda2/envs/dli-pytorch
+  register: conda_dli_pytorch_env
+
+- name: "Create an Anaconda environment named dli-pytorch for IBM Spectrum \
+         Conductor Deep Learning Impact training insights"
+  shell: /opt/anaconda2/bin/conda create --name dli-pytorch --yes pip python=2.7
+  when: not conda_dli_pytorch_env.stat.exists
+  become: yes
+
+- name: Install dli-pytorch dependencies
+  shell: "PATH=/opt/anaconda2/bin:$PATH {{ item }}"
+  loop:
+    - /opt/DL/pytorch/bin/install_dependencies -n dli-pytorch -y
+  become: yes
+
+- name: Install Open CV
+  yum:
+    name: "{{ item }}"
+    state: latest
+  loop:
+    - opencv-devel
+    - python-devel
+    - opencv-python
+    - boost-python
+    - snappy-devel
+  become: yes
+
+#- name: Install Open CV
+#  yum:
+#    name: "{{ packages }}"
+#    state: latest
+#  vars:
+#    packages:
+#    - opencv-devel
+#    - python-devel
+#    - opencv-python
+#    - boost-python
+#    - snappy-devel
+#  become: yes
+
+- name: Create Open CV symbolic links
+  file:
+    src: "/usr/lib64/python2.7/site-packages/{{ item }}"
+    dest: "/opt/anaconda2/envs/dli/lib/python2.7/site-packages/{{ item }}"
+    state: link
+  loop:
+    - cv.py
+    - cv.pyc
+    - cv.pyo
+    - cv2.so
+  become: yes
+
+#- name: Install fabric dependencies
+#  yum:
+#    name: "{{ packages }}"
+#    state: latest
+#  vars:
+#    packages:
+#    - openblas-devel
+#    - glog-devel
+#    - gflags-devel
+#    - hdf5-devel
+#    - leveldb-devel
+#    - libsodium-devel
+#    - lmdb-devel
+#  become: yes
+
+- name: Install elastic distributed training dependencies
+  yum:
+    name: "{{ item }}"
+    state: latest
+  loop:
+    - openblas-devel
+    - glog-devel
+    - gflags-devel
+    - hdf5-devel
+    - leveldb-devel
+    - libsodium-devel
+    - lmdb-devel
+  become: yes
+
+- name: Install additional dependency packages
+  yum:
+    name: "{{ item }}"
+    state: latest
+  loop:
+    - gcc-c++
+    - gcc-gfortran
+    - freetype-devel
+    - libpng-devel
+    - libffi-devel
+    - openssl-devel
+  become: yes
+
+- name: Check if Anaconda dlinsights environment already exists
+  stat:
+    path: /opt/anaconda2/envs/dlinsights
+  register: conda_dlinsights_env
+
+- name: "Create an Anaconda environment named dlinsights for IBM Spectrum \
+         Conductor Deep Learning Impact training insights"
+  shell: /opt/anaconda2/bin/conda create --name dlinsights --yes pip python=2.7
+  when: not conda_dlinsights_env.stat.exists
+  become: yes
+
+- name: Activate dlinsights and install dependencies
+  shell: "source /opt/anaconda2/bin/activate dlinsights && {{ item }}"
+  loop:
+    - "pip install --retries 1 --timeout 5 \
+      --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
+      numpy==1.12.1 pbr==4.2.0  --trusted-host {{ host_ip.stdout }}"
+    - "pip install --retries 1 --timeout 5 \
+      --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
+      requests==2.14.2 elasticsearch==5.2.0 Flask==0.12.2 Flask-Cors==3.0.3 \
+      Flask-Script==2.0.5 Flask-HTTPAuth==3.2.2 mongoengine==0.11.0 \
+      pathlib==1.0.1 pyOpenSSL==17.1.0 python-heatclient==1.2.0 \
+      SQLAlchemy==1.1.13 scipy==1.0.1 alembic==0.8.2 \
+      python-keystoneclient==3.8.0 \
+      --trusted-host {{ host_ip.stdout }}"
+  become: yes

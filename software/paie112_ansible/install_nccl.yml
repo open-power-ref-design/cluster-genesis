@@ -1,0 +1,20 @@
+---
+- name: Get filename from software-vars.yml
+  set_fact:
+    file: "{{ content_files['cuda-nccl2'].split('/', 2)[-1] }}"
+
+- name: Get route to client
+  command: "{{ hostvars['localhost']['python_executable_local'] }} \
+  {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+  {{ inventory_hostname }}"
+  delegate_to: localhost
+  register: host_ip
+
+- name: Install NVIDIA Collective Communications Library
+  shell: "curl -G \
+  http://{{ host_ip.stdout }}/{{ file }} \
+  | tar -C /usr/local/cuda/targets/ppc64le-linux/ --strip-components=1 \
+  --no-same-owner -xJv"
+  args:
+    warn: no
+  become: yes

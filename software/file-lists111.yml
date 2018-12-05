@@ -1,0 +1,55 @@
+globs:
+    Anaconda content: Anaconda2-[56].[2-9]*.[0-9]*-Linux-ppc64le.sh
+    CUDA dnn content: cudnn-9.[2-9]*-linux-ppc64le-v7.[2-9]**.tgz
+    CUDA nccl2 content: nccl_2.2.1[3-9]-1+cuda9.[2-9]*_ppc64le.tgz
+    CUDA toolkit content: cuda-repo-rhel7-9-2-local-9.[2-9].[1-9]*-[1-9]*.ppc64le.rpm
+    CUDA patch content: cuda-repo-rhel7-9-2-148-local-patch-1-1.[0-9]*-1.ppc64le.rpm
+    CUDA driver content: nvidia-driver-local-repo-rhel7-396.44-1.[0-9]*-1.ppc64le.rpm
+    PowerAI content: mldl-repo-local-[5-9]*.[3-9]*.[0-9]**.ppc64le.rpm
+    PowerAIE license content: powerai-enterprise-license-[0-9]*.[0-9]*.[0-9]**.ppc64le.rpm
+    Spectrum conductor content: conductor[2-9]*.[3-9]*.[0-9]*.[0-9]*_ppc64le.bin
+    Spectrum DLI content: dli-[1-9]*.[2-9]*.[0-9]*.[0-9]*_ppc64le.bin
+    Spectrum conductor content entitlement: conductor_entitlement.dat
+    Spectrum DLI content entitlement: dli_entitlement.dat
+
+globs_eval:
+    Anaconda content: Anaconda2-[56].[2-9]*.[0-9]*-Linux-ppc64le.sh
+    CUDA dnn content: cudnn-9.[2-9]*-linux-ppc64le-v7.[2-9]**.tgz
+    CUDA nccl2 content: nccl_2.2.1[3-9]-1+cuda9.[2-9]*_ppc64le.tgz
+    CUDA toolkit content: cuda-repo-rhel7-9-2-local-9.[2-9].[1-9]*-[1-9]*.ppc64le.rpm
+    CUDA patch content: cuda-repo-rhel7-9-2-148-local-patch-1-1.[0-9]*-1.ppc64le.rpm
+    CUDA driver content: nvidia-driver-local-repo-rhel7-396.44-1.[0-9]*-1.ppc64le.rpm
+    PowerAI content: mldl-repo-local-[5-9]*.[3-9]*.[0-9]**.ppc64le.rpm
+    PowerAIE license content: powerai-enterprise-license-eval-[0-9]*.[0-9]*.[0-9]**.ppc64le.rpm
+    Spectrum conductor content: conductoreval[2-9]*.[3-9]*.[0-9]*.[0-9]*_ppc64le.bin
+    Spectrum DLI content: dlieval-[1-9]*.[2-9]*.[0-9]*.[0-9]*_ppc64le.bin
+    Spectrum conductor content entitlement: conductoreval_entitlement.dat
+    Spectrum DLI content entitlement: dlieval_entitlement.dat
+
+files:
+    Anaconda content: Anaconda2-5.2.0-Linux-ppc64le.sh
+    CUDA dnn content: cudnn-9.2-linux-ppc64le-v7.2.1.38.tgz
+    CUDA nccl2 content: nccl_2.2.13-1+cuda9.2_ppc64le.tgz
+    CUDA toolkit content: cuda-repo-rhel7-9-2-local-9.2.148-1.ppc64le.rpm
+    CUDA patch content: cuda-repo-rhel7-9-2-148-local-patch-1-1.0-1.ppc64le.rpm
+    CUDA driver content: nvidia-driver-local-repo-rhel7-396.44-1.0-1.ppc64le.rpm
+    PowerAI content: mldl-repo-local-5.3.0-201809060373.1754e5d.ppc64le.rpm
+    PowerAIE license content: powerai-enterprise-license-1.1.1-107.73dcac9.ppc64le.rpm
+    Spectrum conductor content: conductor2.3.0.0_ppc64le.bin
+    Spectrum DLI content: dli-1.2.0.0_ppc64le.bin
+    Spectrum conductor content entitlement: conductor_entitlement.dat
+    Spectrum DLI content entitlement: dli_entitlement.dat
+
+files_eval:
+    Anaconda content: Anaconda2-5.2.0-Linux-ppc64le.sh
+    CUDA dnn content: cudnn-9.2-linux-ppc64le-v7.2.1.38.tgz
+    CUDA nccl2 content: nccl_2.2.13-1+cuda9.2_ppc64le.tgz
+    CUDA toolkit content: cuda-repo-rhel7-9-2-local-9.2.148-1.ppc64le.rpm
+    CUDA patch content: cuda-repo-rhel7-9-2-148-local-patch-1-1.0-1.ppc64le.rpm
+    CUDA driver content: nvidia-driver-local-repo-rhel7-396.44-1.0-1.ppc64le.rpm
+    PowerAI content: mldl-repo-local-5.3.0-201809060373.1754e5d.ppc64le.rpm
+    PowerAIE license content: powerai-enterprise-license-eval-1.1.1-107.73dcac9.ppc64le.rpm
+    Spectrum conductor content: conductoreval2.3.0.0_ppc64le.bin
+    Spectrum DLI content: dlieval-1.2.0.0_ppc64le.bin
+    Spectrum conductor content entitlement: conductoreval_entitlement.dat
+    Spectrum DLI content entitlement: dlieval_entitlement.dat

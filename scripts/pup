@@ -22,6 +22,11 @@ if [[ "$1" == "setup" ]] && ([[ "$2" == "--networks" ]] ||
     exit
 fi
 
+if [[ "$1" == "software" ]]; then
+    sudo env "PATH=$PATH" gen.py $@
+    exit
+fi
+
 if [[ "$1" == "validate" ]] && [[ "$2" == "--cluster-hardware" ]]; then
     sudo env "PATH=$PATH" gen.py $@
     exit

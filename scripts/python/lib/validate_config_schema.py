@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """Config schema validation"""
 
 # Copyright 2018 IBM Corp.
@@ -16,9 +16,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
 
 import jsonschema
 from jsonschema import validate
@@ -261,11 +258,11 @@ class ValidateConfigSchema(object):
                         else:
                             path += '.{}'.format(element)
                 exc = 'Schema validation failed - {} - {}'.format(
-                    path, error.message)
+                    path, str(error))
             else:
                 exc = 'Schema validation failed - {} - {}'.format(
-                    error.cause, error.message)
-            if 'Additional properties are not allowed' in error.message:
+                    error.cause, str(error))
+            if 'Additional properties are not allowed' in str(error):
                 raise UserException(exc)
             else:
                 raise UserCriticalException(exc)

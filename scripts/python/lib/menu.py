@@ -3,7 +3,7 @@
     Attributes:
         KEY_ESC (int): Unicode code point of ``ESC`` key.
 """
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -18,9 +18,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
 
 import curses
 
@@ -130,7 +127,7 @@ class Menu(object):
                 if key in self.enter_selects:
                     selection = self.items[self.cursor_pos]
                 elif key in self.num_selects:
-                    selection = self.items[int(unichr(key))]
+                    selection = self.items[int(chr(key))]
 
                 if selection.item_type == 'simple':
                     if selection.exit:

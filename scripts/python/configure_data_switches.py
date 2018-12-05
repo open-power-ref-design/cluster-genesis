@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
@@ -14,9 +14,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
 
 import os
 import sys
@@ -382,7 +379,7 @@ def configure_data_switch(config_path):
             except SwitchException as exc:
                 log.warning('Switch: {}. Failed adding vlans {} to port {}'.
                             format(switch, port_vlans[switch][port], port))
-                log.warning(exc.message)
+                log.warning(str(exc))
             log.debug('switch: {} port: {} vlans: {}'.format(
                 switch, port, port_vlans[switch][port]))
 
@@ -460,7 +457,7 @@ def configure_data_switch(config_path):
                                     port_grp, chan_num)
                             except SwitchException as exc:
                                 log.warning('Failure configuring port in switch:'
-                                            ' {}.\n{}'.format(sw, exc.message))
+                                            ' {}.\n{}'.format(sw, str(exc)))
                 else:
                     # Configure LAG
                     for sw in chan_ports[bond][ntmpl][mstr_sw]:
@@ -496,7 +493,7 @@ def configure_data_switch(config_path):
                                     port_grp, chan_num)
                             except SwitchException as exc:
                                 log.warning('Failure configuring port in switch:'
-                                            '{}.\n {}'.format(sw, exc.message))
+                                            '{}.\n {}'.format(sw, str(exc)))
 
 
 def deconfigure_data_switch(config_path):
@@ -556,7 +553,7 @@ def deconfigure_data_switch(config_path):
                 print('\n\nDo you wish to deconfigure MLAG on switch {}?'.format(sw))
                 print('This will stop all MLAG communication on all switch ports')
                 print('OK to deconfigure MLAG?')
-                resp = raw_input("Enter (Y/yes/n): ")
+                resp = input("Enter (Y/yes/n): ")
                 if resp in ['Y', 'yes']:
                     log.info('Deconfiguring MLAG on switch: {}'.format(sw))
                     sw_dict[sw].deconfigure_mlag()

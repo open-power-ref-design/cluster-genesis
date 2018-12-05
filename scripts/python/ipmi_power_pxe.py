@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# Copyright 2017 IBM Corp.
+#!/usr/bin/env python3
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -15,12 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
-
 import sys
 import time
-from pyghmi.ipmi import command as ipmi_command
 from pyghmi import exceptions as pyghmi_exception
 from tabulate import tabulate
 
@@ -28,6 +24,7 @@ from lib.inventory import Inventory
 from lib.ipmi_power import IpmiPower
 from lib.logger import Logger
 from get_dhcp_lease_info import GetDhcpLeases
+from lib.utilities import bmc_ipmi_login
 
 
 class IpmiPowerPXE(object):
@@ -123,10 +120,9 @@ class IpmiPowerPXE(object):
         bootdev = 'pxe'
         persist = False
         for bmc in bmc_list:
-            ipmi_cmd = ipmi_command.Command(
-                bmc=bmc['ipv4'],
-                userid=bmc['userid'],
-                password=bmc['password'])
+            ipmi_cmd = bmc_ipmi_login(bmc['ipv4'],
+                                      bmc['userid'],
+                                      bmc['userid'])
             try:
                 ipmi_cmd.set_bootdev(bootdev, persist)
             except pyghmi_exception.IpmiException as error:

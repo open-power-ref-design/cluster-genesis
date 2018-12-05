@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
@@ -14,9 +14,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
 
 import argparse
 import re
@@ -41,7 +38,7 @@ IS_CONTAINER = gen.is_container()
 def _sub_proc_exec(cmd):
     data = Popen(cmd.split(), stdout=PIPE, stderr=PIPE)
     stdout, stderr = data.communicate()
-    return stdout, stderr
+    return stdout.decode("utf-8"), stderr.decode("utf-8")
 
 
 def _get_lists(latest_list, handled_list):

@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """Write switch memory."""
 
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -16,9 +16,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
 
 import sys
 
@@ -52,7 +49,7 @@ class WriteSwitchMemory(object):
 
     def write_data_switch_memory(self):
         self.enable_remote = self.ENABLE_REMOTE_CONFIG_DATA
-        for self.ipv4, value in self.inv.get_data_switches().iteritems():
+        for self.ipv4, value in self.inv.get_data_switches().items():
             self.userid = value['user']
             self.password = value['password']
             self._send_cmd(self.WRITE_MEMORY, 'Write memory')

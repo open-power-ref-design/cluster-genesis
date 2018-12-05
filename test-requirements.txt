@@ -1,21 +1,7 @@
-ansible-lint>=3.4.9
-bashate>=0.5.1
-pep8>=1.7.0
-flake8>=3.4.1
-pylint>=1.7.2
-mock>=1.2
-netaddr~=0.7.18
+ansible-lint>=3.5.0
+bashate>=0.6.0
+flake8>=3.5.0
+mock>=2.0.0
+pep8>=1.7.1
+pylint>=2.1.1
 testrepository>=0.0.20  # Apache-2.0/BSD
-ansible~=2.5.5
-orderedattrdict==1.5
-pyroute2==0.5.0
-jsonschema==2.6.0
-jsl==0.2.4
-pyghmi==1.0.42
-wget==3.2
-pyasn1==0.4.2
-pysnmp==4.4.4
-pyaml==17.12.1
-paramiko==2.4.2
-tabulate==0.8.2
-gitpython==2.1.9

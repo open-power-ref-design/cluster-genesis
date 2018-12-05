@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
@@ -15,15 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
-
 import argparse
 import os.path
 import sys
-import xmlrpclib
+import xmlrpc.client
 from netaddr import IPNetwork
-from pyghmi.ipmi import command as ipmi_command
 from pyghmi import exceptions as pyghmi_exception
 from time import time
 
@@ -147,7 +143,7 @@ def inv_set_ipmi_pxe_ip(config_path):
                           dhcp_lease_time)
 
         # Run Cobbler sync to process DNSMASQ template
-        cobbler_server = xmlrpclib.Server("http://127.0.0.1/cobbler_api")
+        cobbler_server = xmlrpc.client.Server("http://127.0.0.1/cobbler_api")
         token = cobbler_server.login(COBBLER_USER, COBBLER_PASS)
         cobbler_server.sync(token)
         log.debug("Running Cobbler sync")
@@ -170,11 +166,9 @@ def inv_set_ipmi_pxe_ip(config_path):
         ipmi_userid = node['ipmi_userid']
         ipmi_password = node['ipmi_password']
         ipmi_ipaddr = node['ipmi_ipaddr']
-        ipmi_cmd = ipmi_command.Command(bmc=ipmi_ipaddr,
-                                        userid=ipmi_userid,
-                                        password=ipmi_password)
+        ipmi_cmd = util.bmc_ipmi_login(ipmi_ipaddr, ipmi_userid, ipmi_password)
         ipmi_cmd.reset_bmc()
-        del ipmi_cmd
+        util.bmc_ipmi_logout(ipmi_cmd)
         log.debug('BMC Cold Reset Issued - Node: %s - IP: %s' %
                   (hostname, ipmi_ipaddr))
 
@@ -193,10 +187,9 @@ def inv_set_ipmi_pxe_ip(config_path):
 
             # Attempt to connect to new IPMI IP address
             try:
-                ipmi_cmd = ipmi_command.Command(
-                    bmc=ipmi_new_ipaddr,
-                    userid=ipmi_userid,
-                    password=ipmi_password)
+                ipmi_cmd = util.bmc_ipmi_login(ipmi_new_ipaddr,
+                                               ipmi_userid,
+                                               ipmi_password)
                 status = ipmi_cmd.get_power()
             except pyghmi_exception.IpmiException as error:
                 log.debug('BMC connection failed - Node: %s IP: %s, %s '

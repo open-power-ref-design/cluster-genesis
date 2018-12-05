@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
@@ -15,13 +15,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
-
 import sys
 import os.path
 import argparse
-import xmlrpclib
+import xmlrpc.client
 import re
 
 from lib.inventory import Inventory
@@ -34,7 +31,7 @@ def cobbler_add_systems(cfg_file=None):
 
     cobbler_user = gen.get_cobbler_user()
     cobbler_pass = gen.get_cobbler_pass()
-    cobbler_server = xmlrpclib.Server("http://127.0.0.1/cobbler_api")
+    cobbler_server = xmlrpc.client.Server("http://127.0.0.1/cobbler_api")
     token = cobbler_server.login(cobbler_user, cobbler_pass)
 
     inv = Inventory(cfg_file=cfg_file)
@@ -97,7 +94,7 @@ def cobbler_add_systems(cfg_file=None):
         ks_meta = ""
         disks = inv.get_nodes_os_install_device(index)
         if disks is not None:
-            if isinstance(disks, basestring):
+            if isinstance(disks, str):
                 ks_meta += 'install_disk=%s ' % disks
             elif isinstance(disks, list) and len(disks) == 2:
                 ks_meta += (

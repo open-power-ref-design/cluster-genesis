@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# Copyright 2017 IBM Corp.
+#!/usr/bin/env python3
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -15,9 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
-
 import sys
 import subprocess
 from datetime import datetime
@@ -25,8 +22,8 @@ import re
 
 
 def get_changed_files():
-    return subprocess.check_output(
-        ['git', 'diff', 'HEAD~', '--name-only', '--diff-filter=d'])
+    return subprocess.check_output(['git', 'diff', 'HEAD~', '--name-only',
+                                    '--diff-filter=d']).decode("utf-8")
 
 
 current_year = str(datetime.today().year)
@@ -37,7 +34,7 @@ errors = []
 for changed_file in get_changed_files().splitlines():
     with open(changed_file, 'r') as f:
         for line in f:
-            match = re.search("Copyright (\d{4}) IBM", line)
+            match = re.search(r"Copyright (\d{4}) IBM", line)
             if match:
                 if match and match.group(1) != current_year:
                     no_errors = False

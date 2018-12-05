@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# Copyright 2017 IBM Corp.
+#!/usr/bin/env python3
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -14,9 +14,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
 
 import sys
 import time
@@ -88,7 +85,7 @@ class InventoryAddPorts(object):
         # MAC address in the DHCP leases table, then remove any MAC addresses
         # which do not have a  DHCP table entry.
         for switch in mgmt_sw_cfg_mac_lists.keys():
-            for port in mgmt_sw_cfg_mac_lists[switch]:
+            for port in list(mgmt_sw_cfg_mac_lists[switch].keys()):
                 port_macs = mgmt_sw_cfg_mac_lists[switch][port]
                 found_mac = False
                 for mac in dhcp_mac_ip.keys():
@@ -291,7 +288,7 @@ def get_port_status(dhcp_leases_file, port_type, config_path):
         log.warning('Incomplete! Found {} of {} nodes'.format(status[0], status[1]))
         print('{}-------------------------------------------{}'.format(yellow, endc))
         print("\nPress enter to continue gathering port information.")
-        resp = raw_input("Enter C to continue Cluster Genesis or 'T' to terminate ")
+        resp = input("Enter C to continue Cluster Genesis or 'T' to terminate ")
         if resp == 'T':
             log.info("'{}' entered. Terminating Genesis at user request".format(resp))
             sys.exit(1)

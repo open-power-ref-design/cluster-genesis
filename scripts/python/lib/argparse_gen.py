@@ -1,4 +1,4 @@
-"""Cluster Genesis 'gen' command argument parser"""
+"""POWER-Up 'pup.py' command argument parser"""
 
 # Copyright 2018 IBM Corp.
 #
@@ -19,11 +19,12 @@
 from enum import Enum
 from argparse import ArgumentParser, RawTextHelpFormatter
 
-PROJECT = 'Cluster Genesis'
+PROJECT = 'POWER-Up'
 SETUP_CMD = 'setup'
 CONFIG_CMD = 'config'
 VALIDATE_CMD = 'validate'
 DEPLOY_CMD = 'deploy'
+SOFTWARE_CMD = 'software'
 UTIL_CMD = 'utils'
 POST_DEPLOY_CMD = 'post-deploy'
 SETUP_DESC = 'Setup deployment environment (requires root privileges)'
@@ -33,7 +34,7 @@ DEPLOY_DESC = 'Deploy cluster'
 POST_DEPLOY_DESC = 'Configure cluster nodes and data switches'
 UTIL_DESC = 'Execute utility functions'
 SOFTWARE_DESC = 'Install software stack on client nodes'
-GITHUB = 'https://github.com/open-power-ref-design-toolkit/cluster-genesis'
+GITHUB = 'https://github.com/open-power-ref-design-toolkit/power-up'
 EPILOG = 'home page:\n  %s' % GITHUB
 ABSENT = '\u009fabsent\u009c'
 LOG_LEVEL_CHOICES = ['nolog', 'debug', 'info', 'warning', 'error', 'critical']
@@ -47,16 +48,18 @@ class Cmd(Enum):
     VALIDATE = VALIDATE_CMD
     DEPLOY = DEPLOY_CMD
     POST_DEPLOY = POST_DEPLOY_CMD
+    SOFTWARE = SOFTWARE_CMD
     UTIL = UTIL_CMD
 
 
 def get_args(parser_args=False):
-    """Get 'gen' command arguments"""
+    """Get 'pup' command arguments"""
 
     parser = ArgumentParser(
         description=PROJECT,
         epilog=EPILOG,
-        formatter_class=RawTextHelpFormatter)
+        formatter_class=RawTextHelpFormatter,
+        prog='pup')
     subparsers = parser.add_subparsers()
     common_parser = ArgumentParser(add_help=False)
 
@@ -116,6 +119,14 @@ def get_args(parser_args=False):
         POST_DEPLOY_CMD,
         description='%s - %s' % (PROJECT, POST_DEPLOY_DESC),
         help=POST_DEPLOY_DESC,
+        epilog=EPILOG,
+        parents=[common_parser],
+        formatter_class=RawTextHelpFormatter)
+
+    parser_software = subparsers.add_parser(
+        SOFTWARE_CMD,
+        description='%s - %s' % (PROJECT, SOFTWARE_DESC),
+        help=SOFTWARE_DESC,
         epilog=EPILOG,
         parents=[common_parser],
         formatter_class=RawTextHelpFormatter)
@@ -298,6 +309,61 @@ def get_args(parser_args=False):
         action='store_true',
         help='Run all cluster post deployment steps')
 
+    # 'software' subcommand arguments
+    parser_software.set_defaults(software=True)
+
+    parser_software.add_argument(
+        'name', nargs='?',
+        help='Software module name')
+
+    parser_software.add_argument(
+        '--prep',
+        default=ABSENT,
+        action='store_true',
+        help='Download software packages and pre-requisite repositories and sets\n'
+             'up this node as the server for the software')
+
+    parser_software.add_argument(
+        '--init-clients',
+        default=ABSENT,
+        action='store_true',
+        help='Initialize the cluster clients to access the POWER-Up software server')
+
+    parser_software.add_argument(
+        '--install',
+        default=ABSENT,
+        action='store_true',
+        help='Install the specified software to cluster nodes')
+
+    parser_software.add_argument(
+        '--README',
+        default=ABSENT,
+        action='store_true',
+        help='Display software install module help')
+
+    parser_software.add_argument(
+        '--status',
+        default=ABSENT,
+        action='store_true',
+        help='Display software install module preparation status')
+
+    parser_software.add_argument(
+        '--eval',
+        default=False,
+        action='store_true',
+        help='Install the evaluation version of software if available')
+
+    parser_software.add_argument(
+        '--non-interactive',
+        default=False,
+        action='store_true',
+        help='Runs the software phase with minimal user interaction')
+
+    parser_software.add_argument(
+        '-a', '--all',
+        action='store_true',
+        help='Run all software prep and install steps')
+
     # 'utils' subcommand arguments
     parser_utils.set_defaults(utils=True)
 
@@ -320,7 +386,9 @@ def get_args(parser_args=False):
 
     if parser_args:
         return (parser, parser_setup, parser_config, parser_validate,
-                parser_deploy, parser_post_deploy, parser_utils)
+                parser_deploy, parser_post_deploy, parser_software,
+                parser_utils)
+
     return parser
 
 
@@ -375,6 +443,14 @@ def _check_post_deploy(args, subparser):
             '--config-client-os -a/--all is required')
 
 
+def _check_software(args, subparser):
+    if not args.setup and not args.install and not args.name and not args.README \
+            and not args.init_clients and not args.all:
+        subparser.error('one of the arguments --about --prep --status --eval'
+                        '--init-clients --install --non-interactive -a/--all '
+                        'plus a software installer module name is required')
+
+
 def _check_utils(args, subparser):
     if not args.scan_pxe_network and not args.scan_ipmi_network:
         subparser.error(
@@ -388,10 +464,10 @@ def is_arg_present(arg):
 
 
 def get_parsed_args():
-    """Get parsed 'gen' command arguments"""
+    """Get parsed 'pup' command arguments"""
 
     parser, parser_setup, parser_config, parser_validate, parser_deploy, \
-        parser_post_deploy, parser_utils = get_args(parser_args=True)
+        parser_post_deploy, parser_software, parser_utils = get_args(parser_args=True)
     args = parser.parse_args()
 
     # Check arguments
@@ -418,6 +494,11 @@ def get_parsed_args():
     try:
         if args.post_deploy:
             _check_post_deploy(args, parser_post_deploy)
+    except AttributeError:
+        pass
+    try:
+        if args.software:
+            _check_software(args, parser_software)
     except AttributeError:
         pass
     try:

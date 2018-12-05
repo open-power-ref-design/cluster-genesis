@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# Copyright 2017 IBM Corp.
+#!/usr/bin/env python3
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -14,9 +14,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
 
 import argparse
 import os
@@ -109,7 +106,7 @@ def get_switch_ip_to_mac_map(inv):
     switch_ip_to_mac_map = AttrDict()
     rack_id_to_ip = AttrDict()
 
-    for rack_id, rack_ip in inv.inv['ipaddr-data-switch'].iteritems():
+    for rack_id, rack_ip in inv.inv['ipaddr-data-switch'].items():
         rack_id_to_ip[rack_id] = rack_ip
 
     for _, template in inv.inv['node-templates'].items():

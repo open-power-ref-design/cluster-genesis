@@ -1,0 +1,11 @@
+---
+- name: Gather localhost facts
+  hosts: localhost
+  gather_facts: True
+  tasks: []
+
+- hosts: all
+  handlers:
+    - import_tasks: reboot.yml
+  tasks:
+    - include_tasks: "{{ task_file }}"

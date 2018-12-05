@@ -14,9 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
-
 import os
 import stat
 import subprocess
@@ -134,7 +131,7 @@ class SwitchCommon(object):
             sleep(0.06 + random() / 100)  # lock acquire polls at 50 ms
             if lock.is_locked:
                 self.log.error('Lock is locked. Should be unlocked')
-            return data
+            return data.decode("utf-8")
         else:
             self.log.error('Unable to acquire lock for switch {}'.format(self.host))
             raise SwitchException('Unable to acquire lock for switch {}'.
@@ -408,7 +405,7 @@ class SwitchCommon(object):
             if self.mode == 'passive':
                 return None
             output = subprocess.check_output(
-                ['bash', '-c', 'ping -c2 -i.5 ' + self.host])
+                ['bash', '-c', 'ping -c2 -i.5 ' + self.host]).decode("utf-8")
             if '0% packet loss' in output:
                 return True
             else:
@@ -455,7 +452,8 @@ class SwitchCommon(object):
                 iter = re.finditer(r'--+', line)
                 for i, match in enumerate(iter):
                     # find column aligned with 'Port'
-                    if pos >= match.span()[0] and pos < match.span()[1]:
+                    if (pos is not None and pos >= match.span()[0] and
+                            pos < match.span()[1]):
                         port_span = (match.span()[0], match.span()[1])
             # find rows with MACs
             match = _mac_regex.search(line)

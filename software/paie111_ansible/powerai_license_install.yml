@@ -1,0 +1,25 @@
+---
+- name: Get enterprise license filename from software-vars.yml
+  set_fact:
+    file: "{{ content_files['poweraie-license'].split('/')[-1] }}"
+
+- name: Get route to client
+  command: "{{ hostvars['localhost']['python_executable_local'] }} \
+  {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+  {{ inventory_hostname }}"
+  delegate_to: localhost
+  register: host_ip
+
+- name: Download license rpm
+  get_url:
+    owner: "{{ ansible_user_id }}"
+    group: "{{ ansible_user_id }}"
+    mode: 0744
+    url: "http://{{ host_ip.stdout }}/poweraie-license/{{ file }}"
+    dest: "{{ ansible_env.HOME }}"
+
+- name: Install powerai-enterprise-license
+  yum:
+    name: "{{ ansible_env.HOME }}/{{ file }}"
+    state: present
+  become: yes

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
@@ -15,16 +15,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
-
 import sys
 import subprocess
 import re
 
 
 def get_head_commit_message():
-    return subprocess.check_output(['git', 'log', '-1', '--pretty=%B'])
+    return subprocess.check_output(['git', 'log', '-1', '--pretty=%B']
+                                   ).decode("utf-8")
 
 
 valid_subject_tags = [
@@ -39,7 +37,7 @@ for i, line in enumerate(get_head_commit_message().splitlines()):
             no_errors = False
             errors.append("Subject line does not start with valid tag")
         if line.split()[0] not in ['Revert', 'Merge']:
-            if line.split()[1][0].islower():
+            if len(line.split()) > 2 and line.split()[1][0].islower():
                 no_errors = False
                 errors.append("Subject line first word after tag is not "
                               "capitalized")
@@ -54,7 +52,7 @@ for i, line in enumerate(get_head_commit_message().splitlines()):
             no_errors = False
             errors.append("Line after subject should be blank")
     elif i > 1:
-        if b".  " in line:
+        if ".  " in line:
             no_errors = False
             errors.append("Body line #%d - period should be followed by "
                           "single space" % (i + 1))

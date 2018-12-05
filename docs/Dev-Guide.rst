@@ -19,9 +19,6 @@ Coding Style
 Code should be implemented in accordance with
 `PEP 8 -- Style Guide for Python Code <https://www.python.org/dev/peps/pep-0008/>`_.
 
-It is requested that modules contain appropriate *__future__* imports to simplify
-future migration to Python3.
-
 Commit Message Rules
 --------------------
 

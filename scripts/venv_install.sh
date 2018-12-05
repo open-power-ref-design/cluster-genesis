@@ -17,22 +17,9 @@
 
 set -e
 
-sudo -E -H pip install --upgrade virtualenv
-virtualenv --no-wheel --system-site-packages ${1}pup-venv
+python3.6 -m venv ${1}pup-venv
 source ${1}pup-venv/bin/activate
-pip install \
-    'ansible==2.5.5' \
-    'orderedattrdict==1.5' \
-    'pyroute2==0.5.0' \
-    'jsonschema==2.6.0' \
-    'jsl==0.2.4' \
-    'pyghmi==1.0.42' \
-    'wget==3.2' \
-    'pyasn1==0.4.2' \
-    'pysnmp==4.4.4' \
-    'pyaml==17.12.1' \
-    'paramiko==2.4.2' \
-    'tabulate==0.8.2' \
-    'gitpython==2.1.9' \
-    'filelock==3.0.4'
+python3.6 -m pip install --upgrade pip
+python3.6 -m pip install --upgrade setuptools==40.0.0
+python3.6 -m pip install -r ${1}requirements.txt
 deactivate

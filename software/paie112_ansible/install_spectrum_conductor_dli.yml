@@ -1,0 +1,50 @@
+---
+- name: Get filename from software-vars.yml
+  set_fact:
+    file: "{{ content_files['spectrum-dli'].split('/')[-1] }}"
+
+- name: Get route to client
+  command: "{{ hostvars['localhost']['python_executable_local'] }} \
+  {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+  {{ inventory_hostname }}"
+  delegate_to: localhost
+  register: host_ip
+
+- name: Download installer binary
+  get_url:
+    owner: "{{ ansible_user_id }}"
+    group: "{{ ansible_user_id }}"
+    mode: 0744
+    url: "http://{{ host_ip.stdout }}/spectrum-dli/{{ file }}"
+    dest: "{{ ansible_env.HOME }}"
+
+- name: Include configuration environment variables
+  include_vars:
+    file: envs_spectrum_conductor_dli.yml
+    name: envs
+
+- name: If the cluster has been started, shut it down
+  shell: "source /opt/ibm/spectrumcomputing/profile.platform && \
+  egosh user logon -u Admin -x Admin && \
+  egoshutdown.sh || true"
+  args:
+    executable: /bin/bash
+  become: yes
+  when: ansible_host == groups['master'][0]
+
+- name: Set Ansible fact for master hosts
+  set_fact:
+      egocomputehost: EGOCOMPUTEHOST=N
+  when: inventory_hostname in groups['master']
+
+- name: Set Ansible fact for compute hosts
+  set_fact:
+      egocomputehost: EGOCOMPUTEHOST=Y
+  when: inventory_hostname not in groups['master']
+
+- name: Install IBM Spectrum Conductor DLI
+  shell: "{{ egocomputehost }} {{ ansible_env.HOME }}/{{ file }} --quiet"
+  environment: "{{ envs }}"
+  args:
+    executable: /bin/bash
+  become: yes

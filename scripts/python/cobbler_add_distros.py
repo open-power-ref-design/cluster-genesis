@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
@@ -15,11 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import nested_scopes, generators, division, absolute_import, \
-    with_statement, print_function, unicode_literals
-
 import os
-import xmlrpclib
+import xmlrpc.client
 
 import lib.logger as logger
 import lib.utilities as util
@@ -182,7 +179,7 @@ def cobbler_add_distro(path, name):
         kernel_options = ''
         kickstart = ''
 
-    cobbler_server = xmlrpclib.Server("http://127.0.0.1/cobbler_api")
+    cobbler_server = xmlrpc.client.Server("http://127.0.0.1/cobbler_api")
     token = cobbler_server.login(COBBLER_USER, COBBLER_PASS)
 
     new_distro_create = cobbler_server.new_distro(token)
@@ -260,7 +257,7 @@ def cobbler_add_distro(path, name):
 
 def cobbler_add_profile(distro, name):
     log = logger.getlogger()
-    cobbler_server = xmlrpclib.Server("http://127.0.0.1/cobbler_api")
+    cobbler_server = xmlrpc.client.Server("http://127.0.0.1/cobbler_api")
     token = cobbler_server.login(COBBLER_USER, COBBLER_PASS)
 
     distro_list = cobbler_server.get_distros()

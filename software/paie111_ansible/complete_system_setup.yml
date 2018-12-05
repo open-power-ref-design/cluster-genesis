@@ -1,0 +1,39 @@
+---
+- name: Clear limit.conf EOF marker
+  lineinfile:
+      path: /etc/security/limits.conf
+      line: '# End of file'
+      state: absent
+  become: yes
+
+- name: Configure the required max processors and open files limits
+  lineinfile:
+      path: /etc/security/limits.conf
+      line: "{{ item }}"
+  loop:
+      - "root   soft    nproc     65536"
+      - "root   hard    nproc     65536"
+      - "root   soft    nofile    65536"
+      - "root   hard    nofile    65536"
+      - "{{ ansible_user }}   soft    nproc     65536"
+      - "{{ ansible_user }}   hard    nproc     65536"
+      - "{{ ansible_user }}   soft    nofile    65536"
+      - "{{ ansible_user }}   hard    nofile    65536"
+  become: yes
+
+- name: Apend limit.conf EOF marker
+  lineinfile:
+      path: /etc/security/limits.conf
+      line: '# End of file'
+      state: present
+  become: yes
+
+- name: Set the vm_max_map_count kernel value dynamically
+  command: sysctl -w vm.max_map_count=262144
+  become: yes
+
+- name: Set the vm_max_map_count kernel value in /etc/sysctl.conf
+  lineinfile:
+      path: /etc/sysctl.conf
+      line: vm.max_map_count=262144
+  become: yes
