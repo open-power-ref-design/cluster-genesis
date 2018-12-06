@@ -29,6 +29,7 @@ from random import random
 import lib.logger as logger
 from lib.ssh import SSH
 from lib.switch_exception import SwitchException
+from lib.utilities import sub_proc_exec
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -100,8 +101,12 @@ class SwitchCommon(object):
         host_ip = gethostbyname(self.host)
         lockfile = os.path.join('/var/lock', host_ip + '.lock')
         if not os.path.isfile(lockfile):
-            os.mknod(lockfile)
-            os.chmod(lockfile, stat.S_IRWXO | stat.S_IRWXG | stat.S_IRWXU)
+            cmdstr= f'sudo touch {lockfile} && chmod 777 {lockfile}'
+            r, err, rc = sub_proc_exec(cmdstr, shell=True)
+            if rc != 0:
+                self.log.error(f'Unable to create lock file {lockfile}')
+            #os.mknod(lockfile)
+            #os.chmod(lockfile, stat.S_IRWXO | stat.S_IRWXG | stat.S_IRWXU)
         lock = FileLock(lockfile)
         cnt = 0
         while cnt < 5 and not lock.is_locked:
