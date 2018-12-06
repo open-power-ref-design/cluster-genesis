@@ -451,30 +451,54 @@ class Gen(object):
 
     def _gather_mac_addr(self):
         from lib.container import Container
+        from lib.inventory import Inventory
+        yellow = '\033[93m'
+        endc = '\033[0m'
 
+        log = logger.getlogger()
         cont = Container(self.config_file_path)
-        cmd = []
-        cmd.append(gen.get_container_venv_python_exe())
-        cmd.append(os.path.join(
-            gen.get_container_python_path(), 'clear_port_macs.py'))
-        cmd.append(self.cont_config_file_path)
-        try:
-            cont.run_command(cmd, interactive=True)
-        except UserException as exc:
-            print('Fail:', str(exc), file=sys.stderr)
-            sys.exit(1)
 
-        _run_playbook("activate_client_interfaces.yml", self.config_file_path)
+        found_all = False
+        while found_all is not True:
+            cmd = []
+            cmd.append(gen.get_container_venv_python_exe())
+            cmd.append(os.path.join(
+                gen.get_container_python_path(), 'clear_port_macs.py'))
+            cmd.append(self.cont_config_file_path)
+            try:
+                cont.run_command(cmd, interactive=True)
+            except UserException as exc:
+                print('Fail:', str(exc), file=sys.stderr)
+                sys.exit(1)
 
-        cmd[-2] = os.path.join(
-            gen.get_container_python_path(), 'set_port_macs.py')
-        try:
-            cont.run_command(cmd, interactive=True)
-        except UserException as exc:
-            print('Fail:', str(exc), file=sys.stderr)
-            sys.exit(1)
-        else:
-            print('Success: Gathered Client MAC addresses')
+            _run_playbook("activate_client_interfaces.yml", self.config_file_path)
+
+            cmd[-2] = os.path.join(
+                gen.get_container_python_path(), 'set_port_macs.py')
+            try:
+                cont.run_command(cmd, interactive=True)
+            except UserException as exc:
+                print('Fail:', str(exc), file=sys.stderr)
+                sys.exit(1)
+
+            inv = Inventory(cfg_file=self.config_file_path)
+            if inv.check_data_interfaces_macs():
+                found_all = True
+            else:
+                print()
+                msg = 'Some data interface MAC addresses were not found!'
+                log.warning(msg)
+                print(f'{yellow}' + ('-' * (len(msg) + 10)) + f'{endc}')
+                print("\nPress enter to retry")
+                resp = input("Enter C to continue POWER-Up or 'T' to terminate ")
+                if resp == 'T':
+                    log.info("'{}' entered. Terminating POWER-Up at user request".format(resp))
+                    sys.exit(1)
+                elif resp == 'C':
+                    log.info("'{}' entered. Continuing POWER-Up".format(resp))
+                    found_all = True
+
+        print('Success: Gathered Client MAC addresses')
 
     def _lookup_interface_names(self):
         try:

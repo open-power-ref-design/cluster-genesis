@@ -18,6 +18,7 @@
 import argparse
 import os.path
 import sys
+from tabulate import tabulate
 
 import lib.logger as logger
 from lib.config import Config
@@ -47,6 +48,18 @@ def main(config_path=None):
                     sw_info[0], sw_info[1], sw_info[2], port_to_macs))
         macs.update({sw_info[0]: port_to_macs})
     inv.add_macs_data(macs)
+
+    if not inv.check_data_interfaces_macs():
+        _print_data_macs(inv)
+
+
+def _print_data_macs(inv):
+    blue = '\033[94m'
+    endc = '\033[0m'
+    header = ['Switch', 'Port', 'Device', 'MAC']
+    for node, info in inv.get_data_interfaces().items():
+        print(f'\n{blue}Client Node: {node}:{endc}')
+        print(tabulate(info, header))
 
 
 if __name__ == '__main__':
