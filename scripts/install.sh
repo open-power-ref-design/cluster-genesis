@@ -100,7 +100,8 @@ if [[ $ipv4_forwarding == "net.ipv4.conf.all.forwarding = 0" ]]; then
         echo "Adding '$net_ipv4_conf=1' to $sysctl_docker"
         echo "$net_ipv4_conf=1" >> $sysctl_docker
     elif grep "$net_ipv4_conf=0" $sysctl_docker &>/dev/null; then
-        echo "Replacing '$net_ipv4_conf=0' with '$net_ipv4_conf=1' in $sysctl_docker"
+        echo -n "Replacing '$net_ipv4_conf=0' with '$net_ipv4_conf=1' in "
+        echo "$sysctl_docker"
         sed -i "s/$net_ipv4_conf=0/$net_ipv4_conf=1/" $sysctl_docker
     fi
 
@@ -111,6 +112,7 @@ if [[ $ipv4_forwarding == "net.ipv4.conf.all.forwarding = 0" ]]; then
         echo "ERROR: Unable to enable IPV4 forwarding!"
         echo "Ensure '/sbin/sysctl $net_ipv4_conf' is set to '1'"
     fi
+fi
 
 sudo -E -H pip install --upgrade pip==18.0
 sudo -E -H pip install --upgrade setuptools
