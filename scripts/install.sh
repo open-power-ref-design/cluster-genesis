@@ -83,10 +83,6 @@ if ! docker container ls &> /dev/null; then
     sudo usermod -aG docker $USER  # user needs to logout & login
 fi
 
-sudo -E -H pip install --upgrade pip==18.0
-sudo -E -H pip install --upgrade setuptools
-sudo -E -H pip install --upgrade wheel
-
 /bin/bash "${BASH_SOURCE%/*}/venv_install.sh"
 
 # Create empty log file to ensure user is owner
