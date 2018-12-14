@@ -114,10 +114,6 @@ if [[ $ipv4_forwarding == "net.ipv4.conf.all.forwarding = 0" ]]; then
     fi
 fi
 
-sudo -E -H pip install --upgrade pip==18.0
-sudo -E -H pip install --upgrade setuptools
-sudo -E -H pip install --upgrade wheel
-
 /bin/bash "${BASH_SOURCE%/*}/venv_install.sh"
 
 # Create empty log file to ensure user is owner
