@@ -105,7 +105,25 @@ if [[ $ipv4_forwarding == "net.ipv4.conf.all.forwarding = 0" ]]; then
         sed -i "s/$net_ipv4_conf=0/$net_ipv4_conf=1/" $sysctl_docker
     fi
 
-    sudo systemctl restart docker
+    docker_ps=$(docker ps)
+    if [[ "$docker_ps" = *$'\n'* ]]; then
+        echo
+        echo    "The following Docker containers are running:"
+        echo    "$docker_ps"
+        echo
+        echo    "Is it OK to stop all containers and restart Docker service?"
+        read -p "(y/n)? " -r
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            restart_docker=true
+        else
+            restart_docker=false
+        fi
+    else
+        restart_docker=true
+    fi
+    if [ "$restart_docker" = true ]; then
+        sudo systemctl restart docker
+    fi
 
     ipv4_forwarding=$(/sbin/sysctl $net_ipv4_conf)
     if [[ $ipv4_forwarding == "net.ipv4.conf.all.forwarding = 0" ]]; then
