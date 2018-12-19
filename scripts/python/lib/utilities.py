@@ -18,7 +18,7 @@ from glob import glob
 import os
 import re
 import sys
-import time
+import datetime
 import subprocess
 import fileinput
 import readline
@@ -26,8 +26,6 @@ from shutil import copy2
 from subprocess import Popen, PIPE
 from netaddr import IPNetwork, IPAddress
 from tabulate import tabulate
-from pyghmi.ipmi import command
-from pyghmi.ipmi.private import session
 
 from lib.config import Config
 import lib.logger as logger
@@ -58,9 +56,9 @@ def bash_cmd(cmd):
         output (str): stdout from command
     """
     log = logger.getlogger()
-    command = ['bash', '-c', cmd]
-    log.debug('Run subprocess: %s' % ' '.join(command))
-    output = subprocess.check_output(command, universal_newlines=True,
+    _cmd = ['bash', '-c', cmd]
+    log.debug('Run subprocess: %s' % ' '.join(_cmd))
+    output = subprocess.check_output(_cmd, universal_newlines=True,
                                      stderr=subprocess.STDOUT)
     try:
         output = output.decode('utf-8')
@@ -160,7 +158,7 @@ def line_in_file(path, regex, replace, backup=None):
             with open(path, 'r') as f:
                 data = f.read()
         except FileNotFoundError as exc:
-            print(f'File not found: {path}')
+            print(f'File not found: {path}. {exc}')
         else:
             data = data.splitlines()
             in_file = False
@@ -519,7 +517,6 @@ def get_dir(src_dir):
         path (str or None) : Selected path
     """
     rows = 10
-    log = logger.getlogger()
     if not src_dir:
         path = os.path.abspath('.')
     else:
@@ -797,3 +794,7 @@ def ansible_pprint(ansible_output):
                 index_indent = False
 
     return pretty_out
+
+
+def timestamp():
+    return datetime.datetime.now().strftime("%d-%h-%Y-%H-%M-%S")

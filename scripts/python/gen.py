@@ -138,7 +138,7 @@ class Gen(object):
         print('Success: Created container')
 
     def _config_file(self):
-        from lib.inv_nodes import InventoryNodes
+        from lib.inv_items import InventoryNodes
         print(COL.scroll_ten, COL.up_ten)
         print('{}Validating cluster configuration file{}\n'.
               format(COL.header1, COL.endc))
@@ -228,6 +228,8 @@ class Gen(object):
         #         return
 
         from lib.container import Container
+        from shutil import copy2
+        from lib.utilities import timestamp
 
         log = logger.getlogger()
 
@@ -244,7 +246,20 @@ class Gen(object):
             print('Fail:', str(exc), file=sys.stderr)
             sys.exit(1)
 
-        print('Success: Created inventory file')
+        log.info('Success: Created inventory file')
+
+        name = os.path.basename(self.config_file_path)
+        parts = name.rpartition('.')
+        bakupname = parts[0] + '-' + timestamp() + '.' + parts[2]
+        bakuppath = os.path.join(gen.get_logs_path(), 'config-files')
+        if not os.path.exists(bakuppath):
+            os.mkdir(bakuppath)
+
+        try:
+            copy2(self.config_file_path, os.path.join(bakuppath, bakupname))
+        except FileNotFoundError as exc:
+            log.debug(f'Unable to create copy of config file. {exc}')
+
 
     def _install_cobbler(self):
         from lib.container import Container

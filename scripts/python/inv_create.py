@@ -22,7 +22,7 @@ import os.path
 import sys
 
 import lib.logger as logger
-from lib.inv_nodes import InventoryNodes
+from lib.inv_items import InventoryNodes, InventorySwitches
 from lib.genesis import GEN_PATH
 
 
@@ -37,6 +37,9 @@ class InventoryCreate(object):
 
         nodes = InventoryNodes(cfg_path=self.config_path)
         nodes.create_nodes()
+
+        switches = InventorySwitches(cfg_path=self.config_path)
+        switches.create_switches()
 
 
 if __name__ == '__main__':
