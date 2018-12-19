@@ -24,6 +24,22 @@ from lib.inventory import Inventory
 from lib.exception import UserException
 
 
+class InventorySwitches(object):
+
+    def __init__(self, inv_path=None, cfg_path=None):
+        self.log = logger.getlogger()
+
+        self.cfg_path = cfg_path
+        self.inv = Inventory(cfg_path, inv_path)
+
+    def __del__(self):
+        self.inv.update_switches()
+
+    def create_switches(self):
+        pass
+        # cfg = Config(self.cfg_path)
+
+
 class InventoryNodes(object):
     SWITCH_NOT_FOUND = \
         "Node template '%s' did not have corresponding management switch '%s'"

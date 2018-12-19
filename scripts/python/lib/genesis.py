@@ -164,6 +164,10 @@ def is_container():
         CONTAINER_PACKAGE_PATH, CONTAINER_ID_FILE))
 
 
+def get_logs_path():
+    return GEN_LOGS_PATH
+
+
 def get_project_name():
     return PROJECT_NAME
 
