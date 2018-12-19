@@ -23,6 +23,16 @@ name=Docker
 baseurl=http://ftp.unicamp.br/pub/ppc64el/rhel/7/docker-ppc64el/
 enabled=1
 gpgcheck=0"
+MESSAGES=''
+
+add_message () {
+    echo "$@"
+    if [[ $MESSAGES != '' ]]; then
+        MESSAGES+=$'\n'
+    fi
+    MESSAGES+="$@"
+}
+
 
 if [[ $ID == "ubuntu" ]]; then
     # Needs update for Python36
@@ -81,6 +91,9 @@ fi
 
 if ! docker container ls &> /dev/null; then
     sudo usermod -aG docker $USER  # user needs to logout & login
+    MESSAGE="WARNING: User '$USER' was added to the 'docker' group. Please "
+    MESSAGE+="logout and log back in to enable access to Docker services."
+    add_message $MESSAGE
 fi
 
 net_ipv4_conf='net.ipv4.conf.all.forwarding'
@@ -123,12 +136,17 @@ if [[ $ipv4_forwarding == "net.ipv4.conf.all.forwarding = 0" ]]; then
     fi
     if [ "$restart_docker" = true ]; then
         sudo systemctl restart docker
+    else
+        MESSAGE="WARNING: Docker service needs to be restarted to enable IPV4"
+        MESSAGE+=" forwarding!"
+        add_message $MESSAGE
     fi
 
     ipv4_forwarding=$(/sbin/sysctl $net_ipv4_conf)
     if [[ $ipv4_forwarding == "net.ipv4.conf.all.forwarding = 0" ]]; then
-        echo "ERROR: Unable to enable IPV4 forwarding!"
-        echo "Ensure '/sbin/sysctl $net_ipv4_conf' is set to '1'"
+        MESSAGE="ERROR: Unable to enable IPV4 forwarding! Ensure '/sbin/sysctl"
+        MESSAGE+=" $net_ipv4_conf' is set to '1'"
+        add_message $MESSAGE
     fi
 fi
 
@@ -140,4 +158,10 @@ if [ ! -d "logs" ]; then
     if [ ! -f logs/gen ]; then
         touch logs/gen
     fi
+fi
+
+# Display any messages
+if [[ $MESSAGES != '' ]]; then
+    echo $'\nThe following issues were encountered during installation:'
+    echo "$MESSAGES"
 fi
