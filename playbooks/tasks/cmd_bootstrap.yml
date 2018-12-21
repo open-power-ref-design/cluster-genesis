@@ -18,16 +18,16 @@
 - name: Run Bootstrap Command
   shell: "{{ item.command }}"
   args:
-    "{{ item.executable | default('/bin/sh') }}"
+    executable: "{{ item.executable | default('/bin/sh') }}"
   when: ((item.hosts in groups and hostname in groups[item.hosts]) or
          item.hosts == hostname)
-  with_items: "{{ software_bootstrap }}"
+  loop: "{{ software_bootstrap }}"
   register: command_result
 
 - name: Print stdout
   debug:
     var: item.stdout_lines
-  with_items: "{{ command_result.results }}"
+  loop: "{{ command_result.results }}"
   when: command_result.results is defined
 
 ...
