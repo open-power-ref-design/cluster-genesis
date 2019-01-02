@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """POWER-Up 'gen' command"""
 
-# Copyright 2018 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -27,6 +27,7 @@ import enable_deployer_networks
 import enable_deployer_gateway
 import validate_cluster_hardware
 import configure_mgmt_switches
+import osinstall
 import remove_client_host_keys
 from lib.utilities import scan_ping_network
 import download_os_images
@@ -498,6 +499,10 @@ class Gen(object):
         print('Scanning cluster IPMI network')
         scan_ping_network('ipmi', self.config_file_path)
 
+    def _osinstall(self):
+        osinstall.osinstall(self.config_file_path)
+        #print(self.config_file_path)
+
     def launch(self):
         """Launch actions"""
 
@@ -516,7 +521,7 @@ class Gen(object):
                 self.config_file_path += self.args.config_file_name
 
             if not os.path.isfile(self.config_file_path):
-                print('{} not found. Please specify a config file'.format(
+                print('{} not found. Please specify a file name'.format(
                     self.config_file_path))
                 sys.exit(1)
 
@@ -550,6 +555,11 @@ class Gen(object):
         try:
             if self.args.post_deploy:
                 cmd = argparse_gen.Cmd.POST_DEPLOY.value
+        except AttributeError:
+            pass
+        try:
+            if self.args.osinstall:
+                cmd = argparse_gen.Cmd.OSINSTALL.value
         except AttributeError:
             pass
         try:
@@ -667,6 +677,9 @@ class Gen(object):
                 self._config_client_os()
             if argparse_gen.is_arg_present(self.args.all):
                 self._config_data_switches()
+
+        if cmd == argparse_gen.Cmd.OSINSTALL.value:
+            self._osinstall()
 
         if cmd == argparse_gen.Cmd.SOFTWARE.value:
             if not argparse_gen.is_arg_present(self.args.prep) and not \
