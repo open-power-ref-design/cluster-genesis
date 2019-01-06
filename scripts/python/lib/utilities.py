@@ -277,6 +277,7 @@ class Color:
     white = '\033[97m'
     bold = '\033[1m'
     underline = '\033[4m'
+    reverse = '\033[7m'
     sol = '\033[1G'
     clr_to_eol = '\033[K'
     clr_to_bot = '\033[J'
@@ -287,6 +288,8 @@ class Color:
     up_ten = '\033[10A'
     header1 = '          ' + bold + underline
     endc = '\033[0m'
+    clrscr = '\033[2J'
+    home = '\033[1;1f'
 
 
 def heading1(text='-', width=79):

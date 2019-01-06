@@ -27,6 +27,7 @@ HOME = os.path.expanduser('~')
 GEN_PATH = (os.path.abspath(
     os.path.join(os.path.dirname(__file__), "../../../")) + "/")
 GEN_SCRIPTS_PATH = os.path.join(GEN_PATH, 'scripts', '')
+GEN_SAMPLE_CONFIGS_PATH = os.path.join(GEN_PATH, 'sample-configs', '')
 GEN_SCRIPTS_PYTHON_PATH = os.path.join(GEN_SCRIPTS_PATH, 'python', '')
 GEN_PLAY_PATH = os.path.join(GEN_PATH, 'playbooks', '')
 GEN_PASSIVE_PATH = os.path.join(GEN_PATH, 'passive', '')
@@ -190,6 +191,9 @@ def get_container_playbooks_path():
     return os.path.join(CONTAINER_PACKAGE_PATH, PLAYBOOKS_DIR)
 
 
+def get_gen_path():
+    return GEN_PATH
+
 def get_package_path():
     if is_container():
         return get_container_package_path()
@@ -207,6 +211,8 @@ def get_python_path():
         return get_container_python_path()
     return os.path.join(GEN_PATH, SCRIPTS_DIR, PYTHON_DIR)
 
+def get_sample_configs_path():
+    return GEN_SAMPLE_CONFIGS_PATH
 
 def get_ansible_path():
     return os.path.join(get_venv_path(), 'bin', ANSIBLE)

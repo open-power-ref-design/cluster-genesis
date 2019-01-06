@@ -1,0 +1,62 @@
+bmc_subnet:
+    val: 192.168.11.0
+    desc: BMC subnet
+    help: |
+        The BMC subnet is the subnet which contains the BMCs ports of the
+        nodes to be installed. Note that if Power-Up is configured to use
+        DHCP for allocating BMC addresses, the entire subnet is assumed to
+        be available for use.
+
+bmc_subnet_mask:
+    val: 255.255.255.0
+    desc: BMC subnet mask
+    help: Mask for the BMC subnet
+
+bmc_vlan:
+    val: 11
+    desc: BMC VLAN number
+    help: |
+        The BMC VLAN is the VLAN number of the vlan in which the BMC ports
+        reside. Power-Up can create a tagged VLAN interface on a physical
+        Ethernet interface of this installer node. If using VLANs it is the
+        user's responsibility to insure that a port virtual id (pvid) exists
+        already on the switch ports to which the BMC ports are connected and
+        that the switch port to which the installer node is connected is in
+        trunk mode with the PXE VLAN allowed.
+
+pxe_subnet:
+    val: 192.168.12.0
+    desc: PXE subnet
+    help: |
+        The PXE subnet is the subnet which contains the PXEs ports of the
+        nodes to be installed. Note that if Power-Up is configured to use
+        DHCP for allocating PXE addresses, the entire subnet is assumed to
+        be available for use.
+
+pxe_subnet_mask:
+    val: 255.255.255.0
+    desc: PXE subnet mask
+    help: Mask for the PXE subnet
+
+pxe_vlan:
+    val: 12
+    desc: PXE VLAN number
+    help: |
+        The PXE VLAN is the VLAN number of the vlan in which the PXE ports
+        reside. Power-Up can create a tagged VLAN interface on a physical
+        Ethernet interface of this installer node. If using VLANs it is the
+        user's responsibility to insure that a port virtual id (pvid) exists
+        already on the switch ports to which the BMC ports are connected and
+        that the switch port to which the installer node is connected is in
+        trunk mode with the BMC VLAN allowed.
+
+ifc:
+    val: eth0
+    desc: Ethernet port
+    help: Ethernet port used to access the PXE and BMC interfaces.
+
+iso_image:
+    val: RHEL-7.5-20180322.0-Server-ppc64le-dvd1.iso
+    desc: ISO image file
+    help: |
+        Name of the file containing the 'iso' image for the OS to be installed.
