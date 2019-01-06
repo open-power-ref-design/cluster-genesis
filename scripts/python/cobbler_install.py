@@ -24,6 +24,9 @@ import re
 from random import choice
 from netaddr import IPNetwork
 from git import Repo
+from distro import linux_distribution
+import yaml
+import fileinput
 
 from lib.config import Config
 import lib.genesis as gen
@@ -42,6 +45,7 @@ COBBLER_CONF = '/etc/apache2/conf-available/cobbler.conf'
 COBBLER_WEB_CONF_ORIG = '/etc/cobbler/cobbler_web.conf'
 COBBLER_WEB_CONF = '/etc/apache2/conf-available/cobbler_web.conf'
 COBBLER_WEB_SETTINGS = '/usr/local/share/cobbler/web/settings.py'
+NGINX_CONF = '/etc/nginx/conf.d/server1.conf'
 WEBUI_SESSIONS = '/var/lib/cobbler/webui_sessions'
 COBBLER_SETTINGS = '/etc/cobbler/settings'
 PXEDEFAULT_TEMPLATE = '/etc/cobbler/pxe/pxedefault.template'
@@ -57,6 +61,10 @@ APACHE2_CONF = '/etc/apache2/apache2.conf'
 MANAGE_DNSMASQ = '/opt/cobbler/cobbler/modules/manage_dnsmasq.py'
 COBBLER_DLCONTENT = '/opt/cobbler/cobbler/action_dlcontent.py'
 COBBLER_SETTINGS_PY = '/opt/cobbler/cobbler/settings.py'
+DEBMIRROR_CONF = '/etc/debmirror.conf'
+NTPD = 'ntp'
+COBBLERD = 'cobblerd'
+HTTPD = 'apache2'
 
 A2ENCONF = '/usr/sbin/a2enconf'
 A2ENMOD = '/usr/sbin/a2enmod'
@@ -65,13 +73,37 @@ A2ENMOD = '/usr/sbin/a2enmod'
 def cobbler_install(config_path=None):
     """Install and configure Cobbler in container.
 
-    This function must be called within the container 'pup-venv'
-    python virtual environment. Cobbler will be installed within
-    this environment.
+    This function must be called within the 'pup-venv' python virtual
+    environment.
+
+    Args:
+        config_path (str): path to a config file
     """
 
-    cfg = Config(config_path)
     log = logger.getlogger()
+
+    # Check if config file is traditional or os-install
+    cfg_full = False
+    try:
+        cfg_raw = yaml.load(open(config_path))
+    except IOError:
+        log.warning(f"Unable to load '{config_path}' as yaml")
+
+    if "bmc_vlan_number" in cfg_raw:
+        cfg = cfg_raw
+        cfg_full = False
+    else:
+        cfg = Config(config_path)
+        cfg_full = True
+
+    if cfg_full:
+        dhcp_lease_time = cfg.get_globals_dhcp_lease_time()
+        depl_gateway = cfg.get_depl_gateway()
+        globals_env_variables = cfg.get_globals_env_variables()
+    else:
+        dhcp_lease_time = '1h'
+        depl_gateway = False
+        globals_env_variables = {}
 
     # Check to see if cobbler is already installed
     try:
@@ -111,7 +143,6 @@ def cobbler_install(config_path=None):
 
     # Modify Cobbler scrpit that write DHCP reservations so that the
     #   lease time is included.
-    dhcp_lease_time = cfg.get_globals_dhcp_lease_time()
     util.replace_regex(MANAGE_DNSMASQ, r'systxt \= systxt \+ \"\\\\n\"',
                        "systxt = systxt + \",{}\\\\n\"".
                        format(dhcp_lease_time))
@@ -129,6 +160,30 @@ def cobbler_install(config_path=None):
     # Run cobbler make install
     util.bash_cmd('cd %s; make install' % install_dir)
 
+    # If OS uses systemd reload daemons
+    if os.path.isfile('/usr/bin/systemctl'):
+        util.bash_cmd('/usr/bin/systemctl daemon-reload')
+
+    # Update global path vars if running in RHEL (with nginx)
+    if 'Ubuntu' not in linux_distribution()[0]:
+        globals().update(
+            COBBLER_WEB_SETTINGS='/usr/share/cobbler/web/settings.py')
+        globals().update(COBBLER='/usr/bin/cobbler')
+        globals().update(APACHE2_CONF='/etc/httpd/conf/httpd.conf')
+        globals().update(
+            COBBLER_CONF='/etc/httpd/conf.d/cobbler.conf')
+        globals().update(
+            COBBLER_WEB_CONF='/etc/httpd/conf.d/cobbler_web.conf')
+        globals().update(NTPD='ntpd')
+        globals().update(HTTPD='nginx')
+        for line in fileinput.input(NGINX_CONF, inplace=1):
+            if re.match('^}', line):
+                print('    location /cobbler_api {')
+                print('        rewrite ^/cobbler_api/?(.*) /$1 break;')
+                print('        proxy_pass http://127.0.0.1:25151;')
+                print('    }')
+            print(line, end='')
+
     # Backup original files
     util.backup_file(DNSMASQ_TEMPLATE)
     util.backup_file(MODULES_CONF)
@@ -140,6 +195,8 @@ def cobbler_install(config_path=None):
     util.backup_file(KICKSTART_DONE)
     util.backup_file(NTP_CONF)
     util.backup_file(APACHE2_CONF)
+    if 'Ubuntu' not in linux_distribution()[0]:
+        util.backup_file(DEBMIRROR_CONF)
 
     # Create tftp root directory
     if not os.path.exists(TFTPBOOT):
@@ -150,25 +207,45 @@ def cobbler_install(config_path=None):
     dhcp_range = 'dhcp-range=%s,%s,%s  # %s'
     util.remove_line(DNSMASQ_TEMPLATE, 'dhcp-range')
     dhcp_pool_start = gen.get_dhcp_pool_start()
-    for index, netw_type in enumerate(cfg.yield_depl_netw_client_type()):
-        depl_netw_client_ip = cfg.get_depl_netw_client_cont_ip(index)
-        depl_netw_client_netmask = cfg.get_depl_netw_client_netmask(index)
+    if cfg_full:
+        for index, netw_type in enumerate(cfg.yield_depl_netw_client_type()):
+            depl_netw_client_ip = cfg.get_depl_netw_client_cont_ip(index)
+            depl_netw_client_netmask = cfg.get_depl_netw_client_netmask(index)
 
-        network = IPNetwork(depl_netw_client_ip + '/' +
-                            depl_netw_client_netmask)
+            network = IPNetwork(depl_netw_client_ip + '/' +
+                                depl_netw_client_netmask)
 
-        entry = dhcp_range % (str(network.network + dhcp_pool_start),
-                              str(network.network + network.size - 1),
-                              str(dhcp_lease_time),
-                              str(network.cidr))
+            entry = dhcp_range % (str(network.network + dhcp_pool_start),
+                                  str(network.network + network.size - 1),
+                                  str(dhcp_lease_time),
+                                  str(network.cidr))
 
-        util.append_line(DNSMASQ_TEMPLATE, entry)
+            util.append_line(DNSMASQ_TEMPLATE, entry)
 
-        # Save PXE client network information for later
-        if netw_type == 'pxe':
-            cont_pxe_ipaddr = depl_netw_client_ip
-            cont_pxe_netmask = depl_netw_client_netmask
-            bridge_pxe_ipaddr = cfg.get_depl_netw_client_brg_ip(index)
+            # Save PXE client network information for later
+            if netw_type == 'pxe':
+                cont_pxe_ipaddr = depl_netw_client_ip
+                cont_pxe_netmask = depl_netw_client_netmask
+                bridge_pxe_ipaddr = cfg.get_depl_netw_client_brg_ip(index)
+    else:
+        for netw_type in ['bmc', 'pxe']:
+            subnet = cfg[f'{netw_type}_subnet']['val']
+            subnet_prefix = cfg[f'{netw_type}_subnet_prefix']['val'].split()[1]
+            subnet_mask = cfg[f'{netw_type}_subnet_prefix']['val'].split()[0]
+
+            network = IPNetwork(f'{subnet}/{subnet_prefix}')
+            entry = dhcp_range % (str(network.network + dhcp_pool_start),
+                                  str(network.network + network.size - 1),
+                                  str(dhcp_lease_time),
+                                  str(network.cidr))
+
+            util.append_line(DNSMASQ_TEMPLATE, entry)
+
+            # Save PXE client network information for later
+            if netw_type == 'pxe':
+                cont_pxe_ipaddr = str(network.network + 2)  # TODO: user input?
+                cont_pxe_netmask = subnet_mask
+                bridge_pxe_ipaddr = cont_pxe_ipaddr
 
     # Configure dnsmasq to enable TFTP server
     util.append_line(DNSMASQ_TEMPLATE, 'enable-tftp')
@@ -176,7 +253,7 @@ def cobbler_install(config_path=None):
     util.append_line(DNSMASQ_TEMPLATE, 'user=root')
 
     # Configure dnsmasq to use deployer as gateway
-    if cfg.get_depl_gateway():
+    if depl_gateway:
         util.remove_line(DNSMASQ_TEMPLATE, 'dhcp-option')
         util.append_line(DNSMASQ_TEMPLATE, 'dhcp-option=3,%s' % bridge_pxe_ipaddr)
 
@@ -192,10 +269,11 @@ def cobbler_install(config_path=None):
     # Copy cobbler_web.conf into apache2/conf-available
     copy2(COBBLER_WEB_CONF_ORIG, COBBLER_WEB_CONF)
 
-    # Apache2 configuration
-    util.bash_cmd('%s cobbler cobbler_web' % A2ENCONF)
-    util.bash_cmd('%s proxy' % A2ENMOD)
-    util.bash_cmd('%s proxy_http' % A2ENMOD)
+    # Apache2 Ubuntu configuration
+    if 'Ubuntu' in linux_distribution()[0]:
+        util.bash_cmd('%s cobbler cobbler_web' % A2ENCONF)
+        util.bash_cmd('%s proxy' % A2ENMOD)
+        util.bash_cmd('%s proxy_http' % A2ENMOD)
 
     # Set secret key in web settings
     secret_key = _generate_random_characters()
@@ -214,7 +292,11 @@ def cobbler_install(config_path=None):
     util.replace_regex(COBBLER_WEB_CONF, regex, replace)
 
     # chown www-data WEBUI_SESSIONS
-    uid = pwd.getpwnam("www-data").pw_uid
+    if 'Ubuntu' in linux_distribution()[0]:
+        user = 'www-data'
+    else:
+        user = 'apache'
+    uid = pwd.getpwnam(user).pw_uid
     gid = -1  # unchanged
     os.chown(WEBUI_SESSIONS, uid, gid)
 
@@ -223,7 +305,6 @@ def cobbler_install(config_path=None):
     util.replace_regex(COBBLER_SETTINGS, 'manage_dhcp: 0', 'manage_dhcp: 1')
     util.replace_regex(COBBLER_SETTINGS, 'manage_dns: 0', 'manage_dns: 1')
     util.replace_regex(COBBLER_SETTINGS, 'pxe_just_once: 0', 'pxe_just_once: 1')
-    globals_env_variables = cfg.get_globals_env_variables()
     if globals_env_variables and 'http_proxy' in globals_env_variables:
         util.replace_regex(COBBLER_SETTINGS, 'proxy_url_ext: ""',
                            'proxy_url_ext: %s' %
@@ -233,7 +314,8 @@ def cobbler_install(config_path=None):
                        '$1$clusterp$/gd3ep3.36A2808GGdHUz.')
 
     # Create link to
-    if not os.path.exists(PY_DIST_PKGS):
+    if ('Ubuntu' in linux_distribution()[0] and
+            not os.path.exists(PY_DIST_PKGS)):
         util.bash_cmd('ln -s %s/cobbler %s' %
                       (LOCAL_PY_DIST_PKGS, PY_DIST_PKGS))
 
@@ -258,16 +340,25 @@ def cobbler_install(config_path=None):
     util.append_line(NTP_CONF, 'broadcast %s' % cont_pxe_broadcast)
 
     # Add 'required-stop' line to cobblerd init.d to avoid warning
-    util.replace_regex(INITD + 'cobblerd', '### END INIT INFO',
+    util.replace_regex(INITD + COBBLERD, '### END INIT INFO',
                        '# Required-Stop:\n### END INIT INFO')
 
     # Set Apache2 'ServerName'
     util.append_line(APACHE2_CONF, "ServerName localhost")
 
+    # Disable SELinux from blocking httpd from cobblerd
+    if 'Ubuntu' not in linux_distribution()[0]:
+        util.bash_cmd('setsebool -P httpd_can_network_connect true')
+
+    # Adjust debmirror config for debian client support
+    if 'Ubuntu' not in linux_distribution()[0]:
+        util.remove_line(DEBMIRROR_CONF, '@dists=')
+        util.remove_line(DEBMIRROR_CONF, '@arches=')
+
     # Restart services
-    _restart_service('ntp')
-    _restart_service('cobblerd')
-    _restart_service('apache2')
+    _restart_service(NTPD)
+    _restart_service(COBBLERD)
+    _restart_service(HTTPD)
 
     # Update Cobbler boot-loader files
     util.bash_cmd('%s get-loaders' % COBBLER)
@@ -279,27 +370,39 @@ def cobbler_install(config_path=None):
     util.bash_cmd('%s sync' % COBBLER)
 
     # Restart services (again)
-    _restart_service('apache2')
-    _restart_service('cobblerd')
+    if 'Ubuntu' not in linux_distribution()[0]:
+        _restart_service('rsyncd.service')
+    _restart_service(HTTPD)
+    _restart_service(COBBLERD)
     _restart_service('dnsmasq')
 
     # Set services to start on boot
-    _service_start_on_boot('cobblerd')
-    _service_start_on_boot('ntp')
+    if 'Ubuntu' not in linux_distribution()[0]:
+        _service_start_on_boot('rsyncd.service')
+    _service_start_on_boot(COBBLERD)
+    _service_start_on_boot(NTPD)
 
 
 def _restart_service(service):
-    util.bash_cmd('service %s restart' % service)
+    if service == 'nginx':
+        util.bash_cmd(f'nginx -s reload')
+    elif os.path.isfile('/usr/bin/systemctl'):
+        util.bash_cmd(f'/usr/bin/systemctl restart {service}')
+    else:
+        util.bash_cmd(f'service {service} restart')
 
 
 def _service_start_on_boot(service):
-    util.replace_regex(INITD + service,
-                       '# Default-Start:.*',
-                       '# Default-Start: 2 3 4 5')
-    util.replace_regex(INITD + service,
-                       '# Default-Stop:.*',
-                       '# Default-Stop: 0 1 6')
-    util.bash_cmd('update-rc.d %s defaults' % service)
+    if os.path.isfile('/usr/bin/systemctl'):
+        util.bash_cmd(f'/usr/bin/systemctl enable {service}')
+    else:
+        util.replace_regex(INITD + service,
+                           '# Default-Start:.*',
+                           '# Default-Start: 2 3 4 5')
+        util.replace_regex(INITD + service,
+                           '# Default-Stop:.*',
+                           '# Default-Stop: 0 1 6')
+        util.bash_cmd('update-rc.d %s defaults' % service)
 
 
 def _generate_random_characters(length=100):

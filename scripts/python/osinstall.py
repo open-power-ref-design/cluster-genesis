@@ -24,8 +24,11 @@ from collections import namedtuple
 from pyroute2 import IPRoute
 
 import lib.logger as logger
-from lib.genesis import get_package_path, get_sample_configs_path
+from lib.genesis import get_package_path, get_sample_configs_path, \
+    get_scripts_path, get_os_images_path
 import lib.utilities as u
+from cobbler_install import cobbler_install
+import cobbler_add_distros
 
 GEN_PATH = get_package_path()
 GEN_SAMPLE_CONFIGS_PATH = get_sample_configs_path()
@@ -117,6 +120,42 @@ class OSinstall(npyscreen.NPSAppManaged):
         self.profile = profile
         with open(GEN_PATH + 'profile.yml', 'w') as f:
             yaml.dump(self.profile, f, indent=4, default_flow_style=False)
+
+    def install_cobbler(self):
+        LOG.info('Installing Cobbler dependencies...')
+        cmd = f'{get_scripts_path()}/cobbler_depends.sh'
+        resp, err, rc = u.sub_proc_exec(cmd)
+        if rc != 0:
+            LOG.error(f'Failed to install Cobbler dependencies (rc={rc}):\n'
+                      f'stdout: {resp}\nstderr:{err}')
+
+        LOG.info('Installing nginx...')
+        # TODO: move nginx install from paie module(s) to utilities?
+
+        LOG.info('Installing Cobbler...')
+        profile_path = os.path.join(GEN_PATH, 'profile.yml')
+        cobbler_install(config_path=profile_path)
+
+        LOG.info('Configuring Cobbler...')
+        profile = yaml.load(open(profile_path))
+        image_path = profile['iso_image_file']['val']
+        html_dir = '/srv/'
+        os_config_dir = get_os_images_path() + '/' + 'config/'
+
+        distros = cobbler_add_distros.extract_iso_images(image_path, html_dir)
+
+        cobbler_add_distros.setup_image_config_files(os_config_dir, html_dir)
+
+        for distro in distros:
+            cobbler_add_distros.cobbler_add_distro(distro,
+                                                   os.path.basename(distro))
+
+        for _file in os.listdir(os_config_dir):
+            if _file.endswith('.seed') or _file.endswith('.ks'):
+                profile = _file[:-5]
+                distro = _file.rsplit('.', 2)[0]
+                if profile != distro and os.path.isdir(html_dir + distro):
+                    cobbler_add_distros.cobbler_add_profile(distro, profile)
 
 
 class OSinstall_form(npyscreen.Form):

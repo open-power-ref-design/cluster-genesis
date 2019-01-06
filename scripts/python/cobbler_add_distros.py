@@ -25,17 +25,18 @@ import lib.genesis as gen
 OS_IMAGES_DIR = gen.get_container_os_images_path() + '/'
 OS_CONFIG_DIR = OS_IMAGES_DIR + 'config/'
 
-HTML_DIR = '/var/www/html/'
+APACHE2_HTML_DIR = '/var/www/html/'
 KICKSTARTS_DIR = '/var/lib/cobbler/kickstarts/'
 SNIPPETS_DIR = '/var/lib/cobbler/snippets/'
 COBBLER_USER = gen.get_cobbler_user()
 COBBLER_PASS = gen.get_cobbler_pass()
 
 
-def extract_iso_images(path):
+def extract_iso_images(path, html_dir):
     """Extract ISO images into webserver directory
     Args:
-        path (str): Directory path containing ISOs
+        path (str): Directory path containing ISOs or patch to single
+                    ISO file
 
     Returns:
         list: Paths to extracted ISO images
@@ -43,14 +44,19 @@ def extract_iso_images(path):
 
     return_list = []
 
-    if not path.endswith('/'):
-        path += '/'
+    if os.path.isdir(path):
+        if not path.endswith('/'):
+            path += '/'
+        file_list = os.listdir(path)
+    elif os.path.isfile(path):
+        file_list = [os.path.basename(path)]
+        path = os.path.dirname(path) + '/'
 
     # Extract ISO into web directory for access over http
-    for _file in os.listdir(path):
+    for _file in file_list:
         if _file.endswith('.iso'):
             name = os.path.splitext(_file)[0]
-            dest_dir = HTML_DIR + name
+            dest_dir = html_dir + name
 
             # If dest dir already exists continue to next file
             if not os.path.isdir(dest_dir):
@@ -64,11 +70,11 @@ def extract_iso_images(path):
                 return_list.append(dest_dir)
 
     # Ubuntu ppc64el before 16.04.2 requires files from netboot mini iso
-    for _file in os.listdir(path):
+    for _file in file_list:
         if _file.endswith('mini.iso'):
-            src_dir = (HTML_DIR + _file[:-4] +
+            src_dir = (html_dir + _file[:-4] +
                        '/install/')
-            dest_dir = (HTML_DIR + _file[:-9] +
+            dest_dir = (html_dir + _file[:-9] +
                         '/install/netboot/ubuntu-installer/ppc64el/')
             if not os.path.isdir(dest_dir):
                 os.makedirs(dest_dir)
@@ -78,7 +84,7 @@ def extract_iso_images(path):
     return return_list
 
 
-def setup_image_config_files(path):
+def setup_image_config_files(path, html_dir):
     """Setup image config files
     Args:
         path (str): Directory path image config files
@@ -100,11 +106,11 @@ def setup_image_config_files(path):
         util.copy_file(snippets_src_dir + _file, SNIPPETS_DIR)
 
     # Copy apt source lists to web repo directory
-    if not os.path.isdir(HTML_DIR + 'ubuntu_sources'):
-        os.makedirs(HTML_DIR + 'ubuntu_sources')
+    if not os.path.isdir(html_dir + 'ubuntu_sources'):
+        os.makedirs(html_dir + 'ubuntu_sources')
     for _file in os.listdir(path):
         if _file.endswith('.list'):
-            util.copy_file(path + _file, HTML_DIR + 'ubuntu_sources')
+            util.copy_file(path + _file, html_dir + 'ubuntu_sources')
 
 
 def cobbler_add_distro(path, name):
@@ -306,9 +312,9 @@ def cobbler_add_profile(distro, name):
 if __name__ == '__main__':
     logger.create()
 
-    distros = extract_iso_images(OS_IMAGES_DIR)
+    distros = extract_iso_images(OS_IMAGES_DIR, APACHE2_HTML_DIR)
 
-    setup_image_config_files(OS_CONFIG_DIR)
+    setup_image_config_files(OS_CONFIG_DIR, APACHE2_HTML_DIR)
 
     for distro in distros:
         cobbler_add_distro(distro, os.path.basename(distro))
@@ -317,5 +323,5 @@ if __name__ == '__main__':
         if _file.endswith('.seed') or _file.endswith('.ks'):
             profile = _file[:-5]
             distro = _file.rsplit('.', 2)[0]
-            if profile != distro and os.path.isdir(HTML_DIR + distro):
+            if profile != distro and os.path.isdir(APACHE2_HTML_DIR + distro):
                 cobbler_add_profile(distro, profile)
