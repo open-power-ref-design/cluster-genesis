@@ -158,7 +158,7 @@ def line_in_file(path, regex, replace, backup=None):
             with open(path, 'r') as f:
                 data = f.read()
         except FileNotFoundError as exc:
-            print(f'File not found: {path}. {exc}')
+            print(f'File not found: {path}. Err: {exc}')
         else:
             data = data.splitlines()
             in_file = False
@@ -794,6 +794,59 @@ def ansible_pprint(ansible_output):
                 index_indent = False
 
     return pretty_out
+
+
+def get_col_pos(tbl, hdrs, row_char='-'):
+    """Gets the indices for the column positions in a text table
+    Inputs:
+        tbl (str): Text table with rows terminated with '\n'
+        hdrs (tuple of str): Each element of the tuple is a column header. Note
+             that hdrs are treated at regular expressions. Characters such as
+             '([{)}]' need to be escaped with a '\'.
+        row_char (scalar str): Character used in the table row which separates
+            the headers from the table rows
+
+    For example, for the table below, the following call;
+    get_col_pos(tbl, ('col 1', 'col 2', 'last col'), '-' 'this data')
+
+    will return;
+    {'col 2': (10, 18), 'col 1': (0, 8), 'last col': (20, 30)}
+
+    tbl:
+    'Data from somewhere with a table\n'
+    'this data has a table with a my col 1, a my col 2, and a last col\n'
+    '\n'
+    '          my col 2
+    'my col 1   wraps     last col\n'
+    '--------  --------  ----------\n'
+    'abcdef     ijklm    pqrstuvwxy'
+    """
+    log = logger.getlogger()
+    tbl = tbl.splitlines()
+    hdr_span = {}
+    col_idx = {}
+
+    for row in tbl:
+        dashes_span = re.search(fr'{row_char}+\s+{row_char}+', row)
+        if dashes_span:
+            dashes_span = list(re.finditer(r'-+', row))
+            col_span = [x.span() for x in dashes_span]
+            break
+
+        for hdr in hdrs:
+            idx = re.search(hdr, row, re.IGNORECASE)
+            if idx:
+                hdr_span[hdr] = idx.span()
+
+    log.debug(f'Seperator row: {row}')
+    for hdr in hdr_span:
+        for col in col_span:
+            col_idx[hdr] = (0, 0)
+            if hdr_span[hdr][0] >= col[0] and hdr_span[hdr][1] <= col[1]:
+                col_idx[hdr] = col
+                break
+
+    return col_idx
 
 
 def timestamp():
