@@ -23,6 +23,16 @@ name=Docker
 baseurl=http://ftp.unicamp.br/pub/ppc64el/rhel/7/docker-ppc64el/
 enabled=1
 gpgcheck=0"
+MESSAGES=''
+
+add_message () {
+    echo "$@"
+    if [[ $MESSAGES != '' ]]; then
+        MESSAGES+=$'\n'
+    fi
+    MESSAGES+="$@"
+}
+
 
 if [[ $ID == "ubuntu" ]]; then
     # Needs update for Python36
@@ -81,6 +91,63 @@ fi
 
 if ! docker container ls &> /dev/null; then
     sudo usermod -aG docker $USER  # user needs to logout & login
+    MESSAGE="WARNING: User '$USER' was added to the 'docker' group. Please "
+    MESSAGE+="logout and log back in to enable access to Docker services."
+    add_message $MESSAGE
+fi
+
+net_ipv4_conf='net.ipv4.conf.all.forwarding'
+ipv4_forwarding=$(/sbin/sysctl $net_ipv4_conf)
+sysctl_docker='/usr/lib/sysctl.d/99-docker.conf'
+
+if [[ $ipv4_forwarding == "net.ipv4.conf.all.forwarding = 0" ]]; then
+    echo "IPV4 forwarding OFF"
+
+    if ! ls $sysctl_docker &>/dev/null; then
+        echo "Creating $sysctl_docker"
+        touch $sysctl_docker
+        chmod 644 $sysctl_docker
+    fi
+
+    if ! grep $net_ipv4_conf $sysctl_docker &>/dev/null; then
+        echo "Adding '$net_ipv4_conf=1' to $sysctl_docker"
+        echo "$net_ipv4_conf=1" >> $sysctl_docker
+    elif grep "$net_ipv4_conf=0" $sysctl_docker &>/dev/null; then
+        echo -n "Replacing '$net_ipv4_conf=0' with '$net_ipv4_conf=1' in "
+        echo "$sysctl_docker"
+        sed -i "s/$net_ipv4_conf=0/$net_ipv4_conf=1/" $sysctl_docker
+    fi
+
+    docker_ps=$(docker ps)
+    if [[ "$docker_ps" = *$'\n'* ]]; then
+        echo
+        echo    "The following Docker containers are running:"
+        echo    "$docker_ps"
+        echo
+        echo    "Is it OK to stop all containers and restart Docker service?"
+        read -p "(y/n)? " -r
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            restart_docker=true
+        else
+            restart_docker=false
+        fi
+    else
+        restart_docker=true
+    fi
+    if [ "$restart_docker" = true ]; then
+        sudo systemctl restart docker
+    else
+        MESSAGE="WARNING: Docker service needs to be restarted to enable IPV4"
+        MESSAGE+=" forwarding!"
+        add_message $MESSAGE
+    fi
+
+    ipv4_forwarding=$(/sbin/sysctl $net_ipv4_conf)
+    if [[ $ipv4_forwarding == "net.ipv4.conf.all.forwarding = 0" ]]; then
+        MESSAGE="ERROR: Unable to enable IPV4 forwarding! Ensure '/sbin/sysctl"
+        MESSAGE+=" $net_ipv4_conf' is set to '1'"
+        add_message $MESSAGE
+    fi
 fi
 
 /bin/bash "${BASH_SOURCE%/*}/venv_install.sh"
@@ -91,4 +158,10 @@ if [ ! -d "logs" ]; then
     if [ ! -f logs/gen ]; then
         touch logs/gen
     fi
+fi
+
+# Display any messages
+if [[ $MESSAGES != '' ]]; then
+    echo $'\nThe following issues were encountered during installation:'
+    echo "$MESSAGES"
 fi

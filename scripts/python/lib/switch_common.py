@@ -29,8 +29,10 @@ from random import random
 import lib.logger as logger
 from lib.ssh import SSH
 from lib.switch_exception import SwitchException
+from lib.genesis import get_switch_lock_path
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
+SWITCH_LOCK_PATH = get_switch_lock_path()
 
 
 class SwitchCommon(object):
@@ -98,7 +100,7 @@ class SwitchCommon(object):
             return
 
         host_ip = gethostbyname(self.host)
-        lockfile = os.path.join('/var/lock', host_ip + '.lock')
+        lockfile = os.path.join(SWITCH_LOCK_PATH, host_ip + '.lock')
         if not os.path.isfile(lockfile):
             os.mknod(lockfile)
             os.chmod(lockfile, stat.S_IRWXO | stat.S_IRWXG | stat.S_IRWXU)

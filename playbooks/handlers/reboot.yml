@@ -1,5 +1,5 @@
 ---
-# Copyright 2017 IBM Corp.
+# Copyright 2018 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -16,19 +16,7 @@
 # limitations under the License.
 
 - name: Reboot
-  command: shutdown -r +1 "Ansible is issuing a reboot!"
-  async: 90
-  poll: 0
-  changed_when: true
-  notify: Wait for system to come back up
-
-- name: Wait for system to come back up
-  local_action: wait_for
-  args:
-    delay: "{{ reboot_delay_time }}"
-    port: 22
-    search_regex: OpenSSH
-    timeout: "{{ reboot_wait_interval }}"
-    host: "{{ ansible_ssh_host | default(inventory_hostname) }}"
+  reboot:
+    reboot_timeout: 1000
 
 ...

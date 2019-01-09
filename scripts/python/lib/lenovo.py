@@ -22,6 +22,7 @@ import lib.logger as logger
 from lib.switch_exception import SwitchException
 from lib.switch_common import SwitchCommon
 from lib.genesis import GEN_PASSIVE_PATH, GEN_PATH
+from lib.utilities import get_col_pos
 
 
 class Lenovo(SwitchCommon):
@@ -91,39 +92,51 @@ class Lenovo(SwitchCommon):
             f.close()
         super(Lenovo, self).__init__(host, userid, password, mode, outfile)
 
-    def _get_port_detail(self, match):
-        avlans = ''
-        mode = match.group(2).replace('n', 'access')
-        mode = mode.replace('y', 'trunk')
-        _avlans = match.group(4)
-        _avlans = _avlans.split(' ')
-        for item in _avlans:
-            if '-' in item:
-                item = item.split('-')
-                n = int(item[0])
-                while n <= int(item[1]):
-                    avlans = avlans + ', ' + str(n)
-                    n += 1
-            else:
-                avlans = avlans + ', ' + item
-        return mode, avlans[2:]
+    def show_ports(self, format='raw'):
+        def _get_avlans(line):
+            avlans = ''
+            line = line.split(' ')
+            for item in line:
+                if '-' in item:
+                    item = item.split('-')
+                    n = int(item[0])
+                    while n <= int(item[1]):
+                        avlans = avlans + ', ' + str(n)
+                        n += 1
+                else:
+                    avlans = avlans + ', ' + item
+            return avlans[2:]
 
-    def show_ports(self, format=None):
         if self.mode == 'passive':
             return None
         ports = {}
         port_info = self.send_cmd(self.SHOW_PORT)
-        if format is None:
+        if format == 'raw' or format is None:
             return port_info
         elif format == 'std':
+            indcs = get_col_pos(port_info, ('Port', 'Tag', 'PVID', 'VLAN\(s'))
             port_info = port_info.splitlines()
             for line in port_info:
-                match = re.search(
-                    r'\d+\s+(\d+)\s+(y|n)\s+\w+\s+\w+\s+\w+\s+\w+\s+(\d+)\s+(.+)', line)
+                # pad to 86 chars
+                line = f'{line:<86}'
+                # look for rows (look for first few fields)
+                match = re.search(r'^\s*\w+\s+\d+\s+(y|n)', line)
                 if match:
-                    mode, avlans = self._get_port_detail(match)
-                    ports[match.group(1)] = {
-                        'mode': mode, 'nvlan': match.group(3), 'avlans': avlans}
+                    port = str(int(line[indcs['Port'][0]:indcs['Port'][1]]))
+                    mode = line[indcs['Tag'][0]:indcs['Tag'][1]]
+                    mode = 'access' if 'n' in mode else 'trunk'
+                    pvid = str(int(line[indcs['PVID'][0]:indcs['PVID'][1]]))
+                    avlans = line[indcs['VLAN\(s'][0]:indcs['VLAN\(s'][1]].strip(' ')
+                    avlans = _get_avlans(avlans)
+                    ports[port] = {'mode': mode, 'nvlan': pvid, 'avlans': avlans}
+                # look for avlan continuation lines
+                # look for leading spaces (10 is arbitrary)
+                if f"{' ':<10}" == line[:10]:
+                    avlans = line[indcs['VLAN\(s'][0]:indcs['VLAN\(s'][1]].strip(' ')
+                    match = re.search(r'^(\d+ |(\d+-\d+ ))+\d+', avlans)
+                    if match:
+                        avlans = _get_avlans(match.group(0))
+                        ports[port]['avlans'] += f', {avlans}'
             return ports
 
     def remove_interface(self, vlan, host, netmask):

@@ -63,6 +63,7 @@ COBBLER_INSTALL_DIR = '/opt/cobbler'
 COBBLER_USER = 'cobbler'
 COBBLER_PASS = 'cobbler'
 DHCP_POOL_START = 21
+SWITCH_LOCK_PATH = '/var/lock/'
 
 
 class Color:
@@ -86,6 +87,15 @@ class Color:
     up_ten = '\033[10A'
     header1 = '          ' + bold + underline
     endc = '\033[0m'
+
+
+def get_switch_lock_path():
+    if is_container():
+        match = re.search(r'(/\w+)/', CONTAINER_PACKAGE_PATH ).group(1)
+        path = os.path.join(match, SWITCH_LOCK_PATH[1:])
+    else:
+        path = SWITCH_LOCK_PATH
+    return path
 
 
 def load_localhost(filename):

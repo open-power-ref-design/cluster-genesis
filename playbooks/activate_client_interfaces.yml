@@ -22,16 +22,21 @@
     - name: Gather facts
       setup:
 
+    - name: Disable ZEROCONF Routes
+      lineinfile:
+        path: /etc/sysconfig/network
+        line: 'NOZEROCONF=yes'
+      when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+
     - name: Bring down all interfaces except ansible communication interface
       command: "ip link set dev {{ item }} down"
       when:
-        - "{{ item != 'lo' }}"
-        - "{{ ansible_host != \
-           hostvars[inventory_hostname]['ansible_' + \
-           item.replace('-', '_')].get('ipv4', {}).get('address') }}"
-        - "{{ hostvars[inventory_hostname]['ansible_' + \
-           item.replace('-', '_')]['active'] }}"
-      with_items: "{{ ansible_interfaces }}"
+        - item != 'lo'
+        - "ansible_host != hostvars[inventory_hostname]['ansible_' + \
+           item.replace('-', '_')].get('ipv4', {}).get('address')"
+        - "hostvars[inventory_hostname]['ansible_' + \
+           item.replace('-', '_')]['active']"
+      loop: "{{ ansible_interfaces }}"
 
     - name: Pause for networks to go down
       pause:
@@ -40,43 +45,35 @@
     - name: Insure all interfaces are up
       command: "ip link set dev {{ item }} up"
       when:
-        - "{{ item != 'lo' }}"
-        - "{{ ansible_host != hostvars[inventory_hostname]['ansible_' + \
-           item.replace('-', '_')].get('ipv4', {}).get('address') }}"
-      with_items: "{{ ansible_interfaces }}"
-      ignore_errors: yes
+        - item != 'lo'
+        - "ansible_host != hostvars[inventory_hostname]['ansible_' + \
+           item.replace('-', '_')].get('ipv4', {}).get('address')"
+      loop: "{{ ansible_interfaces }}"
 
     - name: Pause for networks to come up
       pause:
         seconds: 5
 
+    - name: Create temporary dhclient.conf
+      lineinfile:
+        path: /run/dhclient.conf
+        line: 'timeout 5'
+        create: True
 
-    # Update switch mac address tables by adding temporary link local
-    # ipv4 address.  This also forces an ipv6 link local setup which
-    # drives traffic to the switch.
     - name: Update switch mac address tables
-      command: "ip addr add 169.254.0.2/24 dev {{ item }}"
+      shell: "dhclient {{ item }} -1 || true"
       become: true
       when:
-        - "{{ item != 'lo' }}"
-        - "{{ ansible_host != hostvars[inventory_hostname]['ansible_' + \
-           item.replace('-', '_')].get('ipv4', {}).get('address') }}"
-      with_items: "{{ ansible_interfaces }}"
-      ignore_errors: yes
+        - item != 'lo'
+        - "ansible_host != hostvars[inventory_hostname]['ansible_' + \
+           item.replace('-', '_')].get('ipv4', {}).get('address')"
+      loop: "{{ ansible_interfaces }}"
+      environment:
+        PATH_DHCLIENT_CONF: /run/dhclient.conf
 
-    - name: Pause for ipv6 link local
+    - name: Pause for ipv4 link local
       pause:
         seconds: 5
-
-    - name: clear the temporary addresses
-      command: "ip addr del 169.254.0.2/24 dev {{ item }}"
-      become: true
-      when:
-        - "{{ item != 'lo' }}"
-        - "{{ ansible_host != hostvars[inventory_hostname]['ansible_' + \
-           item.replace('-', '_')].get('ipv4', {}).get('address') }}"
-      with_items: "{{ ansible_interfaces }}"
-      ignore_errors: yes
 
     # A one time copy is made of the network interfaces files after initial
     # OS install. This is now attempted at the end of install in wait_for_
@@ -97,7 +94,7 @@
             remote_src: yes
             force: no
             owner: root
-          with_items: "{{ files_to_copy.files }}"
+          loop: "{{ files_to_copy.files }}"
       when: (ansible_distribution == 'RedHat') or
             (ansible_distribution == 'CentOS')
 

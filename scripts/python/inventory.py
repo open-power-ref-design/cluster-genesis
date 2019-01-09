@@ -37,8 +37,6 @@ INVENTORY_INIT = {
     'client_nodes': {
         'children': [],
         'vars': {
-            'reboot_wait_interval': 660,
-            'reboot_delay_time': 300
         }
     },
     '_meta': {
