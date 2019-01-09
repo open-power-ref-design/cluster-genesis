@@ -77,4 +77,17 @@
   with_items: "{{ interfaces }}"
   notify: Reboot
 
+- name: Disable original PXE interface scripts if rename=True
+  lineinfile:
+    path: "/etc/sysconfig/network-scripts/ifcfg-{{ item }}"
+    regexp: '^ONBOOT='
+    line: 'ONBOOT=no  # Disabled due to interface rename'
+  when:
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+    - pxe.rename[0]
+    - "ansible_host == hostvars[inventory_hostname]['ansible_' + \
+       item.replace('-', '_')].get('ipv4', {}).get('address')"
+    - item != pxe.devices[0]
+  loop: "{{ ansible_interfaces }}"
+
 ...
