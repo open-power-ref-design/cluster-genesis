@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Library for Network Switch Classes."""
 
-# Copyright 2018 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #

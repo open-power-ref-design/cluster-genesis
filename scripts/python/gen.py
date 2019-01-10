@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """POWER-Up 'gen' command"""
 
-# Copyright 2018 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #

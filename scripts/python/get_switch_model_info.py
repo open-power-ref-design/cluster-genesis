@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Get switch model information and assign class."""
 
-# Copyright 2018 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #
