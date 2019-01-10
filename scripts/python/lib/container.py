@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Container"""
 
-# Copyright 2018 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -130,8 +130,8 @@ class Container(object):
             switch_lock_path = gen.get_switch_lock_path()
             container_package_path = gen.get_container_package_path()
             dest_path = os.path.join(container_package_path[:1 +
-                                container_package_path[1:].find('/')],
-                                switch_lock_path[1:])
+                                     container_package_path[1:].find('/')],
+                                     switch_lock_path[1:])
             volumes = {source: {'bind': target, 'mode': 'Z'},
                        switch_lock_path: {'bind': dest_path, 'mode': 'rw'}}
             self.log.debug(f'Container volumes: {volumes}')

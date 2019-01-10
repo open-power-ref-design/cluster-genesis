@@ -1,6 +1,6 @@
 """Inventory"""
 
-# Copyright 2018 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -690,7 +690,6 @@ class Inventory(object):
             bool: True if all MACs are populated
         """
         for node in self.inv.nodes:
-            device_list = []
             for mac in node[self.InvKey.DATA][self.InvKey.MACS]:
                 if mac is None:
                     return False

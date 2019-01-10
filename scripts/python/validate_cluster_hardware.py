@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2018 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -675,7 +675,7 @@ class ValidateClusterHardware(object):
             mac_list(list): list of already found mac addresses
             dump(str): tcpdump output from the tcpdump file
         """
-        _mac_iee802 = '([\dA-F]{2}[\.:-]){5}([\dA-F]{2})'
+        _mac_iee802 = r'([\dA-F]{2}[\.:-]){5}([\dA-F]{2})'
         _mac_regex = re.compile(_mac_iee802, re.I)
 
         dump = dump.split('BOOTP/DHCP, Request')
