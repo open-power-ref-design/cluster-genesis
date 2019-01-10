@@ -133,7 +133,7 @@ class Container(object):
                                 container_package_path[1:].find('/')],
                                 switch_lock_path[1:])
             volumes = {source: {'bind': target, 'mode': 'Z'},
-                       switch_lock_path: {'bind': dest_path, 'mode': 'rw'}}
+                       switch_lock_path: {'bind': dest_path, 'mode': 'Z'}}
             self.log.debug(f'Container volumes: {volumes}')
 
             # Create container
