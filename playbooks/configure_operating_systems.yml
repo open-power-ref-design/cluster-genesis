@@ -31,7 +31,6 @@
   hosts: client_nodes
   tasks:
     - include: tasks/create_interfaces.yml
-  handlers:
     - include: handlers/reboot.yml
 
 - name: Wait for networks to initialize
