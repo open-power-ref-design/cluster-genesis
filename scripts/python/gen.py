@@ -610,8 +610,8 @@ class Gen(object):
                 print(
                     'Fail: Invalid subcommand in container', file=sys.stderr)
                 sys.exit(1)
-            self._check_non_root_user(cmd)
             if argparse_gen.is_arg_present(self.args.create_container):
+                self._check_non_root_user(cmd)
                 self._create_container()
             if self.args.mgmt_switches:
                 self._config_mgmt_switches()
