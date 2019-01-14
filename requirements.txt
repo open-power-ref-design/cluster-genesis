@@ -7,6 +7,7 @@ gitpython==2.1.11
 jsl==0.2.4
 jsonschema==2.6.0
 netaddr==0.7.19
+npyscreen==4.10.5
 orderedattrdict==1.5
 paramiko==2.4.2
 pip2pi==0.7.0
