@@ -791,6 +791,7 @@ node_templates:
               groups:
                   - name:
               kernel_options:
+              redhat_subscription:
           physical_interfaces:
               ipmi:
                   - switch:
@@ -871,19 +872,22 @@ node_templates:
 |             groups:                |               password: <crypted password>    |                                                                                  |          |
 |                 - name:            |               groups: sudo,testgroup1         | | Optional keys:                                                                 |          |
 |             kernel_options:        |         groups:                               | |   *hostname_prefix* - Prefix used to assign hostnames to client nodes          |          |
-|                                    |             - name: testgroup1                |                         belonging to this node template. A "-" and               |          |
+|             redhat_subscription:   |             - name: testgroup1                |                         belonging to this node template. A "-" and               |          |
 |                                    |             - name: testgroup2                |                         enumeration is added to the end of the prefix to         |          |
 |                                    |         kernel_options: quiet                 |                         make a unique hostname for each client node              |          |
-|                                    |                                               |                         (e.g. "controller-1" and "controoler-2").                |          |
-|                                    |                                               | |   *users*           - OS user accounts to create. All parameters in the        |          |
-|                                    |                                               |                         `Ansible user module <ansible_user_module_>`_ are        |          |
-|                                    |                                               |                         supported. **note:** Plaintext user passwords are not    |          |
-|                                    |                                               |                         supported. For help see                                  |          |
+|                                    |         redhat_subscription:                  |                         (e.g. "controller-1" and "controoler-2").                |          |
+|                                    |             state: present                    | |   *users*           - OS user accounts to create. All parameters in the        |          |
+|                                    |             username: joe_user                |                         `Ansible user module <ansible_user_module_>`_ are        |          |
+|                                    |             password: somepass                |                         supported. **note:** Plaintext user passwords are not    |          |
+|                                    |             auto_attach: true                 |                         supported. For help see                                  |          |
 |                                    |                                               |                         `Ansible's guide for generating passwords <gen_pass_>`_. |          |
 |                                    |                                               | |   *groups*          - OS groups to create. All parameters in the `Ansible      |          |
 |                                    |                                               |                         group module <ansible_group_module_>`_ are               |          |
 |                                    |                                               |                         supported.                                               |          |
 |                                    |                                               | |   *kernel_options*  - Kernel options                                           |          |
+|                                    |                                               | |   *redhat_subscription* - Manage RHEL subscription. All parameters in the      |          |
+|                                    |                                               |                             `Ansible redhat_subscription module                  |          |
+|                                    |                                               |                             <ansible_rhel_sub_module_>`_ are supported           |          |
 |                                    |                                               |                                                                                  |          |
 +------------------------------------+-----------------------------------------------+----------------------------------------------------------------------------------+----------+
 | .. _node_templates_physical_ints:  |                                               |                                                                                  |          |
@@ -1025,6 +1029,7 @@ node_templates:
 .. _ansible_user_module: http://docs.ansible.com/ansible/latest/user_module.html
 .. _gen_pass: http://docs.ansible.com/ansible/latest/reference_appendices/faq.html#how-do-i-generate-crypted-passwords-for-the-user-module
 .. _ansible_group_module: http://docs.ansible.com/ansible/latest/group_module.html
+.. _ansible_rhel_sub_module: http://docs.ansible.com/ansible/latest/modules/redhat_subscription_module.html
 
 
 software_bootstrap:

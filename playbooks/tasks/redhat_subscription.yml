@@ -1,0 +1,50 @@
+---
+# Copyright 2019 IBM Corp.
+#
+# All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+- set_fact:
+     params: "{{ os['redhat_subscription'] }}"
+  when: os['redhat_subscription'] is defined
+
+- name: "RHEL Registration"
+  user:
+    f: "{{ params.f | default(omit) }}"
+    activationkey: "{{ params.activationkey | default(omit) }}"
+    auto_attach: "{{ params.auto_attach | default(omit) }}"
+    consumer_id: "{{ params.consumer_id | default(omit) }}"
+    consumer_name: "{{ params.consumer_name | default(omit) }}"
+    consumer_type: "{{ params.consumer_type | default(omit) }}"
+    environment: "{{ params.environment | default(omit) }}"
+    force_register: "{{ params.force_register | default(omit) }}"
+    org_id: "{{ params.org_id | default(omit) }}"
+    password: "{{ params.password | default(omit) }}"
+    pool: "{{ params.pool | default(omit) }}"
+    pool_ids: "{{ params.pool_ids | default(omit) }}"
+    rhsm_baseurl: "{{ params.rhsm_baseurl | default(omit) }}"
+    rhsm_repo_ca_cert: "{{ params.rhsm_repo_ca_cert | default(omit) }}"
+    server_hostname: "{{ params.server_hostname | default(omit) }}"
+    server_insecure: "{{ params.server_insecure | default(omit) }}"
+    server_proxy_hostname: "{{ params.server_proxy_hostname | default(omit) }}"
+    server_proxy_password: "{{ params.server_proxy_password | default(omit) }}"
+    server_proxy_port: "{{ params.server_proxy_port | default(omit) }}"
+    server_proxy_user: "{{ params.server_proxy_user | default(omit) }}"
+    state: "{{ params.state | default(omit) }}"
+    username: "{{ params.username | default(omit) }}"
+  when:
+    - os['redhat_subscription'] is defined
+    - ansible_distribution == 'RedHat'
+
+...
