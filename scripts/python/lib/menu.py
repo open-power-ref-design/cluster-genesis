@@ -3,7 +3,7 @@
     Attributes:
         KEY_ESC (int): Unicode code point of ``ESC`` key.
 """
-# Copyright 2018 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #

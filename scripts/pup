@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2018 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -18,6 +18,12 @@
 if [[ "$1" == "setup" ]] && ([[ "$2" == "--networks" ]] ||
         [[ "$2" == "--gateway" ]] || [[ "$2" == "-a" ]] ||
         [[ "$2" == "--all" ]]); then
+    sudo env "PATH=$PATH" gen.py $@
+    exit
+fi
+
+if [[ "$1" == "config" ]] && ([[ "$2" == "--mgmt-switches" ]] ||
+        [[ "$2" == "--data-switches" ]]); then
     sudo env "PATH=$PATH" gen.py $@
     exit
 fi
@@ -50,7 +56,7 @@ if [[ "$1" == "deploy" ]] && ([[ "$2" == "-a" ]] || [[ "$2" == "--all" ]] || \
         exit
     fi
 
-    gen.py config --mgmt-switches $@
+    sudo env "PATH=$PATH" gen.py config --mgmt-switches $@
     if [ $? -ne 0 ]; then
         exit
     fi
