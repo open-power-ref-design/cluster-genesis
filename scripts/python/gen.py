@@ -231,6 +231,8 @@ class Gen(object):
         from shutil import copy2
         from lib.utilities import timestamp
 
+        log = logger.getlogger()
+
         cont = Container(self.config_file_path, self.args.create_inventory)
         cont.copy(self.config_file_path, self.cont_config_file_path)
         cmd = []
