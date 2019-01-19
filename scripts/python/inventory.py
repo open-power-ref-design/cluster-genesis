@@ -107,6 +107,12 @@ def generate_dynamic_inventory():
                     dynamic_inventory[_role] = {'hosts': []}
                 dynamic_inventory[_role]['hosts'].append(hostname)
 
+    if 'solution_keys' not in dynamic_inventory:
+        dynamic_inventory['solution_keys'] = {'hosts': []}
+
+    if 'solution_inventory' not in dynamic_inventory:
+        dynamic_inventory['solution_inventory'] = {'hosts': []}
+
     return dynamic_inventory
 
 
