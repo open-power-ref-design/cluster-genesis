@@ -166,7 +166,7 @@ class SwitchCommon(object):
                     item = item.splitlines()
                     for line in item:
                         match = re.search(
-                            'Eth((?:\d+/)+\d+)\s+((?:\d+[,-])*\d+)', line)
+                            r'Eth((?:\d+/)+\d+)\s+((?:\d+[,-])*\d+)', line)
                         if match:
                             ports[match.group(1)]['avlans'] = match.group(2)
             return ports
@@ -436,8 +436,8 @@ class SwitchCommon(object):
         pos = None
         mac_dict = AttrDict()
 
-        _mac_iee802 = '([\dA-F]{2}[\.:-]){5}([\dA-F]{2})'
-        _mac_cisco = '([\dA-F]{4}\.){2}[\dA-F]{4}'
+        _mac_iee802 = r'([\dA-F]{2}[\.:-]){5}([\dA-F]{2})'
+        _mac_cisco = r'([\dA-F]{4}\.){2}[\dA-F]{4}'
         _mac_all = "%s|%s" % (_mac_iee802, _mac_cisco)
         _mac_regex = re.compile(_mac_all, re.I)
 
@@ -656,7 +656,7 @@ class SwitchCommon(object):
         ifc_info = ifc_info.split('Vlan')
         for line in ifc_info:
             match = re.search(r'(\d+).*Internet Address is\s+'
-                              '((\w+.\w+.\w+.\w+)/\d+)', line, re.DOTALL)
+                              r'((\w+.\w+.\w+.\w+)/\d+)', line, re.DOTALL)
             if match:
                 mask = netaddr.IPNetwork(match.group(2))
                 mask = str(mask.netmask)

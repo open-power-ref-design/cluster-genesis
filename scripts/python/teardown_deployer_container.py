@@ -19,9 +19,7 @@ import argparse
 import os.path
 import sys
 
-from lib.config import Config
 from lib.container import Container
-from lib.exception import UserException
 from lib.genesis import GEN_PATH
 import lib.logger as logger
 

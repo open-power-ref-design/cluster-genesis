@@ -1,4 +1,4 @@
-# copyright 2018 IBM Corp.
+# copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -64,6 +64,7 @@ COBBLER_INSTALL_DIR = '/opt/cobbler'
 COBBLER_USER = 'cobbler'
 COBBLER_PASS = 'cobbler'
 DHCP_POOL_START = 21
+SWITCH_LOCK_PATH = '/var/lock/'
 
 
 class Color:
@@ -87,6 +88,15 @@ class Color:
     up_ten = '\033[10A'
     header1 = '          ' + bold + underline
     endc = '\033[0m'
+
+
+def get_switch_lock_path():
+    if is_container():
+        match = re.search(r'(/\w+)/', CONTAINER_PACKAGE_PATH).group(1)
+        path = os.path.join(match, SWITCH_LOCK_PATH[1:])
+    else:
+        path = SWITCH_LOCK_PATH
+    return path
 
 
 def load_localhost(filename):
@@ -132,7 +142,7 @@ def is_container_running():
     cont_running = False
     lxc_ls_output = subprocess.check_output(['bash', '-c', 'lxc-ls -f']
                                             ).decode("utf-8")
-    lxc_ls_output_search = re.search('^%s\d+\s+RUNNING' %
+    lxc_ls_output_search = re.search(r'^%s\d+\s+RUNNING' %
                                      (DEFAULT_CONTAINER_NAME + '-pxe'),
                                      lxc_ls_output, re.MULTILINE)
     if lxc_ls_output_search is not None:
@@ -144,7 +154,7 @@ def container_addr():
     cont_address = None
     lxc_ls_output = subprocess.check_output(['bash', '-c', 'sudo lxc-ls -f']
                                             ).decode("utf-8")
-    cont_address = re.search('(\S+),\s+(\S+),', lxc_ls_output, re.MULTILINE)
+    cont_address = re.search(r'(\S+),\s+(\S+),', lxc_ls_output, re.MULTILINE)
     if cont_address is None:
         return None
     return cont_address.group(2)

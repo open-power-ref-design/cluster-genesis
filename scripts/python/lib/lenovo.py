@@ -114,7 +114,7 @@ class Lenovo(SwitchCommon):
         if format == 'raw' or format is None:
             return port_info
         elif format == 'std':
-            indcs = get_col_pos(port_info, ('Port', 'Tag', 'PVID', 'VLAN\(s'))
+            indcs = get_col_pos(port_info, ('Port', 'Tag', 'PVID', r'VLAN\(s'))
             port_info = port_info.splitlines()
             for line in port_info:
                 # pad to 86 chars
@@ -126,13 +126,13 @@ class Lenovo(SwitchCommon):
                     mode = line[indcs['Tag'][0]:indcs['Tag'][1]]
                     mode = 'access' if 'n' in mode else 'trunk'
                     pvid = str(int(line[indcs['PVID'][0]:indcs['PVID'][1]]))
-                    avlans = line[indcs['VLAN\(s'][0]:indcs['VLAN\(s'][1]].strip(' ')
+                    avlans = line[indcs[r'VLAN\(s'][0]:indcs[r'VLAN\(s'][1]].strip(' ')
                     avlans = _get_avlans(avlans)
                     ports[port] = {'mode': mode, 'nvlan': pvid, 'avlans': avlans}
                 # look for avlan continuation lines
                 # look for leading spaces (10 is arbitrary)
                 if f"{' ':<10}" == line[:10]:
-                    avlans = line[indcs['VLAN\(s'][0]:indcs['VLAN\(s'][1]].strip(' ')
+                    avlans = line[indcs[r'VLAN\(s'][0]:indcs[r'VLAN\(s'][1]].strip(' ')
                     match = re.search(r'^(\d+ |(\d+-\d+ ))+\d+', avlans)
                     if match:
                         avlans = _get_avlans(match.group(0))
@@ -205,7 +205,7 @@ class Lenovo(SwitchCommon):
         ifc_info = ifc_info.splitlines()
         for line in ifc_info:
             match = re.search(r'^(\d+):\s+IP4\s+(\w+.\w+.\w+.\w+)\s+(\w+.\w+.\w+.\w+)'
-                              '\s+\w+.\w+.\w+.\w+,\s+vlan\s(\d+),', line)
+                              r'\s+\w+.\w+.\w+.\w+,\s+vlan\s(\d+),', line)
             if match:
                 cnt += 1
                 ifcs.append(

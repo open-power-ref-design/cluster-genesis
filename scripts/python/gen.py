@@ -229,8 +229,6 @@ class Gen(object):
 
         from lib.container import Container
 
-        log = logger.getlogger()
-
         cont = Container(self.config_file_path, self.args.create_inventory)
         cont.copy(self.config_file_path, self.cont_config_file_path)
         cmd = []
