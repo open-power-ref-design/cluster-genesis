@@ -18,7 +18,8 @@
 # pup [subcommand] [options] [config file name | software install module name]
 _pup()
 {
-    local cur prev opts prev_2 prev_3 comm_opts pup_path
+    local cur prev first second opts cmd comm_opts sub_cmds pup_path array
+
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     first="${COMP_WORDS[0]}"
@@ -28,20 +29,12 @@ _pup()
         prev="${COMP_WORDS[COMP_CWORD-1]}"
     fi
 
-    if [[ $COMP_CWORD -ge 2  ]]; then
-        prev_2="${COMP_WORDS[COMP_CWORD-2]}"
-    fi
-
-    if [[ $COMP_CWORD -ge 3  ]]; then
-        prev_3="${COMP_WORDS[COMP_CWORD-3]}"
-    fi
-
     pup_path=${PATH%%power-up*}
     pup_path=${pup_path##*:}power-up/
 
     cmd="pup"
 
-    sub_cmds="setup config validate deploy post-deploy software utils --help"
+    sub_cmds=" setup config validate deploy post-deploy software utils osinstall"
     comm_opts=" --help --all --log-level-file --log-level-print"
 
     if [[ ${prev} == "$cmd" ]] && [[ ${cur} == -* ]]; then
@@ -74,7 +67,8 @@ _pup()
         return 0
     fi
 
-    if ([[ ${second} == deploy ]] || [[ ${second} == post-deploy ]]); then
+    array=(setup config validate utils deploy post-deploy osinstall)
+    if [[ " ${array[@]} " =~ " ${second} " ]]; then
         if ([[ ${cur} != -* ]] && [[ ${prev} != *.yml ]]); then
             files=`ls "$pup_path"*.yml | sed -E 's/(.+)\///'`
             COMPREPLY=( $( compgen -W "${files[@]}" -- ${cur} ) )
@@ -82,16 +76,9 @@ _pup()
         fi
     fi
 
-    if ([[ ${second} == setup ]] || [[ ${second} == config ]] || \
-        [[ ${second} == validate ]] || [[ ${second} == utils ]]); then
-        if ([[ ${cur} != -* ]] && [[ ${prev} != *.yml ]]); then
-            files=`ls "$pup_path"*.yml | sed -E 's/(.+)\///'`
-            COMPREPLY=( $( compgen -W "${files[@]}" -- ${cur} ) )
-            return 0
-        fi
-    fi
-
-    if [[ ${prev} == setup ]]; then
+    if [[ ${prev} == osinstall ]]; then
+        opts="--setup-interfaces --gateway"
+    elif [[ ${prev} == setup ]]; then
         opts="--networks --gateway"
     elif [[ ${prev} == config ]]; then
         opts="--create-container --mgmt-switches --data-switches "
@@ -106,10 +93,12 @@ _pup()
         opts="--ssh-keyscan --gather-mac-addr --config-client-os "
         opts+="--lookup-interface-names"
         opts="$opts""$comm_opts"
+    elif [[ ${prev} == utils ]]; then
+        opts="--scan-pxe-network --scan-ipmi-network"
     elif [[ ${cur} == -* ]]; then
         opts+="$comm_opts"
     fi
     COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
 }
 
-complete -o filenames -F _pup pup
+complete -F _pup pup

@@ -20,7 +20,6 @@ import os.path
 import sys
 import xmlrpc.client
 from netaddr import IPNetwork
-#from pyghmi import exceptions as pyghmi_exception
 from time import time, sleep
 
 from lib.config import Config

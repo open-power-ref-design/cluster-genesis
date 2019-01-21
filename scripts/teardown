@@ -15,17 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [[ "$1" == "deployer" ]]; then
-    if [[ "$2" == "--networks" ]] || [[ "$2" == "--gateway" ]]; then
-        sudo env "PATH=$PATH" teardown.py $@
-    elif [[ "$2" == "--all" ]] || [[ "$2" == "--al" ]] || \
-            [[ "$2" == "--a" ]] || [[ "$2" == "-a" ]]; then
-        teardown.py deployer --container
-        sudo env "PATH=$PATH" teardown.py deployer --gateway
-        sudo env "PATH=$PATH" teardown.py deployer --networks
-    else
-        teardown.py $@
-    fi
+if [[ "$1" == "deployer" ]] && [[ "$2" == "--container" ]]; then
+    pupteardown.py $@
 else
-    teardown.py $@
+    sudo env "PATH=$PATH" pupteardown.py $@
 fi

@@ -20,7 +20,7 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
 
 import click
 import os.path
-from os import listdir, mkdir, chown, chmod, getlogin, getuid
+from os import listdir, getlogin, getuid
 import filecmp
 import json
 import pwd
@@ -41,8 +41,7 @@ import lib.logger as logger
 from lib.genesis import get_python_path, CFG_FILE, \
     get_dynamic_inventory_path, get_playbooks_path, get_ansible_path
 from lib.utilities import bash_cmd, sub_proc_exec, heading1, get_selection, \
-    bold, get_yesno, sub_proc_display, remove_line, append_line, rlinput, \
-    ansible_pprint
+    bold, get_yesno, remove_line, append_line, rlinput, ansible_pprint
 
 
 def _get_dynamic_inventory():
@@ -333,7 +332,6 @@ def _check_known_hosts(host_list):
     Args:
         host_list (list): List of hostnames or IP addresses
     """
-    log = logger.getlogger()
     known_hosts_files = [os.path.join(Path.home(), ".ssh", "known_hosts")]
     user_name, user_home_dir = get_user_and_home()
     if os.environ['USER'] == 'root' and user_name != 'root':
@@ -389,7 +387,7 @@ def _validate_ansible_ping(software_hosts_file_path, hosts_list):
                 user_name, user_home_dir = get_user_and_home()
                 if user_home_dir != str(Path.home()):
                     known_hosts_files.append(os.path.join(user_home_dir,
-                                              ".ssh", "known_hosts"))
+                                                          ".ssh", "known_hosts"))
                 for host in hosts_list:
                     print(f'Collecting new host key(s) for {host}')
                     cmd = (f'ssh-keyscan -H {host}')
@@ -473,8 +471,7 @@ def _validate_installer_is_not_client(host_list):
     fqdn = getfqdn()
 
     if hostname in host_list or fqdn in host_list:
-        raise UserException(f'Inventory requires at most {max_count} master '
-                            f'node(s) ({host_count} found)!')
+        raise UserException('Installer can not be a target for install')
     else:
         return True
 
@@ -718,7 +715,6 @@ def copy_ssh_key_pair_to_user_dir(private_key_path):
     Returns:
         str: Path to user copy of private key
     """
-    log = logger.getlogger()
     public_key_path = private_key_path + '.pub'
 
     user_name, user_home_dir = get_user_and_home()
@@ -782,7 +778,6 @@ def copy_ssh_key_pair_to_hosts(private_key_path, software_hosts_file_path,
     Returns:
         bool: True iff rc of all commands are "0"
     """
-    log = logger.getlogger()
     hosts_list = _validate_inventory_count(software_hosts_file_path, 0)
     all_zero_returns = True
 
@@ -835,6 +830,7 @@ def get_user_and_home():
     Raises:
         UserException: If 'getent' command fails
     """
+    log = logger.getlogger()
     user_name = getlogin()
 
     cmd = f'getent passwd {user_name}'

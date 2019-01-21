@@ -234,7 +234,7 @@ class ValidateConfigLogic(object):
 
         dhcp_lease_time = self.cfg.get_globals_dhcp_lease_time()
 
-        if not (re.match('^\d+[mh]{0,1}$', dhcp_lease_time) or
+        if not (re.match(r'^\d+[mh]{0,1}$', dhcp_lease_time) or
                 dhcp_lease_time == "infinite"):
             exc = ("Config 'Globals: dhcp_lease_time: {}' has invalid value!"
                    "\n".format(dhcp_lease_time))

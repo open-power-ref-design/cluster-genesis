@@ -43,9 +43,8 @@ def set_bootdev_clients(bootdev, persist=False, config_path=None, clients=None,
         cred_list = {}
         for index, hostname in enumerate(inv.yield_nodes_hostname()):
             ipv4 = inv.get_nodes_ipmi_ipaddr(0, index)
-            if client_list and not ipv4 in client_list:
+            if client_list and ipv4 not in client_list:
                 continue
-            #rack_id = inv.get_nodes_rack_id(index)
             userid = inv.get_nodes_ipmi_userid(index)
             password = inv.get_nodes_ipmi_password(index)
             bmc_type = inv.get_nodes_bmc_type(index)
@@ -82,7 +81,6 @@ def set_bootdev_clients(bootdev, persist=False, config_path=None, clients=None,
     attempt = 0
     clients_left.sort()
     while clients_left and attempt < max_attempts:
-        nodes = {}
         attempt += 1
         if attempt > 1:
             print('Retrying set bootdev. Attempt {} of {}'.format(attempt, max_attempts))

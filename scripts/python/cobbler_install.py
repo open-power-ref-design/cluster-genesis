@@ -112,7 +112,7 @@ def cobbler_install(config_path=None):
     # Modify Cobbler scrpit that write DHCP reservations so that the
     #   lease time is included.
     dhcp_lease_time = cfg.get_globals_dhcp_lease_time()
-    util.replace_regex(MANAGE_DNSMASQ, 'systxt \= systxt \+ \"\\\\n\"',
+    util.replace_regex(MANAGE_DNSMASQ, r'systxt \= systxt \+ \"\\\\n\"',
                        "systxt = systxt + \",{}\\\\n\"".
                        format(dhcp_lease_time))
 
@@ -245,8 +245,8 @@ def cobbler_install(config_path=None):
 
     # Fix line break escape in kickstart_done snippet
     util.replace_regex(KICKSTART_DONE, "\\\\nwget", "wget")
-    util.replace_regex(KICKSTART_DONE, "\$saveks", "$saveks + \"; \\\\\\\"\n")
-    util.replace_regex(KICKSTART_DONE, "\$runpost", "$runpost + \"; \\\\\\\"\n")
+    util.replace_regex(KICKSTART_DONE, r"\$saveks", "$saveks + \"; \\\\\\\"\n")
+    util.replace_regex(KICKSTART_DONE, r"\$runpost", "$runpost + \"; \\\\\\\"\n")
 
     # Copy authorized_keys ssh key file to web repo directory
     copy2(ROOT_AUTH_KEYS, WWW_AUTH_KEYS)

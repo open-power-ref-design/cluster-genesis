@@ -35,8 +35,8 @@ class Switch(object):
         port (int): Switch management interface SSH port. Defaults to 22.
     """
 
-    _mac_iee802 = '([\dA-F]{2}[\.:-]){5}([\dA-F]{2})'
-    _mac_cisco = '([\dA-F]{4}\.){2}[\dA-F]{4}'
+    _mac_iee802 = r'([\dA-F]{2}[\.:-]){5}([\dA-F]{2})'
+    _mac_cisco = r'([\dA-F]{4}\.){2}[\dA-F]{4}'
     _mac_all = "%s|%s" % (_mac_iee802, _mac_cisco)
     _mac_regex = re.compile(_mac_all, re.I)
 
@@ -102,7 +102,7 @@ class PassiveSwitch(Switch):
         mac_index = None
 
         mac_header_re = re.compile('mac address', re.I)
-        single_s = re.compile('(\S)\s(\S)')
+        single_s = re.compile(r'(\S)\s(\S)')
 
         self.log.debug('opening %s' % mac_table_file_path)
         try:
@@ -113,7 +113,7 @@ class PassiveSwitch(Switch):
                         mac_line_list.append(line.split())
                     elif mac_header_re.search(line):
                         self.log.debug('Found possible header: %s' % line.rstrip())
-                        header = single_s.sub('\g<1>\g<2>', line.lower()).split()
+                        header = single_s.sub(r'\g<1>\g<2>', line.lower()).split()
                         if set(["macaddress", "port"]) <= set(header):
                             self.log.debug('header: %s' % header)
                             mac_index = header.index("macaddress")

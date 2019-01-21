@@ -1,4 +1,4 @@
-# copyright 2018 IBM Corp.
+# copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -91,7 +91,7 @@ class Color:
 
 def get_switch_lock_path():
     if is_container():
-        match = re.search(r'(/\w+)/', CONTAINER_PACKAGE_PATH ).group(1)
+        match = re.search(r'(/\w+)/', CONTAINER_PACKAGE_PATH).group(1)
         path = os.path.join(match, SWITCH_LOCK_PATH[1:])
     else:
         path = SWITCH_LOCK_PATH

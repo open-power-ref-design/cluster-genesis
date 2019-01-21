@@ -20,10 +20,10 @@
 import sys
 import os.path
 
-import teardown_deployer_container
+import pupteardown_deployer_container
 import enable_deployer_gateway
-import teardown_deployer_networks
-import lib.argparse_teardown as argparse_teardown
+import pupteardown_deployer_networks
+import lib.argparse_pupteardown as argparse_pupteardown
 import lib.logger as logger
 import configure_data_switches
 from lib.genesis import GEN_PATH
@@ -41,14 +41,14 @@ class Teardown(object):
         self.args = args
 
     def _destroy_deployer_container(self):
-        teardown_deployer_container.teardown_deployer_container(self.config_file_path)
+        pupteardown_deployer_container.teardown_deployer_container(self.config_file_path)
 
     def _teardown_deployer_gateway(self):
         enable_deployer_gateway.enable_deployer_gateway(self.config_file_path,
                                                         remove=True)
 
     def _teardown_deployer_networks(self):
-        teardown_deployer_networks.teardown_deployer_network(self.config_file_path)
+        pupteardown_deployer_networks.teardown_deployer_network(self.config_file_path)
 
     def _teardown_switch_data(self):
         configure_data_switches.deconfigure_data_switch(self.config_file_path)
@@ -80,30 +80,35 @@ class Teardown(object):
             sys.exit('POWER-Up stopped at user request')
 
         # Determine which subcommand was specified
-        try:
-            if self.args.deployer:
-                if self.args.container:
-                    self._destroy_deployer_container()
-                if self.args.gateway:
-                    self._teardown_deployer_gateway()
-                if self.args.networks:
-                    self._teardown_deployer_networks()
-        except AttributeError:
-            pass
-        try:
-            if self.args.switches:
-                if self.args.data:
-                    self._teardown_switch_data()
-                if self.args.mgmt:
-                    self._teardown_switch_mgmt()
-        except AttributeError:
-            pass
+        if hasattr(self.args, 'switches'):
+            if self.args.data or self.args.all:
+                self._teardown_switch_data()
+            if self.args.mgmt or self.args.all:
+                self._teardown_switch_mgmt()
+        elif hasattr(self.args, 'deployer'):
+            if self.args.container or self.args.all:
+                self._destroy_deployer_container()
+            if self.args.gateway or self.args.all:
+                self._teardown_deployer_gateway()
+            if self.args.networks or self.args.all:
+                self._teardown_deployer_networks()
+        elif hasattr(self.args, 'all'):
+            self._teardown_switch_data()
+            self._teardown_switch_mgmt()
+            self._destroy_deployer_container()
+            self._teardown_deployer_gateway()
+            self._teardown_deployer_networks()
 
 
 if __name__ == '__main__':
-    args = argparse_teardown.get_parsed_args()
+    args = argparse_pupteardown.get_parsed_args()
+
     logger.create(
         args.log_level_file[0],
         args.log_level_print[0])
+
+    if args.log_level_print[0] == 'debug':
+        print('DEBUG - {}'.format(args))
+
     TEARDOWN = Teardown(args)
     TEARDOWN.launch()

@@ -25,13 +25,11 @@ from shutil import copy2
 from subprocess import Popen, PIPE
 from netaddr import IPNetwork, IPAddress
 from tabulate import tabulate
-from pyghmi.ipmi import command
-from pyghmi.ipmi.private import session
 
 from lib.config import Config
 import lib.logger as logger
 
-PATTERN_MAC = '[\da-fA-F]{2}:){5}[\da-fA-F]{2}'
+PATTERN_MAC = r'[\da-fA-F]{2}:){5}[\da-fA-F]{2}'
 CalledProcessError = subprocess.CalledProcessError
 
 
@@ -330,8 +328,8 @@ def files_present(url, fileglobs, _all=True):
 
 
 def fileglob_to_regx(fileglob):
-    regx = fileglob.replace('.', '\.')
-    regx = regx.replace('+', '\+')
+    regx = fileglob.replace('.', r'\.')
+    regx = regx.replace('+', r'\+')
     regx = regx.replace(']*', '][0-9]{0,3}')
     regx = regx.replace('*', '.*')
     regx = 'http.+' + regx
