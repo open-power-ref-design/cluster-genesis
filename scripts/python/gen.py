@@ -19,6 +19,7 @@
 
 import importlib
 import os
+import stat
 import sys
 import getpass
 import subprocess
@@ -55,6 +56,12 @@ class Gen(object):
         self.args = args
         self.config_file_path = gen.GEN_PATH
         self.cont_config_file_path = gen.CONTAINER_PACKAGE_PATH + '/'
+
+        ssh_log = os.path.join(gen.GEN_LOGS_PATH, 'ssh_paramiko')
+        if not os.path.isfile(ssh_log):
+            os.mknod(ssh_log)
+        os.chmod(ssh_log, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP |
+                 stat.S_IWGRP | stat.S_IROTH | stat.S_IWOTH)
 
     def _check_root_user(self, cmd):
         if getpass.getuser() != self.ROOTUSER:
