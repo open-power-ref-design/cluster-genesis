@@ -95,7 +95,8 @@ pxe_address_mode:
 ethernet_port:
     val: eth0
     desc: Ethernet port
-    help: Ethernet port used to access the PXE and BMC interfaces.
+    help: Ethernet port used to access the PXE and BMC interfaces. Press enter
+        to select from a list of physical interfaces which are 'up'.
     floc: skipline
     ftype: eth-ifc
 

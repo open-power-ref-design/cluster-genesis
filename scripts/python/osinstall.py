@@ -58,7 +58,16 @@ class OSinstall(npyscreen.NPSAppManaged):
         return ifcs_state
 
     def get_up_phys_ifcs(self):
-        return list(self.get_ifcs_state().keys())
+        """ Create a dictionary of links.  For each link, val = operational state
+        """
+        ifcs_up = []
+        for link in IPR.get_links():
+            if not link.get_attr('IFLA_LINKINFO'):
+                if link.get_attr('IFLA_OPERSTATE') == 'UP':
+                    link_name = link.get_attr('IFLA_IFNAME')
+                    ifcs_up.append(link_name)
+                    #ifcs_state[link_name] = link.get_attr('IFLA_OPERSTATE')
+        return ifcs_up
 
     def onStart(self):
         self.addForm('MAIN', OSinstall_form, name='Welcome to PowerUP')
@@ -273,8 +282,8 @@ class OSinstall_form(npyscreen.Form):
                                              name=fname,
                                              value=str(self.prof[item]['val']),
                                              begin_entry_at=20)
-                self.fields[item].entry_widget.add_handlers({curses.KEY_F1:
-                                                            self.h_help})
+#                self.fields[item].entry_widget.add_handlers({curses.KEY_F1:
+#                                                            self.h_help})
             elif 'ipv4mask' in dtype:
                 self.fields[item] = self.add(npyscreen.TitleText, name=fname,
                                              value=str(self.prof[item]['val']),
@@ -311,8 +320,8 @@ class OSinstall_form(npyscreen.Form):
                                              value=str(self.prof[item]['val']),
                                              begin_entry_at=20, width=40,
                                              relx=relx)
-                self.fields[item].entry_widget.add_handlers({curses.KEY_F1:
-                                                            self.h_help})
+            self.fields[item].entry_widget.add_handlers({curses.KEY_F1:
+                                                        self.h_help})
 
 
 if __name__ == '__main__':
