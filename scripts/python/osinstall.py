@@ -322,16 +322,18 @@ class OSinstall_form(npyscreen.Form):
                                              relx=relx)
             self.fields[item].entry_widget.add_handlers({curses.KEY_F1:
                                                         self.h_help})
-
-
 if __name__ == '__main__':
 
     logger.create('nolog', 'info')
     log = logger.getlogger()
 
     profile = 'profile.yml'
-    osi = OSinstall()
-    osi.load_profile(profile)
-    osi.run()
-    p = osi.get_profile_tuple()
-    print(p)
+    try:
+        osi = OSinstall()
+        osi.load_profile(profile)
+        osi.run()
+        p = osi.get_profile_tuple()
+        log.debug(p)
+        print(p)
+    except KeyboardInterrupt:
+        log.info("Exiting ...")
