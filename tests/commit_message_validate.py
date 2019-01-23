@@ -35,7 +35,8 @@ for i, line in enumerate(get_head_commit_message().splitlines()):
     if i == 0:
         if line.split()[0] not in valid_subject_tags:
             no_errors = False
-            errors.append("Subject line does not start with valid tag")
+            errors.append("\nSubject line does not start with valid tag\
+                          \nValid tags are:\n\t({0})".format(" ".join(valid_subject_tags)))
         if line.split()[0] not in ['Revert', 'Merge']:
             if len(line.split()) > 2 and line.split()[1][0].islower():
                 no_errors = False
