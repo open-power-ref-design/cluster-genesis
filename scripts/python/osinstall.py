@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import curses
 import npyscreen
 import os.path
@@ -22,6 +23,7 @@ import yaml
 from orderedattrdict.yamlutils import AttrDictYAMLLoader
 from collections import namedtuple
 from pyroute2 import IPRoute
+import code
 
 import lib.logger as logger
 from lib.genesis import get_package_path, get_sample_configs_path
@@ -33,73 +35,23 @@ GEN_SAMPLE_CONFIGS_PATH = get_sample_configs_path()
 IPR = IPRoute()
 
 
-class OSinstall(npyscreen.NPSAppManaged):
-
-    def get_ifcs_addresses(self):
-        """ Create a dictionary of links.  For each link, create list of cidr
-        addresses
-        """
-        ifc_addresses = {}
-        for link in IPR.get_links():
-            link_name = link.get_attr('IFLA_IFNAME')
-            ifc_addresses[link_name] = []
-            for addr in IPR.get_addr(index=link['index']):
-                ifc_addresses[link_name].append(
-                    addr.get_attr('IFA_ADDRESS') + '/' + str(addr['prefixlen']))
-        return ifc_addresses
-
-    def get_ifcs_state(self):
-        """ Create a dictionary of links.  For each link, val = operational state
-        """
-        ifcs_state = {}
-        for link in IPR.get_links():
-            link_name = link.get_attr('IFLA_IFNAME')
-            ifcs_state[link_name] = link.get_attr('IFLA_OPERSTATE')
-        return ifcs_state
-
-    def get_up_phys_ifcs(self):
-        """ Create a list of 'UP' links.
-        """
-        ifcs_up = []
-        for link in IPR.get_links():
-            if not link.get_attr('IFLA_LINKINFO'):
-                if link.get_attr('IFLA_OPERSTATE') == 'UP':
-                    link_name = link.get_attr('IFLA_IFNAME')
-                    ifcs_up.append(link_name)
-        return ifcs_up
-
-    def is_valid_profile(self):
-        """ Validates the content of the profile data.
-        Returns:
-            msg (str) empty if passed, else contains warning and error msg
-        """
-        msg = ''
-        p = self.get_profile_tuple()
-
-        if u.is_overlapping_addr(f'{p.bmc_subnet}/{p.bmc_subnet_prefix}',
-                                 f'{p.pxe_subnet}/{p.pxe_subnet_prefix}'):
-            msg += 'Warning, BMC and PXE subnets are overlapping\n'
-
-        if p.bmc_subnet_prefix != p.pxe_subnet_prefix:
-            msg += 'Warning, BMC and PXE subnets are different sizes\n'
-
-        if not os.path.isfile(p.iso_image_file):
-            msg += ('Error. Operating system ISO image file not found: \n'
-                    '{p.iso_image_file}')
-
-        return msg
-
-    def onStart(self):
-        self.addForm('MAIN', OSinstall_form, name='Welcome to PowerUP    '
-                     'Press F1 in any field for field help')
-
-    def load_profile(self, profile):
+class Profile():
+    def __init__(self, prof_path='profile-template.yml'):
+        self.log = logger.getlogger()
+        if prof_path == 'profile-template.yml':
+            self.prof_path = os.path.join(GEN_SAMPLE_CONFIGS_PATH,
+                                          'profile-template.yml')
+        else:
+            if not os.path.dirname(prof_path):
+                self.prof_path = os.path.join(GEN_PATH, prof_path)
+            else:
+                self.prof_path = prof_path
         try:
-            profile = yaml.load(open(GEN_PATH + profile), Loader=AttrDictYAMLLoader)
+            self.profile = yaml.load(open(self.prof_path), Loader=AttrDictYAMLLoader)
         except IOError:
-            profile = yaml.load(open(GEN_SAMPLE_CONFIGS_PATH + 'profile-template.yml'),
-                                Loader=AttrDictYAMLLoader)
-        self.profile = profile
+            self.log.error(f'Unable to open the profile file: {self.prof_path}')
+            sys.exit(f'Unable to open the profile file: {self.prof_path}\n'
+                     'Unable to continue with OS install')
 
     def get_profile(self):
         """Returns an ordered attribute dictionary with the profile data.
@@ -135,6 +87,119 @@ class OSinstall(npyscreen.NPSAppManaged):
         with open(GEN_PATH + 'profile.yml', 'w') as f:
             yaml.dump(self.profile, f, indent=4, default_flow_style=False)
 
+    def is_valid_profile(self):
+        """ Validates the content of the profile data.
+        Returns:
+            msg (str) empty if passed, else contains warning and error msg
+        """
+        msg = ''
+        p = self.get_profile_tuple()
+
+        if u.is_overlapping_addr(f'{p.bmc_subnet}/{p.bmc_subnet_prefix}',
+                                 f'{p.pxe_subnet}/{p.pxe_subnet_prefix}'):
+            msg += 'Warning, BMC and PXE subnets are overlapping\n'
+
+        if p.bmc_subnet_prefix != p.pxe_subnet_prefix:
+            msg += 'Warning, BMC and PXE subnets are different sizes\n'
+
+        if not os.path.isfile(p.iso_image_file):
+            msg += ('Error. Operating system ISO image file not found: \n'
+                    '{p.iso_image_file}')
+
+        return msg
+
+
+class OSinstall(npyscreen.NPSAppManaged):
+    def __init__(self, prof_path, *args, **kwargs):
+        super(OSinstall, self).__init__(*args, **kwargs)
+        self.prof_path = prof_path
+        self.prof = Profile(self.prof_path)
+        self.log = logger.getlogger()
+
+    def onStart(self):
+        self.addForm('MAIN', OSinstall_form, name='Welcome to PowerUP    '
+                     'Press F1 in any field for field help')
+
+    def get_ifcs_addresses(self):
+        """ Create a dictionary of links.  For each link, create list of cidr
+        addresses
+        """
+        ifc_addresses = {}
+        for link in IPR.get_links():
+            link_name = link.get_attr('IFLA_IFNAME')
+            ifc_addresses[link_name] = []
+            for addr in IPR.get_addr(index=link['index']):
+                ifc_addresses[link_name].append(
+                    addr.get_attr('IFA_ADDRESS') + '/' + str(addr['prefixlen']))
+        return ifc_addresses
+
+    def get_ifcs_state(self):
+        """ Create a dictionary of links.  For each link, val = operational state
+        """
+        ifcs_state = {}
+        for link in IPR.get_links():
+            link_name = link.get_attr('IFLA_IFNAME')
+            ifcs_state[link_name] = link.get_attr('IFLA_OPERSTATE')
+        return ifcs_state
+
+    def get_up_phys_ifcs(self):
+        """ Create a list of 'UP' links.
+        """
+        ifcs_up = []
+        for link in IPR.get_links():
+            if not link.get_attr('IFLA_LINKINFO'):
+                if link.get_attr('IFLA_OPERSTATE') == 'UP':
+                    link_name = link.get_attr('IFLA_IFNAME')
+                    ifcs_up.append(link_name)
+        return ifcs_up
+
+    def _is_ifc_up(self, ifname):
+        if 'UP' == self.ipr.get_links(
+                self.ipr.link_lookup(ifname=ifname))[0].get_attr('IFLA_OPERSTATE'):
+            return True
+        return False
+
+    def _wait_for_ifc_up(self, ifname, timespan=10):
+        """ Waits up to timespan seconds for the specified interface to be up.
+        Prints a message if the interface is not up in 2 seconds.
+        Args:
+            ifname (str) : Name of the interface
+            timespan (int) : length of time to wait in seconds
+        Returns:
+            True if interface is up, False if not.
+        """
+        for t in range(2 * timespan):
+            if t == 4:
+                print(f'Waiting for interface {ifname} to come up.')
+            if self._is_ifc_up(ifname):
+                self.log.debug(f'Interface {ifname} is up.')
+                return True
+            time.sleep(0.5)
+        self.log.info(f'Timeout waiting for interface {ifname} to come up.')
+        return False
+
+    def config_interfaces(self):
+        self.ipr = IPRoute()
+        p = self.prof.get_profile_tuple()
+        # create any tagged vlan interfaces
+        for vlan in (p.bmc_vlan_number, p.pxe_vlan_number):
+            if vlan:
+                ifc = p.ethernet_port + '.' + vlan
+                # need check here to see if the vlan exists on any other interfaces
+                # besides the one we're about to create (ifc)
+                if not self.ipr.link_lookup(ifname=ifc):
+                    self.log.debug(f'Creating vlan interface: {ifc}')
+                    #code.interact(banner='here', local=dict(globals(), **locals()))
+                    res = self.ipr.link("add", ifname=ifc, kind="vlan",
+                        link=self.ipr.link_lookup(ifname=p.ethernet_port)[0],
+                        vlan_id=int(vlan))
+                    if res[0]['header']['error']:
+                        self.log.debug(f'Error creating vlan interface: {ifc} {res}')
+                    else:
+                        self.ipr.link("set", index=self.ipr.link_lookup(ifname=ifc)[0],
+                                      state="up")
+                        if not self._wait_for_ifc_up(ifc):
+                            self.log.error('Failed to bring up interface {ifc} ')
 
 class OSinstall_form(npyscreen.ActionFormV2):
     def afterEditing(self):
@@ -146,7 +211,8 @@ class OSinstall_form(npyscreen.ActionFormV2):
         self.next_form = None if res else 'MAIN'
 
     def on_ok(self):
-        msg = self.parentApp.is_valid_profile()
+        #msg = self.parentApp.is_valid_profile()
+        msg = self.parentApp.prof.is_valid_profile()
         if msg:
             if 'Error' in msg:
                 npyscreen.notify_ok(f'{msg}\n Please resolve issues.',
@@ -172,7 +238,7 @@ class OSinstall_form(npyscreen.ActionFormV2):
                         self.prof[item]['val'] = self.fields[item].value
                 else:
                     self.prof[item]['val'] = self.fields[item].value
-            self.parentApp.update_profile(self.prof)
+            self.parentApp.prof.update_profile(self.prof)
 
     def while_editing(self, instance):
         # instance is the instance of the widget you're moving into
@@ -288,7 +354,7 @@ class OSinstall_form(npyscreen.ActionFormV2):
                 ifc_list.append(ifc)
         self.helpmsg = 'help help'
         self.prev_field = ''
-        self.prof = self.parentApp.get_profile()
+        self.prof = self.parentApp.prof.get_profile()
         self.fields = {}  # dictionary for holding field instances
         for item in self.prof:
             fname = self.prof[item].desc
@@ -364,14 +430,25 @@ class OSinstall_form(npyscreen.ActionFormV2):
 
 if __name__ == '__main__':
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument('prof_path', help='Full path to the profile file.',
+                        nargs='?', default='profile.yml')
+    parser.add_argument('--print', '-p', dest='log_lvl_print',
+                        help='print log level', default='info')
+    parser.add_argument('--file', '-f', dest='log_lvl_file',
+                        help='file log level', default='info')
+    args = parser.parse_args()
+
+    if args.log_lvl_print == 'debug':
+        print(args)
+        sys.exit('bye')
     logger.create('nolog', 'info')
     log = logger.getlogger()
 
-    profile = 'profile.yml'
-    osi = OSinstall()
-    osi.load_profile(profile)
+    osi = OSinstall(args.prof_path)
     osi.run()
-    p = osi.get_profile_tuple()
-    msg = osi.is_valid_profile()
-    print(msg)
-    print(p)
+    #p = osi.prof.get_profile_tuple()
+    # msg = osi.prof.is_valid_profile()
+    # print(msg)
+    #print(p)
+    #osi.config_interfaces()

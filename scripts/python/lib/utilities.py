@@ -26,18 +26,18 @@ from shutil import copy2
 from subprocess import Popen, PIPE
 from netaddr import IPNetwork, IPAddress, IPSet
 from tabulate import tabulate
-import code
 
 from lib.config import Config
 import lib.logger as logger
 
 PATTERN_MAC = r'[\da-fA-F]{2}:){5}[\da-fA-F]{2}'
+PATTERN_IP = (r'\A(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|'
+              r'2[0-4][0-9]|[01]?[0-9][0-9]?)\Z')
 CalledProcessError = subprocess.CalledProcessError
 
 
 def is_ipaddr(ip):
-    if re.search(r'\A(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}'
-                 '(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\Z', ip):
+    if re.search(PATTERN_IP ,ip):
         return True
 
 
@@ -63,7 +63,6 @@ def is_overlapping_addr(subnet1, subnet2):
         return True
     else:
         return False
-
 
 def bash_cmd(cmd):
     """Run command in Bash subprocess
