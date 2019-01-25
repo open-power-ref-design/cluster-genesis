@@ -23,6 +23,7 @@ import yaml
 from orderedattrdict.yamlutils import AttrDictYAMLLoader
 from collections import namedtuple
 from pyroute2 import IPRoute
+import sys
 import code
 
 import lib.logger as logger
@@ -46,6 +47,11 @@ class Profile():
                 self.prof_path = os.path.join(GEN_PATH, prof_path)
             else:
                 self.prof_path = prof_path
+            if not os.path.isfile(self.prof_path):
+                self.log.info('No profile file found.  Using template.')
+                self.prof_path = os.path.join(GEN_SAMPLE_CONFIGS_PATH,
+                                          'profile-template.yml')
+        #code.interact(banner='here', local=dict(globals(), **locals()))
         try:
             self.profile = yaml.load(open(self.prof_path), Loader=AttrDictYAMLLoader)
         except IOError:
@@ -87,27 +93,6 @@ class Profile():
         with open(GEN_PATH + 'profile.yml', 'w') as f:
             yaml.dump(self.profile, f, indent=4, default_flow_style=False)
 
-    def is_valid_profile(self):
-        """ Validates the content of the profile data.
-        Returns:
-            msg (str) empty if passed, else contains warning and error msg
-        """
-        msg = ''
-        p = self.get_profile_tuple()
-
-        if u.is_overlapping_addr(f'{p.bmc_subnet}/{p.bmc_subnet_prefix}',
-                                 f'{p.pxe_subnet}/{p.pxe_subnet_prefix}'):
-            msg += 'Warning, BMC and PXE subnets are overlapping\n'
-
-        if p.bmc_subnet_prefix != p.pxe_subnet_prefix:
-            msg += 'Warning, BMC and PXE subnets are different sizes\n'
-
-        if not os.path.isfile(p.iso_image_file):
-            msg += ('Error. Operating system ISO image file not found: \n'
-                    '{p.iso_image_file}')
-
-        return msg
-
 
 class OSinstall(npyscreen.NPSAppManaged):
     def __init__(self, prof_path, *args, **kwargs):
@@ -119,6 +104,36 @@ class OSinstall(npyscreen.NPSAppManaged):
     def onStart(self):
         self.addForm('MAIN', OSinstall_form, name='Welcome to PowerUP    '
                      'Press F1 in any field for field help')
+
+    def is_valid_profile(self, prof):
+        """ Validates the content of the profile data.
+        Returns:
+            msg (str) empty if passed, else contains warning and error msg
+        """
+        msg = ''
+        # Since the user can skip fields by mouse clicking 'OK'
+        # We need additional checking here:
+        #  Need to add checks of iso file (check extension)
+        #  Check for valid up interfaces
+        bmc_subnet = prof['bmc_subnet']['val']
+        bmc_subnet_prefix = prof['bmc_subnet_prefix']['val']
+        bmc_subnet_prefix = bmc_subnet_prefix.split()[1]
+        pxe_subnet = prof['pxe_subnet']['val']
+        pxe_subnet_prefix = prof['pxe_subnet_prefix']['val']
+        pxe_subnet_prefix = pxe_subnet_prefix.split()[1]
+        iso_image_file = prof['iso_image_file']['val']
+        if u.is_overlapping_addr(f'{bmc_subnet}/{bmc_subnet_prefix}',
+                                 f'{pxe_subnet}/{pxe_subnet_prefix}'):
+            msg += 'Warning, BMC and PXE subnets are overlapping\n'
+
+        if bmc_subnet_prefix != pxe_subnet_prefix:
+            msg += 'Warning, BMC and PXE subnets are different sizes\n'
+
+        if not os.path.isfile(iso_image_file):
+            msg += ('Error. Operating system ISO image file not found: \n'
+                    f'{p.iso_image_file}')
+
+        return msg
 
     def get_ifcs_addresses(self):
         """ Create a dictionary of links.  For each link, create list of cidr
@@ -211,11 +226,25 @@ class OSinstall_form(npyscreen.ActionFormV2):
         self.next_form = None if res else 'MAIN'
 
     def on_ok(self):
-        #msg = self.parentApp.is_valid_profile()
-        msg = self.parentApp.prof.is_valid_profile()
+        for item in self.prof:
+            if hasattr(self.prof[item], 'ftype'):
+                if self.prof[item]['ftype'] == 'eth-ifc':
+                    self.prof[item]['val'] = self.eth_lst[self.fields[item].value]
+                elif self.prof[item]['ftype'] == 'select-one':
+                    self.prof[item]['val'] = \
+                        self.prof[item]['values'][self.fields[item].value[0]]
+                else:
+                    #code.interact(banner='There', local=dict(globals(), **locals()))
+                    self.prof[item]['val'] = self.fields[item].value
+            else:
+                self.prof[item]['val'] = self.fields[item].value
+
+        #code.interact(banner='here', local=dict(globals(), **locals()))
+        msg = self.parentApp.is_valid_profile(self.prof)
+        res = True
         if msg:
             if 'Error' in msg:
-                npyscreen.notify_ok(f'{msg}\n Please resolve issues.',
+                npyscreen.notify_confirm(f'{msg}\n Please resolve issues.',
                                     title='cancel 1', editw=1)
                 self.next_form = 'MAIN'
                 res = False
@@ -224,21 +253,11 @@ class OSinstall_form(npyscreen.ActionFormV2):
                        '(No to continue editing the profile data.)')
                 res = npyscreen.notify_yes_no(msg, title='Profile validation', editw=1)
 
-            self.next_form = None if res else 'MAIN'
-
         if res:
-            for item in self.prof:
-                if hasattr(self.prof[item], 'ftype'):
-                    if self.prof[item]['ftype'] == 'eth-ifc':
-                        self.prof[item]['val'] = self.eth_lst[self.fields[item].value]
-                    elif self.prof[item]['ftype'] == 'select-one':
-                        self.prof[item]['val'] = \
-                            self.prof[item]['values'][self.fields[item].value[0]]
-                    else:
-                        self.prof[item]['val'] = self.fields[item].value
-                else:
-                    self.prof[item]['val'] = self.fields[item].value
             self.parentApp.prof.update_profile(self.prof)
+            self.next_form = None
+        else:
+            self.next_form = 'MAIN'
 
     def while_editing(self, instance):
         # instance is the instance of the widget you're moving into
@@ -355,6 +374,7 @@ class OSinstall_form(npyscreen.ActionFormV2):
         self.helpmsg = 'help help'
         self.prev_field = ''
         self.prof = self.parentApp.prof.get_profile()
+        #code.interact(banner='here', local=dict(globals(), **locals()))
         self.fields = {}  # dictionary for holding field instances
         for item in self.prof:
             fname = self.prof[item].desc

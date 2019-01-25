@@ -12,7 +12,7 @@
 #           valid dtypes are intm-n, int-or-none, ipv4, ipv4mask
 
 bmc_vlan_number:
-    val:
+    val: ''
     desc: BMC VLAN number
     help: The BMC VLAN is the VLAN number of the vlan in which the BMC ports
         reside. Power-Up can create a tagged VLAN interface on a physical
@@ -50,8 +50,15 @@ bmc_address_mode:
         the subnet specified in 'BMC subnet'
     ftype: select-one
 
+bmc_ethernet_ifc:
+    val: eth0
+    desc: BMC Ethernet Ifc
+    help: Ethernet port used to access the PXE and BMC interfaces. Press enter
+        to select from a list of physical interfaces which are 'up'.
+    ftype: eth-ifc
+
 pxe_vlan_number:
-    val:
+    val: ''
     desc: PXE VLAN number
     help:
         The PXE VLAN is the VLAN number of the vlan in which the PXE ports
@@ -92,12 +99,11 @@ pxe_address_mode:
         the subnet specified in 'PXE subnet'
     ftype: select-one
 
-ethernet_port:
+pxe_ethernet_ifc:
     val: eth0
-    desc: Ethernet port
+    desc: PXE Ethernet Ifc
     help: Ethernet port used to access the PXE and BMC interfaces. Press enter
         to select from a list of physical interfaces which are 'up'.
-    floc: skipline
     ftype: eth-ifc
 
 hostname:
