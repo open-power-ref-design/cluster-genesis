@@ -27,6 +27,7 @@ import sys
 import code
 
 import lib.logger as logger
+import lib.interfaces as interfaces
 from lib.genesis import get_package_path, get_sample_configs_path
 import lib.utilities as u
 
@@ -100,6 +101,7 @@ class OSinstall(npyscreen.NPSAppManaged):
         self.prof_path = prof_path
         self.prof = Profile(self.prof_path)
         self.log = logger.getlogger()
+        self.ifcs = interfaces.Interfaces()
 
     def onStart(self):
         self.addForm('MAIN', OSinstall_form, name='Welcome to PowerUP    '
@@ -466,7 +468,17 @@ if __name__ == '__main__':
     log = logger.getlogger()
 
     osi = OSinstall(args.prof_path)
-    osi.run()
+    #osi.run()
+    for ifc in osi.ifcs.ifcs:
+        print(f'{ifc:<16}: {osi.ifcs.ifcs[ifc]}')
+    res = osi.ifcs.get_interfaces()
+    print(res)
+    res = osi.ifcs.get_interfaces('vlan')
+    print(res)
+    res = osi.ifcs.get_up_interfaces('phys')
+    print(res)
+    #res = osi.ifcs.is_vlan_used_elsewhere('40', 'enP4p10s0f1.99')
+    #print(f'vlan 40 used elsewhere: {res}')
     #p = osi.prof.get_profile_tuple()
     # msg = osi.prof.is_valid_profile()
     # print(msg)

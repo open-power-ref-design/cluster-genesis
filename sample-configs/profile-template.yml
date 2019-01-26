@@ -24,7 +24,7 @@ bmc_vlan_number:
     dtype: int-or-none2-4094
 
 bmc_subnet_prefix:
-    val: ---.---.---.--- 24
+    val: 255.255.255.0 24
     desc: BMC subnet prefix
     help: Prefix for the BMC subnet. Valid values are integers between 1 and 32.
           The subnet mask is autgenerated from the prefix.
@@ -72,7 +72,7 @@ pxe_vlan_number:
     floc: skipline
 
 pxe_subnet_prefix:
-    val: ---.---.---.--- 24
+    val: 255.255.255.0 24
     desc: PXE subnet mask
     help: Prefix for the PXE subnet. Valid values are integers between 1 and 32.
           The subnet mask is autgenerated from the prefix.
