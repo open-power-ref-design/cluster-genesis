@@ -24,7 +24,7 @@ from orderedattrdict.yamlutils import AttrDictYAMLLoader
 from collections import namedtuple
 from pyroute2 import IPRoute
 import sys
-import code
+from time import sleep
 
 import lib.logger as logger
 import lib.interfaces as interfaces
@@ -50,9 +50,9 @@ class Profile():
                 self.prof_path = prof_path
             if not os.path.isfile(self.prof_path):
                 self.log.info('No profile file found.  Using template.')
+                sleep(1)
                 self.prof_path = os.path.join(GEN_SAMPLE_CONFIGS_PATH,
-                                          'profile-template.yml')
-        #code.interact(banner='here', local=dict(globals(), **locals()))
+                                              'profile-template.yml')
         try:
             self.profile = yaml.load(open(self.prof_path), Loader=AttrDictYAMLLoader)
         except IOError:
@@ -68,7 +68,7 @@ class Profile():
         return self.profile
 
     def get_profile_tuple(self):
-        """Returns a named tuple with the profile data
+        """Returns a named tuple constucted from the profile data
         OS install code should generally use this method to get the
         profile data.
         """
@@ -76,15 +76,19 @@ class Profile():
         _list = []
         vals = ()
         for item in p:
-            if 'subnet_prefix' not in item:
-                _list.append(item)
-                vals += (p[item].val,)
-            # split the subnet prefix field into netmask and prefix
-            else:
+            if 'subnet_prefix' in item:
+                # split the subnet prefix field into netmask and prefix
                 _list.append(item)
                 _list.append(item.replace('_prefix', '_mask'))
                 vals += (p[item].val.split()[1],)
                 vals += (p[item].val.split()[0],)
+            else:
+                _list.append(item)
+                vals += (p[item].val,)
+        _list.append('bmc_subnet_cidr')
+        vals += (p.bmc_subnet.val + '/' + p.bmc_subnet_prefix.val.split()[1],)
+        _list.append('pxe_subnet_cidr')
+        vals += (p.pxe_subnet.val + '/' + p.pxe_subnet_prefix.val.split()[1],)
 
         proftup = namedtuple('ProfTup', _list)
         return proftup._make(vals)
@@ -101,6 +105,7 @@ class OSinstall(npyscreen.NPSAppManaged):
         self.prof_path = prof_path
         self.prof = Profile(self.prof_path)
         self.log = logger.getlogger()
+        # create an Interfaces instance
         self.ifcs = interfaces.Interfaces()
 
     def onStart(self):
@@ -117,106 +122,80 @@ class OSinstall(npyscreen.NPSAppManaged):
         # We need additional checking here:
         #  Need to add checks of iso file (check extension)
         #  Check for valid up interfaces
-        bmc_subnet = prof['bmc_subnet']['val']
-        bmc_subnet_prefix = prof['bmc_subnet_prefix']['val']
-        bmc_subnet_prefix = bmc_subnet_prefix.split()[1]
-        pxe_subnet = prof['pxe_subnet']['val']
-        pxe_subnet_prefix = prof['pxe_subnet_prefix']['val']
-        pxe_subnet_prefix = pxe_subnet_prefix.split()[1]
+        bmc_subnet_prefix = prof['bmc_subnet_prefix']['val'].split()[1]
+        bmc_cidr = prof['bmc_subnet']['val'] + '/' + bmc_subnet_prefix
+        pxe_subnet_prefix = prof['pxe_subnet_prefix']['val'].split()[1]
+        pxe_cidr = prof['pxe_subnet']['val'] + '/' + pxe_subnet_prefix
+
         iso_image_file = prof['iso_image_file']['val']
-        if u.is_overlapping_addr(f'{bmc_subnet}/{bmc_subnet_prefix}',
-                                 f'{pxe_subnet}/{pxe_subnet_prefix}'):
+        pxe_ethernet_ifc = prof['pxe_ethernet_ifc']['val']
+        bmc_ethernet_ifc = prof['bmc_ethernet_ifc']['val']
+
+        ifc = self.ifcs.is_route_overlapping(pxe_cidr, pxe_ethernet_ifc)
+        if ifc:
+            msg += ('Warning, the subnet specified on the PXE interface\n'
+                    f'overlaps a subnet on interface {ifc}\n')
+
+        ifc = self.ifcs.is_route_overlapping(bmc_cidr, bmc_ethernet_ifc)
+        if ifc:
+            msg += ('Warning, the subnet specified on the BMC interface\n'
+                    f'overlaps a subnet on interface {ifc}\n')
+
+        if u.is_overlapping_addr(bmc_cidr, pxe_cidr):
             msg += 'Warning, BMC and PXE subnets are overlapping\n'
 
         if bmc_subnet_prefix != pxe_subnet_prefix:
             msg += 'Warning, BMC and PXE subnets are different sizes\n'
 
         if not os.path.isfile(iso_image_file):
-            msg += ('Error. Operating system ISO image file not found: \n'
-                    f'{p.iso_image_file}')
+            msg += ("Error. Operating system ISO image file not found: \n"
+                    f"{prof['iso_image_file']['val']}")
 
         return msg
 
-    def get_ifcs_addresses(self):
-        """ Create a dictionary of links.  For each link, create list of cidr
-        addresses
-        """
-        ifc_addresses = {}
-        for link in IPR.get_links():
-            link_name = link.get_attr('IFLA_IFNAME')
-            ifc_addresses[link_name] = []
-            for addr in IPR.get_addr(index=link['index']):
-                ifc_addresses[link_name].append(
-                    addr.get_attr('IFA_ADDRESS') + '/' + str(addr['prefixlen']))
-        return ifc_addresses
-
-    def get_ifcs_state(self):
-        """ Create a dictionary of links.  For each link, val = operational state
-        """
-        ifcs_state = {}
-        for link in IPR.get_links():
-            link_name = link.get_attr('IFLA_IFNAME')
-            ifcs_state[link_name] = link.get_attr('IFLA_OPERSTATE')
-        return ifcs_state
-
-    def get_up_phys_ifcs(self):
-        """ Create a list of 'UP' links.
-        """
-        ifcs_up = []
-        for link in IPR.get_links():
-            if not link.get_attr('IFLA_LINKINFO'):
-                if link.get_attr('IFLA_OPERSTATE') == 'UP':
-                    link_name = link.get_attr('IFLA_IFNAME')
-                    ifcs_up.append(link_name)
-        return ifcs_up
-
-    def _is_ifc_up(self, ifname):
-        if 'UP' == self.ipr.get_links(
-                self.ipr.link_lookup(ifname=ifname))[0].get_attr('IFLA_OPERSTATE'):
-            return True
-        return False
-
-    def _wait_for_ifc_up(self, ifname, timespan=10):
-        """ Waits up to timespan seconds for the specified interface to be up.
-        Prints a message if the interface is not up in 2 seconds.
-        Args:
-            ifname (str) : Name of the interface
-            timespan (int) : length of time to wait in seconds
-        Returns:
-            True if interface is up, False if not.
-        """
-        for t in range(2 * timespan):
-            if t == 4:
-                print(f'Waiting for interface {ifname} to come up.')
-            if self._is_ifc_up(ifname):
-                self.log.debug(f'Interface {ifname} is up.')
-                return True
-            time.sleep(0.5)
-        self.log.info(f'Timeout waiting for interface {ifname} to come up.')
-        return False
-
     def config_interfaces(self):
-        self.ipr = IPRoute()
         p = self.prof.get_profile_tuple()
-        # create any tagged vlan interfaces
-        for vlan in (p.bmc_vlan_number, p.pxe_vlan_number):
-            if vlan:
-                ifc = p.ethernet_port + '.' + vlan
-                # need check here to see if the vlan exists on any other interfaces
-                # besides the one we're about to create (ifc)
-                if not self.ipr.link_lookup(ifname=ifc):
-                    self.log.debug(f'Creating vlan interface: {ifc}')
-                    #code.interact(banner='here', local=dict(globals(), **locals()))
-                    res = self.ipr.link("add", ifname=ifc, kind="vlan",
-                        link=self.ipr.link_lookup(ifname=p.ethernet_port)[0],
-                        vlan_id=int(vlan))
-                    if res[0]['header']['error']:
-                        self.log.debug(f'Error creating vlan interface: {ifc} {res}')
-                    else:
-                        self.ipr.link("set", index=self.ipr.link_lookup(ifname=ifc)[0],
-                                      state="up")
-                        if not self._wait_for_ifc_up(ifc):
-                            self.log.error('Failed to bring up interface {ifc} ')
+        bmc_ifc = p.bmc_ethernet_ifc
+        pxe_ifc = p.pxe_ethernet_ifc
+
+        # create tagged vlan interfaces if any
+        if p.bmc_vlan_number:
+            bmc_ifc = p.bmc_ethernet_ifc + '.' + p.bmc_vlan_number
+            if not self.ifcs.is_vlan_used_elsewhere(p.bmc_vlan_number, bmc_ifc):
+                self.ifcs.create_tagged_ifc(p.bmc_ethernet_ifc, p.bmc_vlan_number)
+
+        if p.pxe_vlan_number:
+            pxe_ifc = p.pxe_ethernet_ifc + '.' + p.pxe_vlan_number
+            if not self.ifcs.is_vlan_used_elsewhere(p.pxe_vlan_number, pxe_ifc):
+                self.ifcs.create_tagged_ifc(p.pxe_ethernet_ifc, p.pxe_vlan_number)
+
+        if not self.ifcs.find_unused_addr_and_add_to_ifc(bmc_ifc, p.bmc_subnet_cidr):
+            self.log.error(f'Failed to add an addr to {bmc_ifc}')
+
+        if not self.ifcs.find_unused_addr_and_add_to_ifc(pxe_ifc, p.pxe_subnet_cidr):
+            self.log.error(f'Failed to add an addr to {pxe_ifc}')
+
+#            cmd = f'nmap -PR {p.bmc_subnet_cidr}'
+#            res, err, rc = u.sub_proc_exec(cmd)
+#            if rc != 0:
+#                self.log.error('An error occurred while scanning the BMC subnet')
+#            bmc_addr_dict = {}
+#            res = res.split('Nmap scan report')
+#            for item in res:
+#                ip = re.search(r'\d+\.\d+\.\d+\.\d+', item, re.DOTALL)
+#                if ip:
+#                    mac = re.search(r'((\w+:){5}\w+)', item, re.DOTALL)
+#                    if mac:
+#                        bmc_addr_dict[ip.group(0)] = mac.group(1)
+#                    else:
+#                        bmc_addr_dict[ip.group(0)] = ''
+#            #code.interact(banner='There', local=dict(globals(), **locals()))
+#            # Remove the temp route
+#            res = self.ifcs.route('del', dst=p.bmc_subnet_cidr,
+#                            oif=self.ifcs.link_lookup(ifname=bmc_ifc)[0])
+#            if res[0]['header']['error']:
+#                self.log.error(f'Error occurred removing route from {bmc_ifc}')
+
 
 class OSinstall_form(npyscreen.ActionFormV2):
     def afterEditing(self):
@@ -231,23 +210,27 @@ class OSinstall_form(npyscreen.ActionFormV2):
         for item in self.prof:
             if hasattr(self.prof[item], 'ftype'):
                 if self.prof[item]['ftype'] == 'eth-ifc':
-                    self.prof[item]['val'] = self.eth_lst[self.fields[item].value]
+                    self.prof[item]['val'] = self.fields[item].values[self.fields[item].value]
                 elif self.prof[item]['ftype'] == 'select-one':
                     self.prof[item]['val'] = \
                         self.prof[item]['values'][self.fields[item].value[0]]
                 else:
-                    #code.interact(banner='There', local=dict(globals(), **locals()))
-                    self.prof[item]['val'] = self.fields[item].value
+                    if self.fields[item].value == 'None':
+                        self.prof[item]['val'] = None
+                    else:
+                        self.prof[item]['val'] = self.fields[item].value
             else:
-                self.prof[item]['val'] = self.fields[item].value
+                if self.fields[item].value == 'None':
+                    self.prof[item]['val'] = None
+                else:
+                    self.prof[item]['val'] = self.fields[item].value
 
-        #code.interact(banner='here', local=dict(globals(), **locals()))
         msg = self.parentApp.is_valid_profile(self.prof)
         res = True
         if msg:
             if 'Error' in msg:
                 npyscreen.notify_confirm(f'{msg}\n Please resolve issues.',
-                                    title='cancel 1', editw=1)
+                                         title='cancel 1', editw=1)
                 self.next_form = 'MAIN'
                 res = False
             else:
@@ -280,6 +263,7 @@ class OSinstall_form(npyscreen.ActionFormV2):
                 prev_fld_ftype = 'text'
 
             val = self.fields[self.prev_field].value
+
             if prev_fld_dtype == 'ipv4' or 'ipv4-' in prev_fld_dtype:
                 if not u.is_ipaddr(val):
                     npyscreen.notify_confirm(f'Invalid Field value: {val}',
@@ -310,10 +294,13 @@ class OSinstall_form(npyscreen.ActionFormV2):
                 rng = self.prof[self.prev_field]['dtype'].lstrip('int-or-none').\
                     split('-')
                 if val:
+                    val = val.strip(' ')
+                if val and val != 'None':
                     try:
                         int(val)
                     except ValueError:
-                        npyscreen.notify_confirm(f'Enter digits 0-9',
+                        npyscreen.notify_confirm(f"Enter digits 0-9 or enter 'None' "
+                                                 "or leave blank",
                                                  title=self.prev_field, editw=1)
                     else:
                         if int(val) < int(rng[0]) or int(val) > int(rng[1]):
@@ -368,15 +355,10 @@ class OSinstall_form(npyscreen.ActionFormV2):
         npyscreen.notify_yes_no(f'Field Error: {self.field}', title='Enter', editw=1)
 
     def create(self):
-        ifcs = self.parentApp.get_ifcs_state()
-        ifc_list = []
-        for ifc in ifcs:
-            if ifcs[ifc] == 'UP':
-                ifc_list.append(ifc)
         self.helpmsg = 'help help'
         self.prev_field = ''
         self.prof = self.parentApp.prof.get_profile()
-        #code.interact(banner='here', local=dict(globals(), **locals()))
+        self.eth_lst = self.parentApp.ifcs.get_up_interfaces_names(_type='phys')
         self.fields = {}  # dictionary for holding field instances
         for item in self.prof:
             fname = self.prof[item].desc
@@ -414,14 +396,15 @@ class OSinstall_form(npyscreen.ActionFormV2):
                                              relx=relx)
             elif 'eth-ifc' in ftype:
                 eth = self.prof[item]['val']
-                self.eth_lst = self.parentApp.get_up_phys_ifcs()
-                if eth in self.eth_lst:
-                    self.eth_lst.remove(eth)
-                self.eth_lst = [eth] + self.eth_lst
+                eth_lst = self.eth_lst
+                # Get the existing value to the top of the list
+                if eth in eth_lst:
+                    eth_lst.remove(eth)
+                eth_lst = [eth] + eth_lst if eth else eth_lst
                 self.fields[item] = self.add(npyscreen.TitleCombo,
                                              name=fname,
                                              value=0,
-                                             values=self.eth_lst,
+                                             values=eth_lst,
                                              begin_entry_at=20,
                                              scroll_exit=False)
             elif ftype == 'select-one':
@@ -468,19 +451,22 @@ if __name__ == '__main__':
     log = logger.getlogger()
 
     osi = OSinstall(args.prof_path)
-    #osi.run()
-    for ifc in osi.ifcs.ifcs:
-        print(f'{ifc:<16}: {osi.ifcs.ifcs[ifc]}')
-    res = osi.ifcs.get_interfaces()
-    print(res)
-    res = osi.ifcs.get_interfaces('vlan')
-    print(res)
-    res = osi.ifcs.get_up_interfaces('phys')
-    print(res)
-    #res = osi.ifcs.is_vlan_used_elsewhere('40', 'enP4p10s0f1.99')
-    #print(f'vlan 40 used elsewhere: {res}')
-    #p = osi.prof.get_profile_tuple()
+    osi.run()
+    routes = osi.ifcs.get_interfaces_routes()
+    for route in routes:
+        print(f'{route:<12}: {routes[route]}')
+#    for ifc in osi.ifcs.ifcs:
+#        print(f'{ifc:<16}: {osi.ifcs.ifcs[ifc]}')
+#    res = osi.ifcs.get_interfaces_names()
+#    print(res)
+#    res = osi.ifcs.get_interfaces_names('vlan')
+#    print(res)
+#    res = osi.ifcs.get_up_interfaces_names('phys')
+#    print(res)
+#    res = osi.ifcs.is_vlan_used_elsewhere('40', 'enP4p10s0f1.99')
+#    print(f'vlan 40 used elsewhere: {res}')
+    p = osi.prof.get_profile_tuple()
     # msg = osi.prof.is_valid_profile()
     # print(msg)
-    #print(p)
-    #osi.config_interfaces()
+    print(p)
+    osi.config_interfaces()

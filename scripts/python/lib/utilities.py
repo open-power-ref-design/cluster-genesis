@@ -18,7 +18,6 @@ from glob import glob
 import os
 import re
 import sys
-import time
 import subprocess
 import fileinput
 import readline
@@ -37,11 +36,14 @@ CalledProcessError = subprocess.CalledProcessError
 
 
 def is_ipaddr(ip):
-    if re.search(PATTERN_IP ,ip):
+    if re.search(PATTERN_IP, ip):
         return True
 
 
 def get_network_addr(ipaddr, prefix):
+    """ Return the base address of the subnet in which the ipaddr / prefix
+        reside.
+    """
     return str(IPNetwork(f'{ipaddr}/{prefix}').network)
 
 
@@ -51,6 +53,26 @@ def get_netmask(prefix):
 
 def get_prefix(netmask):
     return IPAddress(netmask).netmask_bits()
+
+
+def get_network_size(cidr):
+    """ return the decimal size of the cidr address
+    """
+    return IPNetwork(cidr).size
+
+
+def add_offset_to_address(addr, offset):
+    """calculates an address with an offset added. offset can be negative.
+    Args:
+        addr (str): ipv4 or cidr representation of address
+        offset (int): integer offset
+    Returns:
+        addr_.ip (str) address in ipv4 representation
+    """
+    addr_ = IPNetwork(addr)
+    addr_.value += offset
+    return str(addr_.ip)
+
 
 def is_overlapping_addr(subnet1, subnet2):
     """ Checks if two ipv4 subnets are overlapping
@@ -63,6 +85,7 @@ def is_overlapping_addr(subnet1, subnet2):
         return True
     else:
         return False
+
 
 def bash_cmd(cmd):
     """Run command in Bash subprocess
@@ -535,7 +558,6 @@ def get_dir(src_dir):
         path (str or None) : Selected path
     """
     rows = 10
-    log = logger.getlogger()
     if not src_dir:
         path = os.path.abspath('.')
     else:
@@ -813,6 +835,7 @@ def ansible_pprint(ansible_output):
                 index_indent = False
 
     return pretty_out
+
 
 def get_col_pos(tbl, hdrs, row_char='-'):
     """Gets the indices for the column positions in a text table
