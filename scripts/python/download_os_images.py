@@ -17,18 +17,15 @@
 
 import argparse
 import sys
-import yaml
-from orderedattrdict.yamlutils import AttrDictYAMLLoader
 import os.path
 import wget
 import hashlib
 
 import lib.logger as logger
 from lib.config import Config
-from lib.genesis import check_os_profile, get_os_images_path, GEN_PATH
+from lib.genesis import check_os_profile, get_os_images_path, GEN_PATH, \
+    get_os_image_urls
 from lib.exception import UserException
-
-OS_IMAGES_URLS_FILENAME = 'os-image-urls.yml'
 
 
 def _sha1sum(file_path):
@@ -43,12 +40,9 @@ def download_os_images(config_path=None):
     """Download OS installation images"""
 
     log = logger.getlogger()
-    os_images_path = get_os_images_path() + "/"
-    os_image_urls_yaml_path = os_images_path + OS_IMAGES_URLS_FILENAME
-
     cfg = Config(config_path)
-    os_image_urls = yaml.load(open(os_image_urls_yaml_path),
-                              Loader=AttrDictYAMLLoader).os_image_urls
+    os_images_path = get_os_images_path() + "/"
+    os_image_urls = get_os_image_urls()
 
     for os_profile in cfg.yield_ntmpl_os_profile():
         for os_image_url in os_image_urls:
