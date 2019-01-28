@@ -17,7 +17,6 @@
 import sys
 import platform
 import os.path
-import subprocess
 import re
 import yaml
 
@@ -184,8 +183,10 @@ def get_package_path():
         return get_container_package_path()
     return GEN_PATH
 
+
 def get_sample_configs_path():
     return GEN_SAMPLE_CONFIGS_PATH
+
 
 def get_scripts_path():
     if is_container():

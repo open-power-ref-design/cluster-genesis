@@ -473,11 +473,13 @@ def _check_post_deploy(args, subparser):
             'one of the arguments --ssh-keyscan --gather-mac-addr'
             '--config-client-os -a/--all is required')
 
+
 def _check_osinstall(args, subparser):
     if not (args.networks or args.gateway):
         subparser.error('one of the arguments --setup-interfaces --gateway '
                         'is required. Optionally a profile file name may be '
                         'included')
+
 
 def _check_software(args, subparser):
     if not args.prep and not args.install and not args.name and not args.README \

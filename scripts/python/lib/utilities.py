@@ -103,8 +103,8 @@ def has_dhcp_servers(interface):
 
 
 def is_ipaddr(ip):
-    if re.search(r'\A(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}'
-                 '(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\Z', ip):
+    if re.search(r'^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}'
+                 '(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$', ip):
         return True
 
 
@@ -591,7 +591,6 @@ def get_dir(src_dir):
         path (str or None) : Selected path
     """
     rows = 10
-    log = logger.getlogger()
     if not src_dir:
         path = os.path.abspath('.')
     else:

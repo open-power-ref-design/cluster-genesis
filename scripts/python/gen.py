@@ -19,7 +19,6 @@
 
 import importlib
 import os
-import stat
 import sys
 import getpass
 import subprocess
@@ -516,7 +515,7 @@ class Gen(object):
 
     def _osinstall(self):
         osinstall.osinstall(self.config_file_path)
-        #print(self.config_file_path)
+        # print(self.config_file_path)
 
     def launch(self):
         """Launch actions"""
