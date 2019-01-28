@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2018 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -108,6 +108,9 @@ def cobbler_add_systems(cfg_file=None):
                     (hostname, disks))
         if raid1_enabled:
             ks_meta += 'raid1_enabled=true '
+        domain = inv.get_nodes_os_domain(index)
+        if domain is not None:
+            ks_meta += 'domain=%s ' % domain
         users = inv.get_nodes_os_users(index)
         if users is not None:
             for user in users:

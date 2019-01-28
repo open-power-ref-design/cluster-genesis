@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2018 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -520,19 +520,20 @@ class ValidateClusterHardware(object):
 
         # scan ipmi network for nodes with pre-existing ip addresses
         cmd = 'fping -r0 -a -g {} {}'.format(addr_st, addr_end)
+        node_list, stderr, rc = sub_proc_exec(cmd)
         if rc != 0:
             self.log.warning(f'Error scanning IPMI network. rc: {rc}')
-        node_list, stderr, rc = sub_proc_exec(cmd)
         self.log.debug('Pre-existing node list: \n{}'.format(node_list))
         node_list = node_list.splitlines()
 
         self._reset_existing_bmcs(node_list, cred_list)
 
-        print('Pause 60s for BMCs to begin reset')
-        time.sleep(60)
+        if len(node_list) > 0:
+            print('Pause 60s for BMCs to begin reset')
+            time.sleep(60)
 
         dns_list, stderr, rc = sub_proc_exec('pgrep dnsmasq')
-        if rc != 0:
+        if rc not in [0, 1]:
             self.log.warning(f'Error looking for dnsmasq. rc: {rc}')
         dns_list = dns_list.splitlines()
 
@@ -675,7 +676,7 @@ class ValidateClusterHardware(object):
             mac_list(list): list of already found mac addresses
             dump(str): tcpdump output from the tcpdump file
         """
-        _mac_iee802 = '([\dA-F]{2}[\.:-]){5}([\dA-F]{2})'
+        _mac_iee802 = r'([\dA-F]{2}[\.:-]){5}([\dA-F]{2})'
         _mac_regex = re.compile(_mac_iee802, re.I)
 
         dump = dump.split('BOOTP/DHCP, Request')
@@ -883,9 +884,8 @@ class ValidateClusterHardware(object):
                     idx = ipmi_ports.index(node[0])
                     if label not in self.node_table_pxe or not self._is_port_in_table(
                             self.node_table_pxe[label], pxe_ports[idx]):
-                        ipmi_missing_list_ai[node[2]] = self.ipmi_list_ai[node[2]]
-        self.log.debug('Cycling power to missing nodes list: {}'
-                       .format(ipmi_missing_list_ai))
+                        ipmi_missing_list_ai[node[2]] = self.bmc_ai[node[2]]
+        self.log.debug(f'Cycling power to missing nodes list: {ipmi_missing_list_ai}')
 
         print('Cycling power to non responding nodes:')
         for node in ipmi_missing_list_ai:

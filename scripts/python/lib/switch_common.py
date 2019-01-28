@@ -1,4 +1,4 @@
-# Copyright 2018 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -29,8 +29,10 @@ from random import random
 import lib.logger as logger
 from lib.ssh import SSH
 from lib.switch_exception import SwitchException
+from lib.genesis import get_switch_lock_path
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
+SWITCH_LOCK_PATH = get_switch_lock_path()
 
 
 class SwitchCommon(object):
@@ -98,7 +100,7 @@ class SwitchCommon(object):
             return
 
         host_ip = gethostbyname(self.host)
-        lockfile = os.path.join('/var/lock', host_ip + '.lock')
+        lockfile = os.path.join(SWITCH_LOCK_PATH, host_ip + '.lock')
         if not os.path.isfile(lockfile):
             os.mknod(lockfile)
             os.chmod(lockfile, stat.S_IRWXO | stat.S_IRWXG | stat.S_IRWXU)
@@ -164,7 +166,7 @@ class SwitchCommon(object):
                     item = item.splitlines()
                     for line in item:
                         match = re.search(
-                            'Eth((?:\d+/)+\d+)\s+((?:\d+[,-])*\d+)', line)
+                            r'Eth((?:\d+/)+\d+)\s+((?:\d+[,-])*\d+)', line)
                         if match:
                             ports[match.group(1)]['avlans'] = match.group(2)
             return ports
@@ -434,8 +436,8 @@ class SwitchCommon(object):
         pos = None
         mac_dict = AttrDict()
 
-        _mac_iee802 = '([\dA-F]{2}[\.:-]){5}([\dA-F]{2})'
-        _mac_cisco = '([\dA-F]{4}\.){2}[\dA-F]{4}'
+        _mac_iee802 = r'([\dA-F]{2}[\.:-]){5}([\dA-F]{2})'
+        _mac_cisco = r'([\dA-F]{4}\.){2}[\dA-F]{4}'
         _mac_all = "%s|%s" % (_mac_iee802, _mac_cisco)
         _mac_regex = re.compile(_mac_all, re.I)
 
@@ -654,7 +656,7 @@ class SwitchCommon(object):
         ifc_info = ifc_info.split('Vlan')
         for line in ifc_info:
             match = re.search(r'(\d+).*Internet Address is\s+'
-                              '((\w+.\w+.\w+.\w+)/\d+)', line, re.DOTALL)
+                              r'((\w+.\w+.\w+.\w+)/\d+)', line, re.DOTALL)
             if match:
                 mask = netaddr.IPNetwork(match.group(2))
                 mask = str(mask.netmask)

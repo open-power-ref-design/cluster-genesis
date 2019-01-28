@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2018 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -20,7 +20,6 @@ import os.path
 import sys
 import xmlrpc.client
 from netaddr import IPNetwork
-#from pyghmi import exceptions as pyghmi_exception
 from time import time, sleep
 
 from lib.config import Config

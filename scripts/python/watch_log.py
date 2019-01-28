@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2018 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -22,8 +22,8 @@ import re
 from lib.inventory import Inventory
 from lib.logger import Logger
 
-PATTERN_IP = '\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}'
-PATTERN_MAC = '([0-9A-F]{2}[:-]){5}([0-9A-F]{2})'
+PATTERN_IP = r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}'
+PATTERN_MAC = r'([0-9A-F]{2}[:-]){5}([0-9A-F]{2})'
 
 
 class WatchLog(object):

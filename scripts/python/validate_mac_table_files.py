@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2018 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -104,7 +104,7 @@ def get_mac_table_file_path(switch_ip):
     """
     scripts_path = os.path.abspath(__file__)
     passive_path = (
-        re.match('(.*cluster\-genesis).*', scripts_path).group(1) +
+        re.match(r'(.*cluster\-genesis).*', scripts_path).group(1) +
         '/passive/')
     file_path = passive_path + switch_ip
 

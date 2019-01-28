@@ -19,6 +19,7 @@
 
 import importlib
 import os
+import stat
 import sys
 import getpass
 import subprocess
@@ -29,7 +30,7 @@ import validate_cluster_hardware
 import configure_mgmt_switches
 import osinstall
 import remove_client_host_keys
-from lib.utilities import scan_ping_network
+from lib.utilities import scan_ping_network, sub_proc_exec
 import download_os_images
 import lib.argparse_gen as argparse_gen
 import lib.logger as logger
@@ -56,6 +57,13 @@ class Gen(object):
         self.args = args
         self.config_file_path = gen.GEN_PATH
         self.cont_config_file_path = gen.CONTAINER_PACKAGE_PATH + '/'
+
+        ssh_log = os.path.join(gen.GEN_LOGS_PATH, 'ssh_paramiko')
+        if not os.path.isfile(ssh_log):
+            os.mknod(ssh_log)
+        if not os.access(ssh_log, os.W_OK):
+            cmd = f'sudo chmod 666 {ssh_log}'
+            res, err, rc = sub_proc_exec(cmd)
 
     def _check_root_user(self, cmd):
         if getpass.getuser() != self.ROOTUSER:
@@ -229,8 +237,6 @@ class Gen(object):
         #         return
 
         from lib.container import Container
-
-        log = logger.getlogger()
 
         cont = Container(self.config_file_path, self.args.create_inventory)
         cont.copy(self.config_file_path, self.cont_config_file_path)
@@ -423,59 +429,68 @@ class Gen(object):
               format(COL.header1, COL.endc))
         print('This may take a few minutes depending on the size'
               ' of the cluster')
-        if gen.is_container_running():
-            from lib.container import Container
-            cont = Container(self.config_file_path)
+        try:
+            configure_data_switches.configure_data_switch(
+                self.args.config_file_name)
+        except UserException as exc:
+            print('\n{}Fail: {}{}'.format(COL.red, str(exc), COL.endc),
+                  file=sys.stderr)
+        except SwitchException as exc:
+            print('\n{}Fail (switch error): {}{}'.format(
+                  COL.red, str(exc), COL.endc), file=sys.stderr)
+        else:
+            print('\nSuccesfully configured data switches')
+
+    def _gather_mac_addr(self):
+        from lib.container import Container
+        from lib.inventory import Inventory
+        yellow = '\033[93m'
+        endc = '\033[0m'
+
+        log = logger.getlogger()
+        cont = Container(self.config_file_path)
+
+        found_all = False
+        while found_all is not True:
             cmd = []
             cmd.append(gen.get_container_venv_python_exe())
             cmd.append(os.path.join(
-                gen.get_container_python_path(), 'configure_data_switches.py'))
+                gen.get_container_python_path(), 'clear_port_macs.py'))
             cmd.append(self.cont_config_file_path)
             try:
                 cont.run_command(cmd, interactive=True)
             except UserException as exc:
-                print('\n{}Fail: {}{}'.format(COL.red, str(exc), COL.endc),
-                      file=sys.stderr)
-            else:
-                print('\nSuccesfully configured data switches')
-        else:
+                print('Fail:', str(exc), file=sys.stderr)
+                sys.exit(1)
+
+            _run_playbook("activate_client_interfaces.yml", self.config_file_path)
+
+            cmd[-2] = os.path.join(
+                gen.get_container_python_path(), 'set_port_macs.py')
             try:
-                configure_data_switches.configure_data_switch(self.args.config_file_name)
+                cont.run_command(cmd, interactive=True)
             except UserException as exc:
-                print('\n{}Fail: {}{}'.format(COL.red, str(exc), COL.endc),
-                      file=sys.stderr)
-            except SwitchException as exc:
-                print('\n{}Fail (switch error): {}{}'.format(
-                      COL.red, str(exc), COL.endc), file=sys.stderr)
+                print('Fail:', str(exc), file=sys.stderr)
+                sys.exit(1)
+
+            inv = Inventory(cfg_file=self.config_file_path)
+            if inv.check_data_interfaces_macs():
+                found_all = True
             else:
-                print('\nSuccesfully configured data switches')
+                print()
+                msg = 'Some data interface MAC addresses were not found!'
+                log.warning(msg)
+                print(f'{yellow}' + ('-' * (len(msg) + 10)) + f'{endc}')
+                print("\nPress enter to retry")
+                resp = input("Enter C to continue POWER-Up or 'T' to terminate ")
+                if resp == 'T':
+                    log.info("'{}' entered. Terminating POWER-Up at user request".format(resp))
+                    sys.exit(1)
+                elif resp == 'C':
+                    log.info("'{}' entered. Continuing POWER-Up".format(resp))
+                    found_all = True
 
-    def _gather_mac_addr(self):
-        from lib.container import Container
-
-        cont = Container(self.config_file_path)
-        cmd = []
-        cmd.append(gen.get_container_venv_python_exe())
-        cmd.append(os.path.join(
-            gen.get_container_python_path(), 'clear_port_macs.py'))
-        cmd.append(self.cont_config_file_path)
-        try:
-            cont.run_command(cmd, interactive=True)
-        except UserException as exc:
-            print('Fail:', str(exc), file=sys.stderr)
-            sys.exit(1)
-
-        _run_playbook("activate_client_interfaces.yml", self.config_file_path)
-
-        cmd[-2] = os.path.join(
-            gen.get_container_python_path(), 'set_port_macs.py')
-        try:
-            cont.run_command(cmd, interactive=True)
-        except UserException as exc:
-            print('Fail:', str(exc), file=sys.stderr)
-            sys.exit(1)
-        else:
-            print('Success: Gathered Client MAC addresses')
+        print('Success: Gathered Client MAC addresses')
 
     def _lookup_interface_names(self):
         try:
@@ -596,8 +611,8 @@ class Gen(object):
                 print(
                     'Fail: Invalid subcommand in container', file=sys.stderr)
                 sys.exit(1)
-            self._check_non_root_user(cmd)
             if argparse_gen.is_arg_present(self.args.create_container):
+                self._check_non_root_user(cmd)
                 self._create_container()
             if self.args.mgmt_switches:
                 self._config_mgmt_switches()

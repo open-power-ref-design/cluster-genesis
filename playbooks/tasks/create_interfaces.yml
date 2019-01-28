@@ -22,7 +22,6 @@
     owner: "root"
     group: "root"
     mode: "0644"
-  notify: Reboot
 
 # Need to add support for Red Hat
 - name: Copy udev links rules
@@ -40,7 +39,6 @@
   command: "update-initramfs -u"
   register: updateinitramfs
   when: ansible_distribution == 'Ubuntu'
-  notify: Reboot
 - debug: var=updateinitramfs.stdout_lines
 
 - name: Generate Ubuntu interfaces file
@@ -52,7 +50,6 @@
     mode: "0644"
     backup: yes
   when: ansible_distribution == 'Ubuntu'
-  notify: Reboot
 
 - name: Add nameservers to resolved.conf.j2 (Ubuntu 18.04+)
   template:
@@ -63,7 +60,6 @@
     mode: "0644"
     backup: yes
   when: ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'bionic'
-  notify: Reboot
 
 - name: Generate RHEL/CentOS interfaces files
   template:
@@ -75,6 +71,23 @@
     backup: no
   when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
   with_items: "{{ interfaces }}"
-  notify: Reboot
+
+- name: Find all interface configuration scripts
+  find:
+    paths: /etc/sysconfig/network-scripts/
+    patterns: 'ifcfg-*'
+  register: ifcfg_scripts
+
+- name: Disable any interfaces not defined in inventory
+  lineinfile:
+    path: "{{ item.path }}"
+    regexp: '^ONBOOT='
+    line: 'ONBOOT=no  # Disabled by POWER-Up'
+  when:
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+    - (item.path | basename).split('-')[1] != 'lo'
+    - (item.path | basename).split('-')[1] not in pxe.devices
+    - (item.path | basename).split('-')[1] not in data.devices
+  loop: "{{ ifcfg_scripts.files }}"
 
 ...

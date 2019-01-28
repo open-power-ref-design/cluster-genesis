@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2018 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -37,8 +37,6 @@ INVENTORY_INIT = {
     'client_nodes': {
         'children': [],
         'vars': {
-            'reboot_wait_interval': 660,
-            'reboot_delay_time': 300
         }
     },
     '_meta': {
@@ -108,6 +106,12 @@ def generate_dynamic_inventory():
                 if _role not in dynamic_inventory:
                     dynamic_inventory[_role] = {'hosts': []}
                 dynamic_inventory[_role]['hosts'].append(hostname)
+
+    if 'solution_keys' not in dynamic_inventory:
+        dynamic_inventory['solution_keys'] = {'hosts': []}
+
+    if 'solution_inventory' not in dynamic_inventory:
+        dynamic_inventory['solution_inventory'] = {'hosts': []}
 
     return dynamic_inventory
 

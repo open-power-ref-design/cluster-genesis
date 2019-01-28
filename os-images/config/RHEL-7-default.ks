@@ -11,6 +11,7 @@ timezone America/Chicago --utc
 
 auth --enableshadow --enablemd5
 user $SNIPPET('defaultuser') --groups=wheel $SNIPPET('password')
+network --hostname=$getVar('hostname').$getVar('domain', 'localdomain')
 
 clearpart --all --initlabel
 ignoredisk --only-use=$getVar('install_disk', '/dev/sda')

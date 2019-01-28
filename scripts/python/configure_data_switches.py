@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2018 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -373,6 +373,7 @@ def configure_data_switch(config_path):
             except SwitchException as exc:
                 log.warning('Switch: {}. Failed setting port {} to trunk mode'.
                             format(switch, port))
+                log.warning(str(exc))
             try:
                 sw_dict[switch].allowed_vlans_port(port, allow_op[switch].ADD,
                                                    port_vlans[switch][port])
