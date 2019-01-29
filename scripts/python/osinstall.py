@@ -32,8 +32,6 @@ GEN_SAMPLE_CONFIGS_PATH = get_sample_configs_path()
 
 IPR = IPRoute()
 
-logger.create('nolog', 'info')
-LOG = logger.getlogger()
 PROFILE = 'profile.yml'
 
 
@@ -329,6 +327,7 @@ class OSinstall_form(npyscreen.Form):
 
 
 def validate(profile_tuple):
+    LOG = logger.getlogger()
     if profile_tuple.bmc_address_mode == "dhcp" or profile_tuple.pxe_address_mode == "dhcp":
         hasDhcpServers = u.has_dhcp_servers(profile_tuple.ethernet_port)
         if not hasDhcpServers:
@@ -338,6 +337,8 @@ def validate(profile_tuple):
 
 
 def main():
+    logger.create('nolog', 'info')
+    LOG = logger.getlogger()
     try:
         osi = OSinstall()
         osi.load_profile(PROFILE)
