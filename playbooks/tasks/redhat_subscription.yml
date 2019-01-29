@@ -15,7 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-- set_fact:
+- name: Load redhat_subscription parameters
+  set_fact:
      params: "{{ os['redhat_subscription'] }}"
   when: os['redhat_subscription'] is defined
 
