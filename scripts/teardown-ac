@@ -1,4 +1,4 @@
-# Copyright 2018 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -16,40 +16,49 @@
 
 _teardown()
 {
-    local cur prev opts
+    local cur prev opts first second comm_opts sub_cmds pup_path array
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
-    prev="${COMP_WORDS[COMP_CWORD-1]}"
-    prev_2="${COMP_WORDS[COMP_CWORD-2]}"
-    prev_3="${COMP_WORDS[COMP_CWORD-3]}"
+    first="${COMP_WORDS[0]}"
+    second="${COMP_WORDS[1]}"
 
-    opts="-h --help --networks --container -a --all -f -p"
+    if [[ $COMP_CWORD -ge 1  ]]; then
+        prev="${COMP_WORDS[COMP_CWORD-1]}"
+    fi
 
-    if [[ ${cur} == * ]] && [[ ${prev} == deployer ]]; then
-        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+    pup_path=${PATH%%power-up*}
+    pup_path=${pup_path##*:}power-up/
+
+    cmd="teardown"
+    sub_cmds="deployer switches all"
+    comm_opts=" --help --all --log-level-file --log-level-print"
+
+    if [[ ${prev} == "$cmd" ]] && [[ ${cur} == -* ]]; then
+        COMPREPLY=( $(compgen -W "${comm_opts}" -- ${cur}) )
+        return 0
+    elif [[ ${prev} == "$cmd" ]]; then
+        COMPREPLY=( $(compgen -W "${sub_cmds}" -- ${cur}) )
         return 0
     fi
 
-    opts="-h --help --data --mgmt -a --all -f -p"
-
-    if [[ ${cur} == * ]] && [[ ${prev} == switches ]]; then
-        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
-        return 0
+    if ([[ " ${sub_cmds[@]} " =~ " ${second} " ]] || \
+        [[ "${second}" == "--all" ]]); then
+        if ([[ ${cur} != -* ]] && [[ ${prev} != *.yml ]]); then
+            files=`ls "$pup_path"*.yml | sed -E 's/(.+)\///'`
+            COMPREPLY=( $( compgen -W "${files[@]}" -- ${cur} ) )
+            return 0
+        fi
     fi
 
-    opts="deployer switches"
-
-    if [[ ${cur} == * ]] && [[ ${prev} = teardown ]]; then
-        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
-        return 0
+    if [[ ${prev} == deployer ]] && [[ ${cur} == -* ]]; then
+        opts="--container --networks --gateway --all"
+    elif [[ ${prev} == switches ]] && [[ ${cur} == -* ]]; then
+        opts="--mgmt --data"
+    elif [[ ${cur} == -* ]]; then
+        opts+="$comm_opts"
     fi
+    COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
 
-    opts="-h --help -p --log-level-print -f --log-level-file"
-
-    if [[ ${cur} == * ]] && [[ ${prev_3} == teardown ]]; then
-        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
-        return 0
-    fi
 }
 
 complete -F _teardown teardown

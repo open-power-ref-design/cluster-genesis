@@ -138,6 +138,35 @@ def _delete_network(
 
         _delete_br_cfg_file(br_label, dev_label)
 
+        _update_firewall(br_label)
+
+
+def _is_firewall_running():
+    res, err, rc = sub_proc_exec('systemctl status firewalld')
+    if not rc:
+        if 'Active: active' in res or 'active (running)' in res:
+            return True
+
+
+def _update_firewall(br_label):
+    """gets the FORWARD iptable and remove all entries which contain 'br_label'
+    """
+    if _is_firewall_running():
+        rmv = []
+        fwd_tbl, err, rc = sub_proc_exec('iptables -nvL FORWARD --line-numbers')
+        for line in fwd_tbl.splitlines():
+            if br_label in line:
+                rmv.append(int(line[0:2]))
+        # reverse the entry number list so that they can be removed sequentially
+        # without affecting the number earlier entries.
+        rmv.reverse()
+        for item in rmv:
+            cmd = f'iptables -D FORWARD {item}'
+            res, err, rc = sub_proc_exec(cmd)
+            if rc:
+                LOG.warning(f'An error occured while removing {br_label} from the '
+                            f'iptables FORWARD table')
+
 
 def _delete_ifc_cfg(ifc, ipaddr='', netmask=''):
     """ Deletes a PowerUp created interface specific configuration. For Ubuntu

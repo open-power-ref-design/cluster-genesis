@@ -25,14 +25,87 @@ from shutil import copy2
 from subprocess import Popen, PIPE
 from netaddr import IPNetwork, IPAddress
 from tabulate import tabulate
-from pyghmi.ipmi import command
-from pyghmi.ipmi.private import session
 
 from lib.config import Config
 import lib.logger as logger
 
-PATTERN_MAC = '[\da-fA-F]{2}:){5}[\da-fA-F]{2}'
+PATTERN_DHCP = r"^\|_*\s+(.+):(.+)"
+PATTERN_MAC = r'[\da-fA-F]{2}:){5}[\da-fA-F]{2}'
 CalledProcessError = subprocess.CalledProcessError
+
+LOG = logger.getlogger()
+DHCP_SERVER_CMD = "sudo nmap --script broadcast-dhcp-discover -e {0}"
+
+
+def parse_dhcp_servers(nmap_response):
+    """ parse nmap output response
+
+    Args:
+        nmap_response (str): Output of nmap --script broadcast-dhcp-discover -e
+
+    Returns:
+        data (dict): dictionary parsed from data
+
+        {'Broadcast Address': '192.168.12.255',
+        'DHCP Message Type': 'DHCPOFFER',
+        'Domain Name Server': '192.168.12.2',
+        'IP Address Lease Time: 0 days, 0:02': '00',
+        'IP Offered': '192.168.12.249',
+        'Rebinding Time Value: 0 days, 0:01': '45',
+        'Renewal Time Value: 0 days, 0:01': '00',
+        'Router': '192.168.12.3',
+        'Server Identifier': '192.168.12.2',
+        'Subnet Mask': '255.255.255.0',
+        'broadcast-dhcp-discover': ''}
+    """
+    matches = re.findall(PATTERN_DHCP, nmap_response, re.MULTILINE)
+    data = {a: b.strip() for a, b in matches}
+    return data
+
+
+def get_dhcp_servers(interface):
+    """ get dhcp servers by running nmap
+
+    Args:
+        interface (str): interface to query for dhcp servers
+
+    Returns:
+        output (str): string output of command
+    """
+    cmd = DHCP_SERVER_CMD.format(interface)
+    output = ""
+    data = None
+    try:
+        output = bash_cmd(cmd)
+    except Exception as e:
+        LOG.error("{0}".format(e))
+        raise e
+    else:
+        data = parse_dhcp_servers(output)
+    return data
+
+
+def has_dhcp_servers(interface):
+    """ does interface have dhcp servers
+
+    Args:
+        interface (str): interface to query for dhcp servers
+
+    Returns:
+         isTrue (int): true or false
+    """
+    try:
+        dct = get_dhcp_servers(interface)
+        return 'DHCPOFFER' in dct['DHCP Message Type']
+    except:
+        pass
+    return False
+
+
+def is_ipaddr(ip):
+    if re.search(r'\A(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}'
+                 '(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\Z', ip):
+        return True
 
 
 def get_network_addr(ipaddr, prefix):
@@ -330,8 +403,8 @@ def files_present(url, fileglobs, _all=True):
 
 
 def fileglob_to_regx(fileglob):
-    regx = fileglob.replace('.', '\.')
-    regx = regx.replace('+', '\+')
+    regx = fileglob.replace('.', r'\.')
+    regx = regx.replace('+', r'\+')
     regx = regx.replace(']*', '][0-9]{0,3}')
     regx = regx.replace('*', '.*')
     regx = 'http.+' + regx
@@ -518,6 +591,7 @@ def get_dir(src_dir):
         path (str or None) : Selected path
     """
     rows = 10
+    log = logger.getlogger()
     if not src_dir:
         path = os.path.abspath('.')
     else:

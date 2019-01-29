@@ -22,6 +22,13 @@ if [[ "$1" == "setup" ]] && ([[ "$2" == "--networks" ]] ||
     exit
 fi
 
+if [[ "$1" == "osinstall" ]] && ([[ "$2" == "--setup-interfaces" ]] ||
+        [[ "$2" == "--gateway" ]] || [[ "$2" == "-a" ]] ||
+        [[ "$2" == "--all" ]]); then
+    sudo env "PATH=$PATH" gen.py $@
+    exit
+fi
+
 if [[ "$1" == "config" ]] && ([[ "$2" == "--mgmt-switches" ]] ||
         [[ "$2" == "--data-switches" ]]); then
     sudo env "PATH=$PATH" gen.py $@

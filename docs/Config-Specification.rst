@@ -783,6 +783,7 @@ node_templates:
               password:
           os:
               hostname_prefix:
+              domain:
               profile:
               install_device:
               users:
@@ -822,20 +823,21 @@ node_templates:
 |         os:                        |         password: pass                        | | Required keys:                                                                 |          |
 |         physical_interfaces:       |     os:                                       | |   *label*   - Unique label used to reference this template.                    |          |
 |         interfaces:                |         hostname_prefix: ctrl                 | |   *ipmi*    - IPMI credentials. See `node_templates: ipmi                      |          |
-|         networks:                  |         profile: ubuntu-14.04-server-ppc64el  |                 <node_templates_ipmi_>`_.                                        |          |
-|         roles:                     |         install_device: /dev/sda              | |   *os*      - Operating system configuration. See `node_templates: os          |          |
-|                                    |         kernel_options: quiet                 |                 <node_templates_os_>`_.                                          |          |
-|                                    |     physical_interfaces:                      | |   *physical_interfaces* - Physical network interface port mappings. See        |          |
-|                                    |         ipmi:                                 |                             `node_templates: physical_interfaces                 |          |
-|                                    |             - switch: mgmt_switch_1           |                             <node_templates_physical_ints_>`_.                   |          |
-|                                    |               ports:                          |                                                                                  |          |
-|                                    |                   - 1                         | | Optional keys:                                                                 |          |
-|                                    |                   - 3                         | |   *interfaces* - Post-deploy interface assignments. See `node_templates:       |          |
-|                                    |                   - 5                         |                    interfaces <node_templates_interfaces_>`_.                    |          |
-|                                    |         pxe:                                  | |   *networks*   - Post-deploy network (interface group) assignments. See        |          |
-|                                    |             - switch: mgmt_switch_1           |                    `node_templates: networks <node_templates_networks_>`_.       |          |
-|                                    |               ports:                          | |   *roles*      - Ansible group assignment. See `node_templates: roles          |          |
-|                                    |                   - 2                         |                    <node_templates_roles_>`_.                                    |          |
+|         networks:                  |         domain: ibm.com                       |                 <node_templates_ipmi_>`_.                                        |          |
+|         roles:                     |         profile: ubuntu-14.04-server-ppc64el  | |   *os*      - Operating system configuration. See `node_templates: os          |          |
+|                                    |         install_device: /dev/sda              |                 <node_templates_os_>`_.                                          |          |
+|                                    |         kernel_options: quiet                 | |   *physical_interfaces* - Physical network interface port mappings. See        |          |
+|                                    |     physical_interfaces:                      |                             `node_templates: physical_interfaces                 |          |
+|                                    |         ipmi:                                 |                             <node_templates_physical_ints_>`_.                   |          |
+|                                    |             - switch: mgmt_switch_1           |                                                                                  |          |
+|                                    |               ports:                          | | Optional keys:                                                                 |          |
+|                                    |                   - 1                         | |   *interfaces* - Post-deploy interface assignments. See `node_templates:       |          |
+|                                    |                   - 3                         |                    interfaces <node_templates_interfaces_>`_.                    |          |
+|                                    |                   - 5                         | |   *networks*   - Post-deploy network (interface group) assignments. See        |          |
+|                                    |         pxe:                                  |                    `node_templates: networks <node_templates_networks_>`_.       |          |
+|                                    |             - switch: mgmt_switch_1           | |   *roles*      - Ansible group assignment. See `node_templates: roles          |          |
+|                                    |               ports:                          |                    <node_templates_roles_>`_.                                    |          |
+|                                    |                   - 2                         |                                                                                  |          |
 |                                    |                   - 4                         |                                                                                  |          |
 |                                    |                   - 6                         |                                                                                  |          |
 |                                    |                                               |                                                                                  |          |
@@ -861,9 +863,10 @@ node_templates:
 | ::                                 | ::                                            | Client node operating system configuration.                                      | **yes**  |
 |                                    |                                               |                                                                                  |          |
 |   node_templates:                  |   - ...                                       | | Required keys:                                                                 |          |
-|       - ...                        |     os:                                       |                                                                                  |          |
-|         os:                        |         hostname_prefix: controller           |                                                                                  |          |
-|             hostname_prefix:       |         profile: ubuntu-14.04-server-ppc64el  |                                                                                  |          |
+|       - ...                        |     os:                                       | |   *profile*         - Cobbler profile to use for OS installation. This         |          |
+|         os:                        |         hostname_prefix: controller           |                         name usually should match the name of the                |          |
+|             hostname_prefix:       |         domain: ibm.com                       |                         installation image (with or without the'.iso' extension).|          |
+|             domain:                |         profile: ubuntu-14.04-server-ppc64el  | |   *install_device*  - Path to installation disk device.                        |          |
 |             profile:               |         install_device: /dev/sda              |                                                                                  |          |
 |             install_device:        |         users:                                | |   *profile*         - Cobbler profile to use for OS installation. This         |          |
 |             users:                 |             - name: root                      |                         name usually should match the name of the                |          |
@@ -876,10 +879,13 @@ node_templates:
 |                                    |             - name: testgroup2                |                         enumeration is added to the end of the prefix to         |          |
 |                                    |         kernel_options: quiet                 |                         make a unique hostname for each client node              |          |
 |                                    |         redhat_subscription:                  |                         (e.g. "controller-1" and "controoler-2").                |          |
-|                                    |             state: present                    | |   *users*           - OS user accounts to create. All parameters in the        |          |
-|                                    |             username: joe_user                |                         `Ansible user module <ansible_user_module_>`_ are        |          |
-|                                    |             password: somepass                |                         supported. **note:** Plaintext user passwords are not    |          |
-|                                    |             auto_attach: true                 |                         supported. For help see                                  |          |
+|                                    |             state: present                    | |   *domain*          - Domain name used to set client FQDN.                     |          |
+|                                    |             username: joe_user                |                         (e.g. with 'domain: ibm.com': controller-1.ibm.com)      |          |
+|                                    |             password: somepass                |                         (e.g. without 'domain' value: controller-1.localdomain)  |          |
+|                                    |             auto_attach: true                 | |   *users*           - OS user accounts to create. All parameters in the        |          |
+|                                    |                                               |                         `Ansible user module <ansible_user_module_>`_ are        |          |
+|                                    |                                               |                         supported. **note:** Plaintext user passwords are not    |          |
+|                                    |                                               |                         supported. For help see                                  |          |
 |                                    |                                               |                         `Ansible's guide for generating passwords <gen_pass_>`_. |          |
 |                                    |                                               | |   *groups*          - OS groups to create. All parameters in the `Ansible      |          |
 |                                    |                                               |                         group module <ansible_group_module_>`_ are               |          |
@@ -887,7 +893,7 @@ node_templates:
 |                                    |                                               | |   *kernel_options*  - Kernel options                                           |          |
 |                                    |                                               | |   *redhat_subscription* - Manage RHEL subscription. All parameters in the      |          |
 |                                    |                                               |                             `Ansible redhat_subscription module                  |          |
-|                                    |                                               |                             <ansible_rhel_sub_module_>`_ are supported           |          |
+|                                    |                                               |                             <ansible_rhel_sub_module_>`_ are supported.          |          |
 |                                    |                                               |                                                                                  |          |
 +------------------------------------+-----------------------------------------------+----------------------------------------------------------------------------------+----------+
 | .. _node_templates_physical_ints:  |                                               |                                                                                  |          |

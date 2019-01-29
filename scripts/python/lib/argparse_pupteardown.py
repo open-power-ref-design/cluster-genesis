@@ -21,11 +21,14 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 PROJECT = 'Cluster Genesis'
 DEPLOYER_CMD = 'deployer'
 SWITCHES_CMD = 'switches'
+ALL_CMD = 'all'
 DEPLOYER_DESC = 'Teardown {} deployer elements'.format(PROJECT)
 SWITCHES_DESC = 'Deconfigure switches'
+ALL_DESC = 'Teardown all deployer elements and switches'
 DEPLOYER_NETWORKS_HELP = ('Deletes {} created interfaces and bridges. \nRemoves {} '
                           'added addresses from external interfaces.'.format(
                               PROJECT, PROJECT))
+CFG_FILE_HELP = 'Specify relative to the power-up directory or provide full path.'
 GITHUB = 'https://github.com/open-power-ref-design-toolkit/cluster-genesis'
 EPILOG = 'home page:\n  %s' % GITHUB
 LOG_LEVEL_CHOICES = ['nolog', 'debug', 'info', 'warning', 'error', 'critical']
@@ -39,7 +42,8 @@ def get_args(parser_args=False):
     parser = ArgumentParser(
         description=PROJECT,
         epilog=EPILOG,
-        formatter_class=RawTextHelpFormatter)
+        formatter_class=RawTextHelpFormatter,
+        prog='teardown')
     subparsers = parser.add_subparsers()
     common_parser = ArgumentParser(add_help=False)
 
@@ -79,6 +83,14 @@ def get_args(parser_args=False):
         parents=[common_parser],
         formatter_class=RawTextHelpFormatter)
 
+    parser_all = subparsers.add_parser(
+        ALL_CMD,
+        description='%s - %s' % (PROJECT, SWITCHES_DESC),
+        help=ALL_DESC,
+        epilog=EPILOG,
+        parents=[common_parser],
+        formatter_class=RawTextHelpFormatter)
+
     # 'deployer' subcommand arguments
     parser_deployer.set_defaults(
         deployer=True)
@@ -86,7 +98,7 @@ def get_args(parser_args=False):
     parser_deployer.add_argument(
         '--container',
         action='store_true',
-        help='Destroy the {} container.'.format(PROJECT))
+        help=f'Destroy the {PROJECT} container.')
 
     parser_deployer.add_argument(
         '--gateway',
@@ -108,7 +120,7 @@ def get_args(parser_args=False):
         nargs='?',
         default='config.yml',
         metavar='CONFIG-FILE-NAME',
-        help='Config file name. Specify relative to the power-up directory.')
+        help=CFG_FILE_HELP)
 
     # 'switches' subcommand arguments
     parser_switches.set_defaults(
@@ -136,10 +148,21 @@ def get_args(parser_args=False):
         nargs='?',
         default='config.yml',
         metavar='CONFIG-FILE-NAME',
-        help='Config file name. Specify relative to the power-up directory.')
+        help=CFG_FILE_HELP)
+
+    # 'all' subcommand arguments
+    parser_all.set_defaults(
+        all=True)
+
+    parser_all.add_argument(
+        'config_file_name',
+        nargs='?',
+        default='config.yml',
+        metavar='CONFIG-FILE-NAME',
+        help=CFG_FILE_HELP)
 
     if parser_args:
-        return (parser, parser_deployer, parser_switches)
+        return (parser, parser_deployer, parser_switches, parser_all)
     return parser
 
 
@@ -161,20 +184,14 @@ def _check_switches(args, subparser):
 def get_parsed_args():
     """Get parsed 'gen' command arguments"""
 
-    parser, parser_deployer, parser_switches = get_args(parser_args=True)
+    parser, parser_deployer, parser_switches, parser_all = get_args(parser_args=True)
     args = parser.parse_args()
 
     # Check arguments
-    try:
-        if args.deployer:
-            _check_deployer(args, parser_deployer)
-    except AttributeError:
-        pass
+    if hasattr(args, 'deployer'):
+        _check_deployer(args, parser_deployer)
 
-    try:
-        if args.switches:
-            _check_switches(args, parser_switches)
-    except AttributeError:
-        pass
+    if hasattr(args, 'switches'):
+        _check_switches(args, parser_switches)
 
     return args

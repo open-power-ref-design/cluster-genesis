@@ -1,0 +1,118 @@
+# Note: This file is not intended to be edited by the user
+# 'floc' (field location) 'ftype' (field type) and 'dtype' (data type)
+# are optional items.
+# the 'floc' item can be used to provide positioning direction to the form
+# placement.
+# floc: skipline     (skips a line before placing this item on the form)
+# floc: samelinexx  (causes this item to be placed at pos xx on the same line as the
+#                 previous field)
+# The 'ftype' item determines the type of field used. Default is text.
+# ftype: file, text, ftext     (file search field, text input field, fixed text)
+# dtype:    determines the type of data checking applied to the field
+#           valid dtypes are intm-n, int-or-none, ipv4, ipv4mask
+
+bmc_vlan_number:
+    val: 11
+    desc: BMC VLAN number
+    help: The BMC VLAN is the VLAN number of the vlan in which the BMC ports
+        reside. Power-Up can create a tagged VLAN interface on a physical
+        Ethernet interface of this installer node. If using VLANs it is the
+        user's responsibility to insure that a port virtual id (pvid) exists
+        already on the switch ports to which the BMC ports are connected and
+        that the switch port to which the installer node is connected is in
+        trunk mode with the PXE VLAN allowed.
+    dtype: int-or-none2-4094
+
+bmc_subnet_prefix:
+    val: ---.---.---.--- 24
+    desc: BMC subnet prefix
+    help: Prefix for the BMC subnet. Valid values are integers between 1 and 32.
+          The subnet mask is autgenerated from the prefix.
+    dtype: ipv4mask
+
+bmc_subnet:
+    val: 192.168.11.0
+    desc: BMC subnet
+    help: The BMC subnet is the subnet which contains the BMC ports of the
+        nodes to be installed. Note that if Power-Up is configured to use
+        DHCP for allocating BMC addresses, the entire subnet is assumed to
+        be available for use.
+    dtype: ipv4-bmc_subnet_prefix
+
+bmc_address_mode:
+    val: dhcp
+    values:
+        - dhcp
+        - static
+    desc: BMC addressing
+    help: If static is selected, existing ipv4 addresses will be used and unchanged.
+        If dhcp is selected, PowerUp will setup a DHCP server on this node in
+        the subnet specified in 'BMC subnet'
+    ftype: select-one
+
+pxe_vlan_number:
+    val: 12
+    desc: PXE VLAN number
+    help:
+        The PXE VLAN is the VLAN number of the vlan in which the PXE ports
+        reside. Power-Up can create a tagged VLAN interface on a physical
+        Ethernet interface of this installer node. If using VLANs it is the
+        user's responsibility to insure that a port virtual id (pvid) exists
+        already on the switch ports to which the BMC ports are connected and
+        that the switch port to which the installer node is connected is in
+        trunk mode with the BMC VLAN allowed.
+    dtype: int-or-none2-4094
+    floc: skipline
+
+pxe_subnet_prefix:
+    val: ---.---.---.--- 24
+    desc: PXE subnet mask
+    help: Prefix for the PXE subnet. Valid values are integers between 1 and 32.
+          The subnet mask is autgenerated from the prefix.
+    dtype: ipv4mask
+
+pxe_subnet:
+    val: 192.168.12.0
+    desc: PXE subnet
+    help:
+        The PXE subnet is the subnet which contains the PXEs ports of the
+        nodes to be installed. Note that if Power-Up is configured to use
+        DHCP for allocating PXE addresses, the entire subnet is assumed to
+        be available for use.
+    dtype: ipv4-pxe_subnet_prefix
+
+pxe_address_mode:
+    val: dhcp
+    values:
+        - dhcp
+        - static
+    desc: PXE addressing
+    help: If static is selected, existing ipv4 addresses will be used and unchanged.
+        If dhcp is selected, PowerUp will setup a DHCP server on this node in
+        the subnet specified in 'PXE subnet'
+    ftype: select-one
+
+ethernet_port:
+    val: eth0
+    desc: Ethernet port
+    help: Ethernet port used to access the PXE and BMC interfaces. Press enter
+        to select from a list of physical interfaces which are 'up'.
+    floc: skipline
+    ftype: eth-ifc
+
+hostname:
+    val: compute
+    desc: Host name
+    help:
+        This is the 'hostname' which will be given to the target nodes. Host names
+        will be suffixed with a dash and a number starting with 1. ie hostname-1,
+        hostname-2 etc.
+    floc: skipline
+
+iso_image_file:
+    val:
+    desc: ISO image file
+    help:
+        Name of the file containing the 'iso' image for the OS to be installed.
+    ftype: file
+    dtype: file-iso

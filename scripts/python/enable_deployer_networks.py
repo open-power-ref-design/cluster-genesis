@@ -162,7 +162,7 @@ def _create_network(
         # remove any that lie within the mgmt subnet. You only need to remove
         # the first address found in the subnet since any additional ones are
         # secondary and removed when the first (primary) is removed. Note that
-        # this does not remove addresses from netwrok config files.
+        # this does not remove addresses from network config files.
         cidr = IPNetwork(bridge_ipaddr + '/' + str(netprefix))
         network = IPNetwork(cidr)
         network_addr = str(network.network)
@@ -227,6 +227,30 @@ def _create_network(
             ifc=link,
             mode=mode)
         _setup_bridge(br_label, bridge_ipaddr, netprefix, link)
+        _update_firewall(br_label)
+
+
+def _is_firewall_running():
+    res, err, rc = sub_proc_exec('systemctl status firewalld')
+    if not rc:
+        if 'Active: active' in res or 'active (running)' in res:
+            return True
+
+
+def _update_firewall(br_label):
+    """Update iptables FORWARD table to forward all traffic coming into
+    the specified bridge.
+    """
+    if _is_firewall_running():
+        fwd_tbl, err, rc = sub_proc_exec('iptables -vL FORWARD')
+        if br_label not in fwd_tbl:
+            LOG.debug(f'Updating firewall. Forward {br_label} packets.')
+            cmd = (f'iptables -I FORWARD -p all -i {br_label} '
+                   f'-s 0.0.0.0/0 -d 0.0.0.0/0 -j ACCEPT')
+            res, err, rc = sub_proc_exec(cmd)
+            if rc:
+                LOG.warning('An error occured while updating the firewall. '
+                            f'Error {err}. RC: {rc}')
 
 
 def _is_ifc_configured(ifc_cfg_file, dev_label, interface_ipaddr):

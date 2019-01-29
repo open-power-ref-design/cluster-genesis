@@ -79,6 +79,7 @@ class Inventory(object):
         OS = 'os'
         PROFILE = 'profile'
         INSTALL_DEVICE = 'install_device'
+        DOMAIN = 'domain'
         USERS = 'users'
         KERNEL_OPTIONS = 'kernel_options'
         ROLES = 'roles'
@@ -556,6 +557,23 @@ class Inventory(object):
         except KeyError:
             pass
 
+    def get_nodes_os_domain(self, index=None):
+        """Get nodes OS domain
+        Args:
+            index (int, optional): List index
+
+        Returns:
+            str: nodes OS domain
+        """
+
+        try:
+            return self._get_members(
+                self.inv.nodes,
+                self.InvKey.OS,
+                index)[self.InvKey.DOMAIN]
+        except KeyError:
+            pass
+
     def get_nodes_os_users(self, index=None):
         """Get nodes OS users
         Args:
@@ -690,7 +708,6 @@ class Inventory(object):
             bool: True if all MACs are populated
         """
         for node in self.inv.nodes:
-            device_list = []
             for mac in node[self.InvKey.DATA][self.InvKey.MACS]:
                 if mac is None:
                     return False
