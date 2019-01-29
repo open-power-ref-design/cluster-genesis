@@ -192,6 +192,8 @@ def get_scripts_path():
         return get_container_scripts_path()
     return os.path.join(GEN_PATH, SCRIPTS_DIR)
 
+def get_logs_path():   #ENGINEERING MODE#
+    return os.path.join(GEN_LOGS_PATH)
 
 def get_python_path():
     if is_container():
