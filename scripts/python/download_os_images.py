@@ -50,17 +50,17 @@ def download_os_images(config_path=None):
                 for image in os_image_url['images']:
                     dest = os_images_path
                     if 'filename' in image:
-                        dest += image.filename
+                        dest += image['filename']
                     else:
-                        dest += image.url.split("/")[-1]
+                        dest += image['url'].split("/")[-1]
                     if not os.path.isfile(dest):
-                        log.info('Downloading OS image: %s' % image.url)
-                        wget.download(image.url, out=dest)
+                        log.info(f"Downloading OS image: {image['url']}")
+                        wget.download(image['url'], out=dest)
                         print('')
                         sys.stdout.flush()
                     log.info('Verifying OS image sha1sum: %s' % dest)
                     sha1sum = _sha1sum(dest)
-                    if image.sha1sum != sha1sum:
+                    if image['sha1sum'] != sha1sum:
                         msg = ('OS image sha1sum verification failed: %s' %
                                dest)
                         log.error(msg)
