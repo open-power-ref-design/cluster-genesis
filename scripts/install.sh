@@ -64,7 +64,8 @@ if [[ $ID == "ubuntu" ]]; then
     fi
 
 elif [[ $ID == "rhel" ]]; then
-    sudo yum -y install python36-devel libffi-devel ipmitool debootstrap gcc \
+    sudo yum --setopt=skip_missing_names_on_install=False -y install \
+        python36-devel libffi-devel ipmitool debootstrap gcc \
         vim bridge-utils cpp flex bison unzip cmake fping gcc-c++ patch \
         perl-ExtUtils-MakeMaker perl-Thread-Queue ncurses-devel \
         bash-completion yum-utils createrepo sshpass python-tabulate \
@@ -72,7 +73,8 @@ elif [[ $ID == "rhel" ]]; then
     sudo python36 -m ensurepip --default-pip
 
     if ! type "docker"; then
-        sudo yum -y install device-mapper-persistent-data lvm2
+        sudo yum --setopt=skip_missing_names_on_install=False -y install \
+            device-mapper-persistent-data lvm2
         if [ $(uname -m) = "x86_64" ]; then
             sudo yum-config-manager \
                 --add-repo \
