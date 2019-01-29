@@ -46,8 +46,8 @@ def download_os_images(config_path=None):
 
     for os_profile in cfg.yield_ntmpl_os_profile():
         for os_image_url in os_image_urls:
-            if check_os_profile(os_profile) in os_image_url.name:
-                for image in os_image_url.images:
+            if check_os_profile(os_profile) in os_image_url['name']:
+                for image in os_image_url['images']:
                     dest = os_images_path
                     if 'filename' in image:
                         dest += image.filename
