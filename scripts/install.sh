@@ -40,7 +40,7 @@ if [[ $ID == "ubuntu" ]]; then
     sudo apt-get -y install libffi-dev libssl-dev python3-dev \
         python-netaddr ipmitool aptitude vim vlan bridge-utils gcc cpp \
         python-tabulate fping g++ make unzip libncurses5 libncurses5-dev \
-        sshpass dnsmasq
+        sshpass dnsmasq nmap
 
     if ! type "docker"; then
         sudo apt-get -y install \
@@ -68,7 +68,7 @@ elif [[ $ID == "rhel" ]]; then
         vim bridge-utils cpp flex bison unzip cmake fping gcc-c++ patch \
         perl-ExtUtils-MakeMaker perl-Thread-Queue ncurses-devel \
         bash-completion yum-utils createrepo sshpass python-tabulate \
-        openssl-devel tcpdump dnsmasq
+        openssl-devel tcpdump dnsmasq nmap
     sudo python36 -m ensurepip --default-pip
 
     if ! type "docker"; then

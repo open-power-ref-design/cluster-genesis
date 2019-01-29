@@ -792,6 +792,7 @@ node_templates:
               groups:
                   - name:
               kernel_options:
+              redhat_subscription:
           physical_interfaces:
               ipmi:
                   - switch:
@@ -867,16 +868,21 @@ node_templates:
 |             hostname_prefix:       |         domain: ibm.com                       |                         installation image (with or without the'.iso' extension).|          |
 |             domain:                |         profile: ubuntu-14.04-server-ppc64el  | |   *install_device*  - Path to installation disk device.                        |          |
 |             profile:               |         install_device: /dev/sda              |                                                                                  |          |
-|             install_device:        |         users:                                | | Optional keys:                                                                 |          |
-|             users:                 |             - name: root                      | |   *hostname_prefix* - Prefix used to assign hostnames to client nodes          |          |
-|                 - name:            |               password: <crypted password>    |                         belonging to this node template. A "-" and               |          |
-|                   password:        |             - name: user1                     |                         enumeration is added to the end of the prefix to         |          |
-|             groups:                |               password: <crypted password>    |                         make a unique hostname for each client node              |          |
-|                 - name:            |               groups: sudo,testgroup1         |                         (e.g. "controller-1" and "controoler-2").                |          |
-|             kernel_options:        |         groups:                               | |   *domain*          - Domain name used to set client FQDN.                     |          |
-|                                    |             - name: testgroup1                |                         (e.g. with 'domain: ibm.com': controller-1.ibm.com)      |          |
-|                                    |             - name: testgroup2                |                         (e.g. without 'domain' value: controller-1.localdomain)  |          |
-|                                    |         kernel_options: quiet                 | |   *users*           - OS user accounts to create. All parameters in the        |          |
+|             install_device:        |         users:                                | |   *profile*         - Cobbler profile to use for OS installation. This         |          |
+|             users:                 |             - name: root                      |                         name usually should match the name of the                |          |
+|                 - name:            |               password: <crypted password>    |                         installation image (with or without the'.iso' extension).|          |
+|                   password:        |             - name: user1                     | |   *install_device*  - Path to installation disk device.                        |          |
+|             groups:                |               password: <crypted password>    |                                                                                  |          |
+|                 - name:            |               groups: sudo,testgroup1         | | Optional keys:                                                                 |          |
+|             kernel_options:        |         groups:                               | |   *hostname_prefix* - Prefix used to assign hostnames to client nodes          |          |
+|             redhat_subscription:   |             - name: testgroup1                |                         belonging to this node template. A "-" and               |          |
+|                                    |             - name: testgroup2                |                         enumeration is added to the end of the prefix to         |          |
+|                                    |         kernel_options: quiet                 |                         make a unique hostname for each client node              |          |
+|                                    |         redhat_subscription:                  |                         (e.g. "controller-1" and "controoler-2").                |          |
+|                                    |             state: present                    | |   *domain*          - Domain name used to set client FQDN.                     |          |
+|                                    |             username: joe_user                |                         (e.g. with 'domain: ibm.com': controller-1.ibm.com)      |          |
+|                                    |             password: somepass                |                         (e.g. without 'domain' value: controller-1.localdomain)  |          |
+|                                    |             auto_attach: true                 | |   *users*           - OS user accounts to create. All parameters in the        |          |
 |                                    |                                               |                         `Ansible user module <ansible_user_module_>`_ are        |          |
 |                                    |                                               |                         supported. **note:** Plaintext user passwords are not    |          |
 |                                    |                                               |                         supported. For help see                                  |          |
@@ -885,6 +891,9 @@ node_templates:
 |                                    |                                               |                         group module <ansible_group_module_>`_ are               |          |
 |                                    |                                               |                         supported.                                               |          |
 |                                    |                                               | |   *kernel_options*  - Kernel options                                           |          |
+|                                    |                                               | |   *redhat_subscription* - Manage RHEL subscription. All parameters in the      |          |
+|                                    |                                               |                             `Ansible redhat_subscription module                  |          |
+|                                    |                                               |                             <ansible_rhel_sub_module_>`_ are supported.          |          |
 |                                    |                                               |                                                                                  |          |
 +------------------------------------+-----------------------------------------------+----------------------------------------------------------------------------------+----------+
 | .. _node_templates_physical_ints:  |                                               |                                                                                  |          |
@@ -1026,6 +1035,7 @@ node_templates:
 .. _ansible_user_module: http://docs.ansible.com/ansible/latest/user_module.html
 .. _gen_pass: http://docs.ansible.com/ansible/latest/reference_appendices/faq.html#how-do-i-generate-crypted-passwords-for-the-user-module
 .. _ansible_group_module: http://docs.ansible.com/ansible/latest/group_module.html
+.. _ansible_rhel_sub_module: http://docs.ansible.com/ansible/latest/modules/redhat_subscription_module.html
 
 
 software_bootstrap:

@@ -71,7 +71,7 @@ def pre_post_file_collect(task):
       find_file, err, rc = sub_proc_exec(cmd, shell=True)
       find_file_formatted = find_file.rstrip("\n\r")
 
-      code.interact(banner='Debug', local=dict(globals(), **locals())) 
+      #code.interact(banner='Debug', local=dict(globals(), **locals())) 
 
       if find_file_formatted == f'{file_name}':
          print (f"\n*ENGINEERING MODE* INFO - {file_name} data exists on client node!\n")
