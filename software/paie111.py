@@ -100,7 +100,7 @@ class software(object):
                     self.sw_vars = {}
                     self.sw_vars['init-time'] = time.ctime()
                     self.README()
-                    _ = input('\nPress enter to continue')
+                    input('\nPress enter to continue')
                 # clear out any licensed version of PowerAI files
                 else:
                     self.sw_vars['content_files']['powerai-enterprise-license'] = ''
@@ -122,7 +122,7 @@ class software(object):
                     self.sw_vars = {}
                     self.sw_vars['init-time'] = time.ctime()
                     self.README()
-                    _ = input('\nPress enter to continue')
+                    input('\nPress enter to continue')
                 # clear out any eval version of PowerAI Enterprise files
                 else:
                     self.sw_vars['content_files']['powerai-enterprise-license'] = ''

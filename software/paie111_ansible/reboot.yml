@@ -1,19 +1,7 @@
 ---
 - name: Reboot
-  command: shutdown -r +1 "Ansible is issuing a reboot!"
-  args:
-    warn: no
-  async: 90
-  poll: 0
-  changed_when: true
-  notify: Wait for system to come back up
+  reboot:
+    reboot_timeout: 1000
   become: yes
 
-- name: Wait for system to come back up
-  local_action: wait_for
-  args:
-    delay: 300
-    port: 22
-    search_regex: OpenSSH
-    timeout: 660
-    host: "{{ ansible_ssh_host | default(inventory_hostname) }}"
+...

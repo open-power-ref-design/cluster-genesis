@@ -1,5 +1,5 @@
 ---
-# Copyright 2018 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -21,6 +21,11 @@
   tasks:
     - name: Include localhost variables
       include_vars: host_vars/localhost
+
+- name: Manage RHEL registration
+  hosts: client_nodes
+  tasks:
+    - include: tasks/redhat_subscription.yml
 
 - name: Add groups and users
   hosts: client_nodes

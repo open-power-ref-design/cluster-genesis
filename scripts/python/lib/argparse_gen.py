@@ -25,6 +25,7 @@ CONFIG_CMD = 'config'
 VALIDATE_CMD = 'validate'
 DEPLOY_CMD = 'deploy'
 SOFTWARE_CMD = 'software'
+OSINSTALL_CMD = 'osinstall'
 UTIL_CMD = 'utils'
 POST_DEPLOY_CMD = 'post-deploy'
 SETUP_DESC = 'Setup deployment environment (requires root privileges)'
@@ -34,6 +35,7 @@ DEPLOY_DESC = 'Deploy cluster'
 POST_DEPLOY_DESC = 'Configure cluster nodes and data switches'
 UTIL_DESC = 'Execute utility functions'
 SOFTWARE_DESC = 'Install software stack on client nodes'
+OSINSTALL_DESC = 'Install an operating system on client nodes'
 GITHUB = 'https://github.com/open-power-ref-design-toolkit/power-up'
 EPILOG = 'home page:\n  %s' % GITHUB
 ABSENT = '\u009fabsent\u009c'
@@ -49,6 +51,7 @@ class Cmd(Enum):
     DEPLOY = DEPLOY_CMD
     POST_DEPLOY = POST_DEPLOY_CMD
     SOFTWARE = SOFTWARE_CMD
+    OSINSTALL = OSINSTALL_CMD
     UTIL = UTIL_CMD
 
 
@@ -127,6 +130,14 @@ def get_args(parser_args=False):
         SOFTWARE_CMD,
         description='%s - %s' % (PROJECT, SOFTWARE_DESC),
         help=SOFTWARE_DESC,
+        epilog=EPILOG,
+        parents=[common_parser],
+        formatter_class=RawTextHelpFormatter)
+
+    parser_osinstall = subparsers.add_parser(
+        OSINSTALL_CMD,
+        description='%s - %s' % (PROJECT, OSINSTALL_DESC),
+        help=OSINSTALL_DESC,
         epilog=EPILOG,
         parents=[common_parser],
         formatter_class=RawTextHelpFormatter)
@@ -309,6 +320,26 @@ def get_args(parser_args=False):
         action='store_true',
         help='Run all cluster post deployment steps')
 
+    # 'osinstall' subcommand arguments
+    parser_osinstall.set_defaults(osinstall=True)
+
+    parser_osinstall.add_argument(
+        '--setup-interfaces',
+        action='store_true',
+        help='Create deployer interfaces.')
+
+    parser_osinstall.add_argument(
+        '--gateway',
+        action='store_true',
+        help='Configure PXE network gateway and NAT record')
+
+    parser_osinstall.add_argument(
+        'config_file_name',
+        nargs='?',
+        default='profile.yml',
+        metavar='CONFIG-FILE-NAME',
+        help='OS installation profile file name. Specify relative to the power-up directory.')
+
     # 'software' subcommand arguments
     parser_software.set_defaults(software=True)
 
@@ -387,7 +418,7 @@ def get_args(parser_args=False):
     if parser_args:
         return (parser, parser_setup, parser_config, parser_validate,
                 parser_deploy, parser_post_deploy, parser_software,
-                parser_utils)
+                parser_osinstall, parser_utils)
 
     return parser
 
@@ -443,8 +474,15 @@ def _check_post_deploy(args, subparser):
             '--config-client-os -a/--all is required')
 
 
+def _check_osinstall(args, subparser):
+    if not (args.networks or args.gateway):
+        subparser.error('one of the arguments --setup-interfaces --gateway '
+                        'is required. Optionally a profile file name may be '
+                        'included')
+
+
 def _check_software(args, subparser):
-    if not args.setup and not args.install and not args.name and not args.README \
+    if not args.prep and not args.install and not args.name and not args.README \
             and not args.init_clients and not args.all:
         subparser.error('one of the arguments --about --prep --status --eval'
                         '--init-clients --install --non-interactive -a/--all '
@@ -467,7 +505,8 @@ def get_parsed_args():
     """Get parsed 'pup' command arguments"""
 
     parser, parser_setup, parser_config, parser_validate, parser_deploy, \
-        parser_post_deploy, parser_software, parser_utils = get_args(parser_args=True)
+        parser_post_deploy, parser_osinstall, parser_software, parser_utils = \
+        get_args(parser_args=True)
     args = parser.parse_args()
 
     # Check arguments
@@ -499,6 +538,11 @@ def get_parsed_args():
     try:
         if args.software:
             _check_software(args, parser_software)
+    except AttributeError:
+        pass
+    try:
+        if args.osinstall:
+            _check_osinstall(args, parser_osinstall)
     except AttributeError:
         pass
     try:

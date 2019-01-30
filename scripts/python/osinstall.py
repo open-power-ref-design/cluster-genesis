@@ -36,6 +36,10 @@ GEN_SAMPLE_CONFIGS_PATH = get_sample_configs_path()
 
 IPR = IPRoute()
 
+logger.create('nolog', 'info')
+LOG = logger.getlogger()
+PROFILE = 'profile.yml'
+
 
 class Profile():
     def __init__(self, prof_path='profile-template.yml'):
@@ -433,8 +437,38 @@ class OSinstall_form(npyscreen.ActionFormV2):
 #                                     name='Press me')
 
 
-if __name__ == '__main__':
+def validate(profile_tuple):
+    if profile_tuple.bmc_address_mode == "dhcp" or profile_tuple.pxe_address_mode == "dhcp":
+        hasDhcpServers = u.has_dhcp_servers(profile_tuple.ethernet_port)
+        if not hasDhcpServers:
+            LOG.warn("No Dhcp servers found on {0}".format(profile_tuple.ethernet_port))
+        else:
+            LOG.info("Dhcp servers found on {0}".format(profile_tuple.ethernet_port))
 
+
+def main(prof_path):
+    log = logger.getlogger()
+
+    try:
+        osi = OSinstall(prof_path)
+        osi.run()
+        routes = osi.ifcs.get_interfaces_routes()
+        for route in routes:
+            print(f'{route:<12}: {routes[route]}')
+        p = osi.get_profile_tuple()
+        LOG.debug(p)
+#        res = osi.ifcs.get_interfaces_names()
+#        print(res)
+#        res = osi.ifcs.get_up_interfaces_names('phys')
+#        print(res)
+        osi.config_interfaces()
+        validate(p)
+        print(p)
+    except KeyboardInterrupt:
+        LOG.info("Exiting at user request")
+
+
+if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('prof_path', help='Full path to the profile file.',
                         nargs='?', default='profile.yml')
@@ -449,24 +483,4 @@ if __name__ == '__main__':
         sys.exit('bye')
     logger.create('nolog', 'info')
     log = logger.getlogger()
-
-    osi = OSinstall(args.prof_path)
-    osi.run()
-    routes = osi.ifcs.get_interfaces_routes()
-    for route in routes:
-        print(f'{route:<12}: {routes[route]}')
-#    for ifc in osi.ifcs.ifcs:
-#        print(f'{ifc:<16}: {osi.ifcs.ifcs[ifc]}')
-#    res = osi.ifcs.get_interfaces_names()
-#    print(res)
-#    res = osi.ifcs.get_interfaces_names('vlan')
-#    print(res)
-#    res = osi.ifcs.get_up_interfaces_names('phys')
-#    print(res)
-#    res = osi.ifcs.is_vlan_used_elsewhere('40', 'enP4p10s0f1.99')
-#    print(f'vlan 40 used elsewhere: {res}')
-    p = osi.prof.get_profile_tuple()
-    # msg = osi.prof.is_valid_profile()
-    # print(msg)
-    print(p)
-    osi.config_interfaces()
+    main(args.prof_path)

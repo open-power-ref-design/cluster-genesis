@@ -1,6 +1,7 @@
 ansible==2.7.1
 ansible-vault==1.2.0
 click==7.0
+cryptography==2.4.2
 docker==3.5.1
 filelock==3.0.9
 gitpython==2.1.11

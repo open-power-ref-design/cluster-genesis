@@ -67,8 +67,16 @@ _pup()
         return 0
     fi
 
-    array=(setup config validate utils deploy post-deploy osinstall)
-    if [[ " ${array[@]} " =~ " ${second} " ]]; then
+    if ([[ ${second} == deploy ]] || [[ ${second} == post-deploy ]] || [[ ${second} == osinstall ]]); then
+        if ([[ ${cur} != -* ]] && [[ ${prev} != *.yml ]]); then
+            files=`ls "$pup_path"*.yml | sed -E 's/(.+)\///'`
+            COMPREPLY=( $( compgen -W "${files[@]}" -- ${cur} ) )
+            return 0
+        fi
+    fi
+
+    if ([[ ${second} == setup ]] || [[ ${second} == config ]] || \
+        [[ ${second} == validate ]] || [[ ${second} == utils ]]); then
         if ([[ ${cur} != -* ]] && [[ ${prev} != *.yml ]]); then
             files=`ls "$pup_path"*.yml | sed -E 's/(.+)\///'`
             COMPREPLY=( $( compgen -W "${files[@]}" -- ${cur} ) )
