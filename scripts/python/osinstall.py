@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import curses
 import npyscreen
 import os.path
@@ -32,7 +33,6 @@ GEN_SAMPLE_CONFIGS_PATH = get_sample_configs_path()
 
 IPR = IPRoute()
 
-logger.create('nolog', 'info')
 LOG = logger.getlogger()
 PROFILE = 'profile.yml'
 
@@ -351,4 +351,12 @@ def main():
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--print', '-p', dest='log_lvl_print',
+                        help='print log level', default='info')
+
+    parser.add_argument('--file', '-f', dest='log_lvl_file',
+                        help='file log level', default='info')
+    args = parser.parse_args()
+    logger.create(args.log_lvl_print, args.log_lvl_file)
     main()
