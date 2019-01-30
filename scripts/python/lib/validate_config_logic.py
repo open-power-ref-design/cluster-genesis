@@ -266,7 +266,7 @@ class ValidateConfigLogic(object):
                        'Label: {}\n'.format(label))
                 self.exc += msg
 
-    def _validata_software_bootstrap(self):
+    def _validate_software_bootstrap(self):
         valid_hosts = ['all']
 
         for ntmpl_ind, ntmpl_label in enumerate(self.cfg.yield_ntmpl_label()):
@@ -295,7 +295,7 @@ class ValidateConfigLogic(object):
                 msg = ('Valid hosts: {}'.format(valid_hosts))
                 self.exc += msg
 
-    def _validata_os_profiles(self):
+    def _validate_os_profiles(self):
         os_images_path = get_os_images_path() + "/"
 
         valid_os_profiles = []
@@ -337,8 +337,8 @@ class ValidateConfigLogic(object):
         self._validate_deployer_networks()
         self._validate_dhcp_lease_time()
         self._validate_labels()
-        self._validata_software_bootstrap()
-        self._validata_os_profiles()
+        self._validate_software_bootstrap()
+        self._validate_os_profiles()
 
         if self.exc:
             raise UserCriticalException(self.exc)
