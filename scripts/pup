@@ -35,7 +35,7 @@ if [[ "$1" == "config" ]] && ([[ "$2" == "--mgmt-switches" ]] ||
     exit
 fi
 
-if [[ "$1" == "software" ]]; then
+if [[ "$1" == "software" ]] || [[ "$1" == "osinstall" ]]; then
     sudo env "PATH=$PATH" gen.py $@
     exit
 fi

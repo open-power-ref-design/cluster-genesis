@@ -41,6 +41,16 @@ LOG = logger.getlogger()
 PROFILE = 'profile.yml'
 
 
+def osinstall(profile_path):
+    log = logger.getlogger()
+    log.debug('osinstall')
+    osi = OSinstall(profile_path)
+    osi.run()
+
+#    osi.config_interfaces()
+#    validate(p)
+
+
 class Profile():
     def __init__(self, prof_path='profile-template.yml'):
         self.log = logger.getlogger()
@@ -456,7 +466,7 @@ def main(prof_path):
         for route in routes:
             print(f'{route:<12}: {routes[route]}')
         p = osi.get_profile_tuple()
-        LOG.debug(p)
+        log.debug(p)
 #        res = osi.ifcs.get_interfaces_names()
 #        print(res)
 #        res = osi.ifcs.get_up_interfaces_names('phys')
@@ -465,7 +475,7 @@ def main(prof_path):
         validate(p)
         print(p)
     except KeyboardInterrupt:
-        LOG.info("Exiting at user request")
+        log.info("Exiting at user request")
 
 
 if __name__ == '__main__':
