@@ -127,7 +127,7 @@ def pre_post_file_collect(task):
                  ]
 
    if (task in tasks_list):
-      file_collecter(file_name="client_yum_pre_list.txt",
+      file_collecter(file_name="client_yum_pre_install.txt",
                      process="yum list installed")
 
       file_collecter(file_name="client_pip_pre_install.txt",  #N/A x86 Andaconda/7.6
@@ -201,7 +201,7 @@ def pre_post_file_collect(task):
    elif (task=='powerai_tuning.yml'):
 
       # Gather post yum list from client
-      file_collecter(file_name='client_yum_post_list.txt',
+      file_collecter(file_name='client_yum_post_install.txt',
                      process='yum list installed')
 
       # Gather post pip_list from client
