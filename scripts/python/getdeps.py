@@ -36,7 +36,7 @@ def main():
                      'client_pip_pre_install.txt',
                      'dlipy3_pip_pre_install.txt',
                      'dlipy2_pip_pre_install.txt',
-                     'dlinsights_pip_pre_install.txt'
+                     'dlinsights_pip_pre_install.txt',
                      'dlipy3_conda_pre_install.txt',
                      'dlipy2_conda_pre_install.txt',
                      'dlinsights_conda_pre_install.txt',
@@ -58,7 +58,7 @@ def main():
         pre      = f'{stage}_pre_{suffix}'
         post     = f'{stage}_post_{suffix}'
 
-        print (f'\nINFO - Current Stage: {stage} Current Function: {function} ')
+        print (f'\nINFO - Current Stage: {stage} Current Function: {function} \n')
         #code.interact(banner='function status', local=dict(globals(), **locals()))
 
         if function == 'yum':
@@ -204,6 +204,7 @@ def main():
         else:
             print ("Error - No Function Found.")
 
+
 ##eclass myClass(object):
 #    def __init__(self):
 #        pass
@@ -241,3 +242,4 @@ if __name__ == '__main__':
     #m.func1()
     #m.func2('hello')
     main()
+    print("\n INFO - Process Completed\n")
