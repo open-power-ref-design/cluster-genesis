@@ -21,7 +21,8 @@ import os
 import sys
 import re
 import subprocess
-import code 
+import code
+import getpass
 
 import lib.logger as logger
 from lib.genesis import GEN_PATH, GEN_SOFTWARE_PATH, get_ansible_playbook_path, get_playbooks_path, get_logs_path
@@ -45,9 +46,11 @@ def pre_post_file_collect(task):
       #client_user     = input("Enter client user: ")
       #client_hostname = input("Enter client hostname or IP: ")
 
-      current_user    = 'pupbyobu' 
+      current_user    = 'pupbyobu'
       client_user     = 'rhel75'
-      client_hostname = 'server-3'
+      client_hostname = 'server-1'
+
+      print (f"\n*ENGINEERING MODE* INFO - Current user: {current_user}\n")
 
       remote_access   = f"{client_user}@{client_hostname}"
       remote_location = f"/home/{client_user}/"
@@ -57,21 +60,23 @@ def pre_post_file_collect(task):
       data_copy_cmd  = f'scp -r {remote_access}:{remote_location}{dbfile} {local_dir}'
 
       ansible_prefix = f'ansible all -i {host_path} -m shell -a '
-      file_format    = " | sed 1,2d | xargs -n3 | column -t > "
-
+      yum_file_format    = " | sed 1,2d | xargs -n3 | column -t > "
+      conda_file_format = " | sed 1,3d >"
       function = dbfile.split('_',4)[1]
 
       if (function == 'yum'):
-         ansible_cmd = f"{ansible_prefix}'{process}{file_format}{file_name}'"
+         ansible_cmd = f"{ansible_prefix}'{process}{yum_file_format}{file_name}'"
+      elif (function == 'conda'):
+          ansible_cmd = f"{ansible_prefix}'{process}{conda_file_format}{file_name}'"
       else:
-         ansible_cmd = f"{ansible_prefix}'{process} > {file_name}'"    
- 
+         ansible_cmd = f"{ansible_prefix}'{process} > {file_name}'"
+
       print (f"\n*ENGINEERING MODE* INFO - Checking for {file_name} Data on Client Node\n")
       cmd = f"ssh {remote_access} ls | grep {file_name}"
       find_file, err, rc = sub_proc_exec(cmd, shell=True)
       find_file_formatted = find_file.rstrip("\n\r")
 
-      #code.interact(banner='Debug', local=dict(globals(), **locals())) 
+      #code.interact(banner='Debug', local=dict(globals(), **locals()))
 
       if find_file_formatted == f'{file_name}':
          print (f"\n*ENGINEERING MODE* INFO - {file_name} data exists on client node!\n")
@@ -84,8 +89,8 @@ def pre_post_file_collect(task):
          my_file = Path(f'{local_dir}{dbfile}')
          if my_file.is_file():
             print("\n*ENGINEERING MODE* INFO - A copy of the data exists locally!")
-            override = input("\nAction Required: " 
-                             "\n1) Override Data" 
+            override = input("\nAction Required: "
+                             "\n1) Override Data"
                              "\n2) Make local file as backup version"
                              "\n3) Continue with Installer"
                              "\n4) Exit software installer\n")
@@ -94,7 +99,7 @@ def pre_post_file_collect(task):
                sub_proc_display(f'{data_copy_cmd}', shell=True)
                menu = False
             elif override == "2":
-               print ("*ENGINEERING MODE* INFO - Backing up local data copy\n") 
+               print ("*ENGINEERING MODE* INFO - Backing up local data copy\n")
                create_backup = (f"mv {local_dir}{file_name} "
                                 f"{local_dir}backup_{file_name}")
                sub_proc_display(f'{create_backup}',shell=True)
@@ -119,8 +124,8 @@ def pre_post_file_collect(task):
    host_path = get_playbooks_path() +'/software_hosts'
    tasks_list = [
                  'yum_update_cache.yml'
-                 ] 
-  
+                 ]
+
    if (task in tasks_list):
       file_collecter(file_name="client_yum_pre_list.txt",
                      process="yum list installed")
@@ -132,9 +137,12 @@ def pre_post_file_collect(task):
 
 										#dlipy3_env
       # Create dlipy3 test environment
+
+      print (f"\n*ENGINEERING MODE* INFO - Creating dlipy3_test environment\n")
       sub_proc_display(f"ansible all -i {host_path} -m shell -a "
                        "'/opt/anaconda3/bin/conda "
-                       "create --name dlipy3_test --yes pip python=3.6'",
+                       "create --name dlipy3_test --yes pip python=3.6'"
+                       " --become --ask-become-pas",
                        shell=True)
 
       # Activate dlipy3_test and gather pre pip_list
@@ -147,19 +155,20 @@ def pre_post_file_collect(task):
                      process='source /opt/anaconda3/bin/activate dlipy3_test;'
                              'conda list')
 
-      
 										#dlipy2_env
       # Create dlipy2_test environment
+      print (f"\n*ENGINEERING MODE* INFO - Creating dlipy2_test environment\n")
       sub_proc_display(f"ansible all -i {host_path} -m shell -a "
                        "'/opt/anaconda3/bin/conda "
-                       "create --name dlipy2_test --yes pip python=2.7'",
+                       "create --name dlipy2_test --yes pip python=2.7'"
+                       " --become --ask-become-pas",
                        shell=True)
 
-      # Activate dlipy2_test env and gather pre pip_list 
+      # Activate dlipy2_test env and gather pre pip_list
       file_collecter(file_name='dlipy2_pip_pre_install.txt',
                      process='source /opt/anaconda3/bin/activate dlipy2_test; '
-                             '~/.conda/envs/dlipy2_test/bin/pip list')
- 
+                             '/opt/anaconda3/envs/dlipy2_test/bin/pip list')
+
       # Activate dlipy2_test env and gather pre conda_list
       file_collecter(file_name='dlipy2_conda_pre_install.txt',
                      process='source /opt/anaconda3/bin/activate dlipy2_test; '
@@ -179,11 +188,11 @@ def pre_post_file_collect(task):
                              'conda list')
 
 										#post_dlipy2
-      # Activate dlipy2 and gather post pip_list 
+      # Activate dlipy2 and gather post pip_list
       file_collecter(file_name='dlipy2_pip_post_install.txt',
                      process='source /opt/anaconda3/bin/activate dlipy2; '
-                             '~/.conda/envs/dlipy2/bin/pip list')
-      
+                             '/opt/anaconda3/envs/dlipy2/bin/pip list')
+
       # Activate dlipy2 and gather post conda_list
       file_collecter(file_name='dlipy2_conda_post_install.txt',
                      process='source /opt/anaconda3/bin/activate dlipy2; '
