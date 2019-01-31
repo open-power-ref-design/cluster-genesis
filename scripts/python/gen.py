@@ -28,7 +28,7 @@ import enable_deployer_networks
 import enable_deployer_gateway
 import validate_cluster_hardware
 import configure_mgmt_switches
-import osinstall
+#import osinstall
 import remove_client_host_keys
 from lib.utilities import scan_ping_network, sub_proc_exec
 import download_os_images

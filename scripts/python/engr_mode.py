@@ -154,6 +154,18 @@ def pre_post_file_collect(task):
       file_collecter(file_name='dlipy3_conda_pre_install.txt',
                      process='source /opt/anaconda3/bin/activate dlipy3_test;'
                              'conda list')
+                                        #dlinsights_env
+
+      # Activate dlinsights and gather pre pip_list
+      file_collecter(file_name='dlinsights_pip_pre_install.txt',
+                     process='source /opt/anaconda3/bin/activate dlipy3_test;'
+                             '/opt/anaconda3/envs/dlipy3_test/bin/pip list')
+
+      # Activate dlinsights env and gather pre conda_list
+      file_collecter(file_name='dlinsights_conda_pre_install.txt',
+                     process='source /opt/anaconda3/bin/activate dlipy3_test;'
+                             'conda list')
+
 
 										#dlipy2_env
       # Create dlipy2_test environment
@@ -185,6 +197,17 @@ def pre_post_file_collect(task):
       # Activate dlipy3 env and gather post conda_list
       file_collecter(file_name='dlipy3_conda_post_install.txt',
                      process='source /opt/anaconda3/bin/activate dlipy3; '
+                             'conda list')
+
+                                        #post_dlinsights
+      # Activate dlinsights and gather post pip_list
+      file_collecter(file_name='dlinsights_pip_post_install.txt',
+                     process='source /opt/anaconda3/bin/activate dlinsights; '
+                             '/opt/anaconda3/envs/dlinsights/bin/pip list')
+
+      # Activate dlinsights env and gather post conda_list
+      file_collecter(file_name='dlinsights_conda_post_install.txt',
+                     process='source /opt/anaconda3/bin/activate dlinsights; '
                              'conda list')
 
 										#post_dlipy2
