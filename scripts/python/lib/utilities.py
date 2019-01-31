@@ -922,3 +922,80 @@ def get_col_pos(tbl, hdrs, row_char='-'):
                 break
 
     return col_idx
+
+
+def nginx_modify_conf(conf_path, directives={}, locations={}, reload=True,
+                      clear=False):
+    """Create/modify nginx configuration file
+
+    Directives are defined in a dictionary, e.g.:
+
+        directives={'listen': 80', 'server_name': 'powerup'}
+
+    Locations are defined in a dictionary with values as strings or lists,
+    e.g.:
+
+        locations={'/': ['root /srv', 'autoindex on'],
+                   '/cobbler': 'alias /var/www/cobbler'}
+
+    *note: Semicolons (;) are auto added if not present
+
+    Args:
+        conf_path (str): Path to nginx configuration file
+        directives (dict, optional): Server directives
+        locations (dict, optional): Location definitions
+        reload (bool, optional): Reload nginx after writing config
+        clear (bool, optional): Remove any existing configuration data
+
+    Returns:
+        int: Return code from nginx reload command
+    """
+
+    collecting_directive_data = False
+    collecting_location_data = False
+    current_location = None
+
+    if not clear and os.path.isfile(conf_path):
+        with open(conf_path, 'r') as file_object:
+            for line in file_object:
+                if 'server {' in line:
+                    collecting_directive_data = True
+                elif 'location' in line:
+                    collecting_directive_data = False
+                    current_location = line.strip()[9:-2]
+                    if current_location not in locations:
+                        collecting_location_data = True
+                        locations[current_location] = []
+                    else:
+                        current_location = None
+                elif '}' in line and collecting_location_data:
+                    collecting_location_data = False
+                    current_location = None
+                elif collecting_location_data:
+                    locations[current_location].append(line.strip())
+                elif '}' in line and collecting_directive_data:
+                    collecting_directive_data = False
+                elif collecting_directive_data:
+                    data_split = line.split(maxsplit=1)
+                    if data_split[0] not in directives:
+                        directives[data_split[0]] = data_split[1].strip()
+
+    with open(conf_path, 'w') as file_object:
+        file_object.write('server {\n')
+
+        for key, value in directives.items():
+            if not value.endswith(';'):
+                value = value + ';'
+            file_object.write(f'    {key} {value}\n')
+
+        for key, value_list in locations.items():
+            file_object.write(f'    location {key} ' + '{\n')
+            if type(value_list) is str:
+                value_list = value_list.split('\n')
+            for value in value_list:
+                if not value.endswith(';'):
+                    value = value + ';'
+                file_object.write(f'        {value}\n')
+            file_object.write('    }\n')
+
+        file_object.write('}\n')
