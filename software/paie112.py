@@ -40,7 +40,8 @@ from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
     PowerupPypiRepoFromRepo, get_name_dir
 from software_hosts import get_ansible_inventory, validate_software_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, Color, \
-    get_selection, get_yesno, rlinput, bold, ansible_pprint, replace_regex
+    get_selection, get_yesno, rlinput, bold, ansible_pprint, replace_regex, \
+    nginx_modify_conf
 from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path
 
 
@@ -457,6 +458,12 @@ class software(object):
 
         # nginx setup
         self._nginx_setup()
+        nginx_location = {'/': ['root /srv', 'autoindex on']}
+        nginx_directives = {'listen': '80', 'server_name': 'powerup'}
+
+        nginx_modify_conf('/etc/nginx/conf.d/server1.conf',
+                          directives=nginx_directives,
+                          locations=nginx_location)
 
         # Get PowerAI base
         name = 'PowerAI content'
@@ -1246,23 +1253,6 @@ class software(object):
                           '/etc/nginx/conf.d/default.conf.bak')
             except OSError:
                 self.log.warning('Failed renaming /etc/nginx/conf.d/default.conf')
-
-        if not os.path.isfile('/etc/nginx/conf.d/default.conf'):
-            with open('/etc/nginx/conf.d/server1.conf', 'w') as f:
-                f.write('server {\n')
-                f.write('    listen       80;\n')
-                f.write('    server_name  powerup;\n\n')
-                f.write('    location / {\n')
-                f.write('        root   /srv;\n')
-                f.write('        autoindex on;\n')
-                f.write('    }\n')
-                f.write('}\n')
-
-        cmd = 'nginx -s reload'
-        _, _, rc = sub_proc_exec(cmd)
-        if rc != 0:
-            self.log.warning('Failed reloading nginx configuration')
-
 
     def _add_dependent_packages(self, repo_dir, dep_list):
         cmd = (f'yumdownloader --archlist={self.arch} --destdir '

@@ -19,11 +19,11 @@ set -e
 source /etc/os-release
 
 if [[ $ID == "rhel" ]]; then
-    sudo yum -y install PyYAML apr apr-util debmirror dnsmasq fence-agents \
-        genisoimage libusal libwebp libyaml mailcap mkisofs mod_wsgi \
-        net-tools pykickstart python-backports \
-        python-backports-ssl_match_hostname python-cheetah python-ipaddress \
-        python-markdown python-netaddr python-pillow \
-        python-pygments python-setuptools python2-pyyaml python2-simplejson \
-        tftp-server wget xorriso
+    sudo yum --setopt=skip_missing_names_on_install=False -y install \
+        PyYAML apr apr-util debmirror dnsmasq fence-agents genisoimage \
+        libusal libwebp libyaml mailcap mkisofs mod_wsgi net-tools \
+        pykickstart python-backports python-backports-ssl_match_hostname \
+        python-cheetah python-ipaddress python-markdown python-netaddr \
+        python-pillow python-pygments python-setuptools python2-pyyaml \
+        python2-simplejson tftp-server wget xorriso
 fi

@@ -26,7 +26,6 @@ from netaddr import IPNetwork
 from git import Repo
 from distro import linux_distribution
 import yaml
-import fileinput
 
 from lib.config import Config
 import lib.genesis as gen
@@ -176,13 +175,11 @@ def cobbler_install(config_path=None):
             COBBLER_WEB_CONF='/etc/httpd/conf.d/cobbler_web.conf')
         globals().update(NTPD='ntpd')
         globals().update(HTTPD='nginx')
-        for line in fileinput.input(NGINX_CONF, inplace=1):
-            if re.match('^}', line):
-                print('    location /cobbler_api {')
-                print('        rewrite ^/cobbler_api/?(.*) /$1 break;')
-                print('        proxy_pass http://127.0.0.1:25151;')
-                print('    }')
-            print(line, end='')
+
+        cobbler_nginx_location = {
+            '/cobbler_api': ['rewrite ^/cobbler_api/?(.*) /$1 break;',
+                             'proxy_pass http://127.0.0.1:25151;']}
+        util.nginx_modify_conf(NGINX_CONF, locations=cobbler_nginx_location)
 
     # Backup original files
     util.backup_file(DNSMASQ_TEMPLATE)

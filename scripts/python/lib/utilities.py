@@ -932,8 +932,8 @@ def nginx_modify_conf(conf_path, directives={}, locations={}, reload=True,
 
         directives={'listen': 80', 'server_name': 'powerup'}
 
-    Locations are defined in a dictionary with values as strings or lists,
-    e.g.:
+    Locations are defined in a dictionary with values as strings or
+    lists, e.g.:
 
         locations={'/': ['root /srv', 'autoindex on'],
                    '/cobbler': 'alias /var/www/cobbler'}
@@ -948,7 +948,9 @@ def nginx_modify_conf(conf_path, directives={}, locations={}, reload=True,
         clear (bool, optional): Remove any existing configuration data
 
     Returns:
-        int: Return code from nginx reload command
+        int: Return code from nginx syntax check ('nginx -t')
+             If syntax check rc=0 and reload=True the return code
+             from 'nginx -s reload'
     """
 
     collecting_directive_data = False
@@ -956,6 +958,7 @@ def nginx_modify_conf(conf_path, directives={}, locations={}, reload=True,
     current_location = None
 
     if not clear and os.path.isfile(conf_path):
+        LOG.debug(f"Loading existing nginx config: '{conf_path}")
         with open(conf_path, 'r') as file_object:
             for line in file_object:
                 if 'server {' in line:
@@ -980,6 +983,7 @@ def nginx_modify_conf(conf_path, directives={}, locations={}, reload=True,
                     if data_split[0] not in directives:
                         directives[data_split[0]] = data_split[1].strip()
 
+    LOG.debug(f"Writing nginx config: '{conf_path}")
     with open(conf_path, 'w') as file_object:
         file_object.write('server {\n')
 
@@ -999,3 +1003,19 @@ def nginx_modify_conf(conf_path, directives={}, locations={}, reload=True,
             file_object.write('    }\n')
 
         file_object.write('}\n')
+
+    cmd = (f'nginx -t -c {conf_path}')
+    stdout, stderr, rc = sub_proc_exec(cmd)
+    LOG.debug(f"Command: \'{cmd}\'\nstdout: \'{stdout}\'\n"
+              f"stderr: \'{stderr}\'\nrc: {rc}")
+    if rc != 0:
+        LOG.warning('Nginx configuration check failed')
+    elif reload:
+        cmd = ('nginx -s reload')
+        stdout, stderr, rc = sub_proc_exec(cmd)
+        LOG.debug(f"Command: \'{cmd}\'\nstdout: \'{stdout}\'\n"
+                  f"stderr: \'{stderr}\'\nrc: {rc}")
+        if rc != 0:
+            LOG.warning('Nginx configuration reload failed')
+
+    return rc
