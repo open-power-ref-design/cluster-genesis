@@ -90,7 +90,7 @@ def main():
                 pkg_items = pkg.split()
                 rpm_repo = pkg_items[2]
                 pkg_fmt_name = (pkg_items[0].rsplit('.', 1)[0] + '-' +
-                                pkg_items[1] + '-' + pkg_items[0].rsplit('.', 1)[1])
+                                pkg_items[1] + '.' + pkg_items[0].rsplit('.', 1)[1])
                 post_pkg_list.append([pkg_fmt_name, rpm_repo])
                 if rpm_repo not in repo_list:
                     repo_list.append(rpm_repo)
