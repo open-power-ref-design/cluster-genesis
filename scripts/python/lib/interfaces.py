@@ -19,7 +19,6 @@ import argparse
 import time
 from pyroute2 import IPRoute
 import re
-import code
 
 import lib.logger as logger
 from lib.utilities import is_overlapping_addr, add_offset_to_address,\
@@ -166,7 +165,6 @@ class Interfaces(IPRoute):
             for route in ifcs_routes[ifc]:
                 if is_overlapping_addr(route_cidr, route):
                     if not (ifc_name == ifc and route_cidr == route):
-                        code.interact(banner='Everywhere', local=dict(globals(), **locals()))
                         return ifc
 
     def get_interfaces_names(self, _type='all', exclude=''):

@@ -25,6 +25,7 @@ from collections import namedtuple
 from pyroute2 import IPRoute
 import sys
 from time import sleep
+import code
 
 import lib.logger as logger
 import lib.interfaces as interfaces
@@ -79,15 +80,23 @@ class Profile():
         """
         return self.profile
 
-    def get_profile_tuple(self):
-        """Returns a named tuple constucted from the profile data
-        OS install code should generally use this method to get the
+    def get_network_profile(self):
+        """Returns an ordered attribute dictionary with the network profile data.
+        This is generally intended for use by the entry menu, not by application
+        code
+        """
+        return self.profile.network
+
+    def get_network_profile_tuple(self):
+        """Returns a named tuple constucted from the network profile data
+        OS install code should generally use this method to get the network
         profile data.
         """
-        p = self.get_profile()
+        p = self.get_network_profile()
         _list = []
         vals = ()
         for item in p:
+            #code.interact(banner='get profile', local=dict(globals(), **locals()))
             if 'subnet_prefix' in item:
                 # split the subnet prefix field into netmask and prefix
                 _list.append(item)
@@ -105,8 +114,51 @@ class Profile():
         proftup = namedtuple('ProfTup', _list)
         return proftup._make(vals)
 
-    def update_profile(self, profile):
-        self.profile = profile
+    def update_network_profile(self, profile):
+        self.profile.network = profile
+        with open(GEN_PATH + 'profile.yml', 'w') as f:
+            yaml.dump(self.profile, f, indent=4, default_flow_style=False)
+
+    def get_node_profile(self):
+        """Returns an ordered attribute dictionary with the network profile data.
+        This is generally intended for use by the entry menu, not by application
+        code
+        """
+        return self.profile.node
+
+    def get_node_profile_tuple(self):
+        """Returns a named tuple constucted from the network profile data
+        OS install code should generally use this method to get the network
+        profile data.
+        """
+        n = self.get_node_profile()
+        _list = []
+        vals = ()
+        for item in n:
+            _list.append(item)
+            vals += (n[item].val,)
+
+            #code.interact(banner='get profile', local=dict(globals(), **locals()))
+#            if 'subnet_prefix' in item:
+#                # split the subnet prefix field into netmask and prefix
+#                _list.append(item)
+#                _list.append(item.replace('_prefix', '_mask'))
+#                vals += (p[item].val.split()[1],)
+#                vals += (p[item].val.split()[0],)
+#            else:
+#                _list.append(item)
+#                vals += (p[item].val,)
+
+#        _list.append('bmc_subnet_cidr')
+#        vals += (p.bmc_subnet.val + '/' + p.bmc_subnet_prefix.val.split()[1],)
+#        _list.append('pxe_subnet_cidr')
+#        vals += (p.pxe_subnet.val + '/' + p.pxe_subnet_prefix.val.split()[1],)
+
+        proftup = namedtuple('ProfTup', _list)
+        return proftup._make(vals)
+
+    def update_node_profile(self, profile):
+        self.profile.node = profile
         with open(GEN_PATH + 'profile.yml', 'w') as f:
             yaml.dump(self.profile, f, indent=4, default_flow_style=False)
 
@@ -119,10 +171,14 @@ class OSinstall(npyscreen.NPSAppManaged):
         self.log = logger.getlogger()
         # create an Interfaces instance
         self.ifcs = interfaces.Interfaces()
+        self.NODE_FORM = False
 
     def onStart(self):
-        self.addForm('MAIN', OSinstall_form, name='Welcome to PowerUP    '
-                     'Press F1 in any field for field help')
+        self.addForm('MAIN', Network_form, name='Welcome to PowerUP    '
+                     'Press F1 for field help', lines=24)
+
+        self.addForm('NODE', Node_form, name='Welcome to PowerUP    '
+                     'Press F1 for field help')
 
     def is_valid_profile(self, prof):
         """ Validates the content of the profile data.
@@ -130,6 +186,9 @@ class OSinstall(npyscreen.NPSAppManaged):
             msg (str) empty if passed, else contains warning and error msg
         """
         msg = ''
+        #code.interact(banner='here', local=dict(globals(), **locals()))
+        if hasattr(prof, 'bmc_userid'):
+            return msg
         # Since the user can skip fields by mouse clicking 'OK'
         # We need additional checking here:
         #  Need to add checks of iso file (check extension)
@@ -209,14 +268,19 @@ class OSinstall(npyscreen.NPSAppManaged):
 #                self.log.error(f'Error occurred removing route from {bmc_ifc}')
 
 
-class OSinstall_form(npyscreen.ActionFormV2):
+class Network_form(npyscreen.ActionFormV2):
     def afterEditing(self):
         self.parentApp.setNextForm(self.next_form)
 
     def on_cancel(self):
         res = npyscreen.notify_yes_no('Quit without saving?', title='cancel 1',
                                       editw=1)
-        self.next_form = None if res else 'MAIN'
+        if res and self.parentApp.NODE_FORM:
+            self.next_form = 'NODE'
+        elif res:
+            self.next_form = None
+        else:
+            self.next_form = 'MAIN'
 
     def on_ok(self):
         for item in self.prof:
@@ -251,8 +315,8 @@ class OSinstall_form(npyscreen.ActionFormV2):
                 res = npyscreen.notify_yes_no(msg, title='Profile validation', editw=1)
 
         if res:
-            self.parentApp.prof.update_profile(self.prof)
-            self.next_form = None
+            self.parentApp.prof.update_network_profile(self.prof)
+            self.next_form = 'NODE'
         else:
             self.next_form = 'MAIN'
 
@@ -264,6 +328,7 @@ class OSinstall_form(npyscreen.ActionFormV2):
             if instance.name == self.prof[item].desc:
                 field = item
                 break
+        # On instantiation, self.prev_field is empty
         if self.prev_field:
             if hasattr(self.prof[self.prev_field], 'dtype'):
                 prev_fld_dtype = self.prof[self.prev_field]['dtype']
@@ -345,17 +410,12 @@ class OSinstall_form(npyscreen.ActionFormV2):
             elif 'eth-ifc' in prev_fld_ftype:
                 pass
 
-
-#        if instance.name == 'Press me':
-#            if self.press_me_butt.value == True:
-#                pass
-
         if field:
             self.prev_field = field
         else:
             self.prev_field = ''
 
-        if instance.name not in ['OK', 'Cancel', 'CANCEL']:
+        if instance.name not in ['OK', 'Cancel', 'CANCEL', 'Press me']:
             self.helpmsg = self.prof[field].help
         else:
             self.prev_field = ''
@@ -367,10 +427,11 @@ class OSinstall_form(npyscreen.ActionFormV2):
         npyscreen.notify_yes_no(f'Field Error: {self.field}', title='Enter', editw=1)
 
     def create(self):
-        self.helpmsg = 'help help'
+        self.y, self.x = self.useable_space()
         self.prev_field = ''
-        self.prof = self.parentApp.prof.get_profile()
+        self.prof = self.parentApp.prof.get_network_profile()
         self.fields = {}  # dictionary for holding field instances
+
         for item in self.prof:
             fname = self.prof[item].desc
             if hasattr(self.prof[item], 'floc'):
@@ -441,8 +502,263 @@ class OSinstall_form(npyscreen.ActionFormV2):
             self.fields[item].entry_widget.add_handlers({curses.KEY_F1:
                                                         self.h_help})
 
-#        self.press_me_butt = self.add(npyscreen.MiniButtonPress,
-#                                     name='Press me')
+
+class Node_form(npyscreen.ActionFormV2):
+    def beforeEditing(self):
+        # Set NODE_FORM so other forms can know that the node form was entered
+        self.parentApp.NODE_FORM = True
+
+    def afterEditing(self):
+        self.parentApp.setNextForm(self.next_form)
+
+    def on_cancel(self):
+        res = npyscreen.notify_yes_no('Quit without saving?', title='cancel 1',
+                                      editw=1)
+        self.next_form = None if res else 'NODE'
+
+    def on_ok(self):
+        for item in self.node:
+            if hasattr(self.node[item], 'ftype'):
+                if self.node[item]['ftype'] == 'eth-ifc':
+                    self.node[item]['val'] = self.fields[item].values[self.fields[item].value]
+                elif self.node[item]['ftype'] == 'select-one':
+                    self.node[item]['val'] = \
+                        self.node[item]['values'][self.fields[item].value[0]]
+                else:
+                    if self.fields[item].value == 'None':
+                        self.node[item]['val'] = None
+                    else:
+                        self.node[item]['val'] = self.fields[item].value
+            else:
+                if self.fields[item].value == 'None':
+                    self.node[item]['val'] = None
+                else:
+                    self.node[item]['val'] = self.fields[item].value
+
+        msg = self.parentApp.is_valid_profile(self.node)
+        res = True
+        if msg:
+            if 'Error' in msg:
+                npyscreen.notify_confirm(f'{msg}\n Please resolve issues.',
+                                         title='cancel 1', editw=1)
+                self.next_form = 'MAIN'
+                res = False
+            else:
+                msg = (msg + '--------------------- \nBegin OS install?\n'
+                       '(No to continue editing the profile data.)')
+                res = npyscreen.notify_yes_no(msg, title='Profile validation', editw=1)
+
+        if res:
+            self.parentApp.prof.update_node_profile(self.node)
+            self.next_form = None
+        else:
+            self.next_form = 'MAIN'
+
+    def while_editing(self, instance):
+        # instance is the instance of the widget you're moving into
+        # map instance.name
+        field = ''
+        for item in self.node:
+            if instance.name == self.node[item].desc:
+                field = item
+                break
+        # On instantiation, self.prev_field is empty
+        if self.prev_field:
+            if hasattr(self.node[self.prev_field], 'dtype'):
+                prev_fld_dtype = self.node[self.prev_field]['dtype']
+            else:
+                prev_fld_dtype = 'text'
+            if hasattr(self.node[self.prev_field], 'ftype'):
+                prev_fld_ftype = self.node[self.prev_field]['ftype']
+            else:
+                prev_fld_ftype = 'text'
+
+            val = self.fields[self.prev_field].value
+
+            if prev_fld_dtype == 'ipv4' or 'ipv4-' in prev_fld_dtype:
+                if not u.is_ipaddr(val):
+                    npyscreen.notify_confirm(f'Invalid Field value: {val}',
+                                             title=self.prev_field, editw=1)
+                else:
+                    if 'ipv4-' in prev_fld_dtype:
+                        mask_field = prev_fld_dtype.split('-')[-1]
+                        prefix = int(self.fields[mask_field].value.split()[-1])
+                        net_addr = u.get_network_addr(val, prefix)
+                        if net_addr != val:
+                            npyscreen.notify_confirm(f'IP addr modified to: {net_addr}',
+                                                     title=self.prev_field, editw=1)
+                            self.fields[self.prev_field].value = net_addr
+                            self.display()
+
+            elif prev_fld_dtype == 'ipv4mask':
+                prefix = int(val.split()[-1])
+                if prefix < 1 or prefix > 32:
+                    npyscreen.notify_confirm(f'Invalid Field value: {val}',
+                                             title=self.prev_field, editw=1)
+                    prefix = 24
+                if len(val.split()[-1]) == 2:
+                    mask = u.get_netmask(prefix)
+                    self.fields[self.prev_field].value = f'{mask} {prefix}'
+                    self.display()
+
+            elif 'int-or-none' in prev_fld_dtype:
+                rng = self.node[self.prev_field]['dtype'].lstrip('int-or-none').\
+                    split('-')
+                if val:
+                    val = val.strip(' ')
+                if val and val != 'None':
+                    try:
+                        int(val)
+                    except ValueError:
+                        npyscreen.notify_confirm(f"Enter digits 0-9 or enter 'None' "
+                                                 "or leave blank",
+                                                 title=self.prev_field, editw=1)
+                    else:
+                        if int(val) < int(rng[0]) or int(val) > int(rng[1]):
+                            msg = (f'Invalid Field value: {val}. Please leave empty or '
+                                   'enter a value between 2 and 4094.')
+                            npyscreen.notify_confirm(msg, title=self.prev_field, editw=1)
+
+            elif 'int' in prev_fld_dtype:
+                rng = self.node[self.prev_field]['dtype'].lstrip('int').split('-')
+                if val:
+                    try:
+                        int(val)
+                    except ValueError:
+                        npyscreen.notify_confirm(f'Enter digits 0-9',
+                                                 title=self.prev_field, editw=1)
+                    else:
+                        if int(val) < int(rng[0]) or int(val) > int(rng[1]):
+                            msg = (f'Invalid Field value: {val}. Please enter a value '
+                                   f'between 2 and 4094.')
+                            npyscreen.notify_confirm(msg, title=self.prev_field, editw=1)
+
+            elif 'file' in prev_fld_dtype:
+                if not os.path.isfile(val):
+                    npyscreen.notify_confirm(f'Specified iso file does not exist: {val}',
+                                             title=self.prev_field, editw=1)
+                elif '-iso' in prev_fld_dtype and '.iso' not in val:
+                    npyscreen.notify_confirm('Warning, the selected file does not have a '
+                                             '.iso extension',
+                                             title=self.prev_field, editw=1)
+            elif 'eth-ifc' in prev_fld_ftype:
+                pass
+
+
+        if instance.name == 'Press me':
+            if self.press_me_butt.value == True:
+                npyscreen.notify_confirm('Hey, you pressed me',
+                                         title=self.prev_field, editw=1)
+
+        if field:
+            self.prev_field = field
+        else:
+            self.prev_field = ''
+
+        if instance.name not in ['OK', 'Cancel', 'CANCEL', 'Edit network config', 'Scan for nodes']:
+            self.helpmsg = self.node[field].help
+        else:
+            self.prev_field = ''
+
+    def h_help(self, char):
+        npyscreen.notify_confirm(self.helpmsg, title=self.prev_field, editw=1)
+
+    def h_enter(self, char):
+        npyscreen.notify_yes_no(f'Field Error: {self.field}', title='Enter', editw=1)
+
+    def when_press_edit_networks(self):
+        #npyscreen.notify_confirm('You press the me button')
+        self.next_form = 'MAIN'
+        self.parentApp.switchForm('MAIN')
+
+    def scan_for_nodes(self):
+        npyscreen.notify_confirm('Scanning for nodes')
+
+    def create(self):
+        self.y, self.x = self.useable_space()
+        self.prev_field = ''
+        self.node = self.parentApp.prof.get_node_profile()
+        self.fields = {}  # dictionary for holding field instances
+
+        for item in self.node:
+            fname = self.node[item].desc
+            if hasattr(self.node[item], 'floc'):
+                if self.node[item]['floc'] == 'skipline':
+                    self.nextrely += 1
+
+                if 'sameline' in self.node[item]['floc']:
+                    relx = int(self.node[item]['floc'].lstrip('sameline'))
+                else:
+                    relx = 2
+            else:
+                relx = 2
+            # Place the field
+            if hasattr(self.node[item], 'ftype'):
+                ftype = self.node[item]['ftype']
+            else:
+                ftype = 'text'
+            if hasattr(self.node[item], 'dtype'):
+                dtype = self.node[item]['dtype']
+            else:
+                dtype = 'text'
+
+            if ftype == 'file':
+                if not self.node[item]['val']:
+                    self.node[item]['val'] = os.path.join(GEN_PATH, 'os-images')
+                self.fields[item] = self.add(npyscreen.TitleFilenameCombo,
+                                             name=fname,
+                                             value=str(self.node[item]['val']),
+                                             begin_entry_at=20)
+
+            elif 'ipv4mask' in dtype:
+                self.fields[item] = self.add(npyscreen.TitleText, name=fname,
+                                             value=str(self.node[item]['val']),
+                                             begin_entry_at=20, width=40,
+                                             relx=relx)
+            elif 'eth-ifc' in ftype:
+                eth = self.node[item]['val']
+                eth_lst = self.parentApp.ifcs.get_up_interfaces_names(_type='phys')
+                # Get the existing value to the top of the list
+                if eth in eth_lst:
+                    eth_lst.remove(eth)
+                eth_lst = [eth] + eth_lst if eth else eth_lst
+                self.fields[item] = self.add(npyscreen.TitleCombo,
+                                             name=fname,
+                                             value=0,
+                                             values=eth_lst,
+                                             begin_entry_at=20,
+                                             scroll_exit=False)
+            elif ftype == 'select-one':
+                if hasattr(self.node[item], 'val'):
+                    value = self.node[item]['values'].index(self.node[item]['val'])
+                else:
+                    value = 0
+                self.fields[item] = self.add(npyscreen.TitleSelectOne, name=fname,
+                                             max_height=2,
+                                             value=value,
+                                             values=self.node[item]['values'],
+                                             scroll_exit=True,
+                                             begin_entry_at=20, relx=relx)
+
+            # no ftype specified therefore Title text
+            else:
+                self.fields[item] = self.add(npyscreen.TitleText,
+                                             name=fname,
+                                             value=str(self.node[item]['val']),
+                                             begin_entry_at=20, width=40,
+                                             relx=relx)
+            self.fields[item].entry_widget.add_handlers({curses.KEY_F1:
+                                                        self.h_help})
+
+        self.scan_for_nodes = self.add(npyscreen.MiniButtonPress,
+                                       when_pressed_function=self.scan_for_nodes,
+                                       name='Scan for nodes',
+                                       rely=-3)
+
+        self.edit_networks = self.add(npyscreen.MiniButtonPress,
+                                      when_pressed_function=self.when_press_edit_networks,
+                                      name='Edit network config',
+                                      rely=-3, relx=25)
 
 
 def validate(profile_tuple):
@@ -461,18 +777,21 @@ def main(prof_path):
     try:
         osi = OSinstall(prof_path)
         osi.run()
-        routes = osi.ifcs.get_interfaces_routes()
-        for route in routes:
-            print(f'{route:<12}: {routes[route]}')
-        p = osi.get_profile_tuple()
+#        routes = osi.ifcs.get_interfaces_routes()
+#        for route in routes:
+#            print(f'{route:<12}: {routes[route]}')
+        pro = Profile(prof_path)
+        p = pro.get_network_profile_tuple()
         log.debug(p)
+        n = pro.get_node_profile_tuple()
+        #code.interact(banner='here', local=dict(globals(), **locals()))
 #        res = osi.ifcs.get_interfaces_names()
 #        print(res)
 #        res = osi.ifcs.get_up_interfaces_names('phys')
 #        print(res)
-        osi.config_interfaces()
-        validate(p)
-        print(p)
+#        osi.config_interfaces()
+#        validate(p)
+#        print(p)
     except KeyboardInterrupt:
         log.info("Exiting at user request")
 
