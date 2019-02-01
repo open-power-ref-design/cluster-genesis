@@ -172,7 +172,7 @@ def main():
                 conda_pkg_items = pkg.split()
                 conda_repo = conda_pkg_items[3].rsplit('/',1)[1]
                 conda_pkg_fmt_name = (conda_pkg_items[0] + '-' + conda_pkg_items[1] +
-                                      '-' + conda_pkg_items[2]  + 'tar.bz2')
+                                      '-' + conda_pkg_items[2] + '.tar.bz2')
                 pre_conda_pkg_list.append([conda_pkg_fmt_name,conda_repo])
 
             post_conda_pkg_list = []
@@ -184,7 +184,7 @@ def main():
                 except IndexError:
                     conda_repo = "pip-pkgs"
                 conda_pkg_fmt_name = (conda_pkg_items[0] + '-' + conda_pkg_items[1] +
-                                      '-' + conda_pkg_items[2]  + 'tar.bz2')
+                                      '-' + conda_pkg_items[2]  + '.tar.bz2')
                 post_conda_pkg_list.append([conda_pkg_fmt_name,conda_repo])
                 if conda_repo not in conda_repo_list:
                     conda_repo_list.append(conda_repo)
