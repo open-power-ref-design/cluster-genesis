@@ -58,7 +58,8 @@ def main():
         pre      = f'{stage}_pre_{suffix}'
         post     = f'{stage}_post_{suffix}'
 
-        print (f'\nINFO - Current Stage: {stage} Current Function: {function} \n')
+        print (f'\nINFO - Current Stage   : {stage}\n'
+               f'       Current Function: {function}\n')
         #code.interact(banner='function status', local=dict(globals(), **locals()))
 
         if function == 'yum':
@@ -242,4 +243,4 @@ if __name__ == '__main__':
     #m.func1()
     #m.func2('hello')
     main()
-    print("\n INFO - Process Completed\n")
+    print("\nINFO - Process Completed\n")
