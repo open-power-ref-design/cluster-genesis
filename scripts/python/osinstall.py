@@ -36,8 +36,6 @@ GEN_SAMPLE_CONFIGS_PATH = get_sample_configs_path()
 
 IPR = IPRoute()
 
-logger.create('nolog', 'info')
-LOG = logger.getlogger()
 PROFILE = 'profile.yml'
 
 
@@ -372,7 +370,6 @@ class OSinstall_form(npyscreen.ActionFormV2):
         self.helpmsg = 'help help'
         self.prev_field = ''
         self.prof = self.parentApp.prof.get_profile()
-        self.eth_lst = self.parentApp.ifcs.get_up_interfaces_names(_type='phys')
         self.fields = {}  # dictionary for holding field instances
         for item in self.prof:
             fname = self.prof[item].desc
@@ -403,6 +400,7 @@ class OSinstall_form(npyscreen.ActionFormV2):
                                              name=fname,
                                              value=str(self.prof[item]['val']),
                                              begin_entry_at=20)
+
             elif 'ipv4mask' in dtype:
                 self.fields[item] = self.add(npyscreen.TitleText, name=fname,
                                              value=str(self.prof[item]['val']),
@@ -410,7 +408,7 @@ class OSinstall_form(npyscreen.ActionFormV2):
                                              relx=relx)
             elif 'eth-ifc' in ftype:
                 eth = self.prof[item]['val']
-                eth_lst = self.eth_lst
+                eth_lst = self.parentApp.ifcs.get_up_interfaces_names(_type='phys')
                 # Get the existing value to the top of the list
                 if eth in eth_lst:
                     eth_lst.remove(eth)
@@ -448,6 +446,7 @@ class OSinstall_form(npyscreen.ActionFormV2):
 
 
 def validate(profile_tuple):
+    LOG = logger.getlogger()
     if profile_tuple.bmc_address_mode == "dhcp" or profile_tuple.pxe_address_mode == "dhcp":
         hasDhcpServers = u.has_dhcp_servers(profile_tuple.ethernet_port)
         if not hasDhcpServers:
@@ -490,7 +489,5 @@ if __name__ == '__main__':
 
     if args.log_lvl_print == 'debug':
         print(args)
-        sys.exit('bye')
     logger.create('nolog', 'info')
-    log = logger.getlogger()
     main(args.prof_path)

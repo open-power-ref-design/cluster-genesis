@@ -64,6 +64,7 @@ COBBLER_USER = 'cobbler'
 COBBLER_PASS = 'cobbler'
 DHCP_POOL_START = 21
 SWITCH_LOCK_PATH = '/var/lock/'
+OS_IMAGES_URLS_FILENAME = 'os-image-urls.yml'
 
 
 class Color:
@@ -280,18 +281,32 @@ def get_dhcp_pool_start():
     return DHCP_POOL_START
 
 
-def check_os_profile(profile):
-    ubuntu_lts_pointers = {
+def get_os_profile_pointers():
+    return {
         "ubuntu-14.04-server-amd64": "ubuntu-14.04.5-server-amd64",
         "ubuntu-16.04-server-amd64": "ubuntu-16.04.5-server-amd64",
         "ubuntu-16.04-server-ppc64el": "ubuntu-16.04.5-server-ppc64el",
         "ubuntu-18.04-live-server-amd64": "ubuntu-18.04.1-live-server-amd64",
         "ubuntu-18.04-server-amd64": "ubuntu-18.04.1-server-amd64",
         "ubuntu-18.04-server-ppc64el": "ubuntu-18.04.1-server-ppc64el"}
+
+
+def check_os_profile(profile):
+    ubuntu_lts_pointers = get_os_profile_pointers()
     if profile in list(ubuntu_lts_pointers):
         return ubuntu_lts_pointers[profile]
     else:
         return profile
+
+
+def get_os_image_urls_yaml_path():
+    return (get_os_images_path() + "/" + OS_IMAGES_URLS_FILENAME)
+
+
+def get_os_image_urls():
+    os_image_urls_yaml_path = get_os_image_urls_yaml_path()
+    os_image_urls = yaml.load(open(os_image_urls_yaml_path))['os_image_urls']
+    return os_image_urls
 
 
 if os.path.isfile(GEN_PATH + "playbooks/host_vars/localhost"):

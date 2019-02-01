@@ -19,8 +19,11 @@
 
 from netaddr import IPNetwork
 import re
+import os
 
 from lib.exception import UserException, UserCriticalException
+from lib.genesis import get_os_images_path, get_os_profile_pointers, \
+    get_os_image_urls, get_os_image_urls_yaml_path
 
 
 class ValidateConfigLogic(object):
@@ -263,7 +266,7 @@ class ValidateConfigLogic(object):
                        'Label: {}\n'.format(label))
                 self.exc += msg
 
-    def _validata_software_bootstrap(self):
+    def _validate_software_bootstrap(self):
         valid_hosts = ['all']
 
         for ntmpl_ind, ntmpl_label in enumerate(self.cfg.yield_ntmpl_label()):
@@ -292,6 +295,40 @@ class ValidateConfigLogic(object):
                 msg = ('Valid hosts: {}'.format(valid_hosts))
                 self.exc += msg
 
+    def _validate_os_profiles(self):
+        os_images_path = get_os_images_path() + "/"
+
+        valid_os_profiles = []
+        for os_image_url in get_os_image_urls():
+            valid_os_profiles.append(os_image_url['name'])
+            valid_os_profiles.append(os_image_url['name'] + '.iso')
+        for os_profile_pointer in get_os_profile_pointers().keys():
+            valid_os_profiles.append(os_profile_pointer)
+
+        for os_image_dir_file in os.listdir(os_images_path):
+            if os.stat(os_images_path + os_image_dir_file).st_size > 0:
+                valid_os_profiles.append(os_image_dir_file)
+                if os_image_dir_file.endswith('.iso'):
+                    valid_os_profiles.append(os_image_dir_file[:-4])
+
+        msg = None
+        for os_profile in self.cfg.yield_ntmpl_os_profile():
+            if os_profile not in valid_os_profiles:
+                if msg is None:
+                    msg = '\n'
+                else:
+                    msg = ''
+                msg += ('No image file or download URL found for OS profile '
+                        f'\'{os_profile}\'\n')
+                self.exc += msg
+
+        if msg is not None:
+            msg = ('OS installation image(s) must be placed in '
+                   f'\'{os_images_path}\'\n'
+                   'URLs to auto download OS installation image(s) are '
+                   f'defined in \'{get_os_image_urls_yaml_path()}\'\n')
+            self.exc += msg
+
     def validate_config_logic(self):
         """Config logic validation"""
 
@@ -300,7 +337,8 @@ class ValidateConfigLogic(object):
         self._validate_deployer_networks()
         self._validate_dhcp_lease_time()
         self._validate_labels()
-        self._validata_software_bootstrap()
+        self._validate_software_bootstrap()
+        self._validate_os_profiles()
 
         if self.exc:
             raise UserCriticalException(self.exc)
