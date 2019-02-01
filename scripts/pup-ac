@@ -35,7 +35,7 @@ _pup()
     cmd="pup"
 
     sub_cmds=" setup config validate deploy post-deploy software utils osinstall"
-    comm_opts=" --help --all --log-level-file --log-level-print"
+    comm_opts=" --help --all --log-level-file --log-level-print --extra-vars"
 
     if [[ ${prev} == "$cmd" ]] && [[ ${cur} == -* ]]; then
         opts=$comm_opts
@@ -93,7 +93,7 @@ _pup()
     elif [[ ${prev} == validate ]]; then
         opts="--config-file --cluster-hardware"
     elif [[ ${prev} == deploy ]]; then
-        opts="--create-inventory --install-cobbler --download-os-images --extra-vars "
+        opts="--create-inventory --install-cobbler --download-os-images "
         opts+="--inv-add-ports-ipmi --inv-add-ports-pxe --reserve-ipmi-pxe-ips "
         opts+="--add-cobbler-distros --add-cobbler-systems --install-client-os "
         opts+="$comm_opts"
