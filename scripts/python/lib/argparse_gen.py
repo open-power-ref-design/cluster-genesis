@@ -85,6 +85,12 @@ def get_args(parser_args=False):
         help='Add log to stdout/stderr\nChoices: {}\nDefault: {}'.format(
             ','.join(LOG_LEVEL_CHOICES), LOG_LEVEL_PRINT[0]))
 
+    common_parser.add_argument(
+        '--extra-vars',
+        nargs=1,
+        metavar='EXTRA-VARS',
+        help='Provide extra variables to PowerUp')
+
     # Subparsers
     parser_setup = subparsers.add_parser(
         SETUP_CMD,

@@ -786,6 +786,5 @@ if __name__ == '__main__':
 
     if args.log_level_print[0] == 'debug':
         print('DEBUG - {}'.format(args))
-
     GEN = Gen(args)
     GEN.launch()
