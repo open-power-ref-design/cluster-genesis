@@ -187,7 +187,7 @@ def main():
                 conda_pkg_items = pkg.split()
                 #code.interact(banner='conda_pkg_items', local=dict(globals(), **locals()))
                 try:
-                    code.interact(banner='try', local=dict(globals(), **locals()))
+                    #code.interact(banner='try', local=dict(globals(), **locals()))
                     conda_repo = conda_pkg_items[-1].rsplit('/',1)[1]
                     if conda_repo:
                         conda_pkg_fmt_name = (conda_pkg_items[0] + '-' + conda_pkg_items[1] +
