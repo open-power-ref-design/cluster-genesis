@@ -182,27 +182,21 @@ def main():
 
             post_conda_pkg_list = []
             conda_repo_list = []
-            #code.interact(banner='conda_repo_list', local=dict(globals(), **locals()))
             for pkg in post_conda_pkgs:
                 conda_pkg_items = pkg.split()
-                #code.interact(banner='conda_pkg_items', local=dict(globals(), **locals()))
                 try:
-                    #code.interact(banner='try', local=dict(globals(), **locals()))
                     conda_repo = conda_pkg_items[-1].rsplit('/',1)[1]
                     if conda_repo:
                         conda_pkg_fmt_name = (conda_pkg_items[0] + '-' + conda_pkg_items[1] +
                                               '-' + conda_pkg_items[2] + '.tar.bz2')
                         post_conda_pkg_list.append([conda_pkg_fmt_name,conda_repo])
-                        #code.interact(banner='try yes', local=dict(globals(), **locals()))
                 except IndexError:
                     conda_repo = "pip-pkgs"
                     conda_pkg_fmt_name = (conda_pkg_items[0] + '==' + conda_pkg_items[1])
                     post_conda_pkg_list.append([conda_pkg_fmt_name,conda_repo])
-                    #code.interact(banner='try failed', local=dict(globals(), **locals()))
                 if conda_repo not in conda_repo_list:
                     conda_repo_list.append(conda_repo)
 
-            #code.interact(banner='conda_repo_list', local=dict(globals(), **locals()))
 
             for conda_repo in conda_repo_list:
                 conda_pkgs = []
@@ -257,7 +251,9 @@ def main():
                         except FileNotFoundError as exc:
                             pass
 
-                #code.interact(banner='end of loop', local=dict(globals(), **locals()))
+      #need to gather pip packages gathered from conda env??
+
+
 
             else:
                 pass
