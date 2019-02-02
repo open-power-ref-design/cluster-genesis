@@ -41,12 +41,13 @@ def main():
                      'dlipy2_conda_pre_install.txt',
                      'dlinsights_conda_pre_install.txt',
                     ]
+
     def file_staging(list_file):
 
         env      = list_file.split('_',4)[0]
         function = list_file.split('_',4)[1]
         stage    = list_file.split('_',4)[0] +'_' + list_file.split('_',4)[1]
-        return ([stage , function])
+        return ([stage , function, env])
 
 
     for pre in pre_list_file:
@@ -60,7 +61,6 @@ def main():
 
         print (f'\nINFO - Current Stage   : {stage}\n'
                f'       Current Function: {function}\n')
-        #code.interact(banner='function status', local=dict(globals(), **locals()))
 
         if function == 'yum':
 # RPM
@@ -76,7 +76,8 @@ def main():
             except FileNotFoundError as exc:
                 print(f'File not found: {dep_path}. Err: {exc}')
 
-            #code.interact(banner='function status', local=dict(globals(), **locals()))
+            #code.interact(banner='yum pre/post', local=dict(globals(), **locals()))
+
             pre_pkg_list = []
             for pkg in pre_rpm_pkgs:
                 #found = re.search(r'([\w\.\-]+)\s+([\w\.\-\:]+)\s+([\w@\.\-]+)', pkg)
@@ -125,6 +126,8 @@ def main():
             except FileNotFoundError as exc:
                 print(f'File not found: {dep_path}. Err: {exc}')
 
+            #code.interact(banner='pip pre/post', local=dict(globals(), **locals()))
+
             pre_pip_pkg_list = []
             for pkg in pre_pip_pkgs:
                 pip_pkg_items = pkg.split()
@@ -167,6 +170,8 @@ def main():
             except FileNotFoundError as exc:
                 print(f'File not found: {dep_path}. Err: {exc}')
 
+            #code.interact(banner='conda pre/post', local=dict(globals(), **locals()))
+
             pre_conda_pkg_list = []
             for pkg in pre_conda_pkgs:
                 conda_pkg_items = pkg.split()
@@ -177,17 +182,27 @@ def main():
 
             post_conda_pkg_list = []
             conda_repo_list = []
+            #code.interact(banner='conda_repo_list', local=dict(globals(), **locals()))
             for pkg in post_conda_pkgs:
                 conda_pkg_items = pkg.split()
+                #code.interact(banner='conda_pkg_items', local=dict(globals(), **locals()))
                 try:
+                    code.interact(banner='try', local=dict(globals(), **locals()))
                     conda_repo = conda_pkg_items[-1].rsplit('/',1)[1]
+                    if conda_repo:
+                        conda_pkg_fmt_name = (conda_pkg_items[0] + '-' + conda_pkg_items[1] +
+                                              '-' + conda_pkg_items[2] + '.tar.bz2')
+                        post_conda_pkg_list.append([conda_pkg_fmt_name,conda_repo])
+                        #code.interact(banner='try yes', local=dict(globals(), **locals()))
                 except IndexError:
                     conda_repo = "pip-pkgs"
-                conda_pkg_fmt_name = (conda_pkg_items[0] + '==' + conda_pkg_items[1])
-                post_conda_pkg_list.append([conda_pkg_fmt_name,conda_repo])
+                    conda_pkg_fmt_name = (conda_pkg_items[0] + '==' + conda_pkg_items[1])
+                    post_conda_pkg_list.append([conda_pkg_fmt_name,conda_repo])
+                    #code.interact(banner='try failed', local=dict(globals(), **locals()))
                 if conda_repo not in conda_repo_list:
                     conda_repo_list.append(conda_repo)
 
+            #code.interact(banner='conda_repo_list', local=dict(globals(), **locals()))
 
             for conda_repo in conda_repo_list:
                 conda_pkgs = []
@@ -204,42 +219,59 @@ def main():
         else:
             print ("Error - No Function Found.")
 
+    def package_merge():
 
-##eclass myClass(object):
-#    def __init__(self):
-#        pass
-#
-#    def func1(self):
-#        print(f'myClass has self.var1: {self.var1} and self.var2: {self.var2}')
-#        # code.interact(banner='here', local=dict(globals(), **locals()))
-#
-#    def func2(self, var1):
-#        print(f'my func2 has var1: {var1}')
-#        # code.interact(banner='here', local=dict(globals(), **locals()))
+        for pre in pre_list_file:
+            file_staging(pre)
+
+            fenv = file_staging(pre)[2]
+            ffunction = file_staging(pre)[1]
+
+            if fenv != 'client':
+
+                if ffunction == 'pip':
+                    ffname = f'{fenv}_{ffunction}-final.txt'
+                    fcname = f'{ffunction}-consolidated.txt'
+                    try:
+                        with open(os.path.join(dep_path,ffname), 'r') as finput:
+                            print (f'\nINFO - Consolidating {ffunction} packages')
+                            print (f'       File name: {ffname}\n')
+                            with open(os.path.join(dep_path,fcname),'a') as foutput:
+                                for line in finput:
+                                    foutput.write(line)
+                    except FileNotFoundError as exc:
+                        pass
+
+                if ffunction == 'conda':
+                    conda_pkgs = ['free','main']
+                    for pkg in conda_pkgs:
+                        ffname = f'{fenv}_{ffunction}-{pkg}-final.txt'
+                        fcname = f'{ffunction}-consolidated.txt'
+                        try:
+                            with open(os.path.join(dep_path,ffname), 'r') as finput:
+                                print (f'\nINFO - Consolidating {ffunction} packages\n')
+                                print (f'       File name: {ffname}\n')
+                                with open(os.path.join(dep_path,fcname),'a') as foutput:
+                                    for line in finput:
+                                        foutput.write(line)
+                        except FileNotFoundError as exc:
+                            pass
+
+                #code.interact(banner='end of loop', local=dict(globals(), **locals()))
+
+            else:
+                pass
+
+    package_merge()
+
 
 
 if __name__ == '__main__':
     """Simple python template
     """
 
-#    parser = argparse.ArgumentParser()
-#    parser.add_argument('arg1', help='Help me Rhonda')
-#    parser.add_argument('arg2', choices=['apple', 'banana', 'peach'],
-#                        help='Pick a fruit')
-#    parser.add_argument('--print', '-p', dest='log_lvl_print',
-#                        help='print log level', default='info')
-#    parser.add_argument('--file', '-f', dest='log_lvl_file',
-#                        help='file log level', default='info')
-#    args = parser.parse_args()
-
     logger.create('nolog', 'info')
     log = logger.getlogger()
 
-#    if args.log_lvl_print == 'debug':
-#        print(args)
-
-    #m = myClass()
-    #m.func1()
-    #m.func2('hello')
     main()
     print("\nINFO - Process Completed\n")
