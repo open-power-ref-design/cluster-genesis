@@ -156,14 +156,14 @@ def pre_post_file_collect(task):
                              'conda list')
                                         #dlinsights_env
 
-      # Activate dlinsights and gather pre pip_list
+      # Activate dlinsights and gather pre pip_list  (Note:python 2.7 env to use as refrence)
       file_collecter(file_name='dlinsights_pip_pre_install.txt',
-                     process='source /opt/anaconda3/bin/activate dlipy3_test;'
+                     process='source /opt/anaconda3/bin/activate dlipy2_test;'
                              '/opt/anaconda3/envs/dlipy3_test/bin/pip list')
 
       # Activate dlinsights env and gather pre conda_list
       file_collecter(file_name='dlinsights_conda_pre_install.txt',
-                     process='source /opt/anaconda3/bin/activate dlipy3_test;'
+                     process='source /opt/anaconda3/bin/activate dlipy2_test;'
                              'conda list')
 
 
