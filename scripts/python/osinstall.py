@@ -20,6 +20,7 @@ import curses
 import npyscreen
 import os.path
 import yaml
+import copy
 from orderedattrdict.yamlutils import AttrDictYAMLLoader
 from collections import namedtuple
 from pyroute2 import IPRoute
@@ -75,20 +76,21 @@ class Profile():
 
     def get_profile(self):
         """Returns an ordered attribute dictionary with the profile data.
-        This is generally intended for use by the entry menu, not by application
-        code
+        This is generally intended for use by Profile and the entry menu, not by
+        application code
         """
         return self.profile
 
     def get_network_profile(self):
         """Returns an ordered attribute dictionary with the network profile data.
         This is generally intended for use by the entry menu, not by application
-        code
+        code. deepcopy is used to return a new copy of the relevent profile, not
+        a reference to the original.
         """
-        return self.profile.network
+        return copy.deepcopy(self.profile.network)
 
     def get_network_profile_tuple(self):
-        """Returns a named tuple constucted from the network profile data
+        """Returns a named tuple constucted from the network profile data.
         OS install code should generally use this method to get the network
         profile data.
         """
@@ -120,11 +122,12 @@ class Profile():
             yaml.dump(self.profile, f, indent=4, default_flow_style=False)
 
     def get_node_profile(self):
-        """Returns an ordered attribute dictionary with the network profile data.
+        """Returns an ordered attribute dictionary with the node profile data.
         This is generally intended for use by the entry menu, not by application
-        code
+        code. deepcopy is used to return a new copy of the relevent profile, not
+        a reference to the original.
         """
-        return self.profile.node
+        return copy.deepcopy(self.profile.node)
 
     def get_node_profile_tuple(self):
         """Returns a named tuple constucted from the network profile data
@@ -137,22 +140,6 @@ class Profile():
         for item in n:
             _list.append(item)
             vals += (n[item].val,)
-
-            #code.interact(banner='get profile', local=dict(globals(), **locals()))
-#            if 'subnet_prefix' in item:
-#                # split the subnet prefix field into netmask and prefix
-#                _list.append(item)
-#                _list.append(item.replace('_prefix', '_mask'))
-#                vals += (p[item].val.split()[1],)
-#                vals += (p[item].val.split()[0],)
-#            else:
-#                _list.append(item)
-#                vals += (p[item].val,)
-
-#        _list.append('bmc_subnet_cidr')
-#        vals += (p.bmc_subnet.val + '/' + p.bmc_subnet_prefix.val.split()[1],)
-#        _list.append('pxe_subnet_cidr')
-#        vals += (p.pxe_subnet.val + '/' + p.pxe_subnet_prefix.val.split()[1],)
 
         proftup = namedtuple('ProfTup', _list)
         return proftup._make(vals)
@@ -180,6 +167,9 @@ class OSinstall(npyscreen.NPSAppManaged):
         self.addForm('NODE', Node_form, name='Welcome to PowerUP    '
                      'Press F1 for field help')
 
+    def scan_for_nodes(self):
+        sys.exit('scanned for nodes')
+
     def is_valid_profile(self, prof):
         """ Validates the content of the profile data.
         Returns:
@@ -188,6 +178,10 @@ class OSinstall(npyscreen.NPSAppManaged):
         msg = ''
         #code.interact(banner='here', local=dict(globals(), **locals()))
         if hasattr(prof, 'bmc_userid'):
+            iso_image_file = prof['iso_image_file']['val']
+            if not os.path.isfile(iso_image_file):
+                msg += ("Error. Operating system ISO image file not found: \n"
+                        f"{prof['iso_image_file']['val']}")
             return msg
         # Since the user can skip fields by mouse clicking 'OK'
         # We need additional checking here:
@@ -198,7 +192,6 @@ class OSinstall(npyscreen.NPSAppManaged):
         pxe_subnet_prefix = prof['pxe_subnet_prefix']['val'].split()[1]
         pxe_cidr = prof['pxe_subnet']['val'] + '/' + pxe_subnet_prefix
 
-        iso_image_file = prof['iso_image_file']['val']
         pxe_ethernet_ifc = prof['pxe_ethernet_ifc']['val']
         bmc_ethernet_ifc = prof['bmc_ethernet_ifc']['val']
 
@@ -217,10 +210,6 @@ class OSinstall(npyscreen.NPSAppManaged):
 
         if bmc_subnet_prefix != pxe_subnet_prefix:
             msg += 'Warning, BMC and PXE subnets are different sizes\n'
-
-        if not os.path.isfile(iso_image_file):
-            msg += ("Error. Operating system ISO image file not found: \n"
-                    f"{prof['iso_image_file']['val']}")
 
         return msg
 
@@ -284,6 +273,8 @@ class Network_form(npyscreen.ActionFormV2):
 
     def on_ok(self):
         for item in self.prof:
+            if hasattr(self.prof[item], 'dtype') and self.prof[item]['dtype'] == 'no-save':
+                continue
             if hasattr(self.prof[item], 'ftype'):
                 if self.prof[item]['ftype'] == 'eth-ifc':
                     self.prof[item]['val'] = self.fields[item].values[self.fields[item].value]
@@ -492,6 +483,22 @@ class Network_form(npyscreen.ActionFormV2):
                                              scroll_exit=True,
                                              begin_entry_at=20, relx=relx)
 
+            elif ftype == 'select-multi':
+                if hasattr(self.prof[item], 'val'):
+                    if (hasattr(self.prof[item], 'dtype') and
+                        self.prof[item]['dtype'] == 'no-save'):
+                        value = list(self.prof[item]['values'].index(self.prof[item]['val']))
+                    else:
+                        value = self.prof[item]['values'].index(self.prof[item]['val'])
+                else:
+                    value = None
+                self.fields[item] = self.add(npyscreen.TitleSelectOne, name=fname,
+                                             max_height=2,
+                                             value=value,
+                                             values=self.prof[item]['values'],
+                                             scroll_exit=True,
+                                             begin_entry_at=20, relx=relx)
+
             # no ftype specified therefore Title text
             else:
                 self.fields[item] = self.add(npyscreen.TitleText,
@@ -503,10 +510,26 @@ class Network_form(npyscreen.ActionFormV2):
                                                         self.h_help})
 
 
+class MyButtonPress(npyscreen.MiniButtonPress):
+
+    def whenPressed(self):
+        if self.name == 'Edit network config':
+            self.parent.next_form = 'MAIN'
+            self.parent.parentApp.switchForm('MAIN')
+
+        if self.name == 'Scan for nodes':
+            #self.parent.parentApp.scan_for_nodes()
+            self.parent.fields['node_list'].values = ['192.168.99.200',
+                                                      '192.168.99.201',
+                                                      '192.168.99.202']
+            self.parent.display()
+
 class Node_form(npyscreen.ActionFormV2):
     def beforeEditing(self):
         # Set NODE_FORM so other forms can know that the node form was entered
         self.parentApp.NODE_FORM = True
+        #self.node_list = ['192.168.99.91', '192.168.99.92']
+        self.display()
 
     def afterEditing(self):
         self.parentApp.setNextForm(self.next_form)
@@ -518,6 +541,8 @@ class Node_form(npyscreen.ActionFormV2):
 
     def on_ok(self):
         for item in self.node:
+            if hasattr(self.node[item], 'dtype') and self.node[item]['dtype'] == 'no-save':
+                continue
             if hasattr(self.node[item], 'ftype'):
                 if self.node[item]['ftype'] == 'eth-ifc':
                     self.node[item]['val'] = self.fields[item].values[self.fields[item].value]
@@ -534,7 +559,6 @@ class Node_form(npyscreen.ActionFormV2):
                     self.node[item]['val'] = None
                 else:
                     self.node[item]['val'] = self.fields[item].value
-
         msg = self.parentApp.is_valid_profile(self.node)
         res = True
         if msg:
@@ -552,18 +576,37 @@ class Node_form(npyscreen.ActionFormV2):
             self.parentApp.prof.update_node_profile(self.node)
             self.next_form = None
         else:
-            self.next_form = 'MAIN'
+            self.next_form = 'NODE'
 
     def while_editing(self, instance):
         # instance is the instance of the widget you're moving into
         # map instance.name
         field = ''
         for item in self.node:
+            # lookup field from instance name
             if instance.name == self.node[item].desc:
                 field = item
                 break
         # On instantiation, self.prev_field is empty
         if self.prev_field:
+            if hasattr(self.node[self.prev_field], 'dtype'):
+                prev_field_dtype = self.node[self.prev_field]['dtype']
+            else:
+                prev_field_dtype = None
+            if hasattr(self.node[self.prev_field], 'ftype'):
+                prev_field_ftype = self.node[self.prev_field]['ftype']
+            else:
+                prev_field_ftype = None
+
+            if hasattr(self.node[field], 'dtype'):
+                field_dtype = self.node[field]['dtype']
+            else:
+                field_dtype = None
+
+        #npyscreen.notify_confirm(f'node list: {self.node.node_list}', editw=1)
+        if self.prev_field and field_dtype != 'no-save':
+#            npyscreen.notify_confirm(f'current field: {field} dtype: {field_dtype} '
+#                f'prev field: {self.prev_field} prev dtype: {prev_field_dtype}', editw=1)
             if hasattr(self.node[self.prev_field], 'dtype'):
                 prev_fld_dtype = self.node[self.prev_field]['dtype']
             else:
@@ -644,18 +687,13 @@ class Node_form(npyscreen.ActionFormV2):
             elif 'eth-ifc' in prev_fld_ftype:
                 pass
 
-
-        if instance.name == 'Press me':
-            if self.press_me_butt.value == True:
-                npyscreen.notify_confirm('Hey, you pressed me',
-                                         title=self.prev_field, editw=1)
-
         if field:
             self.prev_field = field
         else:
             self.prev_field = ''
 
-        if instance.name not in ['OK', 'Cancel', 'CANCEL', 'Edit network config', 'Scan for nodes']:
+        if instance.name not in ['OK', 'Cancel', 'CANCEL', 'Edit network config',
+                                 'Scan for nodes']:
             self.helpmsg = self.node[field].help
         else:
             self.prev_field = ''
@@ -679,6 +717,7 @@ class Node_form(npyscreen.ActionFormV2):
         self.prev_field = ''
         self.node = self.parentApp.prof.get_node_profile()
         self.fields = {}  # dictionary for holding field instances
+        self.node_list = []
 
         for item in self.node:
             fname = self.node[item].desc
@@ -740,6 +779,32 @@ class Node_form(npyscreen.ActionFormV2):
                                              scroll_exit=True,
                                              begin_entry_at=20, relx=relx)
 
+            elif ftype == 'select-multi':
+                if hasattr(self.node[item], 'val'):
+                    if (hasattr(self.node[item], 'dtype') and
+                        self.node[item]['dtype'] == 'no-save'):
+                        value = list(self.node[item]['val'])
+                    else:
+                        value = self.node[item]['val']
+                else:
+                    value = None
+                self.fields[item] = self.add(npyscreen.TitleMultiSelect, name=fname,
+                                             max_height=10,
+                                             value=value,
+                                             #values = self.node_list,
+                                             values=self.node[item]['values'],
+                                             scroll_exit=True,
+                                             begin_entry_at=20, relx=relx)
+
+            elif 'button' in ftype:
+                if ',' in ftype:
+                    x = int(self.node[item]['ftype'].lstrip('button').split(',')[0])
+                    y = int(self.node[item]['ftype'].lstrip('button').split(',')[1])
+                self.fields[item] = self.add(MyButtonPress,
+                                             name=self.node[item]['desc'],
+                                             relx=x,
+                                             rely=y)
+
             # no ftype specified therefore Title text
             else:
                 self.fields[item] = self.add(npyscreen.TitleText,
@@ -747,18 +812,12 @@ class Node_form(npyscreen.ActionFormV2):
                                              value=str(self.node[item]['val']),
                                              begin_entry_at=20, width=40,
                                              relx=relx)
-            self.fields[item].entry_widget.add_handlers({curses.KEY_F1:
-                                                        self.h_help})
 
-        self.scan_for_nodes = self.add(npyscreen.MiniButtonPress,
-                                       when_pressed_function=self.scan_for_nodes,
-                                       name='Scan for nodes',
-                                       rely=-3)
-
-        self.edit_networks = self.add(npyscreen.MiniButtonPress,
-                                      when_pressed_function=self.when_press_edit_networks,
-                                      name='Edit network config',
-                                      rely=-3, relx=25)
+            if hasattr(self.node[item], 'ftype') and 'button' in self.node[item]['ftype']:
+                pass
+            else:
+                self.fields[item].entry_widget.add_handlers({curses.KEY_F1:
+                                                            self.h_help})
 
 
 def validate(profile_tuple):

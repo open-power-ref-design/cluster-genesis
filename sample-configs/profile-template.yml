@@ -6,6 +6,7 @@
 # floc: skipline     (skips a line before placing this item on the form)
 # floc: samelinexx  (causes this item to be placed at pos xx on the same line as the
 #                 previous field)
+# floc: x,y Causes the field to be placed at relx,rely
 # The 'ftype' item determines the type of field used. Default is text.
 # ftype: file, text, ftext     (file search field, text input field, fixed text)
 # dtype:    determines the type of data checking applied to the field
@@ -108,6 +109,18 @@ network:
             to select from a list of physical interfaces which are 'up'.
         ftype: eth-ifc
 
+# Node configuration
+node:
+    bmc_userid:
+        val: ADMIN
+        desc: BMC userid
+        help: User ID used to log into the target nodes BMCs. The user ID must be the
+              same for all target nodes.
+    bmc_password:
+        val: admin
+        desc: BMC password
+        help: Password to log into the target nodes BMCs. The password must be the
+              same for all target nodes.
     hostname:
         val: compute
         desc: Host name
@@ -125,15 +138,31 @@ network:
         ftype: file
         dtype: file-iso
 
-# Node configuration
-node:
-    bmc_userid:
-        val: ADMIN
-        desc: BMC userid
-        help: User ID used to log into the target nodes BMCs. The user ID must be the
-              same for all target nodes.
-    bmc_password:
-        val: admin
-        desc: BMC password
-        help: Password to log into the target nodes BMCs. The password must be the
-              same for all target nodes.
+    node_list:
+        val:
+            - 0
+        values:
+            - null
+        desc: Node list
+        help: This field contains the list of discovered nodes on the BMC subnet. Nodes
+            in this list respond to OpenBMC or IPMI communication protocol.
+        ftype: select-multi
+        dtype: no-save
+
+    scan_for_nodes:
+        # val in this case is the x and y coordinates of the button. Negative y values
+        # are relative to the bottom of the window
+        val:
+        desc: Scan for nodes
+        #help: Press enter to scan the BMC network for nodes
+        ftype: button1,-3
+        floc: 1,-3
+
+    edit_networks:
+        # val in this case is the x and y coordinates of the button. Negative y values
+        # are relative to the bottom of the window
+        val:
+        desc: Edit network config
+        #help: Press enter to scan the BMC network for nodes
+        ftype: button25,-3
+        floc: 25,-3
