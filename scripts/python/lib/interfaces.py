@@ -138,6 +138,15 @@ class Interfaces(IPRoute):
         else:
             return []
 
+    def get_interface_for_route(self, route):
+        """ Returns the interface which contains the specified route if it exists.
+            else returns None.
+        """
+        routes = self.get_interfaces_routes()
+        for ifc in routes:
+            if route in routes[ifc]:
+                return ifc
+
     def get_interfaces_routes(self):
         """ Get dictionary of ipv4 routes by interface. Keys are ifc names and values
         are tuple of routes in cidr format.
