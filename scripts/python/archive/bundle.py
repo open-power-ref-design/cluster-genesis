@@ -183,7 +183,6 @@ def parse_input(args):
         parser.print_help()
         sys.exit(RC_ARGS)
     args = parser.parse_args(args)
-
     if STANDALONE is True:
         LOG.setLevel(args.loglevel)
     return args
