@@ -977,7 +977,12 @@ class software(object):
             if url:
                 if not url == baseurl:
                     self.sw_vars[f'{vars_key}-alt-url'] = url
-                dest_dir = repo.sync_ana(url)
+
+                # accept_list is used for , reject_list for noarch
+                al = ','.join(self.pkgs['anaconda_free_pkgs']['accept_list'])
+                rl = ','.join(self.pkgs['anaconda_free_pkgs']['reject_list'])
+
+                dest_dir = repo.sync_ana(url, acclist=al)
                 dest_dir = dest_dir[4 + dest_dir.find('/srv'):5 + dest_dir.find('free')]
                 # form .condarc channel entry. Note that conda adds
                 # the corresponding 'noarch' channel automatically.
@@ -985,9 +990,8 @@ class software(object):
                 if channel not in self.sw_vars['ana_powerup_repo_channels']:
                     self.sw_vars['ana_powerup_repo_channels'].append(channel)
                 noarch_url = os.path.split(url.rstrip('/'))[0] + '/noarch/'
-                rejlist = ','.join(self.pkgs['anaconda_free_pkgs']['reject_list'])
 
-                repo.sync_ana(noarch_url, rejlist=rejlist)
+                repo.sync_ana(noarch_url, rejlist=rl)
 
         # Setup Anaconda Main Repo.  (not a YUM repo)
         repo_id = 'anaconda'
@@ -1016,7 +1020,7 @@ class software(object):
             if url:
                 if not url == baseurl:
                     self.sw_vars[f'{vars_key}-alt-url'] = url
-
+                # accept_list is used for , reject_list for noarch
                 al = ','.join(self.pkgs['anaconda_main_pkgs']['accept_list'])
                 rl = ','.join(self.pkgs['anaconda_main_pkgs']['reject_list'])
 
@@ -1102,12 +1106,11 @@ class software(object):
                 repo.sync(pkg3_list, url + 'simple', py_ver=36)
 
         # Setup EPEL Repo
-        repo_id = 'dependencies'
-        repo_name = 'Dependencies'
+        repo_id = 'epel-ppc64le'
+        repo_name = 'EPEL ppc64le subset'
         baseurl = ''
         heading1(f'Set up {repo_name} repository')
-        # list to str
-        dep_list = ' '.join(self.pkgs['yum_pkgs'])
+        epel_list = ' '.join(self.pkgs['epel_pkgs'])
 
         file_more = GEN_SOFTWARE_PATH + 'epel-packages.list'
         if os.path.isfile(file_more):
@@ -1128,7 +1131,7 @@ class software(object):
         else:
             alt_url = None
 
-        exists = self.status_prep(which='Dependent Packages Repository')
+        exists = self.status_prep(which='EPEL Repository')
         if exists:
             self.log.info(f'The {repo_name} repository exists already'
                           ' in the POWER-Up server')
@@ -1140,24 +1143,17 @@ class software(object):
 
         ch = 'S'
         if get_yesno(prompt=pr_str, yesno='Y/n'):
-            if platform.machine() == self.arch:
-                ch, item = get_selection('Sync required dependent packages from Enabled YUM repos\n'
-                                         'Create from package files in a local Directory\n'
-                                         'Sync from an alternate Repository\n'
-                                         'Skip',
-                                         'E\nD\nR\nS',
-                                         'Repository source? ')
-            else:
-                ch, item = get_selection('Create from package files in a local Directory\n'
-                                         'Sync from an alternate Repository\n'
-                                         'Skip',
-                                         'D\nR\nS',
-                                         'Repository source? ')
+            ch, item = get_selection(f'Sync required {repo_id} packages from Enabled YUM repo\n'
+                                     'Create from package files in a local Directory\n'
+                                     'Sync from an alternate Repository\n'
+                                     'Skip',
+                                     'E\nD\nR\nS',
+                                     'Repository source? ')
 
         if ch == 'E':
             repo = PowerupRepo(repo_id, repo_name)
             repo_dir = repo.get_repo_dir()
-            self._add_dependent_packages(repo_dir, dep_list)
+            self._add_dependent_packages(repo_dir, epel_list)
             self._add_dependent_packages(repo_dir, more)
             repo.create_meta()
             content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
@@ -1192,7 +1188,7 @@ class software(object):
             repo = PowerupYumRepoFromRepo(repo_id, repo_name)
 
             url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
-                                    filelist=['bzip2-*'])
+                                    filelist=['openblas-*'])
             if url:
                 if not url == baseurl:
                     self.sw_vars[f'{repo_id}_alt_url'] = url
@@ -1260,7 +1256,6 @@ class software(object):
 #                content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
 #                filename = repo_id + '-powerup.repo'
 #                self.sw_vars['yum_powerup_repo_files'][filename] = content
-
 
         # Create custom repositories
         heading1('Create custom repositories')
