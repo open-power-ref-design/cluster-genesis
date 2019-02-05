@@ -26,7 +26,6 @@ from collections import namedtuple
 from pyroute2 import IPRoute
 import sys
 from time import sleep
-import code
 
 import lib.logger as logger
 import lib.interfaces as interfaces
@@ -46,9 +45,6 @@ def osinstall(profile_path):
     log.debug('osinstall')
     osi = OSinstall(profile_path)
     osi.run()
-
-#    osi.config_interfaces()
-#    validate(p)
 
 
 class Profile():
@@ -98,7 +94,6 @@ class Profile():
         _list = []
         vals = ()
         for item in p:
-            #code.interact(banner='get profile', local=dict(globals(), **locals()))
             if 'subnet_prefix' in item:
                 # split the subnet prefix field into netmask and prefix
                 _list.append(item)
@@ -159,8 +154,6 @@ class OSinstall(npyscreen.NPSAppManaged):
         # create an Interfaces instance
         self.ifcs = interfaces.Interfaces()
         self.form_flow = (None, 'MAIN', 'NODE', None)
-        #code.interact(banner='OSinstall init', local=dict(globals(), **locals()))
-        #self.NODE_FORM = False
 
     def get_form_data(self):
         if self.creating_form == 'MAIN':
@@ -185,13 +178,12 @@ class OSinstall(npyscreen.NPSAppManaged):
         Returns:
             msg (str) empty if passed, else contains warning and error msg
         """
-        msg = ''
-        #code.interact(banner='here', local=dict(globals(), **locals()))
+        msg = []
         if hasattr(prof, 'bmc_userid'):
             iso_image_file = prof['iso_image_file']['val']
             if not os.path.isfile(iso_image_file):
-                msg += ("Error. Operating system ISO image file not found: \n"
-                        f"{prof['iso_image_file']['val']}")
+                msg += ["Error. Operating system ISO image file not found: ",
+                        f"{prof['iso_image_file']['val']}"]
             return msg
         # Since the user can skip fields by mouse clicking 'OK'
         # We need additional checking here:
@@ -207,19 +199,35 @@ class OSinstall(npyscreen.NPSAppManaged):
 
         ifc = self.ifcs.is_route_overlapping(pxe_cidr, pxe_ethernet_ifc)
         if ifc:
-            msg += ('Warning, the subnet specified on the PXE interface\n'
-                    f'overlaps a subnet on interface {ifc}\n')
+            msg += ['- Warning, the subnet specified on the PXE interface',
+                    f'  overlaps a subnet on interface {ifc}']
 
         ifc = self.ifcs.is_route_overlapping(bmc_cidr, bmc_ethernet_ifc)
         if ifc:
-            msg += ('Warning, the subnet specified on the BMC interface\n'
-                    f'overlaps a subnet on interface {ifc}\n')
+            msg += ['- Warning, the subnet specified on the BMC interface',
+                    f'  overlaps a subnet on interface {ifc}']
 
         if u.is_overlapping_addr(bmc_cidr, pxe_cidr):
-            msg += 'Warning, BMC and PXE subnets are overlapping\n'
+            msg += ['- Warning, BMC and PXE subnets are overlapping.']
 
         if bmc_subnet_prefix != pxe_subnet_prefix:
-            msg += 'Warning, BMC and PXE subnets are different sizes\n'
+            msg += ['- Warning, BMC and PXE subnets are different sizes']
+
+        if prof.bmc_address_mode.val == "dhcp" and prof.bmc_ethernet_ifc.val:
+            dhcp = u.get_dhcp_servers(prof.bmc_ethernet_ifc.val)
+            if dhcp:
+                msg += ['- Warning a DHCP server exists already on',
+                        '  the interface specified for BMC access. ',
+                        f'  Offered address: {dhcp["IP Offered"]}',
+                        f'  From server: {dhcp["Server Identifier"]}']
+
+        if prof.pxe_address_mode.val == "dhcp" and prof.pxe_ethernet_ifc.val:
+            dhcp = u.get_dhcp_servers(prof.pxe_ethernet_ifc.val)
+            if dhcp:
+                msg += ['- Warning a DHCP server exists already on',
+                        '  the interface specified for PXE access. ',
+                        f'  Offered address: {dhcp["IP Offered"]}',
+                        f'  From server: {dhcp["Server Identifier"]}']
 
         return msg
 
@@ -265,38 +273,33 @@ class OSinstall(npyscreen.NPSAppManaged):
 #                            oif=self.ifcs.link_lookup(ifname=bmc_ifc)[0])
 #            if res[0]['header']['error']:
 #                self.log.error(f'Error occurred removing route from {bmc_ifc}')
+
+
 class MyButtonPress(npyscreen.MiniButtonPress):
 
     def whenPressed(self):
         if self.name == 'Edit network config':
             self.parent.next_form = 'MAIN'
             self.parent.parentApp.switchForm('MAIN')
-
         if self.name == 'Scan for nodes':
-            #self.parent.parentApp.scan_for_nodes()
-            self.parent.fields['node_list'].values = ['192.168.99.200',
-                                                      '192.168.99.201',
-                                                      '192.168.99.202']
+            p = self.parent.parentApp.prof.get_network_profile_tuple()
+            nodes = u.scan_subnet(p.bmc_subnet_cidr)
+            self.parent.fields['node_list'].values = nodes
             self.parent.display()
 
 
 class Pup_form(npyscreen.ActionFormV2):
+
     def beforeEditing(self):
         pass
-        #self.form = self.parentApp.ACTIVE_FORM_NAME
-        #print(self.parentApp.ACTIVE_FORM_NAME)
 
     def afterEditing(self):
-        #print(self.parentApp._FORM_VISIT_LIST)
-        #print(self.parentApp.ACTIVE_FORM_NAME)
-        #code.interact(banner='afterEditing', local=dict(globals(), **locals()))
         self.parentApp.setNextForm(self.next_form)
 
     def create(self):
         self.y, self.x = self.useable_space()
         self.prev_field = ''
         self.node = self.parentApp.get_form_data()
-        #code.interact(banner='node create', local=dict(globals(), **locals()))
         self.fields = {}  # dictionary for holding field instances
         self.node_list = []
 
@@ -364,7 +367,7 @@ class Pup_form(npyscreen.ActionFormV2):
             elif ftype == 'select-multi':
                 if hasattr(self.node[item], 'val'):
                     if (hasattr(self.node[item], 'dtype') and
-                        self.node[item]['dtype'] == 'no-save'):
+                            self.node[item]['dtype'] == 'no-save'):
                         value = list(self.node[item]['val'])
                     else:
                         value = self.node[item]['val']
@@ -373,7 +376,6 @@ class Pup_form(npyscreen.ActionFormV2):
                 self.fields[item] = self.add(npyscreen.TitleMultiSelect, name=fname,
                                              max_height=10,
                                              value=value,
-                                             #values = self.node_list,
                                              values=self.node[item]['values'],
                                              scroll_exit=True,
                                              begin_entry_at=20, relx=relx)
@@ -401,12 +403,9 @@ class Pup_form(npyscreen.ActionFormV2):
                 self.fields[item].entry_widget.add_handlers({curses.KEY_F1:
                                                             self.h_help})
 
-
     def on_cancel(self):
         res = npyscreen.notify_yes_no('Quit without saving?', title='cancel 1',
                                       editw=1)
-        #code.interact(banner='Network onCancel', local=dict(globals(), **locals()))
-        #npyscreen.notify_confirm(f'form visit list: {self.parentApp._FORM_VISIT_LIST}', editw=1)
         if res:
             fvl = self.parentApp._FORM_VISIT_LIST
             if len(fvl) == 1 and fvl[-1] == 'MAIN':
@@ -423,9 +422,8 @@ class Pup_form(npyscreen.ActionFormV2):
                 continue
             if hasattr(self.node[item], 'ftype'):
                 if self.node[item]['ftype'] == 'eth-ifc':
-                    #npyscreen.notify_confirm(f'ifc value: {self.fields[item].value}', editw=1)
+                    # npyscreen.notify_confirm(f'ifc value: {self.fields[item].value}', editw=1)
                     if self.fields[item].value is None:
-                        #npyscreen.notify_confirm(f'ifc value: {self.fields[item].value}', editw=1)
                         self.node[item]['val'] = None
                     else:
                         self.node[item]['val'] = self.fields[item].values[self.fields[item].value]
@@ -442,26 +440,33 @@ class Pup_form(npyscreen.ActionFormV2):
                     self.node[item]['val'] = None
                 else:
                     self.node[item]['val'] = self.fields[item].value
+        msg = ['Validating network profile']
+        if (hasattr(self.node, 'bmc_address_mode')):
+            if self.node.bmc_address_mode.val == 'dhcp' or self.node.pxe_address_mode.val == 'dhcp':
+                msg += ['and checking for existing DHCP servers']
+            npyscreen.notify(msg, title='Info')
+            sleep(1)
         msg = self.parentApp.is_valid_profile(self.node)
         res = True
         if msg:
             if 'Error' in msg:
                 npyscreen.notify_confirm(f'{msg}\n Please resolve issues.',
                                          title='cancel 1', editw=1)
-                self.next_form = 'MAIN'
+                # stay on this form
+                self.next_form = self.parentApp.NEXT_ACTIVE_FORM
                 res = False
             else:
-                msg = (msg + '--------------------- \nContinue OS install?\n'
-                       '(No to continue editing the profile data.)')
-                res = npyscreen.notify_yes_no(msg, title='Profile validation', editw=1)
+                msg += ['---------------------',
+                        'Continue with OS install?',
+                        '(No to continue editing the profile data)']
+
+                editw = 1 if len(msg) < 10 else 0
+                res = npyscreen.notify_yes_no(msg, title='Profile validation', editw=editw)
 
         if res:
             if self.parentApp.NEXT_ACTIVE_FORM == 'MAIN':
-                #code.interact(banner='on ok', local=dict(globals(), **locals()))
                 self.parentApp.prof.update_network_profile(self.node)
                 self.next_form = 'NODE'
-                #print(self.next_form)
-                #code.interact(banner='on ok', local=dict(globals(), **locals()))
             elif self.parentApp.NEXT_ACTIVE_FORM == 'NODE':
                 self.parentApp.prof.update_node_profile(self.node)
                 self.next_form = None
@@ -478,28 +483,24 @@ class Pup_form(npyscreen.ActionFormV2):
             if instance.name == self.node[item].desc:
                 field = item
                 break
-        #npyscreen.notify_confirm(f'field: {field} prev field: {self.prev_field}', editw=1)
+        # npyscreen.notify_confirm(f'field: {field} prev field: {self.prev_field}', editw=1)
         # On instantiation, self.prev_field is empty
         if self.prev_field:
-            if hasattr(self.node[self.prev_field], 'dtype'):
-                prev_field_dtype = self.node[self.prev_field]['dtype']
-            else:
-                prev_field_dtype = None
-
-            if hasattr(self.node[self.prev_field], 'ftype'):
-                prev_field_ftype = self.node[self.prev_field]['ftype']
-            else:
-                prev_field_ftype = None
-
             if field and hasattr(self.node[field], 'dtype'):
                 field_dtype = self.node[field]['dtype']
             else:
                 field_dtype = None
+#            if hasattr(self.node[self.prev_field], 'dtype'):
+#                prev_field_dtype = self.node[self.prev_field]['dtype']
+#            else:
+#                prev_field_dtype = None
 
-        #npyscreen.notify_confirm(f'node list: {self.node.node_list}', editw=1)
+#            if hasattr(self.node[self.prev_field], 'ftype'):
+#                prev_field_ftype = self.node[self.prev_field]['ftype']
+#            else:
+#                prev_field_ftype = None
+
         if self.prev_field and field_dtype != 'no-save':
-#            npyscreen.notify_confirm(f'current field: {field} dtype: {field_dtype} '
-#                f'prev field: {self.prev_field} prev dtype: {prev_field_dtype}', editw=1)
             if hasattr(self.node[self.prev_field], 'dtype'):
                 prev_fld_dtype = self.node[self.prev_field]['dtype']
             else:
@@ -532,7 +533,7 @@ class Pup_form(npyscreen.ActionFormV2):
 
                         cidr = prev_fld_val + '/' + self.fields[prev_fld_lnkd_flds.prefix].value.split()[-1]
                         ifc = self.parentApp.ifcs.get_interface_for_route(cidr)
-                        #npyscreen.notify_confirm(f'ifc: {ifc}', editw=1)
+                        # npyscreen.notify_confirm(f'ifc: {ifc}', editw=1)
                     if not ifc:
                         ifc = self.parentApp.ifcs.get_up_interfaces_names(_type='phys')
                     else:
@@ -554,13 +555,10 @@ class Pup_form(npyscreen.ActionFormV2):
                     mask = u.get_netmask(prefix)
                     self.fields[self.prev_field].value = f'{mask} {prefix}'
                     self.display()
-                #npyscreen.notify_confirm(f'lnkd flds: {prev_fld_lnkd_flds}', editw=1)
                 if prev_fld_lnkd_flds:
                     # get the ip address from the linked field
                     cidr = self.fields[prev_fld_lnkd_flds.subnet].value + '/' + prev_fld_val.split()[-1]
-                    #npyscreen.notify_confirm(f'cidr: {cidr}', editw=1)
                     ifc = self.parentApp.ifcs.get_interface_for_route(cidr)
-                    #npyscreen.notify_confirm(f'cidr: {cidr}  ifc with route: {ifc}', editw=1)
                     if not ifc:
                         ifc = self.parentApp.ifcs.get_up_interfaces_names(_type='phys')
                     else:
@@ -632,7 +630,6 @@ class Pup_form(npyscreen.ActionFormV2):
         npyscreen.notify_yes_no(f'Field Error: {self.field}', title='Enter', editw=1)
 
     def when_press_edit_networks(self):
-        #npyscreen.notify_confirm('You press the me button')
         self.next_form = 'MAIN'
         self.parentApp.switchForm('MAIN')
 
@@ -662,8 +659,7 @@ def main(prof_path):
         pro = Profile(prof_path)
         p = pro.get_network_profile_tuple()
         log.debug(p)
-        n = pro.get_node_profile_tuple()
-        #code.interact(banner='here', local=dict(globals(), **locals()))
+#        n = pro.get_node_profile_tuple()
 #        res = osi.ifcs.get_interfaces_names()
 #        print(res)
 #        res = osi.ifcs.get_up_interfaces_names('phys')
