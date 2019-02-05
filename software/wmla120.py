@@ -1020,7 +1020,7 @@ class software(object):
             if url:
                 if not url == baseurl:
                     self.sw_vars[f'{vars_key}-alt-url'] = url
-                # accept_list is used for , reject_list for noarch
+                # accept_list is used for main, reject_list for noarch
                 al = ','.join(self.pkgs['anaconda_main_pkgs']['accept_list'])
                 rl = ','.join(self.pkgs['anaconda_main_pkgs']['reject_list'])
 
