@@ -491,9 +491,9 @@ def _check_osinstall(args, subparser):
 
 def _check_software(args, subparser):
     if not args.prep and not args.install and not args.name and not args.README \
-            and not args.init_clients and not args.all:
+            and not args.init_clients and not args.all and not args.extract_from and not args.bundle_to:
         subparser.error('one of the arguments --about --prep --status --eval'
-                        '--init-clients --install --non-interactive -a/--all '
+                        '--init-clients --install --non-interactive -a/--all --bundle_to --extract_from'
                         'plus a software installer module name is required')
 
 
@@ -501,7 +501,7 @@ def _check_utils(args, subparser):
     if not args.scan_pxe_network and not args.scan_ipmi_network and not args.bundle  \
             and not args.extract_bundle:
         subparser.error(
-            'one of the arguments --scan-pxe-network --scan-ipmi-network --bundle --extract_bundle is required')
+            'one of the arguments --scan-pxe-network --scan-ipmi-network is required')
 
 
 def is_arg_present(arg):

@@ -49,7 +49,6 @@ class TestScript(unittest.TestCase):
         LOG = logger.getlogger()
         exclude = ['scripts/python/lib/db.py',
                    "scripts/python/lib/lenovo.py"]
-#
         #  Good path
         fileobj = tempfile.NamedTemporaryFile(delete=False)
         try:
