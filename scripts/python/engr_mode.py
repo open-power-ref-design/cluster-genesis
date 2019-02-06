@@ -67,9 +67,10 @@ def pre_post_file_collect(task):
       if (function == 'yum'):
          ansible_cmd = f"{ansible_prefix}'{process}{yum_file_format}{file_name}'"
       elif (function == 'conda'):
-          ansible_cmd = f"{ansible_prefix}'{process}{conda_file_format}{file_name}'"
+          ansible_cmd = (f"{ansible_prefix}'{process}{conda_file_format}{file_name}'"
+                         " --become --ask-become-pas")
       else:
-         ansible_cmd = f"{ansible_prefix}'{process} > {file_name}'"
+         ansible_cmd = f"{ansible_prefix}'{process} > {file_name}' --become --ask-become-pas"
 
       print (f"\n*ENGINEERING MODE* INFO - Checking for {file_name} Data on Client Node\n")
       cmd = f"ssh {remote_access} ls | grep {file_name}"
@@ -107,7 +108,7 @@ def pre_post_file_collect(task):
                sub_proc_display(f'{data_copy_cmd}', shell=True)
                menu = False
             elif override == "3":
-               print (f"\n*ENGINEERING MODE* INFO - Proceeding..\n.")
+               print (f"\n*ENGINEERING MODE* INFO - Proceeding..\n")
                menu = False
             elif override == "4":
                print ("Exiting installer.")
@@ -131,9 +132,9 @@ def pre_post_file_collect(task):
                      process="yum list installed")
 
       file_collecter(file_name="client_pip_pre_install.txt",  #N/A x86 Andaconda/7.6
-                     process="pip list")
+                     process="touch client_pip_pre_install.txt")
 
-   elif (task == 'configure_spectrum_conductor.yml'):
+   elif (task == 'install_frameworks.yml'):
 
 										#dlipy3_env
       # Create dlipy3 test environment
@@ -147,25 +148,13 @@ def pre_post_file_collect(task):
 
       # Activate dlipy3_test and gather pre pip_list
       file_collecter(file_name='dlipy3_pip_pre_install.txt',
-                     process='source /opt/anaconda3/bin/activate dlipy3_test;'
+                     process='source /opt/anaconda3/bin/activate dlipy3_test && '
                              '/opt/anaconda3/envs/dlipy3_test/bin/pip list')
 
       # Activate dlipy3_test env and gather pre conda_list
       file_collecter(file_name='dlipy3_conda_pre_install.txt',
-                     process='source /opt/anaconda3/bin/activate dlipy3_test;'
+                     process='source /opt/anaconda3/bin/activate dlipy3_test && '
                              'conda list')
-                                        #dlinsights_env
-
-      # Activate dlinsights and gather pre pip_list  (Note:python 2.7 env to use as refrence)
-      file_collecter(file_name='dlinsights_pip_pre_install.txt',
-                     process='source /opt/anaconda3/bin/activate dlipy2_test;'
-                             '/opt/anaconda3/envs/dlipy3_test/bin/pip list')
-
-      # Activate dlinsights env and gather pre conda_list
-      file_collecter(file_name='dlinsights_conda_pre_install.txt',
-                     process='source /opt/anaconda3/bin/activate dlipy2_test;'
-                             'conda list')
-
 
 										#dlipy2_env
       # Create dlipy2_test environment
@@ -178,47 +167,59 @@ def pre_post_file_collect(task):
 
       # Activate dlipy2_test env and gather pre pip_list
       file_collecter(file_name='dlipy2_pip_pre_install.txt',
-                     process='source /opt/anaconda3/bin/activate dlipy2_test; '
+                     process='source /opt/anaconda3/bin/activate dlipy2_test && '
                              '/opt/anaconda3/envs/dlipy2_test/bin/pip list')
 
       # Activate dlipy2_test env and gather pre conda_list
       file_collecter(file_name='dlipy2_conda_pre_install.txt',
-                     process='source /opt/anaconda3/bin/activate dlipy2_test; '
+                     process='source /opt/anaconda3/bin/activate dlipy2_test && '
                              'conda list')
 
-   elif (task == 'entitle_spectrum_conductor_dli.yml'):
+                                        #dlinsights_env
+
+      # Activate dlinsights and gather pre pip_list  (Note:python 2.7 env to use as refrence)
+      file_collecter(file_name='dlinsights_pip_pre_install.txt',
+                     process='source /opt/anaconda3/bin/activate dlipy2_test && '
+                             '/opt/anaconda3/envs/dlipy3_test/bin/pip list')
+
+      # Activate dlinsights env and gather pre conda_list
+      file_collecter(file_name='dlinsights_conda_pre_install.txt',
+                     process='source /opt/anaconda3/bin/activate dlipy2_test && '
+                             'conda list')
+
+   elif (task == 'configure_spectrum_conductor.yml'):
 
 										#post_dlipy3
       # Activate dlipy3 and gather post pip_list
       file_collecter(file_name='dlipy3_pip_post_install.txt',
-                     process='source /opt/anaconda3/bin/activate dlipy3; '
+                     process='source /opt/anaconda3/bin/activate dlipy3 && '
                              '/opt/anaconda3/envs/dlipy3/bin/pip list')
 
       # Activate dlipy3 env and gather post conda_list
       file_collecter(file_name='dlipy3_conda_post_install.txt',
-                     process='source /opt/anaconda3/bin/activate dlipy3; '
-                             'conda list')
-
-                                        #post_dlinsights
-      # Activate dlinsights and gather post pip_list
-      file_collecter(file_name='dlinsights_pip_post_install.txt',
-                     process='source /opt/anaconda3/bin/activate dlinsights; '
-                             '/opt/anaconda3/envs/dlinsights/bin/pip list')
-
-      # Activate dlinsights env and gather post conda_list
-      file_collecter(file_name='dlinsights_conda_post_install.txt',
-                     process='source /opt/anaconda3/bin/activate dlinsights; '
+                     process='source /opt/anaconda3/bin/activate dlipy3 && '
                              'conda list')
 
 										#post_dlipy2
       # Activate dlipy2 and gather post pip_list
       file_collecter(file_name='dlipy2_pip_post_install.txt',
-                     process='source /opt/anaconda3/bin/activate dlipy2; '
+                     process='source /opt/anaconda3/bin/activate dlipy2 && '
                              '/opt/anaconda3/envs/dlipy2/bin/pip list')
 
       # Activate dlipy2 and gather post conda_list
       file_collecter(file_name='dlipy2_conda_post_install.txt',
-                     process='source /opt/anaconda3/bin/activate dlipy2; '
+                     process='source /opt/anaconda3/bin/activate dlipy2 && '
+                             'conda list')
+
+                                       #post_dlinsights
+      # Activate dlinsights and gather post pip_list
+      file_collecter(file_name='dlinsights_pip_post_install.txt',
+                     process='source /opt/anaconda3/bin/activate dlinsights && '
+                             '/opt/anaconda3/envs/dlinsights/bin/pip list')
+
+      # Activate dlinsights env and gather post conda_list
+      file_collecter(file_name='dlinsights_conda_post_install.txt',
+                     process='source /opt/anaconda3/bin/activate dlinsights && '
                              'conda list')
 
    elif (task=='powerai_tuning.yml'):

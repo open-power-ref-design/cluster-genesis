@@ -100,6 +100,10 @@ def main():
                 for pkg in post_pkg_list:
                     if pkg[1] == repo and pkg not in pre_pkg_list:
                         repo_pkgs.append(pkg[0])
+                for pkg in pre_pkg_list:
+                    if pkg[1] == repo and pkg not in post_pkg_list:
+                        repo_pkgs.append(pkg[0])
+
                 try:
                     fname = repo.replace('/', '')
                     fname = fname.replace('@','')
@@ -144,6 +148,10 @@ def main():
             for pkg in post_pip_pkg_list:
                 if pkg not in pre_pip_pkg_list:
                     pip_pkgs.append(pkg)
+            for pkg in pre_pip_pkg_list:
+                if pkg not in post_pip_pkg_list:
+                    pip_pkgs.append(pkg)
+
             try:
 
                 fname = f'{stage}-final.txt'
@@ -197,6 +205,11 @@ def main():
                 for conda_pkg in post_conda_pkg_list:
                     if conda_pkg[1] == conda_repo and conda_pkg not in pre_pkg_list:
                         conda_pkgs.append(conda_pkg[0])
+                for conda_pkg in pre_conda_pkg_list:
+                    if conda_pkg[1] == conda_repo and conda_pkg not in post_pkg_list:
+                        conda_pkgs.append(conda_pkg[0])
+
+
                 try:
                     fname = conda_repo.replace(' ', '')
                     fname = f'{stage}-{fname}-final.txt'
@@ -219,10 +232,10 @@ def main():
 
                 if ffunction == 'pip':
                     ffname = f'{fenv}_{ffunction}-final.txt'
-                    fcname = f'{ffunction}-consolidated.txt'
+                    fcname = f'{ffunction}-consolidated.yml'
                     try:
                         with open(os.path.join(dep_path,ffname), 'r') as finput:
-                            print (f'\nINFO - Consolidating {ffunction} packages')
+                            print (f'\nINFO - Consolidating {ffunction} packages\n')
                             print (f'       File name: {ffname}\n')
                             with open(os.path.join(dep_path,fcname),'a') as foutput:
                                 for line in finput:
@@ -235,13 +248,13 @@ def main():
                     conda_pkgs = ['main', 'free', 'conda-forge', 'conda-pkgs']
                     for pkg in conda_pkgs:
                         ffname = f'{fenv}_{ffunction}-{pkg}-final.txt'
-                        fcname = f'{ffunction}-consolidated.txt'
+                        fcname = f'{ffunction}-consolidated.yml'
                         try:
                             with open(os.path.join(dep_path,ffname), 'r') as finput:
                                 print ('\nINFO - Consolidating pip packages')
                                 print (f'       File name: {ffname}\n')
                                 with open(os.path.join(dep_path,fcname),'a') as foutput:
-                                    foutput.write(f'---------- Conda repository: {pkg}\n')
+                                    foutput.write(f'\n-----{fenv} conda repository: {pkg}\n')
                                     for line in finput:
                                         foutput.write(line)
                         except FileNotFoundError as exc:
@@ -251,13 +264,13 @@ def main():
                     conda_pkgs = ['pip-pkgs']
                     for pkg in conda_pkgs:
                         ffname = f'{fenv}_{ffunction}-{pkg}-final.txt'
-                        fcname = f'{ffunction}-pip-consolidated.txt'
+                        fcname = f'{ffunction}-pip-consolidated.yml'
                         try:
                             with open(os.path.join(dep_path,ffname), 'r') as finput:
                                 print ('\nINFO - Consolidating pip packages')
                                 print (f'       File name: {ffname}\n')
                                 with open(os.path.join(dep_path,fcname),'a') as foutput:
-                                    foutput.write(f'----- Conda repository: pip-pkgs')
+                                    foutput.write(f'----- {fenv} conda repository: pip-pkgs\n')
                                     for line in finput:
                                         foutput.write(line)
                         except FileNotFoundError as exc:
@@ -267,7 +280,7 @@ def main():
     def reslove_duplicates():
         fclist = ['conda','pip','conda-pip']
         for i in fclist:
-            fcname = f'{i}-consolidated.txt'
+            fcname = f'{i}-consolidated.yml'
             lines_seen = set()
             outfile = open(os.path.join(dep_path,f'{i}.yml'), "w")
             for line in open(os.path.join(dep_path,fcname),"r"):
