@@ -301,6 +301,7 @@ class Pup_form(npyscreen.ActionFormV2):
         self.prev_field = ''
         self.node = self.parentApp.get_form_data()
         self.fields = {}  # dictionary for holding field instances
+        self.next_form = self.parentApp.NEXT_ACTIVE_FORM
         self.node_list = []
 
         for item in self.node:
@@ -404,10 +405,11 @@ class Pup_form(npyscreen.ActionFormV2):
                                                             self.h_help})
 
     def on_cancel(self):
-        res = npyscreen.notify_yes_no('Quit without saving?', title='cancel 1',
+        fvl = self.parentApp._FORM_VISIT_LIST
+        res = npyscreen.notify_yes_no('Quit without saving?',
+                                      title='cancel 1',
                                       editw=1)
         if res:
-            fvl = self.parentApp._FORM_VISIT_LIST
             if len(fvl) == 1 and fvl[-1] == 'MAIN':
                 self.next_form = None
             elif len(fvl) > 1:
@@ -415,6 +417,8 @@ class Pup_form(npyscreen.ActionFormV2):
                     self.next_form = None
                 elif fvl[-1] == 'MAIN':
                     self.next_form = fvl[-2]
+        else:
+            self.next_form = fvl[-1]
 
     def on_ok(self):
         for item in self.node:
@@ -422,11 +426,13 @@ class Pup_form(npyscreen.ActionFormV2):
                 continue
             if hasattr(self.node[item], 'ftype'):
                 if self.node[item]['ftype'] == 'eth-ifc':
-                    # npyscreen.notify_confirm(f'ifc value: {self.fields[item].value}', editw=1)
+                    # npyscreen.notify_confirm(f'ifc value: {self.fields[item].value}',
+                    # editw=1)
                     if self.fields[item].value is None:
                         self.node[item]['val'] = None
                     else:
-                        self.node[item]['val'] = self.fields[item].values[self.fields[item].value]
+                        self.node[item]['val'] = \
+                            self.fields[item].values[self.fields[item].value]
                 elif self.node[item]['ftype'] == 'select-one':
                     self.node[item]['val'] = \
                         self.node[item]['values'][self.fields[item].value[0]]
