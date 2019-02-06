@@ -395,6 +395,14 @@ def get_args(parser_args=False):
         action='store_true',
         help='Run all software prep and install steps')
 
+    parser_software.add_argument(
+        '--bundle_to',
+        nargs=1,
+        help="Bundle repos and software directory")
+    parser_software.add_argument(
+        '--extract_from',
+        nargs=1,
+        help="Extract bundled repos and software directory")
     # 'utils' subcommand arguments
     parser_utils.set_defaults(utils=True)
 
@@ -490,9 +498,10 @@ def _check_software(args, subparser):
 
 
 def _check_utils(args, subparser):
-    if not args.scan_pxe_network and not args.scan_ipmi_network:
+    if not args.scan_pxe_network and not args.scan_ipmi_network and not args.bundle  \
+            and not args.extract_bundle:
         subparser.error(
-            'one of the arguments --scan-pxe-network --scan-ipmi-network is required')
+            'one of the arguments --scan-pxe-network --scan-ipmi-network --bundle --extract_bundle is required')
 
 
 def is_arg_present(arg):

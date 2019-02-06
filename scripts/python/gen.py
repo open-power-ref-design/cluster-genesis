@@ -30,6 +30,7 @@ import configure_mgmt_switches
 import osinstall
 import remove_client_host_keys
 from lib.utilities import scan_ping_network, sub_proc_exec
+from archive import bundle
 import download_os_images
 import lib.argparse_gen as argparse_gen
 import lib.logger as logger
@@ -513,6 +514,26 @@ class Gen(object):
         print('Scanning cluster IPMI network')
         scan_ping_network('ipmi', self.config_file_path)
 
+    def _bundle(self, root_dir):
+        log = logger.getlogger()
+        print('Bundling {0} directory'.format(root_dir))
+        try:
+            bundle.bundle_this(root_dir, self.args.bundle_to[0])
+            print('Bundled {0} directory'.format(root_dir))
+        except KeyboardInterrupt as e:
+            log.error("User exit ..{0}".format(e))
+
+    def _extract_bundle(self, root_dir):
+        log = logger.getlogger()
+        print('Exctracting to {0} directory ... '.format(root_dir))
+        try:
+            bundle.bundle_extract(self.args.extract_from[0], root_dir)
+            print('Exctraction complete.'.format(root_dir))
+        except KeyboardInterrupt as e:
+            log.error("User exit ... {0}".format(e))
+        except PermissionError as e:
+            log.error("{0}".format(e))
+
     def _osinstall(self):
         osinstall.osinstall(self.config_file_path)
         # print(self.config_file_path)
@@ -696,12 +717,15 @@ class Gen(object):
             self._osinstall()
 
         if cmd == argparse_gen.Cmd.SOFTWARE.value:
+
             if not argparse_gen.is_arg_present(self.args.prep) and not \
                     argparse_gen.is_arg_present(self.args.init_clients) and not \
                     argparse_gen.is_arg_present(self.args.install) and not \
                     argparse_gen.is_arg_present(self.args.README) and not \
                     argparse_gen.is_arg_present(self.args.status):
                 self.args.all = True
+            if self.args.bundle_to or self.args.extract_from:
+                self.args.all = False
             if gen.GEN_SOFTWARE_PATH not in sys.path:
                 sys.path.append(gen.GEN_SOFTWARE_PATH)
 
@@ -717,6 +741,18 @@ class Gen(object):
                 sys.exit(1)
             else:
                 soft = software_module.software(self.args.eval, self.args.non_interactive)
+
+            if self.args.bundle_to:
+                try:
+                    self._bundle(soft.root_dir)
+                except:
+                    sys.exit(1)
+            if self.args.extract_from:
+                try:
+                    self._extract_bundle(soft.root_dir)
+                except:
+                    sys.exit(1)
+
             if self.args.prep is True or self.args.all is True:
                 try:
                     soft.prep()

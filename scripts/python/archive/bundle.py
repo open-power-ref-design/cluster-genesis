@@ -30,9 +30,9 @@ COMPRESSION = "gz"
 RC_SUCCESS = 0
 RC_ERROR = 99  # generic failure
 RC_ARGS = 2  # failed to parse args given
-RC_SRV = 20  # generic failure
+RC_SRV = 20  # srv directory does not exist
 RC_USER_EXIT = 40  # keyboard exit
-
+RC_PERMISSION = 41  # Permission denied
 PAIE_SRV = "/srv/"
 PAIE_EXTRACT_SRV = "/tmp/srv/"
 ENG_MODE = False
@@ -69,6 +69,8 @@ def exit(rc, *extra):
                 raise OSError(err)
             elif rc == RC_USER_EXIT:
                 raise KeyboardInterrupt(err)
+            elif rc == RC_PERMISSION:
+                raise PermissionError(err)
             else:  # rc == RC_ERROR:
                 raise Exception(err)
 
@@ -87,6 +89,9 @@ def build_files_of_this(thing, exclude=None):
 def unarchive_this(src, dest):
     try:
         unpack_tarfile(src, dest)
+        LOG.debug("Completed unarchiving {0} to {1}".format(src, dest))
+    except PermissionError as e:
+        exit(RC_PERMISSION, "unable to write to {1}\n{0}".format(e, dest))
     except Exception as e:
         exit(RC_ERROR, "Uncaught exception {0}".format(e))
 
@@ -186,7 +191,7 @@ def parse_input(args):
 
     subparsers.choices['bundle'].add_argument('--compress', dest="compress",
                                               required=False, action="store_true",
-                                              help='compres using gzip')
+                                              help='compress using gzip')
 
     add_subparser('extract_bundle', "Extract bundle Paie software assume to /srv",
                   [('from_archive', 'from which archive to extract paie software?', True)])
@@ -266,7 +271,7 @@ def archive(args):
             LOG.info("not compressing")
 
         try:
-            LOG.info("archiving {0}".format(args.path))
+            LOG.info("archiving {0} to {1}".format(args.path, fileobj.name))
             start = time.time()
             archive_this(args.path, fileObj=fileobj, compress=args.compress)
             end = time.time()
@@ -275,10 +280,9 @@ def archive(args):
                 os.unlink(fileobj.name)
             exit(RC_ERROR, "Uncaught exception: {0}".format(e))
         else:
-            LOG.info("created: {0}, size in bytes: {1},\
-                     total time: {2} seconds".format(fileobj.name,
-                                                     os.stat(fileobj.name).st_size,
-                                                     (end - start)))
+            LOG.info("created: {0}, size in bytes: {1}, total time: {2} seconds".format(fileobj.name,
+                                                                                        os.stat(fileobj.name).st_size,
+                                                                                        int((end - start))))
         finally:
             if fileobj is not None:
                 fileobj.close()
@@ -288,6 +292,7 @@ def archive(args):
         raise e
     except Exception as e:
         raise e
+    return fileobj
 
 
 def unarchive(args):
@@ -297,7 +302,7 @@ def unarchive(args):
 def do_bundle(args):
     LOG.debug("bundle : {0}".format(args))
     if os.path.isdir(args.path):
-        archive(args)
+        return archive(args)
     else:
         exit(RC_SRV, "Unable to find {0}".format(args.path))
 
@@ -313,13 +318,13 @@ def bundle_this(path, dest):
     args = Arguments()
     args.path = path
     args.dest = dest
-    do_bundle(args)
+    return do_bundle(args)
 
 
 def bundle(args):
     args.path = PAIE_SRV
     args.dest = args.to
-    do_bundle(args)
+    return do_bundle(args)
 
 
 def do_extract_bundle(args):
@@ -332,8 +337,8 @@ def do_extract_bundle(args):
 
 def bundle_extract(src, dest):
     args = Arguments()
-    args.dest = dest
     args.src = src
+    args.dest = dest
     do_extract_bundle(args)
 
 
