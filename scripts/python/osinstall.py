@@ -221,7 +221,7 @@ class OSinstall(npyscreen.NPSAppManaged):
                         f'  Offered address: {dhcp["IP Offered"]}',
                         f'  From server: {dhcp["Server Identifier"]}']
 
-        if prof.pxe_address_mode.val == "dhcp" and prof.pxe_ethernet_ifc.val:
+        if prof.pxe_ethernet_ifc.val:
             dhcp = u.get_dhcp_servers(prof.pxe_ethernet_ifc.val)
             if dhcp:
                 msg += ['- Warning a DHCP server exists already on',
@@ -448,7 +448,7 @@ class Pup_form(npyscreen.ActionFormV2):
                     self.node[item]['val'] = self.fields[item].value
         msg = ['Validating network profile']
         if (hasattr(self.node, 'bmc_address_mode')):
-            if self.node.bmc_address_mode.val == 'dhcp' or self.node.pxe_address_mode.val == 'dhcp':
+            if self.node.bmc_address_mode.val == 'dhcp' or self.node.pxe_ethernet_ifc.val:
                 msg += ['and checking for existing DHCP servers']
             npyscreen.notify(msg, title='Info')
             sleep(1)
