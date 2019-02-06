@@ -38,6 +38,7 @@ PAIE_EXTRACT_SRV = "/tmp/srv/"
 ENG_MODE = False
 LOG = ""
 STANDALONE = True
+LOGFILE = os.path.splitext(os.path.basename(__file__))[0] + ".log"
 if (sys.version_info > (3, 0)):
     try:
         TOP_DIR = os.path.join(os.getcwd(), os.path.dirname(__file__), '../../..')
@@ -73,6 +74,36 @@ def exit(rc, *extra):
                 raise PermissionError(err)
             else:  # rc == RC_ERROR:
                 raise Exception(err)
+
+
+def get_top_level_dirs(thing, include=None):
+    if include is None:
+        include = []
+    if not thing:
+        thing = os.getcwd()
+    return [name for name in os.listdir(thing)
+            if os.path.isdir(os.path.join(thing, name)) and name in include]
+
+
+def get_top_level_dir_list_from_tar(extract_file):
+    with tarfile.open(extract_file) as tarlist:
+        tar_list_names = tarlist.getnames()
+        toplevel = [t.split("/")[0] for t in tar_list_names]
+        toplevel = set(toplevel)
+        return toplevel
+
+
+def validate_directories(root_dir, extract_file):
+    return get_top_level_dirs(root_dir,
+                              get_top_level_dir_list_from_tar(extract_file))
+
+
+def discern_lists(root_dir, tar_list_dirs):
+    in_list = []
+    for r in root_dir:
+        if r in tar_list_dirs:
+            in_list.append(r)
+    return in_list
 
 
 def build_files_of_this(thing, exclude=None):
@@ -144,10 +175,15 @@ def setup_logging(debug="INFO"):
     Method to setup logging based on debug flag
     '''
     LOG.setLevel(debug)
+    formatString = '%(asctime)s - %(levelname)s - %(message)s'
     ch = logging.StreamHandler()
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter(formatString)
     ch.setFormatter(formatter)
     LOG.addHandler(ch)
+    #  setup file handler
+    rfh = logging.FileHandler(filename=LOGFILE)
+    rfh.setFormatter(logging.Formatter(formatString))
+    LOG.addHandler(rfh)
 
 
 def parse_input(args):
@@ -242,6 +278,10 @@ def validate_src(path):
 
 def list(args):
     try:
+        extlist = get_top_level_dir_list_from_tar("/tmp/something.tar.gz")
+        LOG.info(extlist)
+        this_list = get_top_level_dirs("/srv/", extlist)
+        LOG.info(this_list)
         with tarfile.open(args.src) as tarlist:
             for i in tarlist:
                 LOG.info(i.name)
@@ -277,7 +317,10 @@ def archive(args):
             end = time.time()
         except Exception as e:
             if fileobj is not None:
-                os.unlink(fileobj.name)
+                try:
+                    os.unlink(fileobj.name)
+                except:
+                    pass
             exit(RC_ERROR, "Uncaught exception: {0}".format(e))
         else:
             LOG.info("created: {0}, size in bytes: {1}, total time: {2} seconds".format(fileobj.name,
@@ -287,8 +330,10 @@ def archive(args):
             if fileobj is not None:
                 fileobj.close()
     except KeyboardInterrupt as e:
-        if fileobj is not None:
+        try:
             os.unlink(fileobj.name)
+        except:
+            pass
         raise e
     except Exception as e:
         raise e
@@ -351,8 +396,7 @@ def extract_bundle(args):
 def main(args):
     """Paie archive environment"""
     try:
-        if STANDALONE is True:
-            setup_logging()
+        setup_logging()
         parsed_args = parse_input(args)
         LOG.info("Running operation '%s'", ' '.join(args))
         parsed_args.func(parsed_args)
@@ -364,4 +408,5 @@ def main(args):
 
 
 if __name__ == "__main__":
+    STANDALONE = True
     main(sys.argv[1:])

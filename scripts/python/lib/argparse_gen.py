@@ -423,6 +423,16 @@ def get_args(parser_args=False):
         metavar='CONFIG-FILE-NAME',
         help='Config file name. Specify relative to the power-up directory.')
 
+    parser_utils.add_argument(
+        '--bundle_from',
+        nargs=1,
+        help="Extract bundled repos and software directory")
+
+    parser_utils.add_argument(
+        '--bundle_to',
+        nargs=1,
+        help="Bundle repos and software directory")
+
     if parser_args:
         return (parser, parser_setup, parser_config, parser_validate,
                 parser_deploy, parser_post_deploy, parser_software,
@@ -498,10 +508,16 @@ def _check_software(args, subparser):
 
 
 def _check_utils(args, subparser):
-    if not args.scan_pxe_network and not args.scan_ipmi_network and not args.bundle  \
-            and not args.extract_bundle:
+    if not args.scan_pxe_network and not args.scan_ipmi_network \
+            and not args.bundle_to and not args.bundle_from:
         subparser.error(
-            'one of the arguments --scan-pxe-network --scan-ipmi-network is required')
+            'one of the arguments --scan-pxe-network --scan-ipmi-network --bundle_to --bundle_from is required')
+    elif not args.scan_pxe_network and not args.scan_ipmi_network and args.bundle_to and not args.bundle_from:
+        subparser.error(
+            'argument --bundle_to requires --bundle_from')
+    elif not args.scan_pxe_network and not args.scan_ipmi_network and args.bundle_from and not args.bundle_to:
+        subparser.error(
+            'argument --bundle_from requires --bundle_to')
 
 
 def is_arg_present(arg):

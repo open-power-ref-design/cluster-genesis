@@ -521,7 +521,7 @@ class Gen(object):
             bundle.bundle_this(root_dir, self.args.bundle_to[0])
             print('Bundled {0} directory'.format(root_dir))
         except KeyboardInterrupt as e:
-            log.error("User exit ..{0}".format(e))
+            log.error("User exit ... {0}".format(e))
 
     def _extract_bundle(self, root_dir):
         log = logger.getlogger()
@@ -748,9 +748,35 @@ class Gen(object):
                 except:
                     sys.exit(1)
             if self.args.extract_from:
+                log = logger.getlogger()
                 try:
-                    self._extract_bundle(soft.root_dir)
-                except:
+                    in_dir = bundle.validate_directories(soft.root_dir, self.args.extract_from[0])
+                    if in_dir is not None:
+                        msg = 'Some diretories exist in {0} directory\n{1}'.format(soft.root_dir, "\n".join(in_dir))
+                        log.warning(msg)
+                        while True:
+                            try:
+                                resp = input("Enter C to continue extracting or 'T' to terminate ")
+                                if resp == 'T':
+                                    log.info("'{}' entered. Terminating POWER-Up at user request".format(resp))
+                                    sys.exit(1)
+                                elif resp == 'C':
+                                    log.info("'{0}' entered. Continuing archiving of {1}".format(resp, soft.root_dir))
+                                    break
+                                else:
+                                    continue
+                            except KeyboardInterrupt:
+                                log.info("\nExiting at user request ... ")
+                                sys.exit(1)
+                            except Exception as e:
+                                log.error("Uncaught exception:\n{0}".format(e))
+                                sys.exit(1)
+
+                        self._extract_bundle(soft.root_dir)
+                    else:
+                        self._extract_bundle(soft.root_dir)
+                except Exception as e:
+                    print(e)
                     sys.exit(1)
 
             if self.args.prep is True or self.args.all is True:
@@ -793,6 +819,8 @@ class Gen(object):
                 self._scan_pxe_network()
             if self.args.scan_ipmi_network:
                 self._scan_ipmi_network()
+            if self.args.bundle_to or self.args.bundle_from:
+                    self._bundle(self.args.bundle_from[0])
 
         if not cmd:
             print('Unrecognized POWER-Up command')
