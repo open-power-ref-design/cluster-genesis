@@ -88,7 +88,7 @@ def main():
         else:
             print('Try again')
 
-                        #remove default routes
+#                        #remove default routes
 
     opt0_menu = True
     while opt0_menu == True:
@@ -126,7 +126,7 @@ def main():
         else:
             print('Try again')
 
-                        #Add a route to the NFS share
+ #                       #Add a route to the NFS share
 
     opt2_menu = True
     print("\nINFO - Add a route to the NFS share \n")
@@ -166,7 +166,7 @@ def main():
         else:
             print('Try again')
 
-                        #Install nfs-utils
+#                        #Install nfs-utils
 
     opt4_menu = True
     print("\nINFO - Install nfs-utils \n")
@@ -184,7 +184,7 @@ def main():
 
     input('Press any key to continue')
 
-                        #Create Mount
+# 1 of 2                        #Create Mount
 
     opt5_menu = True
     print("\nINFO - Create Mount  \n")
@@ -206,7 +206,7 @@ def main():
         else:
             print('Try again')
 
-                        #Move dvd1.repo from 'yum.repos.d' directory
+ #                       #Move dvd1.repo from 'yum.repos.d' directory
 
     print ('\nINFO - Moving the iso cd repo setup\n')
     try:
@@ -215,7 +215,7 @@ def main():
         print(f'dvd iso not found. Err: {exc}')
         cmd('rm -rf /etc/yum.repos.d/*dvd1.repo')
 
-                        #Reboot Client
+#                        #Reboot Client
 
     print('INFO - Client Reboot')
     input('Press any key to continue')
