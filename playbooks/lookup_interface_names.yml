@@ -70,12 +70,12 @@
   hosts: client_nodes
   gather_facts: True
   vars:
-    stale_devices: []
+    stale_devs: []
   tasks:
     - block:
         - name: Create list of PXE devices that will be renamed
           set_fact:
-            stale_devices: "{{ stale_devices + [mac_to_device[item.0]] }}"
+            stale_devs: "{{ stale_devs + [mac_to_device[item.0|lower]] }}"
           with_together:
             - "{{ vars['pxe']['macs'] }}"
             - "{{ vars['pxe']['rename'] }}"
@@ -83,11 +83,11 @@
           when:
             - item.0 is not none
             - item.1
-            - item.2 != mac_to_device[item.0]
+            - item.2 != mac_to_device[item.0|lower]
 
         - name: Create list of Data devices that will be renamed
           set_fact:
-            stale_devices: "{{ stale_devices + [mac_to_device[item.0]] }}"
+            stale_devs: "{{ stale_devs + [mac_to_device[item.0|lower]] }}"
           with_together:
             - "{{ vars['data']['macs'] }}"
             - "{{ vars['data']['rename'] }}"
@@ -95,7 +95,7 @@
           when:
             - item.0 is not none
             - item.1
-            - item.2 != mac_to_device[item.0]
+            - item.2 != mac_to_device[item.0|lower]
 
         - name: Find all interface configuration scripts
           find:
@@ -110,7 +110,7 @@
             line: 'ONBOOT=no  # Disabled by POWER-Up'
           when:
             - (item.path | basename).split('-')[1] != 'lo'
-            - (item.path | basename).split('-')[1] in stale_devices
+            - (item.path | basename).split('-')[1] in stale_devs
           loop: "{{ ifcfg_scripts.files }}"
       when: (ansible_distribution == 'CentOS' or
              ansible_distribution == 'RedHat')
