@@ -25,7 +25,7 @@ import code
 import getpass
 
 import lib.logger as logger
-from lib.genesis import GEN_PATH, GEN_SOFTWARE_PATH, get_ansible_playbook_path, get_playbooks_path, get_logs_path
+from lib.genesis import GEN_PATH, GEN_SOFTWARE_PATH, get_ansible_playbook_path, get_playbooks_path, get_dependencies_path
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, Color, \
     get_selection, get_yesno, rlinput, bold, ansible_pprint, replace_regex
 from pathlib import Path
@@ -33,7 +33,7 @@ from pathlib import Path
 def dependency_folder_collector():
    #sub_proc_display("ansible-fetch copy_text_files_from_client.yml",
    #                 shell=True)
-   dependencies_path = get_logs_path() +'/dependencies'
+   dependencies_path = get_dependencies_path()
    if not os.path.exists('{}'.format(dependencies_path)):
           os.makedirs('{}'.format(dependencies_path))
 
@@ -55,7 +55,7 @@ def pre_post_file_collect(task):
       remote_access   = f"{client_user}@{client_hostname}"
       remote_location = f"/home/{client_user}/"
       dbfile          = f"{file_name}"
-      local_dir       = f"/home/{current_user}/power-up/logs/dependencies/"
+      local_dir       = dependencies_path
 
       data_copy_cmd  = f'scp -r {remote_access}:{remote_location}{dbfile} {local_dir}'
 

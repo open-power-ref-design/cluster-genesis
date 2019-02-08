@@ -106,6 +106,10 @@ def load_localhost(filename):
         sys.exit('Could not load file: ' + filename)
 
 
+def get_dependencies_path():
+    return os.path.join(GEN_PATH, 'logs/dependencies')
+
+
 def get_symlink_path(config_path=None):
     from lib.config import Config
     cfg = Config(config_path)
