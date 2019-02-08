@@ -19,6 +19,7 @@ from __future__ import nested_scopes, generators, division, absolute_import, \
     with_statement, print_function, unicode_literals
 
 import argparse
+import json
 import glob
 import os
 import re
@@ -469,6 +470,46 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
     def sync_ana(self, url, rejlist='', acclist=''):
         """Syncs an Anaconda repository using wget or rsync.
         """
+    def _update_repodata(self, path):
+        """ Update the repodata.json file to reflect the actual contents of the
+        repodata directory.
+            Args:
+        path: (str) full path to the repodata directory.
+        """
+        status = True
+        path = os.path.join(path, 'repodata.json')
+        exists = glob.glob(path, recursive=True)
+        if exists:
+            repodata_path = exists[0]
+            dir_name = os.path.dirname(repodata_path)
+            file_list = glob.glob(os.path.join(dir_name, '*'))
+            file_list = [f.rsplit('/', 1)[1] for f in file_list]
+        else:
+            self.log.error(f'Unable to find repodata for {self.repo_name}')
+
+        with open(path, 'r') as f:
+            repodata = f.read()
+
+        repodata = json.loads(repodata)
+        pkgs = {pkg:repodata['packages'][pkg] for pkg in
+                repodata['packages'] if pkg in file_list}
+
+
+        # Build the new dict from the original. Replace the value of the 'packages'
+        # key in the new dict
+        new_repodata = {}
+        for item in repodata.keys():
+            if item == 'packages':
+                new_repodata[item] = pkgs
+            else:
+                new_repodata[item] = repodata[item]
+
+        # write (replace) the repodata file
+        with open(path, 'w') as f:
+            json.dump(new_repodata, f, indent=2)
+
+        return status
+
         def _get_table_row(file_handle):
             """read lines from file handle until end of table row </tr> found
             return:
