@@ -153,12 +153,15 @@ def main():
     while opt3_menu == True:
         if opt_3 == 'y':
             interface = input('Select interface: ')
-            cmd('echo -e "GATEWAY0=192.168.47.3\n '
-                         'NETMASK0=255.255.255.0\n '
-                         'ADDRESS0=9.3.89.0\n '
-                f'>> /etc/sysconfig/network-scripts/ifcfg-{interface}"')
+            ifcfg_loc = f'/etc/sysconfig/network-scripts/ifcfg-{interface}'
+
+            cmd('echo "GATEWAY0=192.168.47.3 >> {ifcfg_loc}"')
+            cmd('echo "NETMASK0=255.255.255.0 >> {ifcfg_loc}"')
+            cmd('echo "ADDRESS0=9.3.89.0 >> {ifcfg_loc}"')
+
             print('Verifing.\n')
-            cmd(f'cat /etc/sysconfig/network-scripts/ifcfg-{interface}')
+
+           cmd(f'cat /etc/sysconfig/network-scripts/ifcfg-{interface}')
             opt3_menu = False
         elif opt_3 =='n':
             print("\nINFO - Procceding")

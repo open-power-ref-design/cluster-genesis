@@ -122,6 +122,21 @@ def pre_post_file_collect(task):
             sub_proc_display(f'{data_copy_cmd}', shell=True)
             menu = False
 
+                                        #Clean cache
+
+   def clean_cache():
+      conda_cache = "/opt/anaconda3/conda-bld/"
+      conda_cache_dir = ['src_cache','git_cache','hg_cache','svn_cache']
+      ansible_prefix = f'ansible all -i {host_path} -m shell -a '
+      print("\n*ENGINEERING MODE* INFO - Checking for conda cache")
+      try:
+         for cache_dir in conda_cache_dir:
+            sub_proc_display(f"{ansible_prefix} 'ls {conda_cache}{cache_dir}' ")
+         sub_proc_display(f"{ansible_prefix} 'conda clean --all' ")
+      except FolderNotFoundError as exc:
+            print ("\nINFO Cache directories do not exist\n")
+
+                                        #Start
    host_path = get_playbooks_path() +'/software_hosts'
    tasks_list = [
                  'yum_update_cache.yml'
@@ -135,6 +150,10 @@ def pre_post_file_collect(task):
                      process="touch client_pip_pre_install.txt")
 
    elif (task == 'install_frameworks.yml'):
+
+                                        # Clean Cache
+
+      clean_cache()
 
 										#dlipy3_env
       # Create dlipy3 test environment
