@@ -152,15 +152,15 @@ def print_lines(str, line_list):
 def get_int_input(prompt_str, minn, maxx):
     while 1:
         try:
-            input = int(input(prompt_str))
-            if not (minn <= input <= maxx):
+            _input = int(input(prompt_str))
+            if not (minn <= _input <= maxx):
                 raise ValueError()
             else:
                 break
         except ValueError:
             print("enter an integer between " +
                   str(minn) + ' and ' + str(maxx))
-    return input
+    return _input
 
 
 if __name__ == '__main__':

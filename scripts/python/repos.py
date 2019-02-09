@@ -154,24 +154,24 @@ def get_name_dir(name):
 
 
 def powerup_file_from_disk(name, file_glob):
-        log = logger.getlogger()
-        name_src = get_name_dir(name)
-        dest_path = None
-        src_path = get_src_path(file_glob)
-        if src_path:
-            if not os.path.exists(f'/srv/{name_src}'):
-                os.mkdir(f'/srv/{name_src}')
-            try:
-                copy2(src_path, f'/srv/{name_src}/')
-            except Error as err:
-                log.debug(f'Failed copying {name} source file to /srv/{name_src}/ '
-                          f'directory. \n{err}')
-            else:
-                log.info(f'Successfully installed {name} source file '
-                         'into the POWER-Up software server.')
-                dest_path = os.path.join(f'/srv/{name_src}/',
-                                         os.path.basename(src_path))
-        return src_path, dest_path
+    log = logger.getlogger()
+    name_src = get_name_dir(name)
+    dest_path = None
+    src_path = get_src_path(file_glob)
+    if src_path:
+        if not os.path.exists(f'/srv/{name_src}'):
+            os.mkdir(f'/srv/{name_src}')
+        try:
+            copy2(src_path, f'/srv/{name_src}/')
+        except Error as err:
+            log.debug(f'Failed copying {name} source file to /srv/{name_src}/ '
+                      f'directory. \n{err}')
+        else:
+            log.info(f'Successfully installed {name} source file '
+                     'into the POWER-Up software server.')
+            dest_path = os.path.join(f'/srv/{name_src}/',
+                                     os.path.basename(src_path))
+    return src_path, dest_path
 
 
 class PowerupRepo(object):

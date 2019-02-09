@@ -46,8 +46,8 @@ echo
 # files to it directly without creating puptempdl dir under it.
 rm -rf ~/tempdl
 
-sshpass -e ssh -t $1@$2 'mkdir -p ~/puptempdl && sudo yumdownloader --archlist=ppc64le \
-    --resolve --destdir ~/puptempdl '$pkglist
+sshpass -e ssh -t $1@$2 'mkdir -p ~/puptempdl && sudo yumdownloader \
+    --archlist=ppc64le --resolve --destdir ~/puptempdl '$pkglist
 
 echo Retrieving packages
 sshpass -e scp -r $1@$2:~/puptempdl/ ~/tempdl

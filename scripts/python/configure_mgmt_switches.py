@@ -82,9 +82,7 @@ def configure_mgmt_switches(config_file=None):
                     'Switch authentication via ssh keys not yet supported')
 
         if mode == PASSIVE:
-                sw = SwitchFactory.factory(
-                    switch_class,
-                    mode)
+            sw = SwitchFactory.factory(switch_class, mode)
 
         elif mode == ACTIVE:
             # Try all ipaddrs in switches.interfaces
