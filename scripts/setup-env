@@ -1,4 +1,4 @@
-# Copyright 2018 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -16,42 +16,33 @@
 
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 
-# gen auto completion
-. $PROJECT_ROOT/scripts/pup-ac
+# pup auto completion
+source $PROJECT_ROOT/scripts/pup-ac
 sudo cp $PROJECT_ROOT/scripts/pup-ac /etc/bash_completion.d
 
-. $PROJECT_ROOT/scripts/teardown-ac
+source $PROJECT_ROOT/scripts/teardown-ac
 sudo cp $PROJECT_ROOT/scripts/teardown-ac /etc/bash_completion.d
 
-if [[ ! $PATH == *"$PROJECT_ROOT/scripts:"* ]]; then
-    export PATH=$PROJECT_ROOT/scripts:$PATH
-fi
+# add pup scripts to python venv activate PATH
+PUP_SCRIPTS=$PROJECT_ROOT/scripts
+PUP_PYTHON=$PROJECT_ROOT/scripts/python
+PYTHON_VENV=$PROJECT_ROOT/pup-venv
+PYTHON_ACTIVATE=$PYTHON_VENV/bin/activate
 
-if [[ ! $PATH == *"$PROJECT_ROOT/scripts/python:"* ]]; then
-    export PATH=$PROJECT_ROOT/scripts/python:$PATH
-fi
+PUP_VIRTUAL_ENV=$PUP_SCRIPTS:$PUP_PYTHON:$PYTHON_VENV
 
-if [[ ! $PATH == *"$PROJECT_ROOT/pup-venv/bin:"* ]]; then
-    export PATH=$PROJECT_ROOT/pup-venv/bin:$PATH
-fi
+sed -i 's,^VIRTUAL_ENV=.*,VIRTUAL_ENV='"$PUP_VIRTUAL_ENV"',' $PYTHON_ACTIVATE
 
-if [ -z "$(grep -m1 $PROJECT_ROOT"/scripts:" ~/.bashrc)" ] || \
-[ -z "$(grep -m1 $PROJECT_ROOT"/scripts/python:" ~/.bashrc)" ] || \
-[ -z "$(grep -m1 $PROJECT_ROOT"/pup-venv/bin:" ~/.bashrc)" ]; then
-    echo $'\n'"OK for POWER-Up to add setup statements to your"
-    echo $".bashrc file. (statements can be removed by running tear-down)"
+# activate environment
+source $PYTHON_ACTIVATE
+
+# prompt user to add activate to ~/.bashrc (if not already there)
+if [ -z "$(grep -m1 "source $PYTHON_ACTIVATE" ~/.bashrc)" ]; then
+    echo $'\n'"OK for POWER-Up to add pup activation to your .bashrc file?"
     echo;
     read -p "Enter (y/n) ? " resp
     if [[ $resp == "y" ]]; then
-        if [ -z "$(grep -m1 $PROJECT_ROOT"/scripts:" ~/.bashrc)" ]; then
-            echo "PATH="$PROJECT_ROOT"/scripts:\$PATH" >> ~/.bashrc
-        fi
-        if [ -z "$(grep -m1 $PROJECT_ROOT"/scripts/python:" ~/.bashrc)" ]; then
-            echo "PATH="$PROJECT_ROOT"/scripts/python:\$PATH" >> ~/.bashrc
-        fi
-        if [ -z "$(grep -m1 $PROJECT_ROOT"/pup-venv/bin:" ~/.bashrc)" ]; then
-            echo "PATH="$PROJECT_ROOT"/pup-venv/bin:\$PATH" >> ~/.bashrc
-        fi
+        echo "source $PYTHON_ACTIVATE" >> ~/.bashrc
     fi
 fi
 if [ ! -d ~/bin ]; then
