@@ -119,6 +119,8 @@ class Lenovo(SwitchCommon):
             for line in port_info:
                 # pad to 86 chars
                 line = f'{line:<86}'
+                # remove "Press q to quit, any other key to continue" line
+                line = re.sub('\\x1b.*\\x08', '', line)
                 # look for rows (look for first few fields)
                 match = re.search(r'^\s*\w+\s+\d+\s+(y|n)', line)
                 if match:
