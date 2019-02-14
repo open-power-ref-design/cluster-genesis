@@ -515,7 +515,6 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk='', contains=[]
             url = None
             break
 
-        code.interact(banner='here', local=dict(globals(), **locals()))
         if 'artifactory.swg' in url:
             fnd_creds = False
             while not fnd_creds:
@@ -531,7 +530,6 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk='', contains=[]
                     if r == 'T':
                         sys.exit('PowerUp software install terminated by user')
             url = f'https://{creds}{url}'
-            code.interact(banner='There', local=dict(globals(), **locals()))
             break
 
         if repo_chk:

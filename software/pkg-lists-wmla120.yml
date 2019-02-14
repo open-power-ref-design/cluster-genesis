@@ -1,14 +1,19 @@
-ibm-ai-conda:
+# For conda repos, set the accept_list to all to download everything, set reject
+# list to all to download nothing. Leaving accept_list and rej_list both empty
+# will also download everything.
+# ie: ibm-ai-conda: all
+#
+ibm_ai_conda_linux_ppc64le:
+    accept_list: all
+    reject_list:
+ibm_ai_conda_noarch:
     accept_list:
-      - toposort-1.5-py27_7.46cfec7.tar.bz2
-      - toposort-1.5-py36_7.46cfec7.tar.bz2
     reject_list:
 conda_forge_noarch_pkgs:
   accept_list:
     - configparser-3.5.0-py_1000.tar.bz2
-    - networkx-*
   reject_list:
-anaconda_free_pkgs:
+anaconda_free_linux_ppc64le:
   accept_list:
     - blas-1.0-openblas.tar.bz2
     - bzip2-1.0.6-3.tar.bz2
@@ -62,14 +67,11 @@ anaconda_free_pkgs:
     - yaml-0.1.6-0.tar.bz2
     - zlib-1.2.11-1.tar.bz2
   reject_list:
-  - continuum-docs-*
-  - cudatoolkit-*
-  - cudnn-*
-  - tensorflow-*
-  - caffe-*
-  - anaconda-oss-docs-*
-  - anaconda-docs-*
-anaconda_main_pkgs:
+anaconda_free_noarch:
+  accept_list:
+  reject_list: all
+
+anaconda_main_linux_ppc64le:
   accept_list:
     - absl-py-0.6.1-py36_0.tar.bz2
     - astor-0.7.1-py36_0.tar.bz2
@@ -143,8 +145,10 @@ anaconda_main_pkgs:
     - werkzeug-0.14.1-py36_0.tar.bz2
     - xz-5.2.4-h14c3975_4.tar.bz2
   reject_list:
-  - anaconda-oss-docs-*
-  - anaconda-docs-*
+
+anaconda_main_noarch:
+  accept_list:
+  reject_list: all
 
 python3_specific_pkgs:
 - deprecation==2.0.5
