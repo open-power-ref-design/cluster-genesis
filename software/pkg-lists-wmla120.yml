@@ -1,3 +1,8 @@
+ibm-ai-conda:
+    accept_list:
+      - toposort-1.5-py27_7.46cfec7.tar.bz2
+      - toposort-1.5-py36_7.46cfec7.tar.bz2
+    reject_list:
 conda_forge_noarch_pkgs:
   accept_list:
     - configparser-3.5.0-py_1000.tar.bz2

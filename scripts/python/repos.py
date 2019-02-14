@@ -25,6 +25,7 @@ import os
 import re
 from shutil import copy2, copytree, rmtree, Error
 import time
+import code
 
 import lib.logger as logger
 from lib.utilities import sub_proc_display, sub_proc_exec, get_url, \
@@ -467,9 +468,6 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
         super(PowerupAnaRepoFromRepo, self).__init__(repo_id, repo_name, arch, rhel_ver)
         self.repo_type = 'ana'
 
-    def sync_ana(self, url, rejlist='', acclist=''):
-        """Syncs an Anaconda repository using wget or rsync.
-        """
     def _update_repodata(self, path):
         """ Update the repodata.json file to reflect the actual contents of the
         repodata directory.
@@ -510,6 +508,9 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
 
         return status
 
+    def sync_ana(self, url, rejlist='', acclist=''):
+        """Syncs an Anaconda repository using wget or rsync.
+        """
         def _get_table_row(file_handle):
             """read lines from file handle until end of table row </tr> found
             return:
@@ -529,11 +530,14 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
         if 'http:' in url or 'https:' in url:
             if '/pkgs/' in url:
                 dest_dir = f'/srv/repos/{self.repo_id}' + url[url.find('/pkgs/'):]
-            elif '/conda-forge' in url:
+            elif url == '/conda-forge':
                 dest_dir = f'/srv/repos/{self.repo_id}' + url[url.find('/conda-forge'):]
+            elif url == 'ibm-ai':
+                dest_dir = f'/srv/repos/{self.repo_id}' + url[url.find('/ibm-ai'):]
             self.log.info(f'Syncing {self.repo_name}')
             self.log.info('This can take many minutes or hours for large repositories\n')
-
+            # if no accept list, default to --reject. If no reject list,
+            # everything is accepted
             if acclist:
                 ctrl = '--accept'
                 _list = acclist
@@ -552,8 +556,12 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
                 cd_cnt = url[3 + url.find('://'):url.find('/pkgs')].count('/')
             elif '/conda-forge' in url:
                 cd_cnt = url[3 + url.find('://'):url.find('/conda-forge')].count('/')
+            elif '/sys-powerai-next-daily-conda-local' in url:
+                cd_cnt = url[3 + url.find('://'):\
+                    url.find('/sys-powerai-next-daily-conda-local')].count('/')
             cmd = (f"wget -m -nH --cut-dirs={cd_cnt} {ctrl} '{_list}' "
                    f"-P /srv/repos/{self.repo_id} {url}")
+            code.interact(banner='Ana reposync', local=dict(globals(), **locals()))
             rc = sub_proc_display(cmd, shell=True)
             if rc != 0:
                 self.log.error(f'Error downloading {url}.  rc: {rc}')

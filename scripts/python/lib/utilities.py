@@ -25,6 +25,7 @@ from shutil import copy2
 from subprocess import Popen, PIPE
 from netaddr import IPNetwork, IPAddress, IPSet
 from tabulate import tabulate
+import code
 
 from lib.config import Config
 import lib.logger as logger
@@ -503,6 +504,7 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk='', contains=[]
     Output:
         url (str) URL for one file or repository directory
     """
+    from lib.genesis import GEN_SOFTWARE_PATH
     print(f'Enter {prompt_name} URL. ("sss" at end of URL to skip)')
     if fileglob:
         print('Do not include filenames in the URL. A search of the URL')
@@ -512,6 +514,26 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk='', contains=[]
         if url.endswith('sss'):
             url = None
             break
+
+        code.interact(banner='here', local=dict(globals(), **locals()))
+        if 'artifactory.swg' in url:
+            fnd_creds = False
+            while not fnd_creds:
+                path = os.path.join(GEN_SOFTWARE_PATH, 'artifactory.credentials')
+                if os.path.isfile(path):
+                    with open(path, 'r') as f:
+                        creds = f.read().rstrip('\n')
+                        fnd_creds = True
+                else:
+                    print('No artifactory credentials file found')
+                    r = get_selection('Retry\nTerminate Sofware install',
+                                      ('R', 'T'))
+                    if r == 'T':
+                        sys.exit('PowerUp software install terminated by user')
+            url = f'https://{creds}{url}'
+            code.interact(banner='There', local=dict(globals(), **locals()))
+            break
+
         if repo_chk:
             url = url if url.endswith('/') else url + '/'
         try:
