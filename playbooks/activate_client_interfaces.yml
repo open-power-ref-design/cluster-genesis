@@ -57,11 +57,11 @@
     - name: Create temporary dhclient.conf
       lineinfile:
         path: /run/dhclient.conf
-        line: 'timeout 5'
+        line: 'timeout 10;'
         create: True
 
     - name: Update switch mac address tables
-      shell: "dhclient {{ item }} -1 || true"
+      shell: "dhclient -r && dhclient {{ item }} -1 || true"
       become: true
       when:
         - item != 'lo'
@@ -73,7 +73,7 @@
 
     - name: Pause for ipv4 link local
       pause:
-        seconds: 5
+        seconds: 20
 
     # A one time copy is made of the network interfaces files after initial
     # OS install. This is now attempted at the end of install in wait_for_
