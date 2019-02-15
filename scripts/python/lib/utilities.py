@@ -863,7 +863,7 @@ def get_file_path(filename='/home'):
     print('/home/user1/myfile[56].2  Search for myfile5.2 or myfile6.2 under /home/user1/')
     print('/home/user1/*/            List directories under /home/user1')
     print()
-    maxl = 40
+    maxl = 10
     while True:
         print("Enter a file name to search for ('L' to leave without making a selction): ")
         filename = rlinput(bold("File: "), filename)
@@ -875,7 +875,7 @@ def get_file_path(filename='/home'):
             print(bold(f'Found {len(files)} matching'))
             if len(files) > maxl:
                 print(f'\nSearch returned more than {maxl} items. Showing first {maxl}')
-                files = files[:40]
+                files = files[:maxl]
             choices = [str(i + 1) for i in range(len(files))]
             choices.append('S')
             choices.append('L')

@@ -2,7 +2,7 @@
 - name: Get pkg name from software-vars.yml
   set_fact:
     #file: "{{ content_files['cuda'].split('/', 2)[-1] }}"
-    pkg: "{{ cuda }}"
+    pkg: "{{ cuda-driver }}"
 
 - name: Install cuda software package
   yum:

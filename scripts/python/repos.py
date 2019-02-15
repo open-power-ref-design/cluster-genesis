@@ -377,18 +377,24 @@ class PowerupRepoFromRpm(PowerupRepo):
         """Interactive search for the rpm path.
         Returns: Path to file or None
         """
-        while True:
+        continu = True
+        while continu:
             self.rpm_path = get_file_path(filepath)
+            if '.rpm' not in self.rpm_path:
+                r = get_yesno('Continue searching')
+                if not r:
+                    continu = False
             # Check for .rpm files in the chosen file
-            cmd = 'rpm -qlp self.rpm_path'
+            cmd = f'rpm -qlp {self.rpm_path}'
             resp, err, rc = sub_proc_exec(cmd)
-            if self.rpm_path:
-                if '.rpm' not in resp:
-                    print('There are no ".rpm" files in the selected path')
-                    if get_yesno('Use selected path? ', default='n'):
-                        return self.rpm_path
+            if rc != 0:
+                print('An error occured while querying the selcted rpm file')
+                return
             else:
-                return None
+                if '.rpm' not in resp:
+                    print('There are no ".rpm" files in the selected file')
+                else:
+                    return self.rpm_path
 
     def copy_rpm(self, src_path):
         """copy the selected rpm file (self.rpm_path) to the /srv/{self.repo_id}
@@ -415,6 +421,8 @@ class PowerupRepoFromRpm(PowerupRepo):
         extract_dir = self.repo_dir
         if not os.path.exists(extract_dir):
             os.makedirs(extract_dir)
+
+        # Move to the target directory
         os.chdir(extract_dir)
         cmd = f'rpm2cpio {src_path} | sudo cpio -div'
         resp, err, rc = sub_proc_exec(cmd, shell=True)

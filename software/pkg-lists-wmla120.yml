@@ -15,54 +15,114 @@ conda_forge_noarch_pkgs:
   reject_list:
 anaconda_free_linux_ppc64le:
   accept_list:
+    - asn1crypto-0.22.0-py27_0.tar.bz2
+    - backports-1.0-py27_0.tar.bz2
+    - backports.weakref-1.0rc1-py27_0.tar.bz2
+    - backports_abc-0.5-py27_0.tar.bz2
     - blas-1.0-openblas.tar.bz2
     - bzip2-1.0.6-3.tar.bz2
+    - certifi-2016.2.28-py27_0.tar.bz2
     - certifi-2016.2.28-py36_0.tar.bz2
+    - cffi-1.10.0-py27_0.tar.bz2
+    - chardet-3.0.4-py27_0.tar.bz2
     - chardet-3.0.4-py36_0.tar.bz2
+    - cloudpickle-0.4.0-py27_0.tar.bz2
     - cloudpickle-0.4.0-py36_0.tar.bz2
+    - configparser-3.5.0-py27_0.tar.bz2
+    - coverage-4.3.4-py27_0.tar.bz2
     - coverage-4.3.4-py36_0.tar.bz2
+    - cycler-0.10.0-py27_0.tar.bz2
     - cycler-0.10.0-py36_0.tar.bz2
+    - cython-0.25.2-py27_0.tar.bz2
     - cython-0.25.2-py36_0.tar.bz2
+    - enum34-1.1.6-py27_0.tar.bz2
+    - funcsigs-1.0.2-py27_0.tar.bz2
+    - functools32-3.2.3.2-py27_0.tar.bz2
+    - future-0.16.0-py27_1.tar.bz2
     - future-0.16.0-py36_1.tar.bz2
+    - futures-3.1.1-py27_0.tar.bz2
+    - get_terminal_size-1.0.0-py27_0.tar.bz2
+    - idna-2.6-py27_0.tar.bz2
+    - ipaddress-1.0.18-py27_0.tar.bz2
+    - ipython-5.3.0-py27_0.tar.bz2
     - ipython-5.3.0-py36_0.tar.bz2
+    - ipython_genutils-0.2.0-py27_0.tar.bz2
     - ipython_genutils-0.2.0-py36_0.tar.bz2
+    - itsdangerous-0.24-py27_0.tar.bz2
     - itsdangerous-0.24-py36_0.tar.bz2
     - jpeg-9b-0.tar.bz2
     - libffi-3.2.1-1.tar.bz2
+    - markdown-2.6.8-py27_0.tar.bz2
     - markdown-2.6.8-py36_0.tar.bz2
+    - markupsafe-1.0-py27_1.tar.bz2
+    - markupsafe-1.0-py27_1.tar.bz2
     - markupsafe-1.0-py36_1.tar.bz2
+    - mock-2.0.0-py27_0.tar.bz2
     - mock-2.0.0-py36_0.tar.bz2
+    - nose-1.3.7-py27_1.tar.bz2
     - nose-1.3.7-py36_1.tar.bz2
+    - olefile-0.44-py27_0.tar.bz2
     - olefile-0.44-py36_0.tar.bz2
     - openssl-1.0.2l-0.tar.bz2
+    - pandas-0.20.3-py27_1.tar.bz2
     - pandas-0.20.3-py36_1.tar.bz2
+    - path.py-10.3.1-py27_0.tar.bz2
     - path.py-10.3.1-py36_0.tar.bz2
+    - pathlib2-2.3.0-py27_0.tar.bz2
+    - pbr-1.10.0-py27_0.tar.bz2
     - pbr-1.10.0-py36_0.tar.bz2
     - pcre-8.39-1.tar.bz2
+    - pexpect-4.2.1-py27_0.tar.bz2
     - pexpect-4.2.1-py36_0.tar.bz2
+    - pickleshare-0.7.4-py27_0.tar.bz2
     - pickleshare-0.7.4-py36_0.tar.bz2
+    - pip-9.0.1-py27_1.tar.bz2
     - pip-9.0.1-py36_1.tar.bz2
     - pixman-0.34.0-0.tar.bz2
+    - prompt_toolkit-1.0.15-py27_0.tar.bz2
     - prompt_toolkit-1.0.15-py36_0.tar.bz2
+    - ptyprocess-0.5.2-py27_0.tar.bz2
     - ptyprocess-0.5.2-py36_0.tar.bz2
+    - pycparser-2.18-py27_0.tar.bz2
     - pycparser-2.18-py36_0.tar.bz2
+    - pygments-2.2.0-py27_0.tar.bz2
     - pygments-2.2.0-py36_0.tar.bz2
+    - pyparsing-2.2.0-py27_0.tar.bz2
     - pyparsing-2.2.0-py36_0.tar.bz2
+    - python-2.7.13-1.tar.bz2
     - python-3.6.2-0.tar.bz2
+    - python-dateutil-2.6.1-py27_0.tar.bz2
     - python-dateutil-2.6.1-py36_0.tar.bz2
+    - pytz-2017.2-py27_0.tar.bz2
     - pytz-2017.2-py36_0.tar.bz2
+    - pywavelets-0.5.2-np113py27_1.tar.bz2
     - pywavelets-0.5.2-np113py36_1.tar.bz2
+    - pyyaml-3.12-py27_0.tar.bz2
     - pyyaml-3.12-py36_0.tar.bz2
     - redis-3.2.0-0.tar.bz2
+    - redis-py-2.10.5-py27_0.tar.bz2
     - redis-py-2.10.5-py36_0.tar.bz2
+    - requests-2.13.0-py27_0.tar.bz2
     - requests-2.13.0-py36_0.tar.bz2
+    - scandir-1.5-py27_0.tar.bz2
+    - setuptools-36.4.0-py27_1.tar.bz2
     - setuptools-36.4.0-py36_1.tar.bz2
+    - simplegeneric-0.8.1-py27_1.tar.bz2
     - simplegeneric-0.8.1-py36_1.tar.bz2
+    - singledispatch-3.4.0.3-py27_0.tar.bz2
+    - six-1.10.0-py27_0.tar.bz2
     - sqlite-3.13.0-0.tar.bz2
+    - ssl_match_hostname-3.5.0.1-py27_0.tar.bz2
+    - subprocess32-3.2.7-py27_0.tar.bz2
+    - toolz-0.8.2-py27_0.tar.bz2
     - toolz-0.8.2-py36_0.tar.bz2
+    - tornado-4.5.2-py27_0.tar.bz2
     - tornado-4.5.2-py36_0.tar.bz2
+    - traitlets-4.3.2-py27_0.tar.bz2
     - traitlets-4.3.2-py36_0.tar.bz2
+    - wcwidth-0.1.7-py27_0.tar.bz2
     - wcwidth-0.1.7-py36_0.tar.bz2
+    - wheel-0.29.0-py27_0.tar.bz2
     - wheel-0.29.0-py36_0.tar.bz2
     - yaml-0.1.6-0.tar.bz2
     - zlib-1.2.11-1.tar.bz2
@@ -73,38 +133,61 @@ anaconda_free_noarch:
 
 anaconda_main_linux_ppc64le:
   accept_list:
+    - absl-py-0.6.1-py27_0.tar.bz2
     - absl-py-0.6.1-py36_0.tar.bz2
+    - astor-0.7.1-py27_0.tar.bz2
     - astor-0.7.1-py36_0.tar.bz2
+    - atomicwrites-1.2.1-py27_0.tar.bz2
     - atomicwrites-1.2.1-py36_0.tar.bz2
+    - attrs-18.2.0-py27h28b3542_0.tar.bz2
     - attrs-18.2.0-py36h28b3542_0.tar.bz2
+    - backports.functools_lru_cache-1.5-py27_1.tar.bz2
+    - boost-1.67.0-py27_4.tar.bz2
     - boost-1.67.0-py36_4.tar.bz2
+    - ca-certificates-2018.03.07-hf82bc7d_0.tar.bz2
     - cairo-1.14.12-h8948797_3.tar.bz2
+    - cffi-1.11.5-py27h9745a5d_0.tar.bz2
     - cffi-1.11.5-py36h9745a5d_0.tar.bz2
+    - click-7.0-py27_0.tar.bz2
     - click-7.0-py36_0.tar.bz2
+    - cryptography-2.3.1-py27h1ba5d50_2.tar.bz2
+    - dask-core-0.20.0-py27_0.tar.bz2
     - dask-core-0.20.0-py36_0.tar.bz2
+    - decorator-4.3.0-py27_0.tar.bz2
     - decorator-4.3.0-py36_0.tar.bz2
     - ffmpeg-4.0-hcdf2ecd_0.tar.bz2
+    - flask-1.0.2-py27_1.tar.bz2
     - flask-1.0.2-py36_1.tar.bz2
     - fontconfig-2.13.0-h9420a91_0.tar.bz2
     - freeglut-3.0.0-hf484d3e_5.tar.bz2
     - freetype-2.9.1-h8a8886c_0.tar.bz2
+    - gast-0.2.0-py27_0.tar.bz2
     - gast-0.2.0-py36_0.tar.bz2
     - glib-2.56.1-hdbcaa40_0.tar.bz2
     - graphite2-1.3.12-h23475e2_2.tar.bz2
+    - grpcio-1.12.1-py27hdbcaa40_0.tar.bz2
     - grpcio-1.12.1-py36hdbcaa40_0.tar.bz2
+    - h5py-2.8.0-py27h8d01980_0.tar.bz2
     - h5py-2.8.0-py36h8d01980_0.tar.bz2
     - harfbuzz-1.8.8-hffaf4a1_0.tar.bz2
     - hdf5-1.10.2-hba1933b_1.tar.bz2
+    - hypothesis-3.59.1-py27h39e3cac_0.tar.bz2
     - hypothesis-3.59.1-py36h39e3cac_0.tar.bz2
     - icu-58.2-h64fc554_1.tar.bz2
+    - imageio-2.4.1-py27_0.tar.bz2
     - imageio-2.4.1-py36_0.tar.bz2
     - jasper-2.0.14-h07fcdf6_1.tar.bz2
+    - jinja2-2.10-py27_0.tar.bz2
     - jinja2-2.10-py36_0.tar.bz2
+    - keras-applications-1.0.6-py27_0.tar.bz2
     - keras-applications-1.0.6-py36_0.tar.bz2
+    - keras-preprocessing-1.0.5-py27_0.tar.bz2
     - keras-preprocessing-1.0.5-py36_0.tar.bz2
+    - kiwisolver-1.0.1-py27hf484d3e_0.tar.bz2
     - kiwisolver-1.0.1-py36hf484d3e_0.tar.bz2
     - leveldb-1.20-hf484d3e_1.tar.bz2
     - libboost-1.67.0-h46d08c1_4.tar.bz2
+    - libedit-3.1.20170329-h6b74fdf_2.tar.bz2
     - libgcc-ng-8.2.0-h822a55f_1.tar.bz2
     - libgfortran-ng-7.3.0-h822a55f_1.tar.bz2
     - libglu-9.0.0-hf484d3e_1.tar.bz2
@@ -117,31 +200,61 @@ anaconda_main_linux_ppc64le:
     - libvpx-1.7.0-hf484d3e_0.tar.bz2
     - libxcb-1.13-h1bed415_0.tar.bz2
     - libxml2-2.9.8-h26e45fe_1.tar.bz2
+    - linecache2-1.0.0-py27_0.tar.bz2
     - lmdb-0.9.22-hf484d3e_1.tar.bz2
+    - matplotlib-2.2.3-py27hb69df0a_0.tar.bz2
     - matplotlib-3.0.1-py36h5429711_0.tar.bz2
+    - more-itertools-4.3.0-py27_0.tar.bz2
     - more-itertools-4.3.0-py36_0.tar.bz2
+    - ncurses-6.1-hf484d3e_0.tar.bz2
+    - networkx-2.2-py27_1.tar.bz2
     - networkx-2.2-py36_1.tar.bz2
+    - ninja-1.8.2-py27h6bb024c_1.tar.bz2
     - ninja-1.8.2-py36h6bb024c_1.tar.bz2
+    - numpy-1.13.3-py27h7cdd4dd_0.tar.bz2
     - numpy-1.13.3-py36h7cdd4dd_0.tar.bz2
     - openblas-0.2.20-7.tar.bz2
     - openblas-devel-0.2.20-7.tar.bz2
+    - openssl-1.1.1a-h7b6447c_0.tar.bz2
+    - pillow-5.3.0-py27h0d2faf8_0.tar.bz2
     - pillow-5.3.0-py36h0d2faf8_0.tar.bz2
+    - pluggy-0.8.0-py27_0.tar.bz2
     - pluggy-0.8.0-py36_0.tar.bz2
+    - psutil-5.4.7-py27h14c3975_0.tar.bz2
     - psutil-5.4.7-py36h14c3975_0.tar.bz2
+    - py-1.7.0-py27_0.tar.bz2
     - py-1.7.0-py36_0.tar.bz2
+    - py-boost-1.67.0-py27h04863e7_4.tar.bz2
     - py-boost-1.67.0-py36h04863e7_4.tar.bz2
+    - pyopenssl-18.0.0-py27_0.tar.bz2
+    - pytest-3.9.1-py27_0.tar.bz2
     - pytest-3.9.1-py36_0.tar.bz2
+    - python-2.7.15-h81612d6_4.tar.bz2
+    - python-lmdb-0.94-py27h14c3975_0.tar.bz2
     - python-lmdb-0.94-py36h14c3975_0.tar.bz2
+    - readline-7.0-h7b6447c_5.tar.bz2
+    - scikit-image-0.14.0-py27hf484d3e_1.tar.bz2
     - scikit-image-0.14.0-py36hf484d3e_1.tar.bz2
+    - scikit-learn-0.19.1-py27h6cfcb94_0.tar.bz2
     - scikit-learn-0.19.1-py36h6cfcb94_0.tar.bz2
+    - scipy-1.1.0-py27h9c1e066_0.tar.bz2
     - scipy-1.1.0-py36h9c1e066_0.tar.bz2
+    - six-1.11.0-py27_1.tar.bz2
     - six-1.11.0-py36_1.tar.bz2
     - snappy-1.1.7-h1532aa0_3.tar.bz2
+    - sqlite-3.25.2-h7b6447c_0.tar.bz2
+    - tabulate-0.8.2-py27_0.tar.bz2
     - tabulate-0.8.2-py36_0.tar.bz2
+    - termcolor-1.1.0-py27_1.tar.bz2
     - termcolor-1.1.0-py36_1.tar.bz2
     - tk-8.6.8-hbc83047_0.tar.bz2
+    - tqdm-4.28.1-py27h28b3542_0.tar.bz2
     - tqdm-4.28.1-py36h28b3542_0.tar.bz2
+    - traceback2-1.4.0-py27_0.tar.bz2
     - typing-3.6.4-py36_0.tar.bz2
+    - typing-3.6.6-py27_0.tar.bz2
+    - unittest2-1.1.0-py27_0.tar.bz2
+    - werkzeug-0.14.1-py27_0.tar.bz2
     - werkzeug-0.14.1-py36_0.tar.bz2
     - xz-5.2.4-h14c3975_4.tar.bz2
   reject_list:
@@ -415,103 +528,83 @@ yum_pkgs:
 - xorg-x11-server-common-1.20.1-5.1.el7.ppc64le
 - xorg-x11-xkb-utils-7.7-14.el7.ppc64le
 - zlib-devel-1.2.7-17.el7.ppc64le
-cuda_pkgs:
-- bazel-0.15.0-14232.d68440f.ppc64le
-- caffe-bvlc-1.0.0-4314.b823d22.ppc64le
-- caffe-bvlc-py3-1.0.0-4314.b823d22.ppc64le
-- caffe-ibm-1.0.0-4700.15e7005.ppc64le
-- caffe-ibm-py3-1.0.0-4700.15e7005.ppc64le
-- cuda-10.0.130-1.ppc64le
-- cuda-10-0-10.0.130-1.ppc64le
-- cuda-command-line-tools-10-0-10.0.130-1.ppc64le
-- cuda-compiler-10-0-10.0.130-1.ppc64le
-- cuda-cublas-10-0-10.0.130-1.ppc64le
-- cuda-cublas-dev-10-0-10.0.130-1.ppc64le
-- cuda-cudart-10-0-10.0.130-1.ppc64le
-- cuda-cudart-dev-10-0-10.0.130-1.ppc64le
-- cuda-cufft-10-0-10.0.130-1.ppc64le
-- cuda-cufft-dev-10-0-10.0.130-1.ppc64le
-- cuda-cuobjdump-10-0-10.0.130-1.ppc64le
-- cuda-cupti-10-0-10.0.130-1.ppc64le
-- cuda-curand-10-0-10.0.130-1.ppc64le
-- cuda-curand-dev-10-0-10.0.130-1.ppc64le
-- cuda-cusolver-10-0-10.0.130-1.ppc64le
-- cuda-cusolver-dev-10-0-10.0.130-1.ppc64le
-- cuda-cusparse-10-0-10.0.130-1.ppc64le
-- cuda-cusparse-dev-10-0-10.0.130-1.ppc64le
-- cuda-demo-suite-10-0-10.0.130-1.ppc64le
-- cuda-documentation-10-0-10.0.130-1.ppc64le
-- cuda-driver-dev-10-0-10.0.130-1.ppc64le
-- cuda-drivers-410.72-1.ppc64le
-- cuda-gdb-10-0-10.0.130-1.ppc64le
-- cuda-gpu-library-advisor-10-0-10.0.130-1.ppc64le
-- cuda-libraries-10-0-10.0.130-1.ppc64le
-- cuda-libraries-dev-10-0-10.0.130-1.ppc64le
-- cuda-license-10-0-10.0.130-1.ppc64le
-- cuda-memcheck-10-0-10.0.130-1.ppc64le
-- cuda-minimal-build-10-0-10.0.130-1.ppc64le
-- cuda-misc-headers-10-0-10.0.130-1.ppc64le
-- cuda-npp-10-0-10.0.130-1.ppc64le
-- cuda-npp-dev-10-0-10.0.130-1.ppc64le
-- cuda-nsight-10-0-10.0.130-1.ppc64le
-- cuda-nvcc-10-0-10.0.130-1.ppc64le
-- cuda-nvdisasm-10-0-10.0.130-1.ppc64le
-- cuda-nvgraph-10-0-10.0.130-1.ppc64le
-- cuda-nvgraph-dev-10-0-10.0.130-1.ppc64le
-- cuda-nvml-dev-10-0-10.0.130-1.ppc64le
-- cuda-nvprof-10-0-10.0.130-1.ppc64le
-- cuda-nvprune-10-0-10.0.130-1.ppc64le
-- cuda-nvrtc-10-0-10.0.130-1.ppc64le
-- cuda-nvrtc-dev-10-0-10.0.130-1.ppc64le
-- cuda-nvtx-10-0-10.0.130-1.ppc64le
-- cuda-nvvp-10-0-10.0.130-1.ppc64le
-- cuda-runtime-10-0-10.0.130-1.ppc64le
-- cuda-samples-10-0-10.0.130-1.ppc64le
-- cuda-toolkit-10-0-10.0.130-1.ppc64le
-- cuda-tools-10-0-10.0.130-1.ppc64le
-- cuda-visual-tools-10-0-10.0.130-1.ppc64le
-- ddl-1.2.0-608.350a3e5.ppc64le
-- ddl-dev-1.2.0-608.350a3e5.ppc64le
-- ddl-pack-1.2.0-608.350a3e5.ppc64le
-- ddl-tensorflow-1.2.0-403.68d44ca.ppc64le
-- dkms-nvidia-3:410.72-1.el7.ppc64le
-- libglvnd-1:1.0.1-0.6.git5baa1e5.el7.ppc64le
-- libglvnd-egl-1:1.0.1-0.6.git5baa1e5.el7.ppc64le
-- libglvnd-gles-1:1.0.1-0.6.git5baa1e5.el7.ppc64le
-- libglvnd-glx-1:1.0.1-0.6.git5baa1e5.el7.ppc64le
-- libglvnd-opengl-1:1.0.1-0.6.git5baa1e5.el7.ppc64le
-- libnccl-dev-1.3.5-195.41baea6.ppc64le
-- libnccl1-1.3.5-195.41baea6.ppc64le
-- mldl-conda-repo-5.4.0-34.1d8095c.ppc64le
-- mldl-cudnn-metapkg-5.4.0-87.85394a1.ppc64le
-- mldl-nccl2-metapkg-5.4.0-27.f7cb46b.ppc64le
-- mldl-spectrum-10.02-46.a19a0ee.ppc64le
-- nvidia-driver-3:410.72-1.el7.ppc64le
-- nvidia-driver-NVML-3:410.72-1.el7.ppc64le
-- nvidia-driver-NvFBCOpenGL-3:410.72-1.el7.ppc64le
-- nvidia-driver-cuda-3:410.72-1.el7.ppc64le
-- nvidia-driver-cuda-libs-3:410.72-1.el7.ppc64le
-- nvidia-driver-libs-3:410.72-1.el7.ppc64le
-- nvidia-libXNVCtrl-3:410.72-1.el7.ppc64le
-- nvidia-libXNVCtrl-devel-3:410.72-1.el7.ppc64le
-- nvidia-modprobe-3:410.72-1.el7.ppc64le
-- nvidia-persistenced-3:410.72-1.el7.ppc64le
-- nvidia-settings-3:410.72-1.el7.ppc64le
-- nvidia-xconfig-3:410.72-1.el7.ppc64le
-- power-ddl-1.2.0-47.e888248.ppc64le
-- power-mldl-5.4.0-86.fd6be4c.ppc64le
-- power-mldl-py3-5.4.0-86.fd6be4c.ppc64le
-- power-snapml-1.1.0-27.2cebfa1.ppc64le
-- powerai-license-5.4.0-124.150cee0.ppc64le
-- pytorch-1.0.0-14042.32b3d6a.ppc64le
-- pytorch-py3-1.0.0-14042.32b3d6a.ppc64le
-- snap-ml-local-1.1.0-241.1887dec.ppc64le
-- snap-ml-mpi-1.1.0-153.5aa3331.ppc64le
-- snap-ml-spark-1.1.0-308.f9e0bcb.ppc64le
-- tensorboard-1.12.0-2327.fe6c893.ppc64le
-- tensorboard-py3-1.12.0-2327.fe6c893.ppc64le
-- tensorflow-1.12.0-31841.77e0991.ppc64le
-- tensorflow-performance-models-5.4.0-588.32d4a2b.ppc64le
-- tensorflow-probability-0.5.0-16.f7e1541.ppc64le
-- tensorflow-probability-py3-0.5.0-16.f7e1541.ppc64le
-- tensorflow-py3-1.12.0-31841.77e0991.ppc64le
+cuda_drivers:
+    - cuda-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-10.1.91-1.ppc64le.rpm
+    - cuda-command-line-tools-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-compat-10-1-418.29-1.ppc64le.rpm
+    - cuda-compiler-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-core-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-cudart-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-cudart-dev-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-cufft-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-cufft-dev-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-cuobjdump-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-cupti-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-curand-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-curand-dev-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-cusolver-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-cusolver-dev-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-cusparse-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-cusparse-dev-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-demo-suite-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-documentation-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-driver-dev-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-drivers-418.29-1.ppc64le.rpm
+    - cuda-gdb-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-gdb-src-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-gpu-library-advisor-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-libraries-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-libraries-dev-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-license-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-memcheck-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-minimal-build-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-misc-headers-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-npp-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-npp-dev-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-nsight-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-nsight-compute-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-nsight-systems-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-nvcc-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-nvdisasm-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-nvgraph-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-nvgraph-dev-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-nvjpeg-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-nvjpeg-dev-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-nvml-dev-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-nvprof-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-nvprune-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-nvrtc-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-nvrtc-dev-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-nvtx-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-nvvp-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-runtime-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-samples-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-sanitizer-api-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-toolkit-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-tools-10-1-10.1.91-1.ppc64le.rpm
+    - cuda-visual-tools-10-1-10.1.91-1.ppc64le.rpm
+    - dkms-nvidia-418.29-1.el7.ppc64le.rpm
+    - libcublas10-10.1.0.91-1.ppc64le.rpm
+    - libcublas-devel-10.1.0.91-1.ppc64le.rpm
+    - libglvnd-1.0.1-0.6.git5baa1e5.el7.ppc64le.rpm
+    - libglvnd-core-devel-1.0.1-0.6.git5baa1e5.el7.ppc64le.rpm
+    - libglvnd-debuginfo-1.0.1-0.6.git5baa1e5.el7.ppc64le.rpm
+    - libglvnd-devel-1.0.1-0.6.git5baa1e5.el7.ppc64le.rpm
+    - libglvnd-egl-1.0.1-0.6.git5baa1e5.el7.ppc64le.rpm
+    - libglvnd-gles-1.0.1-0.6.git5baa1e5.el7.ppc64le.rpm
+    - libglvnd-glx-1.0.1-0.6.git5baa1e5.el7.ppc64le.rpm
+    - libglvnd-opengl-1.0.1-0.6.git5baa1e5.el7.ppc64le.rpm
+    - nvidia-driver-418.29-4.el7.ppc64le.rpm
+    - nvidia-driver-cuda-418.29-4.el7.ppc64le.rpm
+    - nvidia-driver-cuda-libs-418.29-4.el7.ppc64le.rpm
+    - nvidia-driver-devel-418.29-4.el7.ppc64le.rpm
+    - nvidia-driver-libs-418.29-4.el7.ppc64le.rpm
+    - nvidia-driver-NvFBCOpenGL-418.29-4.el7.ppc64le.rpm
+    - nvidia-driver-NVML-418.29-4.el7.ppc64le.rpm
+    - nvidia-libXNVCtrl-418.29-1.el7.ppc64le.rpm
+    - nvidia-libXNVCtrl-devel-418.29-1.el7.ppc64le.rpm
+    - nvidia-modprobe-418.29-1.el7.ppc64le.rpm
+    - nvidia-persistenced-418.29-1.el7.ppc64le.rpm
+    - nvidia-settings-418.29-1.el7.ppc64le.rpm
+    - nvidia-xconfig-418.29-1.el7.ppc64le.rpm
