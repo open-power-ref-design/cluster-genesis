@@ -35,7 +35,7 @@ os_image_urls:
   - name: ubuntu-18.04.2-server-amd64
     images:
       - url: http://cdimage.ubuntu.com/releases/18.04/release/ubuntu-18.04.2-server-amd64.iso
-        sha1sum: a2cb36dc010d98ad9253ea5ad5a07fd6b409e3412c48f1860536970b073c98f5
+        sha1sum: 57c3a25f2c5fd61596ce39afbff44dd49b0089a2
   - name: ubuntu-18.04.2-server-ppc64el
     images:
       - url: http://cdimage.ubuntu.com/releases/18.04/release/ubuntu-18.04.2-server-ppc64el.iso
