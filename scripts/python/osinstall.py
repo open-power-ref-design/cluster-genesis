@@ -281,11 +281,17 @@ class MyButtonPress(npyscreen.MiniButtonPress):
         if self.name == 'Edit network config':
             self.parent.next_form = 'MAIN'
             self.parent.parentApp.switchForm('MAIN')
-        if self.name == 'Scan for nodes':
-            p = self.parent.parentApp.prof.get_network_profile_tuple()
-            nodes = u.scan_subnet(p.bmc_subnet_cidr)
-            self.parent.fields['node_list'].values = nodes
-            self.parent.display()
+
+        elif self.name == 'Scan for nodes':
+            self.parent.scan = True
+            self.name = 'Stop node scan'
+            self.parent.keypress_timeout = 5  # 0.5 sec to initiate scanning in 0.5 s
+
+        elif self.name == 'Stop node scan':
+            self.parent.scan = False
+            self.name = 'Scan for nodes'
+
+        self.parent.display()
 
 
 class Pup_form(npyscreen.ActionFormV2):
@@ -296,7 +302,12 @@ class Pup_form(npyscreen.ActionFormV2):
     def afterEditing(self):
         self.parentApp.setNextForm(self.next_form)
 
-    def create(self):
+    def create(self, *args, **keywords):
+        super(Pup_form, self).create(*args, **keywords)
+
+        self.keypress_timeout = 50  # hundreds of ms
+        self.scan = False
+        self.scanning = False
         self.y, self.x = self.useable_space()
         self.prev_field = ''
         self.node = self.parentApp.get_form_data()
@@ -481,6 +492,19 @@ class Pup_form(npyscreen.ActionFormV2):
             # stay on this form
             self.next_form = self.parentApp.NEXT_ACTIVE_FORM
 
+    def while_waiting(self):
+        if self.scan:
+            self.keypress_timeout = 100  # set scan loop back to 10 sec
+            p = self.parentApp.prof.get_network_profile_tuple()
+            msg = ["Initiating scan.",
+                   "Enter 'Stop node scan' to stop node scanning"]
+            npyscreen.notify(msg)
+            sleep(1.5)
+            self.display()
+            nodes = u.scan_subnet(p.bmc_subnet_cidr)
+            self.fields['node_list'].values = nodes
+            self.display()
+
     def while_editing(self, instance):
         # instance is the instance of the widget you're moving into
         field = ''
@@ -624,7 +648,7 @@ class Pup_form(npyscreen.ActionFormV2):
             self.prev_field = ''
 
         if instance.name not in ['OK', 'Cancel', 'CANCEL', 'Edit network config',
-                                 'Scan for nodes']:
+                                 'Scan for nodes', 'Stop node scan']:
             self.helpmsg = self.node[field].help
         else:
             self.prev_field = ''
