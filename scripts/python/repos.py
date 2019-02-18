@@ -25,7 +25,6 @@ import os
 import re
 from shutil import copy2, copytree, rmtree, Error
 import time
-import code
 
 import lib.logger as logger
 from lib.utilities import sub_proc_display, sub_proc_exec, get_url, \
@@ -494,7 +493,6 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
         pkgs = repodata['packages'].keys()
         return pkgs
 
-
     def _update_repodata(self, path):
         """ Update the repodata.json file to reflect the actual contents of the
         repodata directory.
@@ -518,7 +516,6 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
         repodata = json.loads(repodata)
         pkgs = {pkg:repodata['packages'][pkg] for pkg in
                 repodata['packages'] if pkg in file_list}
-
 
         # Build the new dict from the original. Replace the value of the 'packages'
         # key in the new dict
@@ -564,7 +561,6 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
             return row, filename
 
         if 'http:' in url or 'https:' in url:
-            #code.interact(banner='Ana http', local=dict(globals(), **locals()))
             if '/pkgs/' in url:
                 dest_dir = f'/srv/repos/{self.repo_id}' + url[url.find('/pkgs/'):]
             elif '/conda-forge' in url:
@@ -592,7 +588,6 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
             # and rejlist are not provided the full set of packages is downloaded
             pkgs = self.get_pkg_list(os.path.join(dest_dir, 'repodata.json'))
             download_set = set(pkgs)
-            #code.interact(banner='Ana get pkg set', local=dict(globals(), **locals()))
 
             if acclist and acclist != 'all':
                 download_set = download_set & set(acclist)
@@ -606,7 +601,6 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
                 else:
                     download_set = download_set - set(rejlist)
 
-            #code.interact(banner='Ana filtered pkg set', local=dict(globals(), **locals()))
             # Get em
             for file in sorted(download_set):
                 print(file)
@@ -618,9 +612,7 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
                 for line in err:
                     if '-- not retrieving' in line:
                         print(line, '\n')
-            #code.interact(banner='Ana got em', local=dict(globals(), **locals()))
             self._update_repodata(dest_dir)
-            #code.interact(banner='checkout that repodata', local=dict(globals(), **locals()))
 
         elif 'file:///' in url:
             src_dir = url[7:]

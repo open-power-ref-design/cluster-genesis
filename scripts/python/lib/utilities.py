@@ -25,7 +25,6 @@ from shutil import copy2
 from subprocess import Popen, PIPE
 from netaddr import IPNetwork, IPAddress, IPSet
 from tabulate import tabulate
-import code
 
 from lib.config import Config
 import lib.logger as logger

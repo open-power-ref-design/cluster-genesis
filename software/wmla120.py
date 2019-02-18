@@ -46,6 +46,7 @@ from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path
 
 from engr_mode import pre_post_file_collect, dependency_folder_collector
 
+
 class software(object):
     """ Software installation class. The prep method is used to setup
     repositories, download files to the installer node or perform other
@@ -58,8 +59,8 @@ class software(object):
         self.yum_powerup_repo_files = []
         self.eval_ver = eval_ver
         self.non_int = non_int
-        self.eng_mode = 'custom-repo'
-        #self.eng_mode = 'gather-dependencies'
+        # self.eng_mode = 'custom-repo'
+        # self.eng_mode = 'gather-dependencies'
         yaml.add_constructor(YAMLVault.yaml_tag, YAMLVault.from_yaml)
 
         self.state = {'EPEL Repository': '-',
@@ -313,7 +314,6 @@ class software(object):
         ver_mis = False
         for item in self.state:
             self.state[item] = '-'
-            #code.interact(banner='here', local=dict(globals(), **locals()))
             # Content files status
             if 'content' in item:
                 ret = content_status(item)
@@ -347,7 +347,6 @@ class software(object):
                 continue
 
             # IBM AI Repo Free status
-            #code.interact(banner='here', local=dict(globals(), **locals()))
             if item == 'IBM AI Repository':
                 repodata_noarch = glob.glob(f'/srv/repos/ibmai'
                                             '/noarch/repodata.json', recursive=True)
@@ -536,7 +535,7 @@ class software(object):
         repo_id = 'ibmai'
         repo_name = 'IBM AI Repository'
         baseurl = ('https://public.dhe.ibm.com/ibmdl/export/pub/software/server/'
-                  'ibm-ai/conda/')
+                   'ibm-ai/conda/')
         heading1(f'Set up {repo_name}\n')
 
         vars_key = get_name_dir(repo_name)  # format the name
@@ -568,7 +567,6 @@ class software(object):
                     self.sw_vars[f'{vars_key}-alt-url'] = _url
 
                 # accept_list is used for linux-ppc64le, reject_list for noarch
-                #code.interact(banner='here in wmal120', local=dict(globals(), **locals()))
                 if 'accept_list' in self.pkgs['ibm-ai-conda-linux-ppc64le']:
                     al = self.pkgs['ibm-ai-conda-linux-ppc64le']['accept_list']
                 else:
@@ -579,7 +577,6 @@ class software(object):
                 else:
                     rl = None
 
-                #code.interact(banner='here in wmal120-2', local=dict(globals(), **locals()))
                 dest_dir = repo.sync_ana(url, acclist=al, rejlist=rl)
 
                 dest_dir = dest_dir[4 + dest_dir.find('/srv'):6 +
@@ -602,7 +599,6 @@ class software(object):
                 noarch_url = os.path.split(url.rstrip('/'))[0] + '/noarch/'
 
                 repo.sync_ana(noarch_url, acclist=al, rejlist=rl)
-                #code.interact(banner='here in wmal120-4', local=dict(globals(), **locals()))
 
         # Get PowerAI Enterprise license file
         name = 'PowerAIE license content'
@@ -759,16 +755,7 @@ class software(object):
             code.interact(banner='here', local=dict(globals(), **locals()))
             if rpm_path:
                 self.sw_vars[f'{repo_id}_src_rpm_dir'] = rpm_path
-                #src_path = repo.copy_rpm(rpm_path)
                 repo_dir = repo.extract_rpm(rpm_path)
-                #if repodata_dir:
-                #    content = repo.get_yum_dotrepo_content(
-                #        repo_dir=repodata_dir, gpgcheck=0)
-                #else:
-                #    print('Failed extracting rpm content')
-                #    content = repo.get_yum_dotrepo_content(gpgcheck=0,
-                #                                           local=True)
-                #repo.write_yum_dot_repo_file(content)
                 repo.create_meta()
                 content = repo.get_yum_dotrepo_content(
                     repo_dir=repo_dir, gpgcheck=0, client=True)
@@ -777,20 +764,6 @@ class software(object):
             else:
                 self.log.info('No path chosen. Skipping create custom '
                               'repository.')
-
-#            repo = PowerupRepoFromDir(repo_id, repo_name)
-#            repo_dir = repo.get_repo_dir()
-#            if f'{repo_id}_src_dir' in self.sw_vars:
-#                src_dir = self.sw_vars[f'{repo_id}_src_dir']
-#            else:
-#                src_dir = None
-#            src_dir, dest_dir = repo.copy_dirs(src_dir)
-#            if src_dir:
-#                self.sw_vars[f'{repo_id}_src_dir'] = src_dir
-#                repo.create_meta()
-#                content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
-#                filename = repo_id + '-powerup.repo'
-#                self.sw_vars['yum_powerup_repo_files'][filename] = content
 
         elif ch == 'A':
             if f'{repo_id}_alt_url' in self.sw_vars:
@@ -826,7 +799,7 @@ class software(object):
             files = glob.glob(repo_dir, recursive=True)
             if files:
                 self.sw_vars['cuda-driver'] = re.search(r'cuda-drivers-\d+\.\d+-\d+',
-                                                 ' '.join(files)).group(0)
+                                                        ' '.join(files)).group(0)
             else:
                 self.log.error('No cuda toolkit file found in cuda repository')
 
@@ -1577,7 +1550,7 @@ class software(object):
                                        f'{self.my_name}_install_procedure.yml'))
 
         if self.eng_mode == 'gather-dependencies':
-            dependency_folder_collector() ##ENGINEERING MODE
+            dependency_folder_collector()  # ENGINEERING MODE
 
         for task in install_tasks:
             heading1(f"Client Node Action: {task['description']}")
@@ -1594,7 +1567,7 @@ class software(object):
                 extra_args = f"--limit \'{task['hosts']},localhost\'"
             self._run_ansible_tasks(task['tasks'], extra_args)
             if self.eng_mode == 'gather-dependencies':
-                pre_post_file_collect(task['tasks']) #ENGINEERING MODE
+                pre_post_file_collect(task['tasks'])  # ENGINEERING MODE
         print('Done')
 
     def _run_ansible_tasks(self, tasks_path, extra_args=''):
