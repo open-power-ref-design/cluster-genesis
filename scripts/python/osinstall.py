@@ -37,30 +37,23 @@ from lib.genesis import get_package_path, get_sample_configs_path, \
 import lib.utilities as u
 from nginx_setup import nginx_setup
 from ip_route_get_to import ip_route_get_to
+from lib.bmc import Bmc
 
 GEN_PATH = get_package_path()
 GEN_SAMPLE_CONFIGS_PATH = get_sample_configs_path()
 
 IPR = IPRoute()
 
-PROFILE = 'profile.yml'
+PROFILE = os.path.join(GEN_PATH, 'profile.yml')
+NODE_LIST = os.path.join(GEN_PATH, 'node_list.yml')
 
 
 def osinstall(profile_path):
     log = logger.getlogger()
     log.debug('osinstall')
 
-    u.firewall_add_services(['http', 'tftp', 'dhcp'])
-    nginx_setup(root_dir='/srv')
-
     osi = OSinstall(profile_path)
     osi.run()
-
-    profile_object = Profile(profile_path)
-    dnsmasq_configuration(profile_object)
-    kernel, initrd = extract_install_image(profile_object)
-    kickstart = render_kickstart(profile_object)
-    pxelinux_configuration(profile_object, kernel, initrd, kickstart)
 
 
 def dnsmasq_configuration(profile_object):
@@ -77,16 +70,21 @@ def dnsmasq_configuration(profile_object):
     dhcp_pxe_ip_range = (str(pxe_network.network + dhcp_start) + ',' +
                          str(pxe_network.network + pxe_network.size - 1))
 
-    u.dnsmasq_config_pxelinux(interface=interfaces,
-                              dhcp_range=dhcp_pxe_ip_range,
-                              lease_time=dhcp_lease_time)
+    rc = u.dnsmasq_config_pxelinux(interface=interfaces,
+                                   dhcp_range=dhcp_pxe_ip_range,
+                                   lease_time=dhcp_lease_time)
+
+    if rc != 0:
+        return rc
 
     if p.bmc_address_mode == 'dhcp':
         bmc_network = IPNetwork(p.bmc_subnet_cidr)
         dhcp_bmc_ip_range = (str(bmc_network.network + dhcp_start) + ',' +
                              str(bmc_network.network + bmc_network.size - 1))
-        u.dnsmasq_add_dhcp_range(dhcp_range=dhcp_bmc_ip_range,
-                                 lease_time=dhcp_lease_time)
+        rc = u.dnsmasq_add_dhcp_range(dhcp_range=dhcp_bmc_ip_range,
+                                      lease_time=dhcp_lease_time)
+
+    return rc
 
 
 def extract_install_image(profile_object):
@@ -178,6 +176,45 @@ def pxelinux_configuration(profile_object, kernel, initrd, kickstart):
         initrd=os.path.join(http_osinstall, initrd),
         kickstart=kickstart)
 
+
+def initiate_pxeboot(profile_object, node_list_file):
+    log = logger.getlogger()
+    p_node = profile_object.get_node_profile_tuple()
+    node_list = yaml.load(open(node_list_file))
+    for node in node_list:
+        ip = node['bmc_ip']
+        userid = p_node.bmc_userid
+        passwd = p_node.bmc_password
+        bmc = Bmc(ip, userid, passwd)
+        if bmc.is_connected():
+            log.debug(f"Successfully connected to BMC: host={ip} "
+                      f"userid={userid} password={passwd}")
+            bmc.chassis_power('off')
+            bmc.host_boot_source(source='network')
+            bmc.chassis_power('on')
+        else:
+            log.error(f"Unable to connect to BMC: host={ip} "
+                      f"userid={userid} password={passwd}")
+
+
+def reset_bootdev(profile_object, node_list_file):
+    log = logger.getlogger()
+    p_node = profile_object.get_node_profile_tuple()
+    node_list = yaml.load(open(node_list_file))
+    for node in node_list:
+        ip = node['bmc_ip']
+        userid = p_node.bmc_userid
+        passwd = p_node.bmc_password
+        bmc = Bmc(ip, userid, passwd)
+        if bmc.is_connected():
+            log.debug(f"Successfully connected to BMC: host={ip} "
+                      f"userid={userid} password={passwd}")
+            bmc.host_boot_source(source='disk')
+        else:
+            log.error(f"Unable to connect to BMC: host={ip} "
+                      f"userid={userid} password={passwd}")
+
+
 class Profile():
     def __init__(self, prof_path='profile-template.yml'):
         self.log = logger.getlogger()
@@ -244,7 +281,7 @@ class Profile():
 
     def update_network_profile(self, profile):
         self.profile.network = profile
-        with open(GEN_PATH + 'profile.yml', 'w') as f:
+        with open(PROFILE, 'w') as f:
             yaml.dump(self.profile, f, indent=4, default_flow_style=False)
 
     def get_node_profile(self):
@@ -272,7 +309,7 @@ class Profile():
 
     def update_node_profile(self, profile):
         self.profile.node = profile
-        with open(GEN_PATH + 'profile.yml', 'w') as f:
+        with open(PROFILE, 'w') as f:
             yaml.dump(self.profile, f, indent=4, default_flow_style=False)
 
 
@@ -563,12 +600,29 @@ class Pup_form(npyscreen.ActionFormV2):
             self.next_form = fvl[-1]
 
     def on_ok(self):
+        res = True
         fld_error = False
         val_error = False
         msg = []
         for item in self.node:
             if hasattr(self.node[item], 'dtype'):
                 if self.node[item]['dtype'] == 'no-save':
+                    if item == 'node_list':
+                        if len(self.fields[item].value) == 0:
+                            msg = ('No nodes selected!\n'
+                                   'Exit without installing to any clients?')
+                            res = npyscreen.notify_yes_no(msg, title='Warning',
+                                                          editw=1)
+                        else:
+                            selected_nodes = []
+                            for index in self.fields[item].value:
+                                bmc_ip = self.fields[item].values[index][0]
+                                bmc_mac = self.fields[item].values[index][1]
+                                selected_nodes.append({'bmc_ip': bmc_ip,
+                                                      'bmc_mac': bmc_mac})
+                            with open(NODE_LIST, 'w') as f:
+                                yaml.dump(selected_nodes, f, indent=4,
+                                          default_flow_style=False)
                     continue
                 elif self.node[item]['dtype'] == 'ipv4':
                     # npyscreen.notify_confirm(f"{self.fields[item].value}", editw=1)
@@ -630,8 +684,10 @@ class Pup_form(npyscreen.ActionFormV2):
                     if self.parentApp.NEXT_ACTIVE_FORM == 'MAIN':
                         self.parentApp.prof.update_network_profile(self.node)
                         self.next_form = 'NODE'
+                        self.configure_services()
                     elif self.parentApp.NEXT_ACTIVE_FORM == 'NODE':
                         self.parentApp.prof.update_node_profile(self.node)
+                        self.initiate_os_installation()
                         self.next_form = None
 
         elif fld_error or val_error:
@@ -858,6 +914,69 @@ class Pup_form(npyscreen.ActionFormV2):
 
     def scan_for_nodes(self):
         npyscreen.notify_confirm('Scanning for nodes')
+
+    def configure_services(self):
+        notify_title = "Configuring Services"
+
+        msg = "Adding firewall rules... "
+        npyscreen.notify(msg, title=notify_title)
+        rc = u.firewall_add_services(['http', 'tftp', 'dhcp'])
+        if rc != 0:
+            msg += "ERROR\nFailed to configure firewall!"
+            npyscreen.notify_confirm(msg, title=notify_title, editw=1)
+            self.next_form = None
+            return
+
+        msg += "done\nInstall and configure nginx... "
+        npyscreen.notify(msg, title=notify_title)
+        rc = nginx_setup(root_dir='/srv')
+        if rc != 0:
+            msg += "ERROR\nFailed to configure nginx!"
+            npyscreen.notify_confirm(msg, title=notify_title, editw=1)
+            self.next_form = None
+            return
+
+        msg += "done\nConfigure dnsmasq... "
+        npyscreen.notify(msg, title=notify_title)
+        rc = dnsmasq_configuration(self.parentApp.prof)
+        if rc != 0:
+            msg += "ERROR\nFailed to configure dnsmasq!"
+            npyscreen.notify_confirm(msg, title=notify_title, editw=1)
+            self.next_form = None
+            return
+        msg += "done\n"
+        npyscreen.notify(msg, title=notify_title)
+        sleep(1)
+
+    def initiate_os_installation(self):
+        notify_title = "Client OS Installation"
+
+        msg = "Extracting files from install image... "
+        npyscreen.notify(msg, title=notify_title)
+        kernel, initrd = extract_install_image(self.parentApp.prof)
+
+        msg += "done\nGenerate kickstart file... "
+        npyscreen.notify(msg, title=notify_title)
+        kickstart = render_kickstart(self.parentApp.prof)
+
+        msg += "done\nGenerate pxelinux configuration... "
+        npyscreen.notify(msg, title=notify_title)
+        pxelinux_configuration(self.parentApp.prof, kernel, initrd, kickstart)
+
+        msg += "done\nPXE boot nodes... "
+        npyscreen.notify(msg, title=notify_title)
+        initiate_pxeboot(self.parentApp.prof, NODE_LIST)
+
+        msg += "done\nWait 5 minutes... "
+        npyscreen.notify(msg, title=notify_title)
+        sleep(300)
+
+        msg += "done\nReset node boot device to disk... "
+        npyscreen.notify(msg, title=notify_title)
+        reset_bootdev(self.parentApp.prof, NODE_LIST)
+
+        msg += "done\n"
+        npyscreen.notify_confirm(msg, title=notify_title, editw=1)
 
 
 def validate(profile_tuple):

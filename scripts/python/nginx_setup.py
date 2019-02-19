@@ -80,9 +80,11 @@ def nginx_setup(root_dir='/srv', repo_id='nginx'):
     nginx_location = {'/': [f'root {root_dir}', 'autoindex on']}
     nginx_directives = {'listen': '80', 'server_name': 'powerup'}
 
-    nginx_modify_conf('/etc/nginx/conf.d/server1.conf',
-                      directives=nginx_directives,
-                      locations=nginx_location)
+    rc = nginx_modify_conf('/etc/nginx/conf.d/server1.conf',
+                           directives=nginx_directives,
+                           locations=nginx_location)
+
+    return rc
 
 
 if __name__ == '__main__':
