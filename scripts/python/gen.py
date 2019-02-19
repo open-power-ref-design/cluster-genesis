@@ -550,7 +550,7 @@ class Gen(object):
         scan_ping_network('ipmi', self.config_file_path)
 
     def _osinstall(self):
-        profile_path = osinstall.Profile()
+        # profile_path = osinstall.Profile()
         osinstall.osinstall(self.config_file_path)
         # print(self.config_file_path)
 

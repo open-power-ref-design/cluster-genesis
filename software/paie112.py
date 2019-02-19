@@ -422,7 +422,7 @@ class software(object):
 
         # Setup firewall to allow http
         heading1('Setting up firewall')
-        fw_err = firewall_add_services('http')
+        firewall_add_services('http')
 
         self.status_prep(which='Firewall')
         if self.state['Firewall'] == '-':
