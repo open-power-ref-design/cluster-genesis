@@ -704,7 +704,6 @@ class Gen(object):
                 self.args.all = True
             if gen.GEN_SOFTWARE_PATH not in sys.path:
                 sys.path.append(gen.GEN_SOFTWARE_PATH)
-
             try:
                 self.args.name = self.args.name.split('.')[0]
                 software_module = importlib.import_module(self.args.name)
@@ -716,7 +715,7 @@ class Gen(object):
                                'class named "software"')
                 sys.exit(1)
             else:
-                soft = software_module.software(self.args.eval, self.args.non_interactive)
+                soft = software_module.software(self.args.eval, self.args.non_interactive, self.args.arch)
             if self.args.prep is True or self.args.all is True:
                 try:
                     soft.prep()

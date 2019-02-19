@@ -401,6 +401,12 @@ def get_args(parser_args=False):
         action='store_true',
         help='Run all software prep and install steps')
 
+    parser_software.add_argument(
+        '--arch',
+        default="ppc64le",
+        choices=['ppc64le', 'x86_64'],
+        help='Runs the software phase with specified architecture')
+
     # 'utils' subcommand arguments
     parser_utils.set_defaults(utils=True)
 

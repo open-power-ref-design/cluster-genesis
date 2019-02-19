@@ -33,7 +33,7 @@ from getpass import getpass
 import pwd
 import grp
 import click
-import code
+# import code
 
 import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
@@ -53,7 +53,7 @@ class software(object):
     initialization activities. The install method implements the actual
     installation.
     """
-    def __init__(self, eval_ver=False, non_int=False):
+    def __init__(self, eval_ver=False, non_int=False, arch='ppc64le'):
         self.log = logger.getlogger()
         self.my_name = sys.modules[__name__].__name__
         self.yum_powerup_repo_files = []
@@ -62,11 +62,14 @@ class software(object):
         # self.eng_mode = 'custom-repo'
         # self.eng_mode = 'gather-dependencies'
         yaml.add_constructor(YAMLVault.yaml_tag, YAMLVault.from_yaml)
-
+        self.arch = arch
+        self.log.info(f"Using architecture: {self.arch}")
+        # add filename to distinguish architecture
+        base_filename = f'{self.my_name}' if self.arch == 'ppc64le' else f'{self.my_name}_{self.arch}'
         self.state = {'EPEL Repository': '-',
                       'CUDA Driver Repository': '-',
                       'IBM AI Repository': '-',
-                      'PowerAIE license content': '-',
+                      'WMLA license content': '-',
                       'Dependent Packages Repository': '-',
                       'Python Package Repository': '-',
                       'Anaconda content': '-',
@@ -80,16 +83,16 @@ class software(object):
                       'Nginx Web Server': '-',
                       'Firewall': '-'}
         # Only yum repos should be listed under self.repo_id
-        self.repo_id = {'EPEL Repository': 'epel-ppc64le',
+        self.repo_id = {'EPEL Repository': f'epel-{self.arch}',
                         'Dependent Packages Repository': 'dependencies',
                         'Python Package Repository': 'pypi'}
 
         try:
             self.pkgs = yaml.load(open(GEN_SOFTWARE_PATH +
-                                  f'pkg-lists-{self.my_name}.yml'))
+                                  f'pkg-lists-{base_filename}.yml'))
         except IOError:
             self.log.error(f'Error opening the pkg lists file '
-                           f'(pkg-lists-{self.my_name}.yml.yml)')
+                           f'(pkg-lists-{base_filename}.yml)')
             sys.exit('Exit due to critical error')
 
         if self.eval_ver:
@@ -169,11 +172,10 @@ class software(object):
         if ('content_files' not in self.sw_vars or not
                 isinstance(self.sw_vars['content_files'], dict)):
             self.sw_vars['content_files'] = {}
-        self.epel_repo_name = 'epel-ppc64le'
+        self.epel_repo_name = self.repo_id['EPEL Repository']
         self.sw_vars['epel_repo_name'] = self.epel_repo_name
         self.rhel_ver = '7'
         self.sw_vars['rhel_ver'] = self.rhel_ver
-        self.arch = 'ppc64le'
         self.sw_vars['arch'] = self.arch
         self.root_dir = '/srv/'
         self.repo_dir = self.root_dir + 'repos/{repo_id}/rhel' + self.rhel_ver + \
@@ -185,7 +187,7 @@ class software(object):
         # expression of .*
         try:
             file_lists = yaml.load(open(GEN_SOFTWARE_PATH +
-                                   f'file-lists-{self.my_name}.yml'))
+                                   f'file-lists-{base_filename}.yml'))
         except IOError:
             self.log.info('Error while reading installation file lists for '
                           'PowerAI Enterprise')
@@ -266,11 +268,11 @@ class software(object):
                 f'       usage: pup software --install {self.my_name}\n\n'
                 'Before beginning, the following files should be extracted from the\n'
                 'WatsonMLA Enterprise binary file and present on this node;\n'
-                '- mldl-repo-local-5.4.0-*.ppc64le.rpm\n'
-                '- powerai-enterprise-license-1.1.2-*.ppc64le.rpm\n'
-                '- conductor2.3.0.0_ppc64le.bin\n'
+                f'- mldl-repo-local-5.4.0-*.{self.arch}.rpm\n'
+                f'- powerai-enterprise-license-1.1.2-*.{self.arch}.rpm\n'
+                f'- conductor2.3.0.0_{self.arch}.bin\n'
                 '- conductor_entitlement.dat\n'
-                '- dli-1.2.1.0_ppc64le.bin\n'
+                f'- dli-1.2.1.0_{self.arch}.bin\n'
                 '- dli_entitlement.dat\n\n'
                 f'For installation status: pup software --status {self.my_name}\n'
                 f'To redisplay this README: pup software --README {self.my_name}\n\n'
@@ -351,7 +353,7 @@ class software(object):
                 repodata_noarch = glob.glob(f'/srv/repos/ibmai'
                                             '/noarch/repodata.json', recursive=True)
                 repodata = glob.glob(f'/srv/repos/ibmai'
-                                     '/linux-ppc64le/repodata.json', recursive=True)
+                                     f'/linux-{self.arch}/repodata.json', recursive=True)
                 if repodata and repodata_noarch:
                     self.state[item] = f'{item} is setup'
                 continue
@@ -361,7 +363,7 @@ class software(object):
                 repodata_noarch = glob.glob(f'/srv/repos/anaconda/pkgs/free'
                                             '/noarch/repodata.json', recursive=True)
                 repodata = glob.glob(f'/srv/repos/anaconda/pkgs/free'
-                                     '/linux-ppc64le/repodata.json', recursive=True)
+                                     f'/linux-{self.arch}/repodata.json', recursive=True)
                 if repodata and repodata_noarch:
                     self.state[item] = f'{item} is setup'
                 continue
@@ -371,7 +373,7 @@ class software(object):
                 repodata_noarch = glob.glob(f'/srv/repos/anaconda/pkgs/main'
                                             '/noarch/repodata.json', recursive=True)
                 repodata = glob.glob(f'/srv/repos/anaconda/pkgs/main'
-                                     '/linux-ppc64le/repodata.json', recursive=True)
+                                     f'/linux-{self.arch}/repodata.json', recursive=True)
                 if repodata and repodata_noarch:
                     self.state[item] = f'{item} is setup'
                 continue
@@ -555,7 +557,7 @@ class software(object):
         if ch in 'Y':
             # if not exists or ch == 'F':
             url = repo.get_repo_url(baseurl, alt_url, contains=['ibm-ai', 'linux',
-                                    'ppc64le'], excludes=['noarch', 'main'],
+                                    f'{self.arch}'], excludes=['noarch', 'main'],
                                     filelist=['caffe-1.0*'])
             if url:
                 if not url == baseurl:
@@ -566,14 +568,14 @@ class software(object):
                         _url = url
                     self.sw_vars[f'{vars_key}-alt-url'] = _url
 
-                # accept_list is used for linux-ppc64le, reject_list for noarch
-                if 'accept_list' in self.pkgs['ibm-ai-conda-linux-ppc64le']:
-                    al = self.pkgs['ibm-ai-conda-linux-ppc64le']['accept_list']
+                # accept_list is used for linux_{self.arch}, reject_list for noarch
+                if 'accept_list' in self.pkgs[f'ibm_ai_conda_linux_{self.arch}']:
+                    al = self.pkgs[f'ibm_ai_conda_linux_{self.arch}']['accept_list']
                 else:
                     al = None
 
-                if 'reject_list' in self.pkgs['ibm-ai-conda-linux-ppc64le']:
-                    rl = self.pkgs['ibm-ai-conda-linux-ppc64le']['reject_list']
+                if 'reject_list' in self.pkgs[f'ibm_ai_conda_linux_{self.arch}']:
+                    rl = self.pkgs[f'ibm_ai_conda_linux_{self.arch}']['reject_list']
                 else:
                     rl = None
 
@@ -587,21 +589,21 @@ class software(object):
                 if channel not in self.sw_vars['ana_powerup_repo_channels']:
                     self.sw_vars['ana_powerup_repo_channels'].append(channel)
 
-                if 'accept_list' in self.pkgs['ibm-ai-conda-noarch']:
-                    al = self.pkgs['ibm-ai-conda-noarch']['accept_list']
+                if 'accept_list' in self.pkgs['ibm_ai_conda_noarch']:
+                    al = self.pkgs['ibm_ai_conda_noarch']['accept_list']
                 else:
                     al = None
 
-                if 'reject_list' in self.pkgs['ibm-ai-conda-noarch']:
-                    rl = self.pkgs['ibm-ai-conda-noarch']['reject_list']
+                if 'reject_list' in self.pkgs['ibm_ai_conda_noarch']:
+                    rl = self.pkgs['ibm_ai_conda_noarch']['reject_list']
                 else:
                     rl = None
                 noarch_url = os.path.split(url.rstrip('/'))[0] + '/noarch/'
 
                 repo.sync_ana(noarch_url, acclist=al, rejlist=rl)
 
-        # Get PowerAI Enterprise license file
-        name = 'PowerAIE license content'
+        # Get WMLA Enterprise license file
+        name = 'WMLA license content'
         heading1(f'Set up {name.title()} \n')
         lic_src = self.globs[name]
         exists = self.status_prep(name)
@@ -687,7 +689,7 @@ class software(object):
         # existing repository on another node.
         repo_id = 'cuda'
         repo_name = 'Cuda Driver'
-        baseurl = 'http://developer.download.nvidia.com/compute/cuda/repos/rhel7/ppc64le'
+        baseurl = f'http://developer.download.nvidia.com/compute/cuda/repos/rhel7/{self.arch}'
         gpgkey = f'{baseurl}/7fa2af80.pub'
         heading1(f'Set up {repo_name} repository')
         # list to str
@@ -752,7 +754,7 @@ class software(object):
                 # directories
                 src_path = '/home/**/cuda-repo-rhel7-10-1-local-*.rpm'
             rpm_path = repo.get_rpm_path(src_path)
-            code.interact(banner='here', local=dict(globals(), **locals()))
+            # code.interact(banner='here', local=dict(globals(), **locals()))
             if rpm_path:
                 self.sw_vars[f'{repo_id}_src_rpm_dir'] = rpm_path
                 repo_dir = repo.extract_rpm(rpm_path)
@@ -795,7 +797,7 @@ class software(object):
             print(f'{repo_name} repository not updated')
         if ch != 'S':
             repo_dir += '/cuda-drivers-[4-9][0-9][0-9].[0-9]*-[0-9]*'
-            code.interact(banner='There', local=dict(globals(), **locals()))
+            # code.interact(banner='There', local=dict(globals(), **locals()))
             files = glob.glob(repo_dir, recursive=True)
             if files:
                 self.sw_vars['cuda-driver'] = re.search(r'cuda-drivers-\d+\.\d+-\d+',
@@ -952,7 +954,8 @@ class software(object):
         # Setup Anaconda Free Repo.  (not a YUM repo)
         repo_id = 'anaconda'
         repo_name = 'Anaconda Free Repository'
-        baseurl = 'https://repo.continuum.io/pkgs/free/linux-ppc64le/'
+        platform_basename = '64' if self.arch == "x86_64" else self.arch
+        baseurl = f'https://repo.continuum.io/pkgs/free/linux-{platform_basename}/'
         heading1(f'Set up {repo_name}\n')
 
         vars_key = get_name_dir(repo_name)  # format the name
@@ -972,7 +975,7 @@ class software(object):
         if ch in 'Y':
             # if not exists or ch == 'F':
             url = repo.get_repo_url(baseurl, alt_url, contains=['free', 'linux',
-                                    'ppc64le'], excludes=['noarch', 'main'],
+                                    f'{platform_basename}'], excludes=['noarch', 'main'],
                                     filelist=['conda-4.3*'])
             if url:
                 if not url == baseurl:
@@ -980,8 +983,8 @@ class software(object):
 
                 # accept_list and rej_list are mutually exclusive.
                 # accept_list takes priority
-                al = self.pkgs['anaconda_free_linux_ppc64le']['accept_list']
-                rl = self.pkgs['anaconda_free_linux_ppc64le']['reject_list']
+                al = self.pkgs[f'anaconda_free_linux_{platform_basename}']['accept_list']
+                rl = self.pkgs[f'anaconda_free_linux_{platform_basename}']['reject_list']
 
                 dest_dir = repo.sync_ana(url, acclist=al, rejlist=rl)
                 dest_dir = dest_dir[4 + dest_dir.find('/srv'):5 + dest_dir.find('free')]
@@ -999,7 +1002,7 @@ class software(object):
         # Setup Anaconda Main Repo.  (not a YUM repo)
         repo_id = 'anaconda'
         repo_name = 'Anaconda Main Repository'
-        baseurl = 'https://repo.continuum.io/pkgs/main/linux-ppc64le/'
+        baseurl = f'https://repo.continuum.io/pkgs/main/linux-{platform_basename}/'
         heading1(f'Set up {repo_name}\n')
 
         vars_key = get_name_dir(repo_name)  # format the name
@@ -1018,14 +1021,14 @@ class software(object):
         ch = repo.get_action(exists)
         if ch in 'Y':
             url = repo.get_repo_url(baseurl, alt_url, contains=['main', 'linux',
-                                    'ppc64le'], excludes=['noarch', 'free'],
+                                    f'{platform_basename}'], excludes=['noarch', 'free'],
                                     filelist=['numpy-1.15*'])
             if url:
                 if not url == baseurl:
                     self.sw_vars[f'{vars_key}-alt-url'] = url
                 # accept_list is used for main, reject_list for noarch
-                al = self.pkgs['anaconda_main_linux_ppc64le']['accept_list']
-                rl = self.pkgs['anaconda_main_linux_ppc64le']['reject_list']
+                al = self.pkgs[f'anaconda_main_linux_{platform_basename}']['accept_list']
+                rl = self.pkgs[f'anaconda_main_linux_{platform_basename}']['reject_list']
 
                 dest_dir = repo.sync_ana(url, acclist=al, rejlist=rl)
                 # dest_dir = repo.sync_ana(url)
@@ -1112,8 +1115,8 @@ class software(object):
                 repo.sync(pkg3_list, url + 'simple', py_ver=36)
 
         # Setup EPEL Repo
-        repo_id = 'epel-ppc64le'
-        repo_name = 'EPEL ppc64le subset'
+        repo_id = f'epel-{self.arch}'
+        repo_name = f'EPEL {self.arch} subset'
         baseurl = ''
         heading1(f'Set up {repo_name} repository')
         epel_list = ' '.join(self.pkgs['epel_pkgs'])
