@@ -62,7 +62,27 @@ def main():
 
     yum_post_files = ['client_yum_post_install.txt']
 
-    
+    def file_check(pre_files):
+        for f in pre_files:
+            pre_file_path = os.path.join(dep_path,f)
+            my_file = os.path.isfile(pre_file_path)
+            if my_file:
+                pass
+            else:
+                menu = True
+                while menu == True:
+                    opt = input(f'INFO - Would you like to recover "{f}" ?\n 1 - Yes \n 2 - No \n')
+                    if opt == '1':
+                        print (f'\nINFO - Located new pre path for "{f}"\n')
+                        menu = False
+                    elif opt == '2':
+                        menu = False
+                        sys.exit()
+                    else:
+                        print('\nPlese select a valid option')
+
+
+            code.interact(banner='file_check', local=dict(globals(), **locals()))   
 	
     def format_pkg_name(pkg, pkg_type):
         if pkg_type == 'yum':
@@ -227,6 +247,8 @@ def main():
 
         write_merged_files(merged_sets, pkg_type)
 
+    file_check(pip_pre_files)
+    file_check(pip_post_files)
     #merge_function(yum_pre_files, yum_post_files, 'yum')
     #merge_function(conda_pre_files, conda_post_files, 'conda')
     merge_function(pip_pre_files, pip_post_files, 'pip')
