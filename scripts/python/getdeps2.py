@@ -62,7 +62,8 @@ def main():
 
     yum_post_files = ['client_yum_post_install.txt']
 
-
+    
+	
     def format_pkg_name(pkg, pkg_type):
         if pkg_type == 'yum':
             pkg_items = pkg.split()
@@ -80,9 +81,14 @@ def main():
                                 pkg_items[1] + '-' + pkg_items[2] + '.tar.bz2')
             #code.interact(banner='format conda', local=dict(globals(), **locals()))
 
-
         elif pkg_type == 'pip':
-            pass
+            pkg_items = pkg.split()
+            pkg_repo = 'pip'
+            version = pkg_items[1].replace('(','')
+            version = version.replace(')','') 
+            pkg_fmt_name = pkg_items[0] + '=' + version
+     
+            #code.interact(banner='pip', local=dict(globals(), **locals()))
 
         return pkg_fmt_name, pkg_repo
 
@@ -105,8 +111,14 @@ def main():
                     d = {file_name: sorted(list(merged_sets[repo]))}
                     yaml.dump(d, f, indent=4, default_flow_style=False)
 
-        elif pk_type == 'pip':
-            pass
+        elif pkg_type == 'pip':
+            for repo in merged_sets:
+                file_name = f'{pkg_type}.yml'
+                file_path = os.path.join(dep_path, file_name)
+                with open(file_path, 'w') as f:
+                    d = {file_name: sorted(merged_sets[repo])}
+                    yaml.dump(d, f, indent=4, default_flow_style=False)
+
 
     def get_repo_list(pkgs, pkg_type):
         repo_list = []
@@ -127,9 +139,11 @@ def main():
 
         if pkg_type == 'pip':
             for pkg in pkgs:
-                repo = 'pip-pkgs'
+                pkg_items = pkg.split()
+                repo = 'pip'
                 if repo not in repo_list:
                     repo_list.append(repo)
+
         return repo_list
 
     def merge_function(pre_files, post_files, pkg_type):
@@ -184,7 +198,7 @@ def main():
                     if pkg_repo == repo:
                         pkgs[file_key][repo]['post'].append(pkg_fmt_name)
 
-        #code.interact(banner='pre diff', local=dict(globals(), **locals()))
+        code.interact(banner='pre diff', local=dict(globals(), **locals()))
 
         diff_sets = {}
 
@@ -192,7 +206,7 @@ def main():
         for _file in pkgs:
             diff_sets[_file] = {}
             for repo in pkgs[_file]:
-                #code.interact(banner='diff loop', local=dict(globals(), **locals()))
+                code.interact(banner='diff loop', local=dict(globals(), **locals()))
                 post_minus_pre = (set(pkgs[_file][repo]['post']) -
                                   set(pkgs[_file][repo]['pre']))
                 diff_sets[_file][repo] = post_minus_pre
@@ -214,7 +228,8 @@ def main():
         write_merged_files(merged_sets, pkg_type)
 
     #merge_function(yum_pre_files, yum_post_files, 'yum')
-    merge_function(conda_pre_files, conda_post_files, 'conda')
+    #merge_function(conda_pre_files, conda_post_files, 'conda')
+    merge_function(pip_pre_files, pip_post_files, 'pip')
 
 
 ##pip
