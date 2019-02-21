@@ -13,15 +13,6 @@
 #
 #- description: Install CUDA driver
 #  tasks: install_cuda_drivers.yml
-
-#- description: Install CUDA toolkit
-#  tasks: install_cuda_toolkit.yml
-#
-#- description: Install CUDA Deep Neural Network library
-#  tasks: install_cudnn.yml
-#
-#- description: Install NCCL Library
-#  tasks: install_nccl.yml
 #
 #- description: Download Anaconda installer
 #  tasks: anaconda_prep.yml
@@ -32,27 +23,15 @@
 #- description: Complete System Setup
 #  tasks: complete_system_setup.yml
 #
-# - description: Install PowerAI Enterprise License Script
-##   tasks: powerai_license_install.yml
-#
-## - description: Check PowerAI Enterprise License acceptance
-##   tasks: powerai_license_check.yml
+#- description: Install WMLA License Script
+##  tasks: wmla_license_install.yml
 #
 #- description: Check WMLA License acceptance
 #  tasks: wmla_license_check.yml
 #
-##- description: Install Deep Learning frameworks
-##  tasks: install_frameworks.yml
-#
 #- description: Configure a system for IBM Spectrum Conductor Deep Learning Impact
 #  tasks: configure_spectrum_conductor.yml
 #
-#- description: Install WMLA License Script
-#  tasks: wmla_license_install.yml
-
-############# - description: Check WMLA License acceptance
-############    tasks: wmla_license_check.yml
-
 #- description: Install IBM Spectrum Conductor
 #  tasks: install_spectrum_conductor_with_spark.yml
 #
@@ -60,12 +39,12 @@
 #  tasks: entitle_spectrum_conductor_with_spark.yml
 #  hosts: master[0]
 #
-#- description: Install IBM Spectrum Conductor DLI
-#  tasks: install_spectrum_conductor_dli.yml
-#
-#- description: Entitle and Start IBM Spectrum Conductor DLI
-#  tasks: entitle_spectrum_conductor_dli.yml
-#  hosts: master[0]
+- description: Install IBM Spectrum Conductor DLI
+  tasks: install_spectrum_conductor_dli.yml
+
+- description: Entitle and Start IBM Spectrum Conductor DLI
+  tasks: entitle_spectrum_conductor_dli.yml
+  hosts: master[0]
 #
 #- description: Provide permission for DLI cluster admin to write audit directory
 #  tasks: permit_dli_admin_write_audit.yml

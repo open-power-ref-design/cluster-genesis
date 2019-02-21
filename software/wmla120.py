@@ -1671,10 +1671,8 @@ def _interactive_wmla_license_accept(ansible_inventory):
     resp, err, rc = sub_proc_exec(cmd, shell=True)
     inv = json.loads(resp)
 
-    accept_cmd = ('sudo /opt/anaconda3/bin/'
-                  'accept-ibm-wmla-license.sh ')
-    #check_cmd = ('/opt/DL/powerai-enterprise/license/bin/'
-    #             'check-powerai-enterprise-license.sh ')
+    accept_cmd = '/opt/anaconda3/bin/accept-ibm-wmla-license.sh '
+    check_cmd = 'ls ~/.powerai/ibm-wmla-license/1.2.0/license/status.dat'
 
     print(bold('Acceptance of the WMLA Enterprise license is required on '
                'all nodes in the cluster.'))

@@ -25,9 +25,3 @@
 - name: Install wmla license
   shell: "{{ install_dir }}/bin/conda install --yes --use-local file:/{{ ansible_env.HOME }}/{{ file }}"
   become: yes
-
-#- name: Install powerai-enterprise-license
-#  yum:
-#    name: "{{ ansible_env.HOME }}/{{ file }}"
-#    state: present
-#  become: yes

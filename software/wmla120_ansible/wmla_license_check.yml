@@ -1,4 +1,10 @@
 ---
-- name: Check WMLA license
-  shell: /opt/DL/powerai-enterprise/license/bin/check-wmla-license.sh
-  become: yes
+- name: Check that the status.dat file exists
+  stat:
+    path: "{{ ansible_env.HOME }}/.powerai/ibm-wmla-license/1.2.0/license/status.dat"
+  register: stat_result
+
+- name: Fail if license not accepted
+  fail:
+    msg: "The WMLA license has not been accepted"
+  when: stat_result.stat.exists == False
