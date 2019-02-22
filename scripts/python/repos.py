@@ -33,8 +33,8 @@ from lib.exception import UserException
 
 
 def setup_source_file(name, src_glob, url='', alt_url='http://',
-                      dest_dir=None, src2=None):
-    """Interactive selection of a source file and copy it to the /srv/<dest_dir>
+                      dest_dir=None, src2=None, root_dir="/srv/"):
+    """Interactive selection of a source file and copy it to the {root_dir}<dest_dir>
     directory. The source file can include file globs and can come from a URL
     or the local disk. Local disk searching starts in the /home and /root
     directory and then expands to the entire file system if no matches
@@ -45,12 +45,12 @@ def setup_source_file(name, src_glob, url='', alt_url='http://',
         src2(str): An additional file to be copied from the same source as src_glob.
             This file would typically be a support file such as an entitlement file.
         dest (str) : destination directory. Will be created if necessary under
-            /srv/
+            {root_dir}
         url (str): url for the public web site where the file can be obtained.
             leave empty to prevent prompting for a public url option.
         alt_url (str): Alternate url where the file can be found. Usually this
             is an intranet web site.
-        name (str): Name for the source. Used for prompts and dest dir (/srv/{name}).
+        name (str): Name for the source. Used for prompts and dest dir ({root_dir}{name}).
     Returns:
         state (bool) : state is True if a file matching the src_name exists
             in the dest directory or was succesfully copied there. state is
@@ -64,7 +64,7 @@ def setup_source_file(name, src_glob, url='', alt_url='http://',
     dest_path = None
     log = logger.getlogger()
     name_src = get_name_dir(name)
-    exists = glob.glob(f'/srv/{name_src}/**/{src_glob}', recursive=True)
+    exists = glob.glob(f'{root_dir}{name_src}/**/{src_glob}', recursive=True)
     if exists:
         dest_path = exists[0]
     copied = False
@@ -84,14 +84,14 @@ def setup_source_file(name, src_glob, url='', alt_url='http://',
             while _url is not None and rc != 0:
                 _url = get_url(_url, fileglob=src_glob)
                 if _url:
-                    dest_dir = f'/srv/{name_src}'
+                    dest_dir = f'{root_dir}{name_src}'
                     if not os.path.exists(dest_dir):
                         os.mkdir(dest_dir)
                     cmd = f'wget -r -l 1 -nH -np --cut-dirs=1 -P {dest_dir} {_url}'
                     rc = sub_proc_display(cmd)
                     if rc != 0:
                         log.error(f'Failed downloading {name} source to'
-                                  f' /srv/{name_src}/ directory. \n{rc}')
+                                  f' {root_dir}{name_src}/ directory. \n{rc}')
                         copied = False
                     else:
                         src_path = _url
@@ -103,7 +103,7 @@ def setup_source_file(name, src_glob, url='', alt_url='http://',
                         rc = sub_proc_display(cmd)
                         if rc != 0:
                             log.error(f'Failed downloading {name} source file {src2} to'
-                                      f' /srv/{name_src}/ directory. \n{rc}')
+                                      f' {root_dir}{name_src}/ directory. \n{rc}')
                             copied = False
                         else:
                             src_path = _url
@@ -111,13 +111,13 @@ def setup_source_file(name, src_glob, url='', alt_url='http://',
         elif ch == 'D':
             src_path = get_src_path(src_glob)
             if src_path:
-                dest_dir = f'/srv/{name_src}'
+                dest_dir = f'{root_dir}{name_src}'
                 if not os.path.exists(dest_dir):
                     os.mkdir(dest_dir)
                 try:
                     copy2(src_path, dest_dir)
                 except Error as err:
-                    log.debug(f'Failed copying {name} source file to /srv/{name_src}/ '
+                    log.debug(f'Failed copying {name} source file to {root_dir}{name_src}/ '
                               f'directory. \n{err}')
                     copied = False
                 else:
@@ -130,7 +130,7 @@ def setup_source_file(name, src_glob, url='', alt_url='http://',
                         src2_path = os.path.join(os.path.dirname(src_path), src2)
                         copy2(src2_path, dest_dir)
                     except Error as err:
-                        log.debug(f'Failed copying {name} source file to /srv/{name_src}/ '
+                        log.debug(f'Failed copying {name} source file to {root_dir}{name_src}/ '
                                   f'directory. \n{err}')
                         copied = False
                     else:
@@ -154,23 +154,23 @@ def get_name_dir(name):
         .replace('-repository', '')
 
 
-def powerup_file_from_disk(name, file_glob):
+def powerup_file_from_disk(name, file_glob, root_dir="/srv/"):
         log = logger.getlogger()
         name_src = get_name_dir(name)
         dest_path = None
         src_path = get_src_path(file_glob)
         if src_path:
-            if not os.path.exists(f'/srv/{name_src}'):
-                os.mkdir(f'/srv/{name_src}')
+            if not os.path.exists(f'{root_dir}{name_src}'):
+                os.mkdir(f'{root_dir}{name_src}')
             try:
-                copy2(src_path, f'/srv/{name_src}/')
+                copy2(src_path, f'{root_dir}{name_src}/')
             except Error as err:
-                log.debug(f'Failed copying {name} source file to /srv/{name_src}/ '
+                log.debug(f'Failed copying {name} source file to {root_dir}{name_src}/ '
                           f'directory. \n{err}')
             else:
                 log.info(f'Successfully installed {name} source file '
                          'into the POWER-Up software server.')
-                dest_path = os.path.join(f'/srv/{name_src}/',
+                dest_path = os.path.join(f'{root_dir}{name_src}/',
                                          os.path.basename(src_path))
         return src_path, dest_path
 
@@ -179,16 +179,16 @@ class PowerupRepo(object):
     """Base class for creating a yum repository for access by POWER-Up software
      clients.
     """
-    def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7'):
+    def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7', root_dir="/srv/"):
         self.repo_id = repo_id
         self.repo_name = repo_name
         self.arch = arch
         self.repo_type = 'yum'
         self.rhel_ver = str(rhel_ver)
-        self.repo_base_dir = '/srv'
-        self.repo_dir = f'/srv/repos/{self.repo_id}/rhel{self.rhel_ver}/{self.repo_id}'
-        self.anarepo_dir = f'/srv/repos/{self.repo_id}'
-        self.pypirepo_dir = f'/srv/repos/{self.repo_id}'
+        self.repo_base_dir = root_dir
+        self.repo_dir = f'{root_dir}/repos/{self.repo_id}/rhel{self.rhel_ver}/{self.repo_id}'
+        self.anarepo_dir = f'{root_dir}/repos/{self.repo_id}'
+        self.pypirepo_dir = f'{root_dir}/repos/{self.repo_id}'
         self.log = logger.getlogger()
 
     def get_repo_dir(self):
@@ -260,7 +260,7 @@ class PowerupRepo(object):
 
     def copytree_to_srv(self, src_dir, dst):
         """Copy a directory recursively to the POWER-Up server base directory.
-        Note that if the directory exists already under the /srv durectory, it
+        Note that if the directory exists already under the {self.repo_base_dir} durectory, it
         will be recursively erased before the copy begins.
         """
         dst_dir = f'{self.repo_base_dir}/{dst}'
@@ -297,7 +297,7 @@ class PowerupRepo(object):
             content += f'baseurl=file://{repo_dir}/\n'
         elif client:
             d = repo_dir.lstrip('/')
-            d = d.lstrip('srv')
+            d = d.lstrip(self.repo_base_dir.strip('/'))
             content += 'baseurl=http://{{ host_ip.stdout }}' + f'{d}/\n'
         elif metalink:
             content += f'metalink={url}\n'
@@ -369,8 +369,8 @@ class PowerupRepoFromRpm(PowerupRepo):
     """Sets up a yum repository for access by POWER-Up software clients.
     The repo is created from an rpm file selected interactively by the user.
     """
-    def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7'):
-        super(PowerupRepoFromRpm, self).__init__(repo_id, repo_name, arch, rhel_ver)
+    def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7', root_dir="/srv/"):
+        super(PowerupRepoFromRpm, self).__init__(repo_id, repo_name, arch, rhel_ver, root_dir)
 
     def get_rpm_path(self, filepath='/home/**/*.rpm'):
         """Interactive search for the rpm path.
@@ -396,12 +396,12 @@ class PowerupRepoFromRpm(PowerupRepo):
                     return self.rpm_path
 
     def copy_rpm(self, src_path):
-        """copy the selected rpm file (self.rpm_path) to the /srv/{self.repo_id}
+        """copy the selected rpm file (self.rpm_path) to the {self.repo_base_dir}{self.repo_id}
         directory.
         The directory is created if it does not exist.
         """
         self.rpm_path = src_path
-        dst_dir = f'/srv/{self.repo_id}'
+        dst_dir = f'{self.repo_base_dir}{self.repo_id}'
         if not os.path.exists(dst_dir):
             os.mkdir(dst_dir)
         copy2(self.rpm_path, dst_dir)
@@ -411,7 +411,7 @@ class PowerupRepoFromRpm(PowerupRepo):
 
     def extract_rpm(self, src_path):
         """Extracts files from the selected rpm file to a repository directory
-        under /srv/repoid/rhel7/repoid. If a repodata directory is included in
+        under {self.repo_base_dir}repoid/rhel7/repoid. If a repodata directory is included in
         the extracted data, then the path to repodata directory is returned
         Inputs: Uses self.repo_dir and self.repo_id
         Outputs:
@@ -442,8 +442,8 @@ class PowerupYumRepoFromRepo(PowerupRepo):
     URL which could reside on another host or from a local directory. (ie
     a file based URL pointing to a mounted disk. eg file:///mnt/my-mounted-usb)
     """
-    def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7'):
-        super(PowerupYumRepoFromRepo, self).__init__(repo_id, repo_name, arch, rhel_ver)
+    def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7', root_dir="/srv/"):
+        super(PowerupYumRepoFromRepo, self).__init__(repo_id, repo_name, arch, rhel_ver, root_dir)
 
     def sync(self):
         self.log.info(f'Syncing {self.repo_name}')
@@ -471,8 +471,8 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
         rejlist (str): Reject list. List of files to reject. If specified,
             the entire repository except the files in the rejlist will be downloaded.
     """
-    def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7'):
-        super(PowerupAnaRepoFromRepo, self).__init__(repo_id, repo_name, arch, rhel_ver)
+    def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7', root_dir="/srv/"):
+        super(PowerupAnaRepoFromRepo, self).__init__(repo_id, repo_name, arch, rhel_ver, root_dir)
         self.repo_type = 'ana'
 
     def get_pkg_list(self, path):
@@ -562,11 +562,11 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
 
         if 'http:' in url or 'https:' in url:
             if '/pkgs/' in url:
-                dest_dir = f'/srv/repos/{self.repo_id}' + url[url.find('/pkgs/'):]
+                dest_dir = f'{self.repo_base_dir}/repos/{self.repo_id}' + url[url.find('/pkgs/'):]
             elif '/conda-forge' in url:
-                dest_dir = f'/srv/repos/{self.repo_id}' + url[url.find('/conda-forge'):]
+                dest_dir = f'{self.repo_base_dir}/repos/{self.repo_id}' + url[url.find('/conda-forge'):]
             elif self.repo_id == 'ibmai':
-                dest_dir = os.path.join(f'/srv/repos/{self.repo_id}',
+                dest_dir = os.path.join(f'{self.repo_base_dir}/repos/{self.repo_id}',
                                         url.rsplit('/', 2)[1])
             self.log.info(f'Syncing {self.repo_name}')
             self.log.info('This can take several minutes\n')
@@ -680,8 +680,8 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
     URL which could reside on another host or from a local directory. (ie
     a file based URL pointing to a mounted disk. eg file:///mnt/my-mounted-usb)
     """
-    def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7'):
-        super(PowerupPypiRepoFromRepo, self).__init__(repo_id, repo_name, arch, rhel_ver)
+    def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7', root_dir="/srv/"):
+        super(PowerupPypiRepoFromRepo, self).__init__(repo_id, repo_name, arch, rhel_ver, root_dir)
         self.repo_type = 'pypi'
 
     def sync(self, pkg_list, alt_url=None, py_ver=27):
@@ -752,8 +752,8 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
 
 
 class PowerupRepoFromDir(PowerupRepo):
-    def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7'):
-        super(PowerupRepoFromDir, self).__init__(repo_id, repo_name, arch, rhel_ver)
+    def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7', root_dir="/srv/"):
+        super(PowerupRepoFromDir, self).__init__(repo_id, repo_name, arch, rhel_ver, root_dir)
 
     def copy_dirs(self, src_dir=None):
         if os.path.exists(self.repo_dir):
@@ -785,14 +785,14 @@ class PowerupRepoFromDir(PowerupRepo):
 #        self.log.debug(f'{pkg_name} source path: {src_path}')
 #        cmd = f'rpm -ihv --test --ignorearch {src_path}'
 #        resp1, err1, rc = sub_proc_exec(cmd)
-#        cmd = f'diff /opt/DL/repo/rpms/repodata/ /srv/repos/DL-{ver}/repo/rpms/repodata/'
+#        cmd = f'diff /opt/DL/repo/rpms/repodata/ {self.repo_base_dir}repos/DL-{ver}/repo/rpms/repodata/'
 #        resp2, err2, rc = sub_proc_exec(cmd)
 #        if 'is already installed' in err1 and resp2 == '' and rc == 0:
 #            repo_installed = True
 #        else:
 #            repo_installed = False
 #
-#        # Create the repo and copy it to /srv directory
+#        # Create the repo and copy it to {self.repo_base_dir} directory
 #        if src_path:
 #            if not ver:
 #                self.log.error('Unable to find the version in {src_path}')
@@ -813,9 +813,9 @@ class PowerupRepoFromDir(PowerupRepo):
 #                    self.log.info('Failed creating PowerAI repository')
 #                    self.log.info(f'Failing cmd: {cmd}')
 #                else:
-#                    shutil.rmtree(f'/srv/repos/DL-{ver}', ignore_errors=True)
+#                    shutil.rmtree(f'{self.repo_base_dir}repos/DL-{ver}', ignore_errors=True)
 #                    try:
-#                        shutil.copytree('/opt/DL', f'/srv/repos/DL-{ver}')
+#                        shutil.copytree('/opt/DL', f'{self.repo_base_dir}repos/DL-{ver}')
 #                    except shutil.Error as exc:
 #                        print(f'Copy error: {exc}')
 #                    else:

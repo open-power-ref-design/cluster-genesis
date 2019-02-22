@@ -210,10 +210,10 @@ class software(object):
                 item_dir = item_key
                 if item_dir.endswith('-entitlement'):
                     item_dir = item_dir[:-12]
-                exists = glob.glob(f'/srv/{item_dir}/**/{self.files[item]}',
+                exists = glob.glob(f'{self.root_dir}{item_dir}/**/{self.files[item]}',
                                    recursive=True)
                 if not exists:
-                    exists = glob.glob(f'/srv/{item_dir}/**/{self.globs[item]}',
+                    exists = glob.glob(f'{self.root_dir}{item_dir}/**/{self.globs[item]}',
                                        recursive=True)
                     if exists:
                         self.sw_vars['content_files'][item_key] = exists[0]
@@ -298,7 +298,7 @@ class software(object):
             item_dir = item_key
             if item_dir.endswith('-entitlement'):
                 item_dir = item_dir[:-12]
-            exists = glob.glob(f'/srv/{item_dir}/**/{self.globs[item]}',
+            exists = glob.glob(f'{self.root_dir}{item_dir}/**/{self.globs[item]}',
                                recursive=True)
 
             sw_vars_data = item_key in self.sw_vars['content_files']
@@ -325,8 +325,8 @@ class software(object):
             # yum repos status
             if item in self.repo_id:
                 if 'Python' in item:
-                    if os.path.exists(f'/srv/repos/{self.repo_id[item]}/simple/') and \
-                            len(os.listdir(f'/srv/repos/{self.repo_id[item]}/simple/')) >= 1:
+                    if os.path.exists(f'{self.root_dir}repos/{self.repo_id[item]}/simple/') and \
+                            len(os.listdir(f'{self.root_dir}repos/{self.repo_id[item]}/simple/')) >= 1:
                         self.state[item] = f'{item} is setup'
                 else:
                     yum_repo_status(item)
@@ -350,9 +350,9 @@ class software(object):
 
             # IBM AI Repo Free status
             if item == 'IBM AI Repository':
-                repodata_noarch = glob.glob(f'/srv/repos/ibmai'
+                repodata_noarch = glob.glob(f'{self.root_dir}repos/ibmai'
                                             '/noarch/repodata.json', recursive=True)
-                repodata = glob.glob(f'/srv/repos/ibmai'
+                repodata = glob.glob(f'{self.root_dir}repos/ibmai'
                                      f'/linux-{self.arch}/repodata.json', recursive=True)
                 if repodata and repodata_noarch:
                     self.state[item] = f'{item} is setup'
@@ -360,9 +360,9 @@ class software(object):
 
             # Anaconda Repo Free status
             if item == 'Anaconda Free Repository':
-                repodata_noarch = glob.glob(f'/srv/repos/anaconda/pkgs/free'
+                repodata_noarch = glob.glob(f'{self.root_dir}repos/anaconda/pkgs/free'
                                             '/noarch/repodata.json', recursive=True)
-                repodata = glob.glob(f'/srv/repos/anaconda/pkgs/free'
+                repodata = glob.glob(f'{self.root_dir}repos/anaconda/pkgs/free'
                                      f'/linux-{self.arch}/repodata.json', recursive=True)
                 if repodata and repodata_noarch:
                     self.state[item] = f'{item} is setup'
@@ -370,9 +370,9 @@ class software(object):
 
             # Anaconda Main repo status
             if item == 'Anaconda Main Repository':
-                repodata_noarch = glob.glob(f'/srv/repos/anaconda/pkgs/main'
+                repodata_noarch = glob.glob(f'{self.root_dir}repos/anaconda/pkgs/main'
                                             '/noarch/repodata.json', recursive=True)
-                repodata = glob.glob(f'/srv/repos/anaconda/pkgs/main'
+                repodata = glob.glob(f'{self.root_dir}repos/anaconda/pkgs/main'
                                      f'/linux-{self.arch}/repodata.json', recursive=True)
                 if repodata and repodata_noarch:
                     self.state[item] = f'{item} is setup'
@@ -380,7 +380,7 @@ class software(object):
 
             # Anaconda Conda-forge repo status
             if item == 'Conda-forge Repository':
-                repodata = glob.glob(f'/srv/repos/anaconda/conda-forge'
+                repodata = glob.glob(f'{self.root_dir}repos/anaconda/conda-forge'
                                      '/noarch/repodata.json', recursive=True)
                 if repodata:
                     self.state[item] = f'{item} is setup'
@@ -477,7 +477,7 @@ class software(object):
                       platform.machine()
             repo_id = 'nginx'
             repo_name = 'nginx.org public'
-            repo = PowerupRepo(repo_id, repo_name)
+            repo = PowerupRepo(repo_id, repo_name, root_dir=self.root_dir)
             content = repo.get_yum_dotrepo_content(baseurl, gpgcheck=0)
             repo.write_yum_dot_repo_file(content)
             cmd = 'yum makecache'
@@ -523,7 +523,7 @@ class software(object):
             f.write('    listen       80;\n')
             f.write('    server_name  powerup;\n\n')
             f.write('    location / {\n')
-            f.write('        root   /srv;\n')
+            f.write(f'        root   {self.root_dir};\n')
             f.write('        autoindex on;\n')
             f.write('    }\n')
             f.write('}\n')
@@ -551,7 +551,7 @@ class software(object):
             self.log.info(f'The {repo_name} exists already'
                           ' in the POWER-Up server\n')
 
-        repo = PowerupAnaRepoFromRepo(repo_id, repo_name)
+        repo = PowerupAnaRepoFromRepo(repo_id, repo_name, root_dir=self.root_dir)
 
         ch = repo.get_action(exists)
         if ch in 'Y':
@@ -581,7 +581,7 @@ class software(object):
 
                 dest_dir = repo.sync_ana(url, acclist=al, rejlist=rl)
 
-                dest_dir = dest_dir[4 + dest_dir.find('/srv'):6 +
+                dest_dir = dest_dir[4 + dest_dir.find(self.root_dir.rsplit('/')):6 +
                                     dest_dir.find(f'{repo_id}')]
                 # form .condarc channel entry. Note that conda adds
                 # the corresponding 'noarch' channel automatically.
@@ -700,7 +700,7 @@ class software(object):
         else:
             alt_url = None
         # Enable the public repo
-        repo_cuda = PowerupRepo(repo_id, repo_name)
+        repo_cuda = PowerupRepo(repo_id, repo_name, root_dir=self.root_dir)
         dot_repo_content = repo_cuda.get_yum_dotrepo_content(url=baseurl, gpgkey=gpgkey)
         repo_cuda.write_yum_dot_repo_file(dot_repo_content)
 
@@ -731,7 +731,7 @@ class software(object):
                                          'Repository source? ')
 
         if ch == 'P':
-            repo = PowerupRepo(repo_id, repo_name)
+            repo = PowerupRepo(repo_id, repo_name, root_dir=self.root_dir)
             repo_dir = repo.get_repo_dir()
             self._add_dependent_packages(repo_dir, pkg_list)
             repo.create_meta()
@@ -741,11 +741,11 @@ class software(object):
 
         elif ch == 'rpm':
             # prompts user for the location of the rpm file to be loaded into
-            # the PowerUp server.  The file is copied to /srv/{repo_id}. The
-            # contents of the rpm file are then extracted under /srv/repos/
+            # the PowerUp server.  The file is copied to {self.root_dir}{repo_id}. The
+            # contents of the rpm file are then extracted under {self.root_dir}repos/
             # Meta data is created. yum.repo content is generated and added to
             # the software-vars.yml file
-            repo = PowerupRepoFromRpm(repo_id, repo_name)
+            repo = PowerupRepoFromRpm(repo_id, repo_name, root_dir=self.root_dir)
 
             if f'{repo_id}_src_rpm_dir' in self.sw_vars:
                 src_path = self.sw_vars[f'{repo_id}_src_rpm_dir']
@@ -773,7 +773,7 @@ class software(object):
             else:
                 alt_url = None
 
-            repo = PowerupYumRepoFromRepo(repo_id, repo_name)
+            repo = PowerupYumRepoFromRepo(repo_id, repo_name, root_dir=self.root_dir)
             repo_dir = repo.get_repo_dir()
             url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
                                     filelist=['cuda-10-*-*'])
@@ -796,7 +796,7 @@ class software(object):
         else:
             print(f'{repo_name} repository not updated')
         if ch != 'S':
-            repo_dir += '/cuda-drivers-[4-9][0-9][0-9].[0-9]*-[0-9]*'
+            repo_dir = '/cuda-drivers-[4-9][0-9][0-9].[0-9]*-[0-9]*'
             # code.interact(banner='There', local=dict(globals(), **locals()))
             files = glob.glob(repo_dir, recursive=True)
             if files:
@@ -864,7 +864,7 @@ class software(object):
                                          'Repository source? ')
 
         if ch == 'E':
-            repo = PowerupRepo(repo_id, repo_name)
+            repo = PowerupRepo(repo_id, repo_name, root_dir=self.root_dir)
             repo_dir = repo.get_repo_dir()
             self._add_dependent_packages(repo_dir, dep_list)
             self._add_dependent_packages(repo_dir, more)
@@ -876,7 +876,7 @@ class software(object):
             self.sw_vars['yum_powerup_repo_files'][filename] = content
 
         elif ch == 'D':
-            repo = PowerupRepoFromDir(repo_id, repo_name)
+            repo = PowerupRepoFromDir(repo_id, repo_name, root_dir=self.root_dir)
 
             if f'{repo_id}_src_dir' in self.sw_vars:
                 src_dir = self.sw_vars[f'{repo_id}_src_dir']
@@ -898,7 +898,7 @@ class software(object):
             else:
                 alt_url = None
 
-            repo = PowerupYumRepoFromRepo(repo_id, repo_name)
+            repo = PowerupYumRepoFromRepo(repo_id, repo_name, root_dir=self.root_dir)
 
             url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
                                     filelist=['bzip2-*'])
@@ -912,7 +912,7 @@ class software(object):
                 repo.sync()
                 repo.create_meta()
 
-                # Setup local access to the new repo copy in /srv/repo/
+                # Setup local access to the new repo copy in {self.root_dir}repo/
                 if platform.machine() == self.arch:
                     content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
                     repo.write_yum_dot_repo_file(content)
@@ -969,7 +969,7 @@ class software(object):
             self.log.info('The Anaconda Repository exists already'
                           ' in the POWER-Up server\n')
 
-        repo = PowerupAnaRepoFromRepo(repo_id, repo_name)
+        repo = PowerupAnaRepoFromRepo(repo_id, repo_name, root_dir=self.root_dir)
 
         ch = repo.get_action(exists)
         if ch in 'Y':
@@ -987,7 +987,7 @@ class software(object):
                 rl = self.pkgs[f'anaconda_free_linux_{platform_basename}']['reject_list']
 
                 dest_dir = repo.sync_ana(url, acclist=al, rejlist=rl)
-                dest_dir = dest_dir[4 + dest_dir.find('/srv'):5 + dest_dir.find('free')]
+                dest_dir = dest_dir[4 + dest_dir.find(self.root_dir.rsplit('/')):5 + dest_dir.find('free')]
                 # form .condarc channel entry. Note that conda adds
                 # the corresponding 'noarch' channel automatically.
                 channel = f'  - http://{{{{ host_ip.stdout }}}}{dest_dir}'
@@ -1016,7 +1016,7 @@ class software(object):
             self.log.info('The Anaconda Repository exists already'
                           ' in the POWER-Up server\n')
 
-        repo = PowerupAnaRepoFromRepo(repo_id, repo_name)
+        repo = PowerupAnaRepoFromRepo(repo_id, repo_name, root_dir=self.root_dir)
 
         ch = repo.get_action(exists)
         if ch in 'Y':
@@ -1032,7 +1032,7 @@ class software(object):
 
                 dest_dir = repo.sync_ana(url, acclist=al, rejlist=rl)
                 # dest_dir = repo.sync_ana(url)
-                dest_dir = dest_dir[4 + dest_dir.find('/srv'):5 + dest_dir.find('main')]
+                dest_dir = dest_dir[4 + dest_dir.find(self.root_dir.rsplit('/')):5 + dest_dir.find('main')]
                 # form .condarc channel entry. Note that conda adds
                 # the corresponding 'noarch' channel automatically.
                 channel = f'  - http://{{{{ host_ip.stdout }}}}{dest_dir}'
@@ -1061,7 +1061,7 @@ class software(object):
             self.log.info('The Conda-forge Repository exists already'
                           ' in the POWER-Up server\n')
 
-        repo = PowerupAnaRepoFromRepo(repo_id, repo_name)
+        repo = PowerupAnaRepoFromRepo(repo_id, repo_name, root_dir=self.root_dir)
 
         ch = repo.get_action(exists)
         if ch in 'Y':
@@ -1075,7 +1075,7 @@ class software(object):
                 al = self.pkgs['conda_forge_noarch_pkgs']['accept_list']
 
                 dest_dir = repo.sync_ana(url, acclist=al)
-                dest_dir = dest_dir[4 + dest_dir.find('/srv'):7 + dest_dir.find('noarch')]
+                dest_dir = dest_dir[4 + dest_dir.find(self.root_dir.rsplit('/')):7 + dest_dir.find('noarch')]
                 # form .condarc channel entry. Note that conda adds
                 # the corresponding 'noarch' channel automatically.
                 channel = f'  - http://{{{{ host_ip.stdout }}}}{dest_dir}'
@@ -1097,7 +1097,7 @@ class software(object):
             self.log.info('The Python Package Repository exists already'
                           ' in the POWER-Up server')
 
-        repo = PowerupPypiRepoFromRepo(repo_id, repo_name)
+        repo = PowerupPypiRepoFromRepo(repo_id, repo_name, root_dir=self.root_dir)
         ch = repo.get_action(exists, exists_prompt_yn=True)
 
         pkg_list = ' '.join(self.pkgs['python_pkgs'])
@@ -1161,7 +1161,7 @@ class software(object):
                                      'Repository source? ')
 
         if ch == 'E':
-            repo = PowerupRepo(repo_id, repo_name)
+            repo = PowerupRepo(repo_id, repo_name, root_dir=self.root_dir)
             repo_dir = repo.get_repo_dir()
             self._add_dependent_packages(repo_dir, epel_list)
             self._add_dependent_packages(repo_dir, more)
@@ -1173,7 +1173,7 @@ class software(object):
             self.sw_vars['yum_powerup_repo_files'][filename] = content
 
         elif ch == 'D':
-            repo = PowerupRepoFromDir(repo_id, repo_name)
+            repo = PowerupRepoFromDir(repo_id, repo_name, root_dir=self.root_dir)
 
             if f'{repo_id}_src_dir' in self.sw_vars:
                 src_dir = self.sw_vars[f'{repo_id}_src_dir']
@@ -1195,7 +1195,7 @@ class software(object):
             else:
                 alt_url = None
 
-            repo = PowerupYumRepoFromRepo(repo_id, repo_name)
+            repo = PowerupYumRepoFromRepo(repo_id, repo_name, root_dir=self.root_dir)
 
             url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
                                     filelist=['openblas-*'])
@@ -1209,7 +1209,7 @@ class software(object):
                 repo.sync()
                 repo.create_meta()
 
-                # Setup local access to the new repo copy in /srv/repo/
+                # Setup local access to the new repo copy in {self.root_dir}repo/
                 if platform.machine() == self.arch:
                     content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
                     repo.write_yum_dot_repo_file(content)
@@ -1237,11 +1237,11 @@ class software(object):
                 if ch != 'N':
                     if ch == 'rpm':
                         # prompts user for the location of the rpm file to be loaded into
-                        # the PowerUp server.  The file is copied to /srv/{repo_id}. The
-                        # contents of the rpm file are then extracted under /srv/repos/
+                        # the PowerUp server.  The file is copied to {self.root_dir}{repo_id}. The
+                        # contents of the rpm file are then extracted under {self.root_dir}repos/
                         # Meta data is created. yum.repo content is generated and added to
                         # the software-vars.yml file
-                        repo = PowerupRepoFromRpm(repo_id, repo_name)
+                        repo = PowerupRepoFromRpm(repo_id, repo_name, root_dir=self.root_dir)
 
                         if f'{repo_id}_src_rpm_dir' in self.sw_vars:
                             src_path = self.sw_vars[f'{repo_id}_src_rpm_dir']
@@ -1272,7 +1272,7 @@ class software(object):
                                           'repository.')
 
                     elif ch == 'dir':
-                        repo = PowerupRepoFromDir(repo_id, repo_name)
+                        repo = PowerupRepoFromDir(repo_id, repo_name, root_dir=self.root_dir)
 
                         if f'{repo_id}_src_dir' in self.sw_vars:
                             src_dir = self.sw_vars[f'{repo_id}_src_dir']
@@ -1297,7 +1297,7 @@ class software(object):
                         else:
                             alt_url = None
 
-                        repo = PowerupYumRepoFromRepo(repo_id, repo_name)
+                        repo = PowerupYumRepoFromRepo(repo_id, repo_name, root_dir=self.root_dir)
 
                         new = True
                         if os.path.isfile(f'/etc/yum.repos.d/{repo_id}.repo') and \
@@ -1318,7 +1318,7 @@ class software(object):
                         else:
                             repo.create_meta(update=True)
 
-                        # Setup local access to the new repo copy in /srv/repo/
+                        # Setup local access to the new repo copy in {self.root_dir}repo/
                         content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
                         repo.write_yum_dot_repo_file(content)
                         # Prep setup of POWER-Up client access to the repo copy
