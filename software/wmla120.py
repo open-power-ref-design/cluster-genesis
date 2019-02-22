@@ -904,7 +904,8 @@ class software(object):
 
         elif ch == 'D':
 
-            repo = PowerupRepoFromDir(repo_id, repo_name, proc_family=self.proc_family, root_dir=self.root_dir)
+            repo = PowerupRepoFromDir(repo_id, repo_name, proc_family=self.proc_family,
+                                      root_dir=self.root_dir)
 
             if f'{repo_id}_src_dir' in self.sw_vars:
                 src_dir = self.sw_vars[f'{repo_id}_src_dir']
@@ -926,8 +927,7 @@ class software(object):
             else:
                 alt_url = None
 
-            repo = PowerupYumRepoFromRepo(repo_id, repo_name,
-                                          proc_family=self.proc_family)
+            repo = PowerupYumRepoFromRepo(repo_id, repo_name, proc_family=self.proc_family, root_dir=self.root_dir)
 
             url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
                                     filelist=['bzip2-*'])
