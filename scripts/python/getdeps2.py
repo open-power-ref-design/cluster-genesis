@@ -73,7 +73,6 @@ def main():
                     else:
                         print('\nPlese select a valid option')
 
-
     def format_pkg_name(pkg, pkg_type):
         if pkg_type == 'yum':
             pkg_items = pkg.split()
