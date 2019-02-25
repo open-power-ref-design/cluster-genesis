@@ -33,7 +33,7 @@ from getpass import getpass
 import pwd
 import grp
 import click
-import code
+#import code
 
 import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \

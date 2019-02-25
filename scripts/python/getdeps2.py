@@ -74,6 +74,9 @@ def main():
                     else:
                         print('\nPlese select a valid option')
 
+
+            code.interact(banner='file_check', local=dict(globals(), **locals()))
+
     def format_pkg_name(pkg, pkg_type):
         if pkg_type == 'yum':
             pkg_items = pkg.split()
@@ -96,9 +99,11 @@ def main():
         elif pkg_type == 'pip':
             pkg_items = pkg.split()
             pkg_repo = 'pip'
-            version = pkg_items[1].replace('(', '')
-            version = version.replace(')', '')
+            version = pkg_items[1].replace('(','')
+            version = version.replace(')','')
             pkg_fmt_name = pkg_items[0] + '=' + version
+
+            #code.interact(banner='pip', local=dict(globals(), **locals()))
 
         return pkg_fmt_name, pkg_repo
 
@@ -208,14 +213,16 @@ def main():
                     if pkg_repo == repo:
                         pkgs[file_key][repo]['post'].append(pkg_fmt_name)
 
+        #code.interact(banner='pre diff', local=dict(globals(), **locals()))
+
         diff_sets = {}
 
         # Post - pre pkg sets. (may need adjustment for different repo type)
         for _file in pkgs:
             diff_sets[_file] = {}
-            for repo in pkgs[_file]:
-                post_minus_pre = set(pkgs[_file][repo]['post'])  # -
-                # set(pkgs[_file][repo]['pre']))
+                #code.interact(banner='diff loop', local=dict(globals(), **locals()))
+                post_minus_pre = (set(pkgs[_file][repo]['post']) -
+                                  set(pkgs[_file][repo]['pre']))
                 diff_sets[_file][repo] = post_minus_pre
 
         # Merge by repository
