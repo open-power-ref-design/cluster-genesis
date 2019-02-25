@@ -33,7 +33,7 @@ from getpass import getpass
 import pwd
 import grp
 import click
-# import code
+#import code
 
 import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
@@ -754,7 +754,6 @@ class software(object):
                 # directories
                 src_path = '/home/**/cuda-repo-rhel7-10-1-local-*.rpm'
             rpm_path = repo.get_rpm_path(src_path)
-            # code.interact(banner='here', local=dict(globals(), **locals()))
             if rpm_path:
                 self.sw_vars[f'{repo_id}_src_rpm_dir'] = rpm_path
                 repo_dir = repo.extract_rpm(rpm_path)
@@ -797,7 +796,6 @@ class software(object):
             print(f'{repo_name} repository not updated')
         if ch != 'S':
             repo_dir = '/cuda-drivers-[4-9][0-9][0-9].[0-9]*-[0-9]*'
-            # code.interact(banner='There', local=dict(globals(), **locals()))
             files = glob.glob(repo_dir, recursive=True)
             if files:
                 self.sw_vars['cuda-driver'] = re.search(r'cuda-drivers-\d+\.\d+-\d+',
