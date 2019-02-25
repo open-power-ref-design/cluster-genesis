@@ -10,9 +10,9 @@
   delegate_to: localhost
   register: host_ip
 
-- name: Install NCCL1 from the PowerAI repository
+- name: Install openssh-client
   yum:
-    name: libnccl*
+    name: openssh-clients
     state: latest
   become: yes
 
@@ -25,6 +25,18 @@
          Spectrum Conductor Deep Learning Impact"
   shell: "{{ install_dir }}/bin/conda create --name dlipy3 --yes pip python=3.6"
   when: not conda_dlipy3_env.stat.exists
+  become: yes
+
+- name: Install tensorflow in dlipy3
+  shell: "{{ install_dir }}/bin/conda install --yes tensorflow powerai=1.6 -n dlipy3"
+  become: yes
+
+- name: Install caffe in dlipy3
+  shell: "{{ install_dir }}/bin/conda install --yes caffe powerai=1.6 -n dlipy3"
+  become: yes
+
+- name: Install pytorch in dlipy3
+  shell: "{{ install_dir }}/bin/conda install --yes pytorch powerai=1.6 -n dlipy3"
   become: yes
 
 - name: Activate dlipy3 environment and install dependencies
@@ -58,6 +70,18 @@
          Spectrum Conductor Deep Learning Impact"
   shell: "{{ install_dir }}/bin/conda create --name dlipy2 --yes pip python=2.7"
   when: not conda_dlipy2_env.stat.exists
+  become: yes
+
+- name: Install tensorflow in dlipy2
+  shell: "{{ install_dir }}/bin/conda install --yes tensorflow powerai=1.6 -n dlipy2"
+  become: yes
+
+- name: Install caffe in dlipy2
+  shell: "{{ install_dir }}/bin/conda install --yes caffe powerai=1.6 -n dlipy2"
+  become: yes
+
+- name: Install pytorch in dlipy2
+  shell: "{{ install_dir }}/bin/conda install --yes pytorch powerai=1.6 -n dlipy2"
   become: yes
 
 - name: Activate dlipy2 environment and install dependencies

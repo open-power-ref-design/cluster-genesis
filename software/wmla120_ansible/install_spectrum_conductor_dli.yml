@@ -37,9 +37,11 @@
       egocomputehost: EGOCOMPUTEHOST=N
   when: inventory_hostname in groups['master']
 
+# Per Anumpa Mukherjee via Kevin Doyle set to 'N' on compute hosts
+# To avoid field issue
 - name: Set Ansible fact for compute hosts
   set_fact:
-      egocomputehost: EGOCOMPUTEHOST=Y
+      egocomputehost: EGOCOMPUTEHOST=N
   when: inventory_hostname not in groups['master']
 
 - name: Install IBM Spectrum Conductor DLI

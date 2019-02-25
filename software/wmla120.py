@@ -33,7 +33,6 @@ from getpass import getpass
 import pwd
 import grp
 import click
-#import code
 
 import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
@@ -53,14 +52,20 @@ class software(object):
     initialization activities. The install method implements the actual
     installation.
     """
-    def __init__(self, eval_ver=False, non_int=False, arch='ppc64le'):
+    def __init__(self, eval_ver=False, non_int=False, arch='ppc64le', proc_family=''):
         self.log = logger.getlogger()
+        self.log_lvl = logger.get_log_level_print()
         self.my_name = sys.modules[__name__].__name__
         self.yum_powerup_repo_files = []
         self.eval_ver = eval_ver
         self.non_int = non_int
+        self.arch = arch
+        self.proc_family = proc_family
+        if self.arch == 'x86_64' and not proc_family:
+            self.proc_family = self.arch
+        self.eng_mode = None
         # self.eng_mode = 'custom-repo'
-        self.eng_mode = 'gather-dependencies'
+        # self.eng_mode = 'gather-dependencies'
         yaml.add_constructor(YAMLVault.yaml_tag, YAMLVault.from_yaml)
         self.arch = arch
         self.log.info(f"Using architecture: {self.arch}")
@@ -75,7 +80,6 @@ class software(object):
                       'Anaconda content': '-',
                       'Anaconda Free Repository': '-',
                       'Anaconda Main Repository': '-',
-                      'Conda-forge Repository': '-',
                       'Spectrum conductor content': '-',
                       'Spectrum conductor content entitlement': '-',
                       'Spectrum DLI content': '-',
@@ -85,7 +89,8 @@ class software(object):
         # Only yum repos should be listed under self.repo_id
         self.repo_id = {'EPEL Repository': f'epel-{self.arch}',
                         'Dependent Packages Repository': 'dependencies',
-                        'Python Package Repository': 'pypi'}
+                        'Python Package Repository': 'pypi',
+                        'CUDA Driver Repository': 'cuda'}
 
         try:
             self.pkgs = yaml.load(open(GEN_SOFTWARE_PATH +
@@ -177,9 +182,7 @@ class software(object):
         self.rhel_ver = '7'
         self.sw_vars['rhel_ver'] = self.rhel_ver
         self.sw_vars['arch'] = self.arch
-        self.root_dir = '/srv/'
-        self.repo_dir = self.root_dir + 'repos/{repo_id}/rhel' + self.rhel_ver + \
-            '/{repo_id}'
+        self.root_dir = '/srv'
 
         # When searching for files in other web servers, the fileglobs are converted to
         # regular expressions. An asterisk (*) after a bracket is converted to a
@@ -200,7 +203,6 @@ class software(object):
             else:
                 self.globs = file_lists['globs']
                 self.files = file_lists['files']
-
         # If empty, initialize software_vars content and repo info
         # from software server directory
         update = False
@@ -285,8 +287,8 @@ class software(object):
     def status_prep(self, which='all'):
 
         def yum_repo_status(item):
-            repodata = glob.glob(self.repo_dir.format(repo_id=self.repo_id[item]) +
-                                 '/**/repodata', recursive=True)
+            search_dir = f'{self.root_dir}/repos/{self.repo_id[item]}/**/repodata'
+            repodata = glob.glob(search_dir, recursive=True)
             sw_vars_data = (f'{self.repo_id[item]}-powerup.repo' in
                             self.sw_vars['yum_powerup_repo_files'])
             if repodata and sw_vars_data:
@@ -798,8 +800,8 @@ class software(object):
             repo_dir = '/cuda-drivers-[4-9][0-9][0-9].[0-9]*-[0-9]*'
             files = glob.glob(repo_dir, recursive=True)
             if files:
-                self.sw_vars['cuda-driver'] = re.search(r'cuda-drivers-\d+\.\d+-\d+',
-                                                        ' '.join(files)).group(0)
+                self.sw_vars['cuda-drivers'] = re.search(r'cuda-drivers-\d+\.\d+-\d+',
+                                                         ' '.join(files)).group(0)
             else:
                 self.log.error('No cuda toolkit file found in cuda repository')
 
@@ -811,28 +813,8 @@ class software(object):
         repo_id = 'dependencies'
         repo_name = 'Dependencies'
         baseurl = ''
+
         heading1(f'Set up {repo_name} repository')
-        # list to str
-        dep_list = ' '.join(self.pkgs['yum_pkgs'])
-
-        file_more = GEN_SOFTWARE_PATH + 'dependent-packages.list'
-        if os.path.isfile(file_more):
-            try:
-                with open(file_more, 'r') as f:
-                    more = f.read()
-            except:
-                self.log.error('Error reading {file_more}')
-                more = ''
-            else:
-                more.replace(',', ' ')
-                more.replace('\n', ' ')
-        else:
-            more = ''
-
-        if f'{repo_id}_alt_url' in self.sw_vars:
-            alt_url = self.sw_vars[f'{repo_id}_alt_url']
-        else:
-            alt_url = None
 
         exists = self.status_prep(which='Dependent Packages Repository')
         if exists:
@@ -846,6 +828,36 @@ class software(object):
 
         ch = 'S'
         if get_yesno(prompt=pr_str, yesno='Y/n'):
+            if self.arch == 'ppc64le' and not self.proc_family:
+                self.proc_family, item = get_selection('Power 8\nPower 9', 'p8\np9',
+                                                       'Processor family? ')
+
+            if self.proc_family == 'p9':
+                dep_list = ' '.join(self.pkgs['yum_pkgs_p9'])
+            elif self.proc_family == 'p8':
+                dep_list = ' '.join(self.pkgs['yum_pkgs_p8'])
+            elif self.arch == 'x86_64':
+                dep_list = ' '.join(self.pkgs['yum_pkgs_x86_64'])
+
+            file_more = GEN_SOFTWARE_PATH + 'dependent-packages.list'
+            if os.path.isfile(file_more):
+                try:
+                    with open(file_more, 'r') as f:
+                        more = f.read()
+                except:
+                    self.log.error('Error reading {file_more}')
+                    more = ''
+                else:
+                    more.replace(',', ' ')
+                    more.replace('\n', ' ')
+            else:
+                more = ''
+
+            if f'{repo_id}_alt_url' in self.sw_vars:
+                alt_url = self.sw_vars[f'{repo_id}_alt_url']
+            else:
+                alt_url = None
+
             if platform.machine() == self.arch:
                 ch, item = get_selection('Sync required dependent packages from '
                                          'Enabled YUM repos\n'
@@ -862,7 +874,8 @@ class software(object):
                                          'Repository source? ')
 
         if ch == 'E':
-            repo = PowerupRepo(repo_id, repo_name, root_dir=self.root_dir)
+            
+            repo = PowerupRepo(repo_id, repo_name, proc_family=self.proc_family, root_dir=self.root_dir)
             repo_dir = repo.get_repo_dir()
             self._add_dependent_packages(repo_dir, dep_list)
             self._add_dependent_packages(repo_dir, more)
@@ -874,7 +887,8 @@ class software(object):
             self.sw_vars['yum_powerup_repo_files'][filename] = content
 
         elif ch == 'D':
-            repo = PowerupRepoFromDir(repo_id, repo_name, root_dir=self.root_dir)
+
+            repo = PowerupRepoFromDir(repo_id, repo_name, proc_family=self.proc_family, root_dir=self.root_dir)
 
             if f'{repo_id}_src_dir' in self.sw_vars:
                 src_dir = self.sw_vars[f'{repo_id}_src_dir']
@@ -896,7 +910,8 @@ class software(object):
             else:
                 alt_url = None
 
-            repo = PowerupYumRepoFromRepo(repo_id, repo_name, root_dir=self.root_dir)
+            repo = PowerupYumRepoFromRepo(repo_id, repo_name,
+                                          proc_family=self.proc_family)
 
             url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
                                     filelist=['bzip2-*'])
@@ -1042,43 +1057,43 @@ class software(object):
                 rl = self.pkgs['anaconda_main_noarch']['reject_list']
                 repo.sync_ana(noarch_url, acclist=al, rejlist=rl)
 
-        # Setup Anaconda conda-forge Repo.  (not a YUM repo)
-        repo_id = 'anaconda'
-        repo_name = 'Conda-forge noarch Repository'
-        baseurl = 'https://conda.anaconda.org/conda-forge/noarch/'
-        heading1(f'Set up {repo_name}\n')
-
-        vars_key = get_name_dir(repo_name)  # format the name
-        if f'{vars_key}-alt-url' in self.sw_vars:
-            alt_url = self.sw_vars[f'{vars_key}-alt-url']
-        else:
-            alt_url = None
-
-        exists = self.status_prep(which='Conda-forge Repository')
-        if exists:
-            self.log.info('The Conda-forge Repository exists already'
-                          ' in the POWER-Up server\n')
-
-        repo = PowerupAnaRepoFromRepo(repo_id, repo_name, root_dir=self.root_dir)
-
-        ch = repo.get_action(exists)
-        if ch in 'Y':
-            url = repo.get_repo_url(baseurl, alt_url, contains=['noarch'],
-                                    excludes=['main'],
-                                    filelist=['configparser-3.5*'])
-            if url:
-                if not url == baseurl:
-                    self.sw_vars[f'{vars_key}-alt-url'] = url
-
-                al = self.pkgs['conda_forge_noarch_pkgs']['accept_list']
-
-                dest_dir = repo.sync_ana(url, acclist=al)
-                dest_dir = dest_dir[4 + dest_dir.find(self.root_dir.rsplit('/')):7 + dest_dir.find('noarch')]
-                # form .condarc channel entry. Note that conda adds
-                # the corresponding 'noarch' channel automatically.
-                channel = f'  - http://{{{{ host_ip.stdout }}}}{dest_dir}'
-                if channel not in self.sw_vars['ana_powerup_repo_channels']:
-                    self.sw_vars['ana_powerup_repo_channels'].insert(0, channel)
+#        # Setup Anaconda conda-forge Repo.  (not a YUM repo)
+#        repo_id = 'anaconda'
+#        repo_name = 'Conda-forge noarch Repository'
+#        baseurl = 'https://conda.anaconda.org/conda-forge/noarch/'
+#        heading1(f'Set up {repo_name}\n')
+#
+#        vars_key = get_name_dir(repo_name)  # format the name
+#        if f'{vars_key}-alt-url' in self.sw_vars:
+#            alt_url = self.sw_vars[f'{vars_key}-alt-url']
+#        else:
+#            alt_url = None
+#
+#        exists = self.status_prep(which='Conda-forge Repository')
+#        if exists:
+#            self.log.info('The Conda-forge Repository exists already'
+#                          ' in the POWER-Up server\n')
+#
+#        repo = PowerupAnaRepoFromRepo(repo_id, repo_name)
+#
+#        ch = repo.get_action(exists)
+#        if ch in 'Y':
+#            url = repo.get_repo_url(baseurl, alt_url, contains=['noarch'],
+#                                    excludes=['main'],
+#                                    filelist=['configparser-3.5*'])
+#            if url:
+#                if not url == baseurl:
+#                    self.sw_vars[f'{vars_key}-alt-url'] = url
+#
+#                al = self.pkgs['conda_forge_noarch_pkgs']['accept_list']
+#
+#                dest_dir = repo.sync_ana(url, acclist=al)
+#                dest_dir = dest_dir[4 + dest_dir.find('/srv'):7 + dest_dir.find('noarch')]
+#                # form .condarc channel entry. Note that conda adds
+#                # the corresponding 'noarch' channel automatically.
+#                channel = f'  - http://{{{{ host_ip.stdout }}}}{dest_dir}'
+#                if channel not in self.sw_vars['ana_powerup_repo_channels']:
+#                    self.sw_vars['ana_powerup_repo_channels'].insert(0, channel)
 
         # Setup Python package repository. (pypi)
         repo_id = 'pypi'
@@ -1560,8 +1575,8 @@ class software(object):
                     self.sw_vars['ansible_inventory'],
                     self.sw_vars['content_files']['anaconda'])
             elif (task['description'] ==
-                    "Check PowerAI Enterprise License acceptance"):
-                _interactive_paie_license_accept(
+                    "Check WMLA License acceptance and install to root"):
+                _interactive_wmla_license_accept(
                     self.sw_vars['ansible_inventory'])
             extra_args = ''
             if 'hosts' in task:
@@ -1578,17 +1593,19 @@ class software(object):
             extra_args += ' --vault-password-file ' + self.vault_pass_file
         elif 'become:' in open(f'{GEN_SOFTWARE_PATH}{tasks_path}').read():
             extra_args += ' --ask-become-pass'
+        verbose = ''
+        # verbose = '-vvv'
         if self.eval_ver:
             cmd = (f'{get_ansible_playbook_path()} -i '
                    f'{self.sw_vars["ansible_inventory"]} '
-                   f'{GEN_SOFTWARE_PATH}{self.my_name}_ansible/run.yml '
+                   f'{GEN_SOFTWARE_PATH}{self.my_name}_ansible/run.yml {verbose} '
                    f'--extra-vars "task_file={GEN_SOFTWARE_PATH}{tasks_path}" '
                    f'--extra-vars "@{GEN_SOFTWARE_PATH}software-vars-eval.yml" '
                    f'{extra_args}')
         else:
             cmd = (f'{get_ansible_playbook_path()} -i '
                    f'{self.sw_vars["ansible_inventory"]} '
-                   f'{GEN_SOFTWARE_PATH}{self.my_name}_ansible/run.yml '
+                   f'{GEN_SOFTWARE_PATH}{self.my_name}_ansible/run.yml {verbose} '
                    f'--extra-vars "task_file={GEN_SOFTWARE_PATH}{tasks_path}" '
                    f'--extra-vars "@{GEN_SOFTWARE_PATH}software-vars.yml" '
                    f'{extra_args}')
@@ -1603,7 +1620,14 @@ class software(object):
                 print('\nClient password required for privilege escalation')
             elif '--vault-password-file' in cmd:
                 self._unlock_vault(validate=False)
-            resp, err, rc = sub_proc_exec(cmd, shell=True)
+
+            if self.log_lvl == 'debug':
+                rc = sub_proc_display(cmd, shell=True)
+                resp = ''
+                err = ''
+            else:
+                resp, err, rc = sub_proc_exec(cmd, shell=True)
+
             log.debug(f"cmd: {cmd}\nresp: {resp}\nerr: {err}\nrc: {rc}")
             print("")  # line break
 
@@ -1666,21 +1690,20 @@ def _interactive_anaconda_license_accept(ansible_inventory, ana_path):
     return rc
 
 
-def _interactive_paie_license_accept(ansible_inventory):
+def _interactive_wmla_license_accept(ansible_inventory):
     log = logger.getlogger()
 
     cmd = (f'ansible-inventory --inventory {ansible_inventory} --list')
     resp, err, rc = sub_proc_exec(cmd, shell=True)
     inv = json.loads(resp)
 
-    accept_cmd = ('sudo /opt/DL/powerai-enterprise/license/bin/'
-                  'accept-powerai-enterprise-license.sh ')
-    check_cmd = ('/opt/DL/powerai-enterprise/license/bin/'
-                 'check-powerai-enterprise-license.sh ')
+    # accept_cmd = 'IBM_POWERAI_LICENSE_ACCEPT=yes;/opt/anaconda3/bin/accept-ibm-wmla-license.sh '
+    accept_cmd = 'sudo env IBM_POWERAI_LICENSE_ACCEPT=yes /opt/anaconda3/bin/accept-ibm-wmla-license.sh '
+    check_cmd = 'ls ~/.powerai/ibm-wmla-license/1.2.0/license/status.dat'
 
-    print(bold('Acceptance of the PowerAI Enterprise license is required on '
+    print(bold('Acceptance of the WMLA Enterprise license is required on '
                'all nodes in the cluster.'))
-    rlinput(f'Press Enter to run interactively on each hosts')
+    rlinput(f'Press Enter to silently install on each host')
 
     for hostname, hostvars in inv['_meta']['hostvars'].items():
         base_cmd = f'ssh -t {hostvars["ansible_user"]}@{hostname} '
@@ -1692,12 +1715,12 @@ def _interactive_paie_license_accept(ansible_inventory):
         cmd = base_cmd + check_cmd
         resp, err, rc = sub_proc_exec(cmd)
         if rc == 0:
-            print(bold('PowerAI Enterprise license already accepted on '
+            print(bold('WMLA Enterprise license already accepted on '
                        f'{hostname}'))
         else:
             run = True
             while run:
-                print(bold('\nRunning PowerAI Enterprise license script on '
+                print(bold('\nRunning WMLA Enterprise license script on '
                            f'{hostname}'))
                 cmd = base_cmd + accept_cmd
                 rc = sub_proc_display(cmd)

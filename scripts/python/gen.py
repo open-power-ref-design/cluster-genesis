@@ -720,35 +720,35 @@ class Gen(object):
                 try:
                     soft.prep()
                 except AttributeError as exc:
-                    print(exc.message)
+                    print(exc)
                     print('The software class needs to implement a '
                           'method named "setup"')
             if self.args.init_clients is True or self.args.all is True:
                 try:
                     soft.init_clients()
                 except AttributeError as exc:
-                    print(exc.message)
+                    print(exc)
                     print('The software class needs to implement a '
                           'method named "init_clients"')
             if self.args.install is True or self.args.all is True:
                 try:
                     soft.install()
                 except AttributeError as exc:
-                    print(exc.message)
+                    print(exc)
                     print('The software class needs to implement a '
                           'method named "install"')
             if self.args.README is True:
                 try:
                     soft.README()
                 except AttributeError as exc:
-                    print(exc.message)
+                    print(exc)
                     print('No "about" information available')
 
             if self.args.status is True:
                 try:
                     soft.status()
                 except AttributeError as exc:
-                    print(exc.message)
+                    print(exc)
                     print('No "status" information available')
 
         if cmd == argparse_gen.Cmd.UTIL.value:

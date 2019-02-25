@@ -33,12 +33,12 @@
     regexp: ".*PATH=.*{{ install_dir }}/bin.*"
     line: "export PATH=\"{{ install_dir }}/bin:$PATH\""
 
-- name: Add Anaconda install location to PATH in root's bashrc
-  lineinfile:
-    path: "/root/.bashrc"
-    regexp: ".*PATH=.*{{ install_dir }}/bin.*"
-    line: "export PATH=\"{{ install_dir }}/bin:$PATH\""
-  become: yes
+#- name: Add Anaconda install location to PATH in root's bashrc
+#  lineinfile:
+#    path: "/root/.bashrc"
+#    regexp: ".*PATH=.*{{ install_dir }}/bin.*"
+#    line: "export PATH=\"{{ install_dir }}/bin:$PATH\""
+#  become: yes
 
 - name: "Create {{ install_dir }}/.condarc"
   file:

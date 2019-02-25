@@ -15,6 +15,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# This script uses a remote proxy node to download RPM packages. It
+# facilitates downloading of Red Hat packages for an architecture
+# other than the machine you're running the script on. Repo access
+# must already be enabled on the remote machine. This script
+# does not set up repo access on the remote machine.
+#
+#  Usage: get-dependent-packages.sh [userid] [host]
+#
+# This scripts creates the ~/puptempdl directory on the remote node
+# and installs the yum-utils utilities. Packages are downloaded
+# to the ~/puptempdl directory and then scp copied to the ~/tempdl
+# directory on this node. The ~/puptempdl directory and it's
+# contents are removed from the remote node after copying.
+
 set -e
 cd "$(dirname "$0")"
 if [[ -z $1 || -z $2 ]]; then
@@ -24,7 +38,7 @@ fi
 
 pkglist=$(python -c \
 "import yaml;\
-pkgs = yaml.load(open('pkg-lists111.yml'));\
+pkgs = yaml.load(open('pkg-lists-wmla120.yml'));\
 print(' '.join(pkgs['yum_pkgs']))")
 
 read -sp 'Enter password for '$1': ' PASSWORD

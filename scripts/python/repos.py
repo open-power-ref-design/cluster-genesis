@@ -179,16 +179,23 @@ class PowerupRepo(object):
     """Base class for creating a yum repository for access by POWER-Up software
      clients.
     """
-    def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7', root_dir="/srv/"):
+    def __init__(self, repo_id, repo_name, arch='ppc64le', proc_family='family', rhel_ver='7', root_dir="/srv/"):
         self.repo_id = repo_id
         self.repo_name = repo_name
         self.arch = arch
+        self.proc_family = proc_family
         self.repo_type = 'yum'
         self.rhel_ver = str(rhel_ver)
         self.repo_base_dir = root_dir
-        self.repo_dir = f'{root_dir}/repos/{self.repo_id}/rhel{self.rhel_ver}/{self.repo_id}'
-        self.anarepo_dir = f'{root_dir}/repos/{self.repo_id}'
-        self.pypirepo_dir = f'{root_dir}/repos/{self.repo_id}'
+        if self.repo_id in ('dependencies', 'rhel-common', 'rhel-optional',
+                            'rhel-supplemental', 'rhel-extras'):
+            self.repo_dir = (f'{self.root_dir}/repos/{self.repo_id}/rhel{self.rhel_ver}/'
+                             f'{self.proc_family}/{self.repo_id}')
+        else:
+            self.repo_dir = (f'{self.root_dir}/repos/{self.repo_id}/rhel{self.rhel_ver}/'
+                             f'{self.repo_id}')
+        self.anarepo_dir = f'{self.root_dir}/repos/{self.repo_id}'
+        self.pypirepo_dir = f'{self.root_dir}/repos/{self.repo_id}'
         self.log = logger.getlogger()
 
     def get_repo_dir(self):
@@ -369,8 +376,9 @@ class PowerupRepoFromRpm(PowerupRepo):
     """Sets up a yum repository for access by POWER-Up software clients.
     The repo is created from an rpm file selected interactively by the user.
     """
-    def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7', root_dir="/srv/"):
-        super(PowerupRepoFromRpm, self).__init__(repo_id, repo_name, arch, rhel_ver, root_dir)
+    
+    def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7', proc_family='family', root_dir="/srv/"):
+        super(PowerupRepoFromRpm, self).__init__(repo_id, repo_name, arch, proc_family, rhel_ver, root_dir)
 
     def get_rpm_path(self, filepath='/home/**/*.rpm'):
         """Interactive search for the rpm path.
@@ -442,8 +450,9 @@ class PowerupYumRepoFromRepo(PowerupRepo):
     URL which could reside on another host or from a local directory. (ie
     a file based URL pointing to a mounted disk. eg file:///mnt/my-mounted-usb)
     """
-    def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7', root_dir="/srv/"):
-        super(PowerupYumRepoFromRepo, self).__init__(repo_id, repo_name, arch, rhel_ver, root_dir)
+    
+    def __init__(self, repo_id, repo_name, arch='ppc64le', proc_family='family', rhel_ver='7', root_dir="/srv/"):
+        super(PowerupYumRepoFromRepo, self).__init__(repo_id, repo_name, arch, proc_family, rhel_ver, root_dir)
 
     def sync(self):
         self.log.info(f'Syncing {self.repo_name}')
@@ -514,7 +523,7 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
             repodata = f.read()
 
         repodata = json.loads(repodata)
-        pkgs = {pkg:repodata['packages'][pkg] for pkg in
+        pkgs = {pkg: repodata['packages'][pkg] for pkg in
                 repodata['packages'] if pkg in file_list}
 
         # Build the new dict from the original. Replace the value of the 'packages'
@@ -754,8 +763,9 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
 
 
 class PowerupRepoFromDir(PowerupRepo):
-    def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7', root_dir="/srv/"):
-        super(PowerupRepoFromDir, self).__init__(repo_id, repo_name, arch, rhel_ver, root_dir)
+    
+    def __init__(self, repo_id, repo_name, arch='ppc64le', proc_family='family', rhel_ver='7', root_dir="/srv/"):
+        super(PowerupRepoFromDir, self).__init__(repo_id, repo_name, arch, proc_family, rhel_ver, root_dir)
 
     def copy_dirs(self, src_dir=None):
         if os.path.exists(self.repo_dir):

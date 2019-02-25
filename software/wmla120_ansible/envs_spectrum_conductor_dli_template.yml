@@ -3,6 +3,7 @@
 ## The following variables are required:
 CLUSTERADMIN:
 DLI_SHARED_FS:
+DLI_RESULT_FS:
 DLI_CONDA_HOME:
 ## DLI defaults to 5000 and 5001 for DLI_INSIGHTS_MONITOR_PORT
 ## and DLI_INSIGHTS_OPTIMIZER_PORT but these ports are registered

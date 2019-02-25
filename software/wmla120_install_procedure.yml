@@ -11,14 +11,8 @@
 - description: Disable Memory Auto-Onlining
   tasks: disable_udev_mem_auto_onlining.yml
 
-- description: Install CUDA toolkit
+- description: Install CUDA
   tasks: install_cuda.yml
-
-- description: Install CUDA Deep Neural Network library
-  tasks: install_cudnn.yml
-
-- description: Install NCCL Library
-  tasks: install_nccl.yml
 
 - description: Download Anaconda installer
   tasks: anaconda_prep.yml
@@ -29,14 +23,12 @@
 - description: Complete System Setup
   tasks: complete_system_setup.yml
 
-- description: Install PowerAI Enterprise License Script
-  tasks: powerai_license_install.yml
+- description: Install WMLA License Script
+  tasks: wmla_license_install.yml
 
-- description: Check PowerAI Enterprise License acceptance
-  tasks: powerai_license_check.yml
-
-- description: Install Deep Learning frameworks
-  tasks: install_frameworks.yml
+- description: Check WMLA License acceptance and install to root
+  tasks: wmla_license_check_and_install_to_root.yml
+ #tasks: wmla_license_check.yml
 
 - description: Configure a system for IBM Spectrum Conductor Deep Learning Impact
   tasks: configure_spectrum_conductor.yml
@@ -55,9 +47,9 @@
   tasks: entitle_spectrum_conductor_dli.yml
   hosts: master[0]
 
-- description: Provide permission for DLI cluster admin to write audit directory
-  tasks: permit_dli_admin_write_audit.yml
-  hosts: master[0]
+#- description: Provide permission for DLI cluster admin to write audit directory
+#  tasks: permit_dli_admin_write_audit.yml
+#  hosts: master[0]
 
 - description: Add all hosts to cluster
   tasks: add_hosts_to_cluster.yml

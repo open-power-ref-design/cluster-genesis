@@ -1,1 +1,2 @@
-!config*.yml
+envs_spectrum_conductor.yml
+envs_spectrum_conductor_dli.yml

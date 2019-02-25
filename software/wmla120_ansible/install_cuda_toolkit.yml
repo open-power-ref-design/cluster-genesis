@@ -1,0 +1,22 @@
+---
+- name: Set installation directory variable
+  set_fact:
+    install_dir: "/opt/anaconda3"
+
+#- name: Set pkg name
+#  set_fact:
+#    #file: "{{ content_files['cuda'].split('/', 2)[-1] }}"
+#    pkg: "{{ cuda-toolkit-10-1 }}"
+
+- name: Install cuda toolkit package
+  shell: "{{ install_dir }}/bin/conda install --yes cuda-toolkit-10-1"
+  become: yes
+
+#- name: Install cuda toolkit package
+#  yum:
+#    name: "{{ pkg }}"
+#    state: latest
+#  become: yes
+#  notify: Reboot
+
+#- meta: flush_handlers

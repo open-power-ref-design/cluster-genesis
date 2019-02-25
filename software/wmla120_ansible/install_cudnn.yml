@@ -1,19 +1,24 @@
 ---
-- name: Get filename from software-vars.yml
+- name: Set pakage name
   set_fact:
-    file: "{{ content_files['cuda-dnn'].split('/', 2)[-1] }}"
+  pkg: "{{ cudnn }}"
+#    file: "{{ content_files['cuda-dnn'].split('/', 2)[-1] }}"
 
-- name: Get route to client
-  command: "{{ hostvars['localhost']['python_executable_local'] }} \
-  {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
-  {{ inventory_hostname }}"
-  delegate_to: localhost
-  register: host_ip
-
-- name: Install the cuDNN v7.1.2 packages
-  shell: "curl -G \
-  http://{{ host_ip.stdout }}/{{ file }} \
-  | tar -C /usr/local --no-same-owner -xzv"
-  args:
-    warn: no
+- name: Install cudnn package
+  shell: "{{ install_dir }}/bin/conda install --yes {{ pkg }}"
   become: yes
+
+# - name: Get route to client
+#   command: "{{ hostvars['localhost']['python_executable_local'] }} \
+#   {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+#   {{ inventory_hostname }}"
+#   delegate_to: localhost
+#   register: host_ip
+#
+# - name: Install the cuDNN v7.1.2 packages
+#   shell: "curl -G \
+#   http://{{ host_ip.stdout }}/{{ file }} \
+#   | tar -C /usr/local --no-same-owner -xzv"
+#   args:
+#     warn: no
+#   become: yes
