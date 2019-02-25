@@ -1,6 +1,8 @@
 pup-venv
 inventory*.yml
+inventory*.ymlbak
 config*.yml
+config*.ymlbak
 *.retry
 *.pyc
 *.swo
