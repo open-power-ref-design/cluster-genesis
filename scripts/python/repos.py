@@ -631,6 +631,8 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
             else:
                 self.log.info(f'{self.repo_name} sync finished successfully')
 
+        self._update_repodata(dest_dir)
+
         # Filter content of index.html
         if '/pkgs' in dest_dir:
             filelist = os.listdir(dest_dir)

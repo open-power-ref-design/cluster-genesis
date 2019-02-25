@@ -55,7 +55,6 @@ anaconda_free_linux_ppc64le:
     - markdown-2.6.8-py27_0.tar.bz2
     - markdown-2.6.8-py36_0.tar.bz2
     - markupsafe-1.0-py27_1.tar.bz2
-    - markupsafe-1.0-py27_1.tar.bz2
     - markupsafe-1.0-py36_1.tar.bz2
     - mock-2.0.0-py27_0.tar.bz2
     - mock-2.0.0-py36_0.tar.bz2

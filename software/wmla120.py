@@ -60,7 +60,7 @@ class software(object):
         self.eval_ver = eval_ver
         self.non_int = non_int
         # self.eng_mode = 'custom-repo'
-        # self.eng_mode = 'gather-dependencies'
+        self.eng_mode = 'gather-dependencies'
         yaml.add_constructor(YAMLVault.yaml_tag, YAMLVault.from_yaml)
         self.arch = arch
         self.log.info(f"Using architecture: {self.arch}")

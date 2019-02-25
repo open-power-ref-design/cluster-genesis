@@ -40,6 +40,8 @@ def dependency_folder_collector():
 										   #client
 def pre_post_file_collect(task):
 
+   access = ' --become --ask-become-pas'
+
    def file_collecter(file_name,process):
 
       #current_user    = input("Enter current user: ")
@@ -68,9 +70,9 @@ def pre_post_file_collect(task):
          ansible_cmd = f"{ansible_prefix}'{process}{yum_file_format}{file_name}'"
       elif (function == 'conda'):
           ansible_cmd = (f"{ansible_prefix}'{process}{conda_file_format}{file_name}'"
-                         " --become --ask-become-pas")
+                         f"{access}")
       else:
-         ansible_cmd = f"{ansible_prefix}'{process} > {file_name}' --become --ask-become-pas"
+         ansible_cmd = f"{ansible_prefix}'{process} > {file_name}'{access}"
 
       print (f"\n*ENGINEERING MODE* INFO - Checking for {file_name} Data on Client Node\n")
       cmd = f"ssh {remote_access} ls | grep {file_name}"
@@ -124,25 +126,43 @@ def pre_post_file_collect(task):
 
                                         #Clean cache
 
-   def clean_cache():
+   def conda_clean_cache():
       conda_cache = "/opt/anaconda3/conda-bld/"
       conda_cache_dir = ['src_cache','git_cache','hg_cache','svn_cache']
       ansible_prefix = f'ansible all -i {host_path} -m shell -a '
       print("\n*ENGINEERING MODE* INFO - Checking for conda cache")
       try:
          for cache_dir in conda_cache_dir:
-            sub_proc_display(f"{ansible_prefix} 'ls {conda_cache}{cache_dir}' ")
-         sub_proc_display(f"{ansible_prefix} 'conda clean --all' ")
+            sub_proc_display(f"{ansible_prefix} 'ls {conda_cache}{cache_dir}'",
+                             shell=True)
+         sub_proc_display(f"{ansible_prefix} 'conda clean --all'{access}", shell=True)
       except FolderNotFoundError as exc:
             print ("\nINFO Cache directories do not exist\n")
 
+   def yum_clean_cache():
+      yum_cache_dir = '/var/cache/yum'
+      print("\n*ENGINEERING MODE* INFO - Checking for yum cache")
+      try:
+         sub_proc_display(f"{ansible_prefix} 'ls {yum_cache_dir}'",
+                          shell=True)
+         yum_clean = sub_proc_display(f"ansible all -i {host_path} -m shell -a '"
+                                   f"yum clean'{access}", shell=True)
+      except FolderNotFoundError as exc:
+         print ("\nINFO Cache directories do not exist\n")
+
+
                                         #Start
+
+
    host_path = get_playbooks_path() +'/software_hosts'
    tasks_list = [
                  'yum_update_cache.yml'
                  ]
 
    if (task in tasks_list):
+
+      yum_clean_cache()
+
       file_collecter(file_name="client_yum_pre_install.txt",
                      process="yum list installed")
 
@@ -153,7 +173,7 @@ def pre_post_file_collect(task):
 
                                         # Clean Cache
 
-      clean_cache()
+      conda_clean_cache()
 
 										#dlipy3_env
       # Create dlipy3 test environment
@@ -162,7 +182,7 @@ def pre_post_file_collect(task):
       sub_proc_display(f"ansible all -i {host_path} -m shell -a "
                        "'/opt/anaconda3/bin/conda "
                        "create --name dlipy3_test --yes pip python=3.6'"
-                       " --become --ask-become-pas",
+                       f"{access}",
                        shell=True)
 
       # Activate dlipy3_test and gather pre pip_list
@@ -181,7 +201,7 @@ def pre_post_file_collect(task):
       sub_proc_display(f"ansible all -i {host_path} -m shell -a "
                        "'/opt/anaconda3/bin/conda "
                        "create --name dlipy2_test --yes pip python=2.7'"
-                       " --become --ask-become-pas",
+                       f"{access}",
                        shell=True)
 
       # Activate dlipy2_test env and gather pre pip_list

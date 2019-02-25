@@ -39,156 +39,221 @@ def main():
                      'dlinsights_pip_pre_install.txt',
                     ]
 
-    conda_pre_files= [
+    pip_post_files = [
+                     'client_pip_post_install.txt',
+                     'dlipy3_pip_post_install.txt',
+                     'dlipy2_pip_post_install.txt',
+                     'dlinsights_pip_post_install.txt',
+                    ]
+
+    conda_pre_files = [
                      'dlipy3_conda_pre_install.txt',
                      'dlipy2_conda_pre_install.txt',
                      'dlinsights_conda_pre_install.txt',
                        ]
 
-    def file_staging(list_file):
+    conda_post_files = [
+                     'dlipy3_conda_post_install.txt',
+                     'dlipy2_conda_post_install.txt',
+                     'dlinsights_conda_post_install.txt',
+                       ]
 
-        env      = list_file.split('_',4)[0]
-        function = list_file.split('_',4)[1]
-        stage    = list_file.split('_',4)[0] +'_' + list_file.split('_',4)[1]
-        return ([stage , function, env])
+    yum_pre_files = ['client_yum_pre_install.txt']
+
+    yum_post_files = ['client_yum_post_install.txt']
+
+    def file_check(pre_files):
+        for f in pre_files:
+            pre_file_path = os.path.join(dep_path,f)
+            my_file = os.path.isfile(pre_file_path)
+            if my_file:
+                pass
+            else:
+                menu = True
+                while menu == True:
+                    opt = input(f'INFO - Would you like to recover "{f}" ?\n 1 - Yes \n 2 - No \n')
+                    if opt == '1':
+                        print (f'\nINFO - Located new pre path for "{f}"\n')
+                        menu = False
+                    elif opt == '2':
+                        menu = False
+                        sys.exit()
+                    else:
+                        print('\nPlese select a valid option')
 
 
-#    for pre in pre_list_file:
-#        file_staging(pre)
-#
-#        function = file_staging(pre)[1]
-#        stage    = file_staging(pre)[0]
-#        suffix   = 'install.txt'
-#        pre      = f'{stage}_pre_{suffix}'
-#        post     = f'{stage}_post_{suffix}'
-#
-#        print (f'\nINFO - Current Stage   : {stage}\n'
-#               f'       Current Function: {function}\n')
+            code.interact(banner='file_check', local=dict(globals(), **locals()))   
+	
+    def format_pkg_name(pkg, pkg_type):
+        if pkg_type == 'yum':
+            pkg_items = pkg.split()
+            pkg_repo = pkg.split()[2]
+            pkg_fmt_name = (pkg_items[0].rsplit('.', 1)[0] + '-' +
+                            pkg_items[1] + '.' + pkg_items[0].rsplit('.', 1)[1])
 
-    def yum_function():
-        yum_pre_files = ['client_yum_pre_install.txt']
+        elif pkg_type == 'conda':
+            pkg_items = pkg.split() + ['pip']
+            pkg_repo = pkg_items[3].rsplit('/')[-1]
+            if pkg_repo == 'pip':
+                pkg_fmt_name = pkg_items[0] + '=' + pkg_items[1]
+            else:
+                pkg_fmt_name = (pkg_items[0] + '-' +
+                                pkg_items[1] + '-' + pkg_items[2] + '.tar.bz2')
+            #code.interact(banner='format conda', local=dict(globals(), **locals()))
 
-        yum_post_files = ['client_yum_post_install.txt']
+        elif pkg_type == 'pip':
+            pkg_items = pkg.split()
+            pkg_repo = 'pip'
+            version = pkg_items[1].replace('(','')
+            version = version.replace(')','') 
+            pkg_fmt_name = pkg_items[0] + '=' + version
+     
+            #code.interact(banner='pip', local=dict(globals(), **locals()))
+
+        return pkg_fmt_name, pkg_repo
+
+    def write_merged_files(merged_sets, pkg_type):
+        if pkg_type == 'yum':
+            for repo in merged_sets:
+                file_name = repo.replace('/', '')
+                file_name = file_name.replace('@', '')
+                file_name = f'{pkg_type}-{file_name}.yml'
+                file_path = os.path.join(dep_path, file_name)
+                with open(file_path, 'w') as f:
+                    d = {file_name: sorted(merged_sets[repo])}
+                    yaml.dump(d, f, indent=4, default_flow_style=False)
+
+        elif pkg_type == 'conda':
+            for repo in merged_sets:
+                file_name = f'{pkg_type}-{repo}.yml'
+                file_path = os.path.join(dep_path, file_name)
+                with open(file_path, 'w') as f:
+                    d = {file_name: sorted(list(merged_sets[repo]))}
+                    yaml.dump(d, f, indent=4, default_flow_style=False)
+
+        elif pkg_type == 'pip':
+            for repo in merged_sets:
+                file_name = f'{pkg_type}.yml'
+                file_path = os.path.join(dep_path, file_name)
+                with open(file_path, 'w') as f:
+                    d = {file_name: sorted(merged_sets[repo])}
+                    yaml.dump(d, f, indent=4, default_flow_style=False)
+
+
+    def get_repo_list(pkgs, pkg_type):
+        repo_list = []
+        if pkg_type == 'yum':
+            for pkg in pkgs:
+                pkg_items = pkg.split()
+                repo = pkg_items[2]
+                if repo not in repo_list:
+                    repo_list.append(repo)
+
+        if pkg_type == 'conda':
+            for pkg in pkgs:
+                #code.interact(banner='get repo list', local=dict(globals(), **locals()))
+                pkg_items = pkg.split()  + ['pip']
+                repo = pkg_items[3].rsplit('/')[-1]
+                if repo not in repo_list:
+                    repo_list.append(repo)
+
+        if pkg_type == 'pip':
+            for pkg in pkgs:
+                pkg_items = pkg.split()
+                repo = 'pip'
+                if repo not in repo_list:
+                    repo_list.append(repo)
+
+        return repo_list
+
+    def merge_function(pre_files, post_files, pkg_type):
 
         # generate pre paths
-        yum_pre_paths = []
-        for file in yum_pre_files:
-            yum_pre_paths.append(os.path.join(dep_path, file))
+        pre_paths = []
+        for file in pre_files:
+            pre_paths.append(os.path.join(dep_path, file))
 
         # Generate post paths
-        yum_post_paths = []
-        for file in yum_post_files:
-            yum_post_paths.append(os.path.join(dep_path, file))
+        post_paths = []
+        for file in post_files:
+            post_paths.append(os.path.join(dep_path, file))
 
         # Loop through the files
         pkgs = {}  # # {file:{repo:{pre:[], post: []}
-        for i, pre_file in enumerate(yum_pre_paths):
+        for i, pre_file in enumerate(pre_paths):
             file_name = os.path.basename(pre_file)
             file_key = file_name.split('_')[0] + '_' + file_name.split('_')[1]
             pkgs[file_key] = {}
-            post_file = yum_post_paths[i]
+            post_file = post_paths[i]
             try:
-                with open(pre_file, 'r') as f:
-                    pre_rpm_pkgs = f.read().splitlines()
+               with open(pre_file, 'r') as f:
+                    pre_pkgs = f.read().splitlines()
             except FileNotFoundError as exc:
                 print(f'File not found: {pre_file}. Err: {exc}')
 
             try:
                 with open(post_file, 'r') as f:
-                    post_rpm_pkgs = f.read().splitlines()
+                    post_pkgs = f.read().splitlines()
             except FileNotFoundError as exc:
                 print(f'File not found: {post_file}. Err: {exc}')
 
             # Get the repo list
-            repo_list = []
-            for pkg in post_rpm_pkgs:
-                pkg_items = pkg.split()
-                rpm_repo = pkg_items[2]
-                if rpm_repo not in repo_list:
-                    repo_list.append(rpm_repo)
-            #code.interact(banner='one', local=dict(globals(), **locals()))
+            repo_list = get_repo_list(post_pkgs, pkg_type)
+            #code.interact(banner='got repo list', local=dict(globals(), **locals()))
             for repo in repo_list:
-                #repo = repo.replace('/', '')
-                #repo = repo.replace('@','')
                 pkgs[file_key][repo] = {}
                 pkgs[file_key][repo]['pre'] = []
                 pkgs[file_key][repo]['post'] = []
-                for pkg in pre_rpm_pkgs:
+                #code.interact(banner='two', local=dict(globals(), **locals()))
+                for pkg in pre_pkgs:
                     #code.interact(banner='two', local=dict(globals(), **locals()))
-                    # Format the name
-                    pkg_items = pkg.split()
-                    pkg_repo = pkg.split()[2]
-                    pkg_fmt_name = (pkg_items[0].rsplit('.', 1)[0] + '-' +
-                                    pkg_items[1] + '.' + pkg_items[0].rsplit('.', 1)[1])
+                    pkg_fmt_name, pkg_repo = format_pkg_name(pkg, pkg_type)
                     if pkg_repo == repo:
                         pkgs[file_key][repo]['pre'].append(pkg_fmt_name)
 
                 #code.interact(banner='two', local=dict(globals(), **locals()))
-                for pkg in post_rpm_pkgs:
+                for pkg in post_pkgs:
                     # Format the name
-                    pkg_items = pkg.split()
-                    pkg_repo = pkg.split()[2]
-                    pkg_fmt_name = (pkg_items[0].rsplit('.', 1)[0] + '-' +
-                                    pkg_items[1] + '.' + pkg_items[0].rsplit('.', 1)[1])
+                    pkg_fmt_name, pkg_repo = format_pkg_name(pkg, pkg_type)
                     if pkg_repo == repo:
                         pkgs[file_key][repo]['post'].append(pkg_fmt_name)
 
-        #code.interact(banner='merge', local=dict(globals(), **locals()))
+        code.interact(banner='pre diff', local=dict(globals(), **locals()))
+
+        diff_sets = {}
+
+        # Post - pre pkg sets. (may need adjustment for different repo type)
+        for _file in pkgs:
+            diff_sets[_file] = {}
+            for repo in pkgs[_file]:
+                code.interact(banner='diff loop', local=dict(globals(), **locals()))
+                post_minus_pre = (set(pkgs[_file][repo]['post']) -
+                                  set(pkgs[_file][repo]['pre']))
+                diff_sets[_file][repo] = post_minus_pre
+
+        #code.interact(banner='post diff', local=dict(globals(), **locals()))
+
+        # Merge by repository
         merged_sets = {}
-        for repo in repo_list:
-            merged_sets[repo] = set()
-            for _file in pkgs:
-                if repo in pkgs[_file]:
-                    #code.interact(banner='merge loop', local=dict(globals(), **locals()))
-                    post_minus_pre = set(pkgs[_file][repo]['post']) - set(pkgs[_file][repo]['pre'])
-                    merged_sets[repo] = merged_sets[repo] | post_minus_pre
+
+        for _file in diff_sets:
+            for repo in diff_sets[_file]:
+                #code.interact(banner='merge loop', local=dict(globals(), **locals()))
+                if repo not in merged_sets:
+                    merged_sets[repo] = set()
+                merged_sets[repo] = merged_sets[repo] | diff_sets[_file][repo]
+
         #code.interact(banner='post merge', local=dict(globals(), **locals()))
 
-#        final_sets_by_file = {}
-#        for _file in pkgs:
-#            final_sets_by_file[_file] = {}
-#            for repo in pkgs[_file]:
-#                final_sets_by_file[_file][repo] = (set(pkgs[_file][repo]['post']) -
-#                                                   set(pkgs[_file][repo]['pre']))
+        write_merged_files(merged_sets, pkg_type)
 
-    yum_function()
+    file_check(pip_pre_files)
+    file_check(pip_post_files)
+    #merge_function(yum_pre_files, yum_post_files, 'yum')
+    #merge_function(conda_pre_files, conda_post_files, 'conda')
+    merge_function(pip_pre_files, pip_post_files, 'pip')
 
-#            # Generate full prelist
-#            for pkg in pre_rpm_pkgs:
-#                # Format into full file names
-#                pkg_items = pkg.split()
-#                pkg_fmt_name = (pkg_items[0].rsplit('.', 1)[0] + '-' +
-#                                pkg_items[1] + '-' + pkg_items[0].rsplit('.', 1)[1])
-#                pre_pkg_list.append([pkg_fmt_name, pkg_items[2]])
-#
-#
-#            post_pkg_list = []
-#            repo_list = []
-#            for pkg in post_rpm_pkgs:
-#                pkg_items = pkg.split()
-#                rpm_repo = pkg_items[2]
-#                pkg_fmt_name = (pkg_items[0].rsplit('.', 1)[0] + '-' +
-#                                pkg_items[1] + '.' + pkg_items[0].rsplit('.', 1)[1])
-#                post_pkg_list.append([pkg_fmt_name, rpm_repo])
-#
-#            for repo in repo_list:
-#                repo_pkgs = []
-#                for pkg in post_pkg_list:
-#                    if pkg[1] == repo and pkg not in pre_pkg_list:
-#                        repo_pkgs.append(pkg[0])
-#                for pkg in pre_pkg_list:
-#                    if pkg[1] == repo and pkg not in post_pkg_list:
-#                        repo_pkgs.append(pkg[0])
-#
-#                try:
-#                    fname = repo.replace('/', '')
-#                    fname = fname.replace('@','')
-#                    fname = f'{stage}_{fname}_final.yml'
-#                    with open(os.path.join(dep_path, fname), 'w') as f:
-#                        f.write('\n'.join(repo_pkgs) + '\n')
-#                except FileNotFoundError as exc:
-#                    print(f'File not found: {fname}. Err: {exc}')
-#
+
 ##pip
 #
 #        elif function == 'pip':
@@ -353,111 +418,6 @@ def main():
 #                            pass
 #    package_merge()
 
-    def resolve_duplicates():
-        fclist = ['conda','pip','conda_pip']
-        for i in fclist:
-            fcname = f'{i}_consolidated.yml'
-            lines_seen = set()
-            outfile = open(os.path.join(dep_path,f'{i}.yml'), "w")
-            for line in open(os.path.join(dep_path,fcname),"r"):
-                if line not in lines_seen:
-                    outfile.write(f'  - {line}')
-                    lines_seen.add(line)
-        #code.interact(banner='here', local=dict(globals(), **locals()))
-    resolve_duplicates()
-
-    def pkg_list_format():
-        print("\nINFO - Searching for pkg list template file\n")
-
-        pkg_list_path = gen.GEN_SOFTWARE_PATH
-        pkg_list_name = 'pkg-lists-tmplate.yml'
-        tmp_pkg_list_path = os.path.join(pkg_list_path,f'{pkg_list_name}')
-        try:
-            print(f"\nINFO - Loading {pkg_list_name} data \n")
-            load_tmp = open(f'{tmp_pkg_list_path}','r+')
-
-        except FileNotFoundError as exc:
-            print(f'File not found: {pkg_list_name}. Err: {exc}')
-            os.mkdir(tmp_pkg_list_path)
-
-        with load_tmp as fil:
-
-            pop = yaml.load(fil)
-
-            pop['conda_forge_noarch_pkgs']['accept_list'] = []
-            pop['anaconda_free_pkgs']['accept_list'] = []
-            pop['anaconda_main_pkgs']['accept_list'] = []
-            pop['python3_specific_pkgs'] = []
-            pop['python_pkgs'] = []
-            pop['epel_pkgs'] = []
-            pop['yum_pkgs'] = []
-            pop['cuda_pkgs'] = []
-
-            yum_files = [
-                         'client_yum_epel-ppc64le-powerup_final.yml',
-                         'client_yum_cuda-powerup_final.yml',
-                         'client_yum_anaconda7.5_final.yml',
-                         'client_yum_dependencies-powerup_final.yml',
-                         'client_yum_installed_final.yml',
-                         ]
-
-            for yum_file in yum_files:
-                try:
-                    yum_path = dep_path + '/' + yum_file
-                    print(f"\nINFO - Loading {yum_file} data \n")
-                    load_yum_yml = open(f'{yum_path}','r')
-                    with load_yum_yml as f:
-                        grab_yum = yaml.load(f)
-
-                        base = yum_file.split('_',3)[2]
-
-                        code.interact(banner='determining files', local=dict(globals(), **locals()))
-
-                        if base == 'epel-ppc64le-powerup':
-                            pop['epel_pkgs'].extend(grab_yum)
-
-                        elif base == 'cuda-powerup':
-                            pop['cuda_pkgs'].extend(grab_yum)
-
-                        else:
-                            pop['yum_pkgs'].extend(grab_yum)
-
-                except FileNotFoundError as exc:
-                    print(f'File not found: {yum_file}. Err: {exc}')
-
-                print(pop)
-
-            conda_file = 'conda.yml'
-            conda_file_path = dep_path + '/conda.yml'
-            try:
-                print(f"\nINFO - Loading {conda_file} data \n")
-                load_conda_yml = open(f'{conda_file_path}')
-                with load_conda_yml as f:
-                    grab_conda = yaml.load(f)
-
-                    code.interact(banner='conda file', local=dict(globals(), **locals()))
-
-            except FileNotFoundError as exc:
-                    print(f'File not found: {conda_file}. Err: {exc}')
-
-
-            pip_file = 'pip.yml'
-            pip_file_path = dep_path + '/pip.yml'
-            try:
-                print(f"\nINFO - Loading {pip_file} data \n")
-                load_pip_yml = open(f'{pip_file_path}')
-                with load_pip_yml as f:
-                    grab_pip = yaml.load(f)
-
-                    pop['python_pkgs'].extend(grab_yum)
-
-                    code.interact(banner='pip files', local=dict(globals(), **locals()))
-
-
-            except FileNotFoundError as exc:
-                    print(f'File not found: {pip_file}. Err: {exc}')
-
-    #pkg_list_format()
 
 if __name__ == '__main__':
     """Simple python template

@@ -2,7 +2,7 @@
 #// IBM Spectrum Conductor Deep Learning Impact Config //#
 ## The following variables are required:
 CLUSTERADMIN: rhel75
-DLI_SHARED_FS: /nfs/pwrai/rh/testai
+DLI_SHARED_FS: /nfs/pwrai/tj/testai
 DLI_CONDA_HOME: /opt/anaconda3
 ## DLI defaults to 5000 and 5001 for DLI_INSIGHTS_MONITOR_PORT
 ## and DLI_INSIGHTS_OPTIMIZER_PORT but these ports are registered
