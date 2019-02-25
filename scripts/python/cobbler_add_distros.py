@@ -122,20 +122,17 @@ def cobbler_add_distro(path, name):
         for item in name_list:
             if item == 'amd64':
                 arch = 'x86_64'
-                kernel = (
-                    "%s/install/netboot/ubuntu-installer/amd64/linux" %
-                    path)
-                initrd = (
-                    "%s/install/netboot/ubuntu-installer/amd64/initrd.gz" %
-                    path)
+                subdir = "install/netboot/ubuntu-installer/amd64"
+                kernel = f"{path}/{subdir}/linux"
+                initrd = f"{path}/{subdir}/initrd.gz"
+                if not os.path.isfile(kernel):
+                    kernel = f"{path}/casper/vmlinuz"
+                    initrd = f"{path}/casper/initrd"
             elif item == 'ppc64el':
                 arch = 'ppc64le'
-                kernel = (
-                    "%s/install/netboot/ubuntu-installer/ppc64el/vmlinux"
-                    % path)
-                initrd = (
-                    "%s/install/netboot/ubuntu-installer/ppc64el/initrd.gz"
-                    % path)
+                subdir = "install/netboot/ubuntu-installer/ppc64el"
+                kernel = f"{path}/{subdir}/vmlinux"
+                initrd = f"{path}/{subdir}/initrd.gz"
             elif item.startswith('14.04'):
                 os_version = 'trusty'
             elif item.startswith('16.04'):
