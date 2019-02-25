@@ -69,9 +69,10 @@ class software(object):
         # self.eng_mode = 'gather-dependencies'
         yaml.add_constructor(YAMLVault.yaml_tag, YAMLVault.from_yaml)
         self.arch = arch
+        self.ana_platform_basename = '64' if self.arch == "x86_64" else self.arch
         self.log.info(f"Using architecture: {self.arch}")
         # add filename to distinguish architecture
-        base_filename = f'{self.my_name}' if self.arch == 'ppc64le' else f'{self.my_name}_{self.arch}'
+        self.base_filename = f'{self.my_name}' if self.arch == 'ppc64le' else f'{self.my_name}_{self.arch}'
         self.state = {'EPEL Repository': '-',
                       'CUDA Driver Repository': '-',
                       'IBM AI Repository': '-',
@@ -93,13 +94,7 @@ class software(object):
                         'Python Package Repository': 'pypi',
                         'CUDA Driver Repository': 'cuda'}
 
-        try:
-            self.pkgs = yaml.load(open(GEN_SOFTWARE_PATH +
-                                  f'pkg-lists-{base_filename}.yml'))
-        except IOError:
-            self.log.error(f'Error opening the pkg lists file '
-                           f'(pkg-lists-{base_filename}.yml)')
-            sys.exit('Exit due to critical error')
+        self._load_pkglist()
 
         if self.eval_ver:
             try:
@@ -183,27 +178,8 @@ class software(object):
         self.rhel_ver = '7'
         self.sw_vars['rhel_ver'] = self.rhel_ver
         self.sw_vars['arch'] = self.arch
-        self.root_dir = '/srv'
-
-        # When searching for files in other web servers, the fileglobs are converted to
-        # regular expressions. An asterisk (*) after a bracket is converted to a
-        # regular extression of [0-9]{0,3} Other asterisks are converted to regular
-        # expression of .*
-        try:
-            file_lists = yaml.load(open(GEN_SOFTWARE_PATH +
-                                   f'file-lists-{base_filename}.yml'))
-        except IOError:
-            self.log.info('Error while reading installation file lists for '
-                          'PowerAI Enterprise')
-            sys.exit('exiting')
-            input('\nPress enter to continue')
-        else:
-            if self.eval_ver:
-                self.globs = file_lists['globs_eval']
-                self.files = file_lists['files_eval']
-            else:
-                self.globs = file_lists['globs']
-                self.files = file_lists['files']
+        self.root_dir = '/srv/'
+        self._load_filelist()
         # If empty, initialize software_vars content and repo info
         # from software server directory
         update = False
@@ -371,7 +347,7 @@ class software(object):
                 repodata_noarch = glob.glob(f'/srv/repos/ibmai'
                                             '/noarch/repodata.json', recursive=True)
                 repodata = glob.glob(f'/srv/repos/ibmai'
-                                     f'/linux-{self.arch}/repodata.json', recursive=True)
+                                     f'/linux-{self.ana_platform_basename}/repodata.json', recursive=True)
                 if repodata and repodata_noarch:
                     self.state[item] = f'{item} is setup'
                 continue
@@ -381,7 +357,7 @@ class software(object):
                 repodata_noarch = glob.glob(f'/srv/repos/anaconda/pkgs/free'
                                             '/noarch/repodata.json', recursive=True)
                 repodata = glob.glob(f'/srv/repos/anaconda/pkgs/free'
-                                     f'/linux-{self.arch}/repodata.json', recursive=True)
+                                     f'/linux-{self.ana_platform_basename}/repodata.json', recursive=True)
                 if repodata and repodata_noarch:
                     self.state[item] = f'{item} is setup'
                 continue
@@ -391,7 +367,7 @@ class software(object):
                 repodata_noarch = glob.glob(f'/srv/repos/anaconda/pkgs/main'
                                             '/noarch/repodata.json', recursive=True)
                 repodata = glob.glob(f'/srv/repos/anaconda/pkgs/main'
-                                     f'/linux-{self.arch}/repodata.json', recursive=True)
+                                     f'/linux-{self.ana_platform_basename}/repodata.json', recursive=True)
                 if repodata and repodata_noarch:
                     self.state[item] = f'{item} is setup'
                 continue
@@ -425,31 +401,15 @@ class software(object):
 
         return exists
 
-    def prep(self, eval_ver=False, non_int=False):
-        # Invoked with --prep flag
-        # Basic check of the state of yum repos
-        print()
-        self.sw_vars['prep-timestamp'] = calendar.timegm(time.gmtime())
-        self.log.info('Performing basic check of yum repositories')
-        cmd = 'yum repolist --noplugins'
+    def is_firewall_running(self, eval_ver=False, non_int=False):
+        cmd = 'systemctl status firewalld.service'
         resp, err, rc = sub_proc_exec(cmd)
-        yum_err = re.search(r'\[Errno\s+\d+\]', err)
-        if rc:
-            self.log.error(f'Failure running "yum repolist" :{rc}')
-        elif yum_err:
-            self.log.error(err)
-            self.log.error(f'yum error: {yum_err.group(0)}')
-        if rc or yum_err:
-            self.log.error('There is a problem with yum or one or more of the yum '
-                           'repositories. \n')
-            self.log.info('Cleaning yum caches')
-            cmd = 'yum clean all'
-            resp, err, rc = sub_proc_exec(cmd)
-            if rc != 0:
-                self.log.error('An error occurred while cleaning the yum repositories\n'
-                               'POWER-Up is unable to continue.')
-                sys.exit('Exiting')
+        if 'Active: active (running)' in resp.splitlines()[2]:
+            self.log.debug('Firewall is running')
+            return True
+        return False
 
+    def _setup_firewall(self, eval_ver=False, non_int=False):
         # Setup firewall to allow http
         heading1('Setting up firewall')
         fw_err = 0
@@ -487,6 +447,7 @@ class software(object):
         else:
             self.log.info(self.state['Firewall'])
 
+    def _setup_nginx_server(self, eval_ver=False, non_int=False):
         # nginx setup
         heading1('Set up Nginx')
         exists = self.status_prep(which='Nginx Web Server')
@@ -495,7 +456,7 @@ class software(object):
                       platform.machine()
             repo_id = 'nginx'
             repo_name = 'nginx.org public'
-            repo = PowerupRepo(repo_id, repo_name)
+            repo = PowerupRepo(repo_id, repo_name, arch=self.arch)
             content = repo.get_yum_dotrepo_content(baseurl, gpgcheck=0)
             repo.write_yum_dot_repo_file(content)
             cmd = 'yum makecache'
@@ -551,6 +512,130 @@ class software(object):
         if rc != 0:
             self.log.warning('Failed reloading nginx configuration')
 
+    def create_cuda_drv_repo(self, eval_ver=False, non_int=False):
+        # Setup repository for cuda packages. The Cuda public repo is enabled
+        # and the package list can be downloaded from there or alternately the
+        # cuda packages repo can be created from a local directory or an
+        # existing repository on another node.
+        repo_id = 'cuda'
+        repo_name = 'Cuda Driver'
+        baseurl = f'http://developer.download.nvidia.com/compute/cuda/repos/rhel7/{self.arch}'
+        gpgkey = f'{baseurl}/7fa2af80.pub'
+        heading1(f'Set up {repo_name} repository')
+        # list to str
+        pkg_list = ' '.join(self.pkgs['cuda_drivers'])
+
+        if f'{repo_id}_alt_url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{repo_id}_alt_url']
+        else:
+            alt_url = None
+        # Enable the public repo
+        repo_cuda = PowerupRepo(repo_id, repo_name, arch=self.arch)
+        dot_repo_content = repo_cuda.get_yum_dotrepo_content(url=baseurl, gpgkey=gpgkey)
+        repo_cuda.write_yum_dot_repo_file(dot_repo_content)
+
+        exists = self.status_prep(which='CUDA Driver Repository')
+        if exists:
+            self.log.info(f'The {repo_name} repository exists already'
+                          ' in the POWER-Up server')
+            pr_str = (f'\nDo you want to resync the {repo_name} repository'
+                      ' at this time\n')
+        else:
+            pr_str = (f'\nDo you want to create the {repo_name} repository'
+                      ' at this time\n')
+
+        ch = 'S'
+        if get_yesno(prompt=pr_str, yesno='Y/n'):
+            if platform.machine() == self.arch:
+                ch, item = get_selection('Sync required packages from public repo.\n'
+                                         'Create from Nvidia "local" driver RPM.\n'
+                                         'Sync from an alternate Repository.\n'
+                                         'Skip',
+                                         'P\nrpm\nA\nS',
+                                         'Repository source? ')
+            else:
+                ch, item = get_selection('Create from package files in a local Directory\n'
+                                         'Sync from an alternate Repository\n'
+                                         'Skip',
+                                         'D\nR\nS',
+                                         'Repository source? ')
+
+        if ch == 'P':
+            repo = PowerupRepo(repo_id, repo_name, arch=self.arch)
+            repo_dir = repo.get_repo_dir()
+            self._add_dependent_packages(repo_dir, pkg_list)
+            repo.create_meta()
+            content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
+            filename = repo_id + '-powerup.repo'
+            self.sw_vars['yum_powerup_repo_files'][filename] = content
+
+        elif ch == 'rpm':
+            # prompts user for the location of the rpm file to be loaded into
+            # the PowerUp server.  The file is copied to {self.root_dir}{repo_id}. The
+            # contents of the rpm file are then extracted under {self.root_dir}repos/
+            # Meta data is created. yum.repo content is generated and added to
+            # the software-vars.yml file
+            repo = PowerupRepoFromRpm(repo_id, repo_name, arch=self.arch)
+
+            if f'{repo_id}_src_rpm_dir' in self.sw_vars:
+                src_path = self.sw_vars[f'{repo_id}_src_rpm_dir']
+            else:
+                # default is to search recursively under all /home/
+                # directories
+                src_path = '/home/**/' + self.globs['CUDA driver content']
+            rpm_path = repo.get_rpm_path(src_path)
+            # code.interact(banner='here', local=dict(globals(), **locals()))
+            if rpm_path:
+                self.sw_vars[f'{repo_id}_src_rpm_dir'] = rpm_path
+                repo_dir = repo.extract_rpm(rpm_path)
+                repo.create_meta()
+                content = repo.get_yum_dotrepo_content(
+                    repo_dir=repo_dir, gpgcheck=0, client=True)
+                filename = repo_id + '-powerup.repo'
+                self.sw_vars['yum_powerup_repo_files'][filename] = content
+            else:
+                self.log.info('No path chosen. Skipping create custom '
+                              'repository.')
+
+        elif ch == 'A':
+            if f'{repo_id}_alt_url' in self.sw_vars:
+                alt_url = self.sw_vars[f'{repo_id}_alt_url']
+            else:
+                alt_url = None
+
+            repo = PowerupYumRepoFromRepo(repo_id, repo_name, arch=self.arch)
+            repo_dir = repo.get_repo_dir()
+            url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
+                                    filelist=['cuda-10-*-*'])
+            if url:
+                if not url == baseurl:
+                    self.sw_vars[f'{repo_id}_alt_url'] = url
+                # Set up access to the repo
+                content = repo.get_yum_dotrepo_content(url, gpgcheck=0)
+                repo.write_yum_dot_repo_file(content)
+
+                repo.sync()
+                repo.create_meta()
+
+                # Prep setup of POWER-Up client access to the repo copy
+                content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
+                filename = repo_id + '-powerup.repo'
+                self.sw_vars['yum_powerup_repo_files'][filename] = content
+                self.log.info('Repository setup complete')
+
+        else:
+            print(f'{repo_name} repository not updated')
+        if ch != 'S':
+            repo_dir += '/cuda-drivers-[4-9][0-9][0-9].[0-9]*-[0-9]*'
+            # code.interact(banner='There', local=dict(globals(), **locals()))
+            files = glob.glob(repo_dir, recursive=True)
+            if files:
+                self.sw_vars['cuda-drivers'] = re.search(r'cuda-drivers-\d+\.\d+-\d+',
+                                                        ' '.join(files)).group(0)
+            else:
+                self.log.error('No cuda toolkit file found in cuda repository')
+
+    def create_ibmai_repo(self, eval_ver=False, non_int=False):
         # Setup IBM AI conda repo
         repo_id = 'ibmai'
         repo_name = 'IBM AI Repository'
@@ -569,7 +654,7 @@ class software(object):
             self.log.info(f'The {repo_name} exists already'
                           ' in the POWER-Up server\n')
 
-        repo = PowerupAnaRepoFromRepo(repo_id, repo_name)
+        repo = PowerupAnaRepoFromRepo(repo_id, repo_name, arch=self.arch)
 
         ch = repo.get_action(exists)
         if ch in 'Y':
@@ -587,13 +672,13 @@ class software(object):
                     self.sw_vars[f'{vars_key}-alt-url'] = _url
 
                 # accept_list is used for linux_{self.arch}, reject_list for noarch
-                if 'accept_list' in self.pkgs[f'ibm_ai_conda_linux_{self.arch}']:
-                    al = self.pkgs[f'ibm_ai_conda_linux_{self.arch}']['accept_list']
+                if 'accept_list' in self.pkgs[f'ibm_ai_conda_linux_{self.ana_platform_basename}']:
+                    al = self.pkgs[f'ibm_ai_conda_linux_{self.ana_platform_basename}']['accept_list']
                 else:
                     al = None
 
-                if 'reject_list' in self.pkgs[f'ibm_ai_conda_linux_{self.arch}']:
-                    rl = self.pkgs[f'ibm_ai_conda_linux_{self.arch}']['reject_list']
+                if 'reject_list' in self.pkgs[f'ibm_ai_conda_linux_{self.ana_platform_basename}']:
+                    rl = self.pkgs[f'ibm_ai_conda_linux_{self.ana_platform_basename}']['reject_list']
                 else:
                     rl = None
 
@@ -620,7 +705,8 @@ class software(object):
 
                 repo.sync_ana(noarch_url, acclist=al, rejlist=rl)
 
-        # Get WMLA Enterprise license file
+    # Get WMLA Enterprise license file
+    def create_wmla_license(self, eval_ver=False, non_int=False):
         name = 'WMLA license content'
         heading1(f'Set up {name.title()} \n')
         lic_src = self.globs[name]
@@ -673,6 +759,7 @@ class software(object):
                 self.sw_vars['content_files'][get_name_dir(name) + '-entitlement'] = (
                     os.path.dirname(dest_path) + '/' + entitlement)
 
+    def create_spectrum_dli(self, eval_ver=False, non_int=False):
         # Get Spectrum DLI
         name = 'Spectrum DLI content'
         heading1(f'Set up {name.title()} \n')
@@ -701,126 +788,7 @@ class software(object):
                 self.sw_vars['content_files'][get_name_dir(name) + '-entitlement'] = (
                     os.path.dirname(dest_path) + '/' + entitlement)
 
-        # Setup repository for cuda packages. The Cuda public repo is enabled
-        # and the package list can be downloaded from there or alternately the
-        # cuda packages repo can be created from a local directory or an
-        # existing repository on another node.
-        repo_id = 'cuda'
-        repo_name = 'Cuda Driver'
-        baseurl = f'http://developer.download.nvidia.com/compute/cuda/repos/rhel7/{self.arch}'
-        gpgkey = f'{baseurl}/7fa2af80.pub'
-        heading1(f'Set up {repo_name} repository')
-        # list to str
-        pkg_list = ' '.join(self.pkgs['cuda_drivers'])
-
-        if f'{repo_id}_alt_url' in self.sw_vars:
-            alt_url = self.sw_vars[f'{repo_id}_alt_url']
-        else:
-            alt_url = None
-        # Enable the public repo
-        repo_cuda = PowerupRepo(repo_id, repo_name)
-        dot_repo_content = repo_cuda.get_yum_dotrepo_content(url=baseurl, gpgkey=gpgkey)
-        repo_cuda.write_yum_dot_repo_file(dot_repo_content)
-
-        exists = self.status_prep(which='CUDA Driver Repository')
-        if exists:
-            self.log.info(f'The {repo_name} repository exists already'
-                          ' in the POWER-Up server')
-            pr_str = (f'\nDo you want to resync the {repo_name} repository'
-                      ' at this time\n')
-        else:
-            pr_str = (f'\nDo you want to create the {repo_name} repository'
-                      ' at this time\n')
-
-        ch = 'S'
-        if get_yesno(prompt=pr_str, yesno='Y/n'):
-            if platform.machine() == self.arch:
-                ch, item = get_selection('Sync required packages from public repo.\n'
-                                         'Create from Nvidia "local" driver RPM.\n'
-                                         'Sync from an alternate Repository.\n'
-                                         'Skip',
-                                         'P\nrpm\nA\nS',
-                                         'Repository source? ')
-            else:
-                ch, item = get_selection('Create from package files in a local Directory\n'
-                                         'Sync from an alternate Repository\n'
-                                         'Skip',
-                                         'D\nR\nS',
-                                         'Repository source? ')
-
-        if ch == 'P':
-            repo = PowerupRepo(repo_id, repo_name)
-            repo_dir = repo.get_repo_dir()
-            self._add_dependent_packages(repo_dir, pkg_list)
-            repo.create_meta()
-            content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
-            filename = repo_id + '-powerup.repo'
-            self.sw_vars['yum_powerup_repo_files'][filename] = content
-
-        elif ch == 'rpm':
-            # prompts user for the location of the rpm file to be loaded into
-            # the PowerUp server.  The file is copied to /srv/{repo_id}. The
-            # contents of the rpm file are then extracted under /srv/repos/
-            # Meta data is created. yum.repo content is generated and added to
-            # the software-vars.yml file
-            repo = PowerupRepoFromRpm(repo_id, repo_name)
-
-            if f'{repo_id}_src_rpm_dir' in self.sw_vars:
-                src_path = self.sw_vars[f'{repo_id}_src_rpm_dir']
-            else:
-                # default is to search recursively under all /home/
-                # directories
-                src_path = '/home/**/cuda-repo-rhel7-10-1-local-*.rpm'
-            rpm_path = repo.get_rpm_path(src_path)
-            if rpm_path:
-                self.sw_vars[f'{repo_id}_src_rpm_dir'] = rpm_path
-                repo_dir = repo.extract_rpm(rpm_path)
-                repo.create_meta()
-                content = repo.get_yum_dotrepo_content(
-                    repo_dir=repo_dir, gpgcheck=0, client=True)
-                filename = repo_id + '-powerup.repo'
-                self.sw_vars['yum_powerup_repo_files'][filename] = content
-            else:
-                self.log.info('No path chosen. Skipping create custom '
-                              'repository.')
-
-        elif ch == 'A':
-            if f'{repo_id}_alt_url' in self.sw_vars:
-                alt_url = self.sw_vars[f'{repo_id}_alt_url']
-            else:
-                alt_url = None
-
-            repo = PowerupYumRepoFromRepo(repo_id, repo_name)
-            repo_dir = repo.get_repo_dir()
-            url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
-                                    filelist=['cuda-10-*-*'])
-            if url:
-                if not url == baseurl:
-                    self.sw_vars[f'{repo_id}_alt_url'] = url
-                # Set up access to the repo
-                content = repo.get_yum_dotrepo_content(url, gpgcheck=0)
-                repo.write_yum_dot_repo_file(content)
-
-                repo.sync()
-                repo.create_meta()
-
-                # Prep setup of POWER-Up client access to the repo copy
-                content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
-                filename = repo_id + '-powerup.repo'
-                self.sw_vars['yum_powerup_repo_files'][filename] = content
-                self.log.info('Repository setup complete')
-
-        else:
-            print(f'{repo_name} repository not updated')
-        if ch != 'S':
-            repo_dir += '/cuda-drivers-[4-9][0-9][0-9].[0-9]*-[0-9]*'
-            files = glob.glob(repo_dir, recursive=True)
-            if files:
-                self.sw_vars['cuda-drivers'] = re.search(r'cuda-drivers-\d+\.\d+-\d+',
-                                                         ' '.join(files)).group(0)
-            else:
-                self.log.error('No cuda toolkit file found in cuda repository')
-
+    def create_dependency_repo(self, eval_ver=False, non_int=False):
         # Setup repository for redhat dependent packages. This is intended to deal
         # specifically with redhat packages requiring red hat subscription for access,
         # however dependent packages can come from any YUM repository enabled on the
@@ -829,8 +797,23 @@ class software(object):
         repo_id = 'dependencies'
         repo_name = 'Dependencies'
         baseurl = ''
-
         heading1(f'Set up {repo_name} repository')
+        # list to str
+        dep_list = ' '.join(self.pkgs[f'yum_pkgs_{self.arch}'])
+
+        file_more = GEN_SOFTWARE_PATH + 'dependent-packages.list'
+        if os.path.isfile(file_more):
+            try:
+                with open(file_more, 'r') as f:
+                    more = f.read()
+            except:
+                self.log.error('Error reading {file_more}')
+                more = ''
+            else:
+                more.replace(',', ' ')
+                more.replace('\n', ' ')
+        else:
+            more = ''
 
         exists = self.status_prep(which='Dependent Packages Repository')
         if exists:
@@ -902,8 +885,7 @@ class software(object):
             self.sw_vars['yum_powerup_repo_files'][filename] = content
 
         elif ch == 'D':
-            repo = PowerupRepoFromDir(repo_id, repo_name, proc_family=self.proc_family)
-
+            repo = PowerupRepoFromDir(repo_id, repo_name, arch=self.arch, proc_family=self.proc_family)
             if f'{repo_id}_src_dir' in self.sw_vars:
                 src_dir = self.sw_vars[f'{repo_id}_src_dir']
             else:
@@ -924,9 +906,8 @@ class software(object):
             else:
                 alt_url = None
 
-            repo = PowerupYumRepoFromRepo(repo_id, repo_name,
+            repo = PowerupYumRepoFromRepo(repo_id, repo_name, arch=self.arch,
                                           proc_family=self.proc_family)
-
             url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
                                     filelist=['bzip2-*'])
             if url:
@@ -939,7 +920,7 @@ class software(object):
                 repo.sync()
                 repo.create_meta()
 
-                # Setup local access to the new repo copy in /srv/repo/
+                # Setup local access to the new repo copy in {self.root_dir}repo/
                 if platform.machine() == self.arch:
                     content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
                     repo.write_yum_dot_repo_file(content)
@@ -952,6 +933,7 @@ class software(object):
         else:
             print(f'{repo_name} repository not updated')
 
+    def create_conda_content_repo(self, eval_ver=False, non_int=False):
         # Get Anaconda
         ana_name = 'Anaconda content'
         ana_src = self.globs[ana_name]
@@ -978,11 +960,11 @@ class software(object):
             if src_path and 'http' in src_path:
                 self.sw_vars[f'{ana_name}_alt_url'] = os.path.dirname(src_path) + '/'
 
+    def create_conda_free_repo(self, eval_ver=False, non_int=False):
         # Setup Anaconda Free Repo.  (not a YUM repo)
         repo_id = 'anaconda'
         repo_name = 'Anaconda Free Repository'
-        platform_basename = '64' if self.arch == "x86_64" else self.arch
-        baseurl = f'https://repo.continuum.io/pkgs/free/linux-{platform_basename}/'
+        baseurl = f'https://repo.continuum.io/pkgs/free/linux-{self.ana_platform_basename}/'
         heading1(f'Set up {repo_name}\n')
 
         vars_key = get_name_dir(repo_name)  # format the name
@@ -996,13 +978,13 @@ class software(object):
             self.log.info('The Anaconda Repository exists already'
                           ' in the POWER-Up server\n')
 
-        repo = PowerupAnaRepoFromRepo(repo_id, repo_name)
+        repo = PowerupAnaRepoFromRepo(repo_id, repo_name, arch=self.arch)
 
         ch = repo.get_action(exists)
         if ch in 'Y':
             # if not exists or ch == 'F':
             url = repo.get_repo_url(baseurl, alt_url, contains=['free', 'linux',
-                                    f'{platform_basename}'], excludes=['noarch', 'main'],
+                                    f'{self.ana_platform_basename}'], excludes=['noarch', 'main'],
                                     filelist=['conda-4.3*'])
             if url:
                 if not url == baseurl:
@@ -1010,8 +992,8 @@ class software(object):
 
                 # accept_list and rej_list are mutually exclusive.
                 # accept_list takes priority
-                al = self.pkgs[f'anaconda_free_linux_{platform_basename}']['accept_list']
-                rl = self.pkgs[f'anaconda_free_linux_{platform_basename}']['reject_list']
+                al = self.pkgs[f'anaconda_free_linux_{self.ana_platform_basename}']['accept_list']
+                rl = self.pkgs[f'anaconda_free_linux_{self.ana_platform_basename}']['reject_list']
 
                 dest_dir = repo.sync_ana(url, acclist=al, rejlist=rl)
                 dest_dir = dest_dir[4 + dest_dir.find('/srv'):5 + dest_dir.find('free')]
@@ -1026,10 +1008,11 @@ class software(object):
                 rl = self.pkgs['anaconda_free_noarch']['reject_list']
                 repo.sync_ana(noarch_url, acclist=al, rejlist=rl)
 
+    def create_conda_main_repo(self, eval_ver=False, non_int=False):
         # Setup Anaconda Main Repo.  (not a YUM repo)
         repo_id = 'anaconda'
         repo_name = 'Anaconda Main Repository'
-        baseurl = f'https://repo.continuum.io/pkgs/main/linux-{platform_basename}/'
+        baseurl = f'https://repo.continuum.io/pkgs/main/linux-{self.ana_platform_basename}/'
         heading1(f'Set up {repo_name}\n')
 
         vars_key = get_name_dir(repo_name)  # format the name
@@ -1043,19 +1026,19 @@ class software(object):
             self.log.info('The Anaconda Repository exists already'
                           ' in the POWER-Up server\n')
 
-        repo = PowerupAnaRepoFromRepo(repo_id, repo_name)
+        repo = PowerupAnaRepoFromRepo(repo_id, repo_name, arch=self.arch)
 
         ch = repo.get_action(exists)
         if ch in 'Y':
             url = repo.get_repo_url(baseurl, alt_url, contains=['main', 'linux',
-                                    f'{platform_basename}'], excludes=['noarch', 'free'],
+                                    f'{self.ana_platform_basename}'], excludes=['noarch', 'free'],
                                     filelist=['numpy-1.15*'])
             if url:
                 if not url == baseurl:
                     self.sw_vars[f'{vars_key}-alt-url'] = url
                 # accept_list is used for main, reject_list for noarch
-                al = self.pkgs[f'anaconda_main_linux_{platform_basename}']['accept_list']
-                rl = self.pkgs[f'anaconda_main_linux_{platform_basename}']['reject_list']
+                al = self.pkgs[f'anaconda_main_linux_{self.ana_platform_basename}']['accept_list']
+                rl = self.pkgs[f'anaconda_main_linux_{self.ana_platform_basename}']['reject_list']
 
                 dest_dir = repo.sync_ana(url, acclist=al, rejlist=rl)
                 # dest_dir = repo.sync_ana(url)
@@ -1071,44 +1054,46 @@ class software(object):
                 rl = self.pkgs['anaconda_main_noarch']['reject_list']
                 repo.sync_ana(noarch_url, acclist=al, rejlist=rl)
 
-#        # Setup Anaconda conda-forge Repo.  (not a YUM repo)
-#        repo_id = 'anaconda'
-#        repo_name = 'Conda-forge noarch Repository'
-#        baseurl = 'https://conda.anaconda.org/conda-forge/noarch/'
-#        heading1(f'Set up {repo_name}\n')
-#
-#        vars_key = get_name_dir(repo_name)  # format the name
-#        if f'{vars_key}-alt-url' in self.sw_vars:
-#            alt_url = self.sw_vars[f'{vars_key}-alt-url']
-#        else:
-#            alt_url = None
-#
-#        exists = self.status_prep(which='Conda-forge Repository')
-#        if exists:
-#            self.log.info('The Conda-forge Repository exists already'
-#                          ' in the POWER-Up server\n')
-#
-#        repo = PowerupAnaRepoFromRepo(repo_id, repo_name)
-#
-#        ch = repo.get_action(exists)
-#        if ch in 'Y':
-#            url = repo.get_repo_url(baseurl, alt_url, contains=['noarch'],
-#                                    excludes=['main'],
-#                                    filelist=['configparser-3.5*'])
-#            if url:
-#                if not url == baseurl:
-#                    self.sw_vars[f'{vars_key}-alt-url'] = url
-#
-#                al = self.pkgs['conda_forge_noarch_pkgs']['accept_list']
-#
-#                dest_dir = repo.sync_ana(url, acclist=al)
-#                dest_dir = dest_dir[4 + dest_dir.find('/srv'):7 + dest_dir.find('noarch')]
-#                # form .condarc channel entry. Note that conda adds
-#                # the corresponding 'noarch' channel automatically.
-#                channel = f'  - http://{{{{ host_ip.stdout }}}}{dest_dir}'
-#                if channel not in self.sw_vars['ana_powerup_repo_channels']:
-#                    self.sw_vars['ana_powerup_repo_channels'].insert(0, channel)
+    def create_conda_forge_repo(self, eval_ver=False, non_int=False):
+        # Setup Anaconda conda-forge Repo.  (not a YUM repo)
+        repo_id = 'anaconda'
+        repo_name = 'Conda-forge noarch Repository'
+        baseurl = 'https://conda.anaconda.org/conda-forge/noarch/'
+        heading1(f'Set up {repo_name}\n')
 
+        vars_key = get_name_dir(repo_name)  # format the name
+        if f'{vars_key}-alt-url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{vars_key}-alt-url']
+        else:
+            alt_url = None
+
+        exists = self.status_prep(which='Conda-forge Repository')
+        if exists:
+            self.log.info('The Conda-forge Repository exists already'
+                          ' in the POWER-Up server\n')
+
+        repo = PowerupAnaRepoFromRepo(repo_id, repo_name, arch=self.arch)
+
+        ch = repo.get_action(exists)
+        if ch in 'Y':
+            url = repo.get_repo_url(baseurl, alt_url, contains=['noarch'],
+                                    excludes=['main'],
+                                    filelist=['configparser-3.5*'])
+            if url:
+                if not url == baseurl:
+                    self.sw_vars[f'{vars_key}-alt-url'] = url
+
+                al = self.pkgs['conda_forge_noarch_pkgs']['accept_list']
+
+                dest_dir = repo.sync_ana(url, acclist=al)
+                dest_dir = dest_dir[4 + dest_dir.find('/srv'):7 + dest_dir.find('noarch')]
+                # form .condarc channel entry. Note that conda adds
+                # the corresponding 'noarch' channel automatically.
+                channel = f'  - http://{{{{ host_ip.stdout }}}}{dest_dir}'
+                if channel not in self.sw_vars['ana_powerup_repo_channels']:
+                    self.sw_vars['ana_powerup_repo_channels'].insert(0, channel)
+
+    def create_pypi_repo(self, eval_ver=False, non_int=False):
         # Setup Python package repository. (pypi)
         repo_id = 'pypi'
         repo_name = 'Python Package'
@@ -1124,7 +1109,7 @@ class software(object):
             self.log.info('The Python Package Repository exists already'
                           ' in the POWER-Up server')
 
-        repo = PowerupPypiRepoFromRepo(repo_id, repo_name)
+        repo = PowerupPypiRepoFromRepo(repo_id, repo_name, arch=self.arch)
         ch = repo.get_action(exists, exists_prompt_yn=True)
 
         pkg_list = ' '.join(self.pkgs['python_pkgs'])
@@ -1141,6 +1126,7 @@ class software(object):
                 repo.sync(pkg_list, url + 'simple')
                 repo.sync(pkg3_list, url + 'simple', py_ver=36)
 
+    def create_epel_repo(self, eval_ver=False, non_int=False):
         # Setup EPEL Repo
         repo_id = f'epel-{self.arch}'
         repo_name = f'EPEL {self.arch} subset'
@@ -1188,7 +1174,7 @@ class software(object):
                                      'Repository source? ')
 
         if ch == 'E':
-            repo = PowerupRepo(repo_id, repo_name)
+            repo = PowerupRepo(repo_id, repo_name, arch=self.arch)
             repo_dir = repo.get_repo_dir()
             self._add_dependent_packages(repo_dir, epel_list)
             self._add_dependent_packages(repo_dir, more)
@@ -1222,7 +1208,7 @@ class software(object):
             else:
                 alt_url = None
 
-            repo = PowerupYumRepoFromRepo(repo_id, repo_name)
+            repo = PowerupYumRepoFromRepo(repo_id, repo_name, arch=self.arch)
 
             url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
                                     filelist=['openblas-*'])
@@ -1236,7 +1222,7 @@ class software(object):
                 repo.sync()
                 repo.create_meta()
 
-                # Setup local access to the new repo copy in /srv/repo/
+                # Setup local access to the new repo copy in {self.root_dir}repo/
                 if platform.machine() == self.arch:
                     content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
                     repo.write_yum_dot_repo_file(content)
@@ -1249,113 +1235,168 @@ class software(object):
         else:
             print(f'{repo_name} repository not updated')
 
+    def create_custom_repo(self, eval_ver=False, non_int=False):
         # Create custom repositories
-        if self.eng_mode == 'custom-repo':
-            heading1('Create custom repositories')
-            if get_yesno('Would you like to create a custom repository '):
-                repo_id = input('Enter a repo id (yum short name): ')
-                repo_name = input('Enter a repo name (Descriptive name): ')
+        if hasattr(self, 'eng_mode'):
+            if self.eng_mode == 'custom-repo':
+                heading1('Create custom repositories')
+                if get_yesno('Would you like to create a custom repository '):
+                    repo_id = input('Enter a repo id (yum short name): ')
+                    repo_name = input('Enter a repo name (Descriptive name): ')
 
-                ch, item = get_selection('Create from files in a directory\n'
-                                         'Create from an RPM file\n'
-                                         'Create from an existing repository',
-                                         'dir\nrpm\nrepo',
-                                         'Repository source? ', allow_none=True)
-                if ch != 'N':
-                    if ch == 'rpm':
-                        # prompts user for the location of the rpm file to be loaded into
-                        # the PowerUp server.  The file is copied to /srv/{repo_id}. The
-                        # contents of the rpm file are then extracted under /srv/repos/
-                        # Meta data is created. yum.repo content is generated and added to
-                        # the software-vars.yml file
-                        repo = PowerupRepoFromRpm(repo_id, repo_name)
+                    ch, item = get_selection('Create from files in a directory\n'
+                                             'Create from an RPM file\n'
+                                             'Create from an existing repository',
+                                             'dir\nrpm\nrepo',
+                                             'Repository source? ', allow_none=True)
+                    if ch != 'N':
+                        if ch == 'rpm':
+                            # prompts user for the location of the rpm file to be loaded into
+                            # the PowerUp server.  The file is copied to {self.root_dir}{repo_id}. The
+                            # contents of the rpm file are then extracted under {self.root_dir}repos/
+                            # Meta data is created. yum.repo content is generated and added to
+                            # the software-vars.yml file
+                            repo = PowerupRepoFromRpm(repo_id, repo_name, arch=self.arch)
 
-                        if f'{repo_id}_src_rpm_dir' in self.sw_vars:
-                            src_path = self.sw_vars[f'{repo_id}_src_rpm_dir']
-                        else:
-                            # default is to search recursively under all /home/
-                            # directories
-                            src_path = '/home/**/*.rpm'
-                        rpm_path = repo.get_rpm_path(src_path)
-                        if rpm_path:
-                            self.sw_vars[f'{repo_id}_src_rpm_dir'] = rpm_path
-                            src_path = repo.copy_rpm(rpm_path)
-                            repodata_dir = repo.extract_rpm(src_path)
-#                            if repodata_dir:
-#                                content = repo.get_yum_dotrepo_content(
-#                                    repo_dir=repodata_dir, gpgcheck=0)
-#                            else:
-#                                print('Failed extracting rpm content')
-#                                content = repo.get_yum_dotrepo_content(gpgcheck=0,
-#                                                                       local=True)
-#                            repo.write_yum_dot_repo_file(content)
-                            repo.create_meta()
-                            content = repo.get_yum_dotrepo_content(
-                                repo_dir=repodata_dir, gpgcheck=0, client=True)
-                            filename = repo_id + '-powerup.repo'
-                            self.sw_vars['yum_powerup_repo_files'][filename] = content
-                        else:
-                            self.log.info('No path chosen. Skipping create custom '
-                                          'repository.')
+                            if f'{repo_id}_src_rpm_dir' in self.sw_vars:
+                                src_path = self.sw_vars[f'{repo_id}_src_rpm_dir']
+                            else:
+                                # default is to search recursively under all /home/
+                                # directories
+                                src_path = '/home/**/*.rpm'
+                            rpm_path = repo.get_rpm_path(src_path)
+                            if rpm_path:
+                                self.sw_vars[f'{repo_id}_src_rpm_dir'] = rpm_path
+                                src_path = repo.copy_rpm(rpm_path)
+                                repodata_dir = repo.extract_rpm(src_path)
+    #                            if repodata_dir:
+    #                                content = repo.get_yum_dotrepo_content(
+    #                                    repo_dir=repodata_dir, gpgcheck=0)
+    #                            else:
+    #                                print('Failed extracting rpm content')
+    #                                content = repo.get_yum_dotrepo_content(gpgcheck=0,
+    #                                                                       local=True)
+    #                            repo.write_yum_dot_repo_file(content)
+                                repo.create_meta()
+                                content = repo.get_yum_dotrepo_content(
+                                    repo_dir=repodata_dir, gpgcheck=0, client=True)
+                                filename = repo_id + '-powerup.repo'
+                                self.sw_vars['yum_powerup_repo_files'][filename] = content
+                            else:
+                                self.log.info('No path chosen. Skipping create custom '
+                                              'repository.')
 
-                    elif ch == 'dir':
-                        repo = PowerupRepoFromDir(repo_id, repo_name)
+                        elif ch == 'dir':
+                            repo = PowerupRepoFromDir(repo_id, repo_name, arch=self.arch)
 
-                        if f'{repo_id}_src_dir' in self.sw_vars:
-                            src_dir = self.sw_vars[f'{repo_id}_src_dir']
-                        else:
-                            src_dir = None
-                        src_dir, dest_dir = repo.copy_dirs(src_dir)
-                        if src_dir:
-                            self.sw_vars[f'{repo_id}_src_dir'] = src_dir
-                            repo.create_meta()
-                            content = repo.get_yum_dotrepo_content(gpgcheck=0,
-                                                                   local=True)
+                            if f'{repo_id}_src_dir' in self.sw_vars:
+                                src_dir = self.sw_vars[f'{repo_id}_src_dir']
+                            else:
+                                src_dir = None
+                            src_dir, dest_dir = repo.copy_dirs(src_dir)
+                            if src_dir:
+                                self.sw_vars[f'{repo_id}_src_dir'] = src_dir
+                                repo.create_meta()
+                                content = repo.get_yum_dotrepo_content(gpgcheck=0,
+                                                                       local=True)
+                                repo.write_yum_dot_repo_file(content)
+                                content = repo.get_yum_dotrepo_content(gpgcheck=0,
+                                                                       client=True)
+                                filename = repo_id + '-powerup.repo'
+                                self.sw_vars['yum_powerup_repo_files'][filename] = content
+                        elif ch == 'repo':
+                            baseurl = 'http://'
+
+                            repo = PowerupYumRepoFromRepo(repo_id, repo_name, arch=self.arch)
+
+                            new = True
+                            if os.path.isfile(f'/etc/yum.repos.d/{repo_id}.repo') and \
+                                    os.path.exists(repo.get_repo_dir()):
+                                new = False
+
+                            url = repo.get_repo_url(baseurl)
+                            if not url == baseurl:
+                                self.sw_vars[f'{repo_id}_alt_url'] = url
+                            # Set up access to the repo
+                            content = repo.get_yum_dotrepo_content(url, gpgcheck=0)
                             repo.write_yum_dot_repo_file(content)
-                            content = repo.get_yum_dotrepo_content(gpgcheck=0,
-                                                                   client=True)
+
+                            repo.sync()
+
+                            if new:
+                                repo.create_meta()
+                            else:
+                                repo.create_meta(update=True)
+
+                            # Setup local access to the new repo copy in {self.root_dir}repo/
+                            content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+                            repo.write_yum_dot_repo_file(content)
+                            # Prep setup of POWER-Up client access to the repo copy
+                            content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
                             filename = repo_id + '-powerup.repo'
                             self.sw_vars['yum_powerup_repo_files'][filename] = content
-                    elif ch == 'repo':
-                        baseurl = 'http://'
+                        self.log.info('Repository setup complete')
 
-                        if f'{repo_id}_alt_url' in self.sw_vars:
-                            alt_url = self.sw_vars[f'{repo_id}_alt_url']
-                        else:
-                            alt_url = None
+    def prep_init(self, eval_ver=False, non_int=False):
+        # Invoked with --prep flag
+        # Basic check of the state of yum repos
+        print()
+        self.sw_vars['prep-timestamp'] = calendar.timegm(time.gmtime())
+        self.log.info('Performing basic check of yum repositories')
+        cmd = 'yum repolist --noplugins'
+        resp, err, rc = sub_proc_exec(cmd)
+        yum_err = re.search(r'\[Errno\s+\d+\]', err)
+        if rc:
+            self.log.error(f'Failure running "yum repolist" :{rc}')
+        elif yum_err:
+            self.log.error(err)
+            self.log.error(f'yum error: {yum_err.group(0)}')
+        if rc or yum_err:
+            self.log.error('There is a problem with yum or one or more of the yum '
+                           'repositories. \n')
+            self.log.info('Cleaning yum caches')
+            cmd = 'yum clean all'
+            resp, err, rc = sub_proc_exec(cmd)
+            if rc != 0:
+                self.log.error('An error occurred while cleaning the yum repositories\n'
+                               'POWER-Up is unable to continue.')
+                sys.exit('Exiting')
+        self._setup_firewall()
+        self._setup_nginx_server()
 
-                        repo = PowerupYumRepoFromRepo(repo_id, repo_name)
+    def prep(self, eval_ver=False, non_int=False):
 
-                        new = True
-                        if os.path.isfile(f'/etc/yum.repos.d/{repo_id}.repo') and \
-                                os.path.exists(repo.get_repo_dir()):
-                            new = False
+        self.prep_init()
 
-                        url = repo.get_repo_url(baseurl)
-                        if not url == baseurl:
-                            self.sw_vars[f'{repo_id}_alt_url'] = url
-                        # Set up access to the repo
-                        content = repo.get_yum_dotrepo_content(url, gpgcheck=0)
-                        repo.write_yum_dot_repo_file(content)
+        self.create_ibmai_repo()
 
-                        repo.sync()
+        self.create_wmla_license()
 
-                        if new:
-                            repo.create_meta()
-                        else:
-                            repo.create_meta(update=True)
+        self.create_spectrum_dli()
 
-                        # Setup local access to the new repo copy in /srv/repo/
-                        content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
-                        repo.write_yum_dot_repo_file(content)
-                        # Prep setup of POWER-Up client access to the repo copy
-                        content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
-                        filename = repo_id + '-powerup.repo'
-                        self.sw_vars['yum_powerup_repo_files'][filename] = content
-                    self.log.info('Repository setup complete')
+        self.create_cuda_drv_repo()
+
+        self.create_dependency_repo()
+
+        self.create_conda_content_repo()
+
+        self.create_conda_free_repo()
+
+        self.create_conda_main_repo()
+
+        #  self.create_conda_forge_repo()
+
+        self.create_pypi_repo()
+
+        self.create_epel_repo()
+
+        self.create_custom_repo()
 
         # Display status
         self.status_prep()
+        self.prep_post()
+
+    def prep_post(self, eval_ver=False, non_int=False):
         # write software-vars file. Although also done in __del__, the software
         # vars files are written here in case the user is running all phases of
         # install
@@ -1371,6 +1412,36 @@ class software(object):
                 f.write('# Do not edit this file. This file is autogenerated.\n')
             with open(GEN_SOFTWARE_PATH + 'software-vars.yml', 'a') as f:
                 yaml.dump(self.sw_vars, f, default_flow_style=False)
+
+    def _load_pkglist(self):
+        try:
+            self.pkgs = yaml.load(open(GEN_SOFTWARE_PATH +
+                                  f'pkg-lists-{self.base_filename}.yml'))
+        except IOError:
+            self.log.error(f'Error opening the pkg lists file '
+                           f'(pkg-lists-{self.base_filename}.yml)')
+            sys.exit('Exit due to critical error')
+
+    def _load_filelist(self):
+        # When searching for files in other web servers, the fileglobs are converted to
+        # regular expressions. An asterisk (*) after a bracket is converted to a
+        # regular extression of [0-9]{0,3} Other asterisks are converted to regular
+        # expression of .*
+        try:
+            file_lists = yaml.load(open(GEN_SOFTWARE_PATH +
+                                   f'file-lists-{self.base_filename}.yml'))
+        except IOError:
+            self.log.info('Error while reading installation file lists for '
+                          'PowerAI Enterprise')
+            sys.exit('exiting')
+            input('\nPress enter to continue')
+        else:
+            if self.eval_ver:
+                self.globs = file_lists['globs_eval']
+                self.files = file_lists['files_eval']
+            else:
+                self.globs = file_lists['globs']
+                self.files = file_lists['files']
 
     def _add_dependent_packages(self, repo_dir, dep_list):
         cmd = (f'yumdownloader --archlist={self.arch} --destdir '

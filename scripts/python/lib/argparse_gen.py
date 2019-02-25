@@ -407,6 +407,17 @@ def get_args(parser_args=False):
         choices=['ppc64le', 'x86_64'],
         help='Runs the software phase with specified architecture')
 
+    parser_software.add_argument(
+        '--step',
+        default=None,
+        nargs='+',
+        choices=['ibmai_repo', 'cuda_drv_repo',
+                 'wmla_license', 'spectrum_dli',
+                 'dependency_repo', 'conda_content_repo',
+                 'conda_free_repo', 'conda_main_repo',
+                 'conda_forge_repo', 'create_pypi_repo',
+                 'epel_repo', 'custom_repo'],
+        help='Runs the software phase with specified step')
     # 'utils' subcommand arguments
     parser_utils.set_defaults(utils=True)
 

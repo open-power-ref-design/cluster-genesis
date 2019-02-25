@@ -3,7 +3,7 @@
 # will also download everything.
 # ie: ibm-ai-conda: all
 #
-ibm_ai_conda_linux_x86_64:
+ibm_ai_conda_linux_64:
     accept_list: all
     reject_list:
 ibm_ai_conda_noarch:
@@ -13,7 +13,7 @@ conda_forge_noarch_pkgs:
   accept_list:
     - configparser-3.5.0-py_1000.tar.bz2
   reject_list:
-anaconda_free_linux_x86_64:
+anaconda_free_linux_64:
   accept_list:
     - asn1crypto-0.22.0-py27_0.tar.bz2
     - backports-1.0-py27_0.tar.bz2
@@ -131,7 +131,7 @@ anaconda_free_noarch:
   accept_list:
   reject_list: all
 
-anaconda_main_linux_x86_64:
+anaconda_main_linux_64:
   accept_list:
     - absl-py-0.6.1-py27_0.tar.bz2
     - absl-py-0.6.1-py36_0.tar.bz2
@@ -389,7 +389,7 @@ epel_pkgs:
 - openblas-threads64-0.3.3-2.el7.x86_64
 - openblas-threads64_-0.3.3-2.el7.x86_64
 - opencl-filesystem-1.0-5.el7.noarch
-yum_pkgs:
+yum_pkgs_x86_64:
 - adwaita-cursor-theme-3.28.0-1.el7.noarch
 - adwaita-icon-theme-3.28.0-1.el7.noarch
 - at-spi2-atk-2.26.2-1.el7.x86_64
@@ -431,7 +431,7 @@ yum_pkgs:
 - javapackages-tools-3.4.1-11.el7.noarch
 - json-glib-1.4.2-2.el7.x86_64
 - kernel-3.10.0-862.11.6.el7.x86_64
-- kernel-bootwrapper-3.10.0-862.11.6.el7.x86_64
+# - kernel-bootwrapper-3.10.0-862.11.6.el7.x86_64
 - kernel-devel-3.10.0-862.11.6.el7.x86_64
 - kernel-headers-3.10.0-862.11.6.el7.x86_64
 - kernel-tools-3.10.0-862.11.6.el7.x86_64

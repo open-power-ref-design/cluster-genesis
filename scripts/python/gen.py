@@ -716,13 +716,28 @@ class Gen(object):
                 sys.exit(1)
             else:
                 soft = software_module.software(self.args.eval, self.args.non_interactive, self.args.arch)
-            if self.args.prep is True or self.args.all is True:
-                try:
-                    soft.prep()
-                except AttributeError as exc:
-                    print(exc)
-                    print('The software class needs to implement a '
-                          'method named "setup"')
+            try:
+                if (self.args.prep is True or self.args.all is True) and self.args.step is None:
+                    try:
+                        soft.prep()
+                    except AttributeError as exc:
+                        print(exc.message)
+                        print('The software class needs to implement a '
+                              'method named "setup"')
+                elif (self.args.prep is True or self.args.all is True) and self.args.step is not None:
+                    try:
+                        soft.prep_init()
+                        for step in self.args.step:
+                            func = getattr(soft, "create_" + step)
+                            func()
+                        soft.prep_post()
+                    except AttributeError as exc:
+                        print(exc)
+            except KeyboardInterrupt as e:
+                soft.prep_post()
+                print('User exited ...\n' + str(e))
+            except Exception as e:
+                raise e
             if self.args.init_clients is True or self.args.all is True:
                 try:
                     soft.init_clients()
