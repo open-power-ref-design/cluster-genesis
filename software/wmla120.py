@@ -926,7 +926,8 @@ class software(object):
             else:
                 alt_url = None
 
-            repo = PowerupYumRepoFromRepo(repo_id, repo_name, proc_family=self.proc_family, root_dir=self.root_dir)
+            repo = PowerupYumRepoFromRepo(repo_id, repo_name, proc_family=self.proc_family,
+                                          root_dir=self.root_dir)
 
             url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
                                     filelist=['bzip2-*'])
