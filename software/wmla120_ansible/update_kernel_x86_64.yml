@@ -1,0 +1,15 @@
+---
+- name: Load the latest kernel
+  yum:
+    name: "{{ item }}"
+    state: latest
+# may need to inckude kernel-devel
+  with_items:
+    - kernel
+    - kernel-devel
+    - kernel-tools
+    - kernel-tools-libs
+  become: yes
+  notify: Reboot
+
+- meta: flush_handlers

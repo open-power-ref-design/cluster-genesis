@@ -1,0 +1,58 @@
+---
+- description: Update yum cache
+  tasks: yum_update_cache.yml
+
+- description: Install additional software packages
+  tasks: yum_install_additional_software.yml
+
+- description: Update kernel
+  tasks: update_kernel_x86_64.yml
+
+- description: Disable Memory Auto-Onlining
+  tasks: disable_udev_mem_auto_onlining.yml
+
+- description: Install CUDA
+  tasks: install_cuda.yml
+
+- description: Download Anaconda installer
+  tasks: anaconda_prep_x86_64.yml
+
+- description: Install Anaconda installer
+  tasks: anaconda_install.yml
+
+- description: Complete System Setup
+  tasks: complete_system_setup.yml
+
+- description: Install WMLA License Script
+  tasks: wmla_license_install.yml
+
+- description: Check WMLA License acceptance and install to root
+  tasks: wmla_license_check_and_install_to_root.yml
+ #tasks: wmla_license_check.yml
+
+- description: Configure a system for IBM Spectrum Conductor Deep Learning Impact
+  tasks: configure_spectrum_conductor.yml
+
+- description: Install IBM Spectrum Conductor
+  tasks: install_spectrum_conductor_with_spark.yml
+
+- description: Entitle IBM Spectrum Conductor
+  tasks: entitle_spectrum_conductor_with_spark.yml
+  hosts: master[0]
+
+- description: Install IBM Spectrum Conductor DLI
+  tasks: install_spectrum_conductor_dli.yml
+
+- description: Entitle and Start IBM Spectrum Conductor DLI
+  tasks: entitle_spectrum_conductor_dli.yml
+  hosts: master[0]
+
+#- description: Provide permission for DLI cluster admin to write audit directory
+#  tasks: permit_dli_admin_write_audit.yml
+#  hosts: master[0]
+
+- description: Add all hosts to cluster
+  tasks: add_hosts_to_cluster.yml
+
+- description: PowerAI tuning recommendations
+  tasks: powerai_tuning_x86_64.yml

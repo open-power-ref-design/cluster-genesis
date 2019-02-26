@@ -64,7 +64,7 @@ class software(object):
         self.proc_family = proc_family
         if self.arch == 'x86_64' and not proc_family:
             self.proc_family = self.arch
-        self.eng_mode = None
+        self.eng_mode = "gather-dependencies" 
         # self.eng_mode = 'custom-repo'
         # self.eng_mode = 'gather-dependencies'
         yaml.add_constructor(YAMLVault.yaml_tag, YAMLVault.from_yaml)
@@ -1646,9 +1646,9 @@ class software(object):
                                             'spark')
         _set_spectrum_conductor_install_env(self.sw_vars['ansible_inventory'],
                                             'dli', ana_ver)
-
+        specific_arch = "_"+self.arch if self.arch == 'x86_64' else ""
         install_tasks = yaml.load(open(GEN_SOFTWARE_PATH +
-                                       f'{self.my_name}_install_procedure.yml'))
+                                       f'{self.my_name}_install_procedure{specific_arch}.yml'))
 
         if self.eng_mode == 'gather-dependencies':
             dependency_folder_collector()  # ENGINEERING MODE

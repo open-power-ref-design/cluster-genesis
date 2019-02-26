@@ -1,0 +1,20 @@
+---
+- name: Get filename from software-vars.yml
+  set_fact:
+    file: "{{ content_files['anaconda'].split('/', 2)[-1] }}"
+
+- name: Get route to client
+  command: "{{ hostvars['localhost']['python_executable_local'] }} \
+  {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+  {{ inventory_hostname }}"
+  delegate_to: localhost
+  register: host_ip
+
+- name: Download Anaconda
+  get_url:
+    owner: "{{ ansible_user_id }}"
+    group: "{{ ansible_user_id }}"
+    mode: 0744
+    checksum: md5:c9af603d89656bc89680889ef1f92623.
+    url: "http://{{ host_ip.stdout }}/{{ file }}"
+    dest: "{{ ansible_env.HOME }}"
