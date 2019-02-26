@@ -26,7 +26,7 @@ from lib.logger import Logger
 from lib.ssh import SSH_CONNECTION, SSH_Exception
 from lib import genesis
 
-GEN_PATH = genesis.gen_path
+GEN_PATH = genesis.GEN_PATH
 GEN_CONTAINER_NAME = genesis.container_name
 GEN_CONTAINER_RUNNING = genesis.container_running()
 GEN_CONTAINER_ADDR = genesis.container_addr()
@@ -165,7 +165,7 @@ def get_int_input(prompt_str, minn, maxx):
 
 
 if __name__ == '__main__':
-    """Show status of the Cluster Genesis environment
+    """Show status of the POWER-Up environment
 
     Args:
         INV_FILE (string): Inventory file.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cluster Genesis 'teardown' command"""
+"""POWER-Up 'teardown' command"""
 
 # Copyright 2019 IBM Corp.
 #
@@ -30,7 +30,7 @@ from lib.genesis import GEN_PATH
 
 
 class Teardown(object):
-    """Cluster Genesis 'teardown' command
+    """POWER-Up 'teardown' command
 
     Args:
         log(object): log

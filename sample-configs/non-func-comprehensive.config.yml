@@ -1,5 +1,5 @@
 ---
-# Copyright 2018 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -491,7 +491,3 @@ software_bootstrap:
         set -e
         apt update
         apt upgrade -y
-
-# Additional key/value pairs are not processed by Genesis, but are copied into
-# the inventory.yml file and made available to post-Genesis scripts and/or
-# playbooks.

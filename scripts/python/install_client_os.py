@@ -99,7 +99,7 @@ def install_client_os(config_path=None):
         cnt -= 1
     print('\n')
     log.info(stdout)
-    msg = ('\nNot all cluster nodes have started installation.  Genesis is\n'
+    msg = ('\nNot all cluster nodes have started installation. POWER-Up is\n'
            'continuing with the installation. Clients that have not begun\n'
            'installing after an extended period of time have likely \n'
            'encountered a problem.  You may be able to interact with each\n'

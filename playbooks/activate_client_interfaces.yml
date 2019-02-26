@@ -78,7 +78,7 @@
     # A one time copy is made of the network interfaces files after initial
     # OS install. This is now attempted at the end of install in wait_for_
     # client_ping.yml, but is re-attempted here for previous installs done
-    # with prior versions of Genesis.
+    # with prior versions of POWER-Up.
     - block:
         - name: Find interfaces files
           find: paths="/etc/sysconfig/network-scripts" patterns="ifcfg-*"

@@ -5,7 +5,7 @@ Cluster Configuration File Specification
 
 **Specification Version: v2.0**
 
-Genesis of the OpenPOWER Cloud Reference Cluster is controlled by the
+Deployment of the OpenPOWER Cloud Reference Cluster is controlled by the
 'config.yml' file. This file is stored in YAML format. The definition of
 the fields and the YAML file format are documented below.
 
@@ -20,10 +20,6 @@ Each section represents a top level dictionary key:
 | `networks:`_
 | `node_templates:`_
 | `software_bootstrap:`_
-
-Additional key/value pairs are not processed by Cluster Genesis, but are
-copied into the inventory.yml file and made available to post-Genesis
-scripts and/or playbooks.
 
 version:
 ---------
@@ -81,7 +77,7 @@ globals:
 |                                   |                                            |                                                                                            |          |
 +-----------------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------+----------+
 |                                   |                                            |                                                                                            |          |
-| ::                                | ::                                         | Sets Cluster Genesis management switch mode. Evaluates to *active* if missing.             | no       |
+| ::                                | ::                                         | Sets POWER-Up management switch mode. Evaluates to *active* if missing.                    | no       |
 |                                   |                                            |                                                                                            |          |
 |   globals:                        |   switch_mode_mgmt: active                 | | *passive*                                                                                |          |
 |      switch_mode_mgmt:            |                                            | | *active*                                                                                 |          |
@@ -90,7 +86,7 @@ globals:
 |                                   |                                            |                                                                                            |          |
 +-----------------------------------+--------------------------------------------+--------------------------------------------------------------------------------------------+----------+
 |                                   |                                            |                                                                                            |          |
-| ::                                | ::                                         | Sets Cluster Genesis data switch mode. Evaluates to *active* if missing.                   | no       |
+| ::                                | ::                                         | Sets POWER-Up data switch mode. Evaluates to *active* if missing.                          | no       |
 |                                   |                                            |                                                                                            |          |
 |   globals:                        |   switch_mode_data: active                 | | *passive*                                                                                |          |
 |      switch_mode_data:            |                                            | | *active*                                                                                 |          |
@@ -1052,7 +1048,7 @@ software_bootstrap:
 | Element                 | Example(s)                       | Description                                                                                              | Required |
 +=========================+==================================+==========================================================================================================+==========+
 |                         |                                  |                                                                                                          |          |
-| ::                      | ::                               | Software bootstrap defines commands to be run on client nodes after Cluster Genesis completes.           | no       |
+| ::                      | ::                               | Software bootstrap defines commands to be run on client nodes after POWER-Up completes.                  | no       |
 |                         |                                  | This is useful for various additional configuration activities, such as bootstrapping additional         |          |
 |   software_bootstrap:   |   software_bootstrap:            | software package installations.                                                                          |          |
 |       - hosts:          |       - hosts: all               |                                                                                                          |          |

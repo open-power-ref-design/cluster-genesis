@@ -54,7 +54,7 @@ def main(log, inv_file):
         mgmt_network_ext_cidr = str(mgmt_network_ext.cidr)
     except KeyError:
         print('Switch access information not present in: {}'.format(inv_file))
-        print('Cluster Genesis may be in "passive" mode')
+        print('POWER-Up may be in "passive" mode')
     else:
         output = subprocess.check_output(['bash', '-c', 'ip route']
                                          ).decode("utf-8")
@@ -79,7 +79,7 @@ def main(log, inv_file):
             switches_m[index]['addr_ext'] = ipv4
             print(' ' + str(index) + ')  rack: ' +
                   switches_m[index]['rack'] + ',  external address: ' +
-                  switches_m[index]['addr_ext'] + ',  Genesis address: ' +
+                  switches_m[index]['addr_ext'] + ',  POWER-Up address: ' +
                   switches_m[index]['addr_gen'])
             index += 1
         if not (len(switches_m) == 1):
@@ -164,7 +164,7 @@ def get_int_input(prompt_str, minn, maxx):
 
 
 if __name__ == '__main__':
-    """Show status of the Cluster Genesis environment
+    """Show status of the POWER-Up environment
 
     Args:
         INV_FILE (string): Inventory file.

@@ -232,7 +232,7 @@ class Gen(object):
         #     print("Press enter to continue using the existing inventory.")
         #     print("Type 'C' to continue creating a new inventory. "
         #           "WARNING: Contents of current file will be overwritten!")
-        #     resp = input("Type 'T' to terminate Cluster Genesis ")
+        #     resp = input("Type 'T' to terminate POWER-Up ")
         #     if resp == 'T':
         #         sys.exit('POWER-Up stopped at user request')
         #     elif resp == 'C':
