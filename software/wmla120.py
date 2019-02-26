@@ -33,6 +33,7 @@ from getpass import getpass
 import pwd
 import grp
 import click
+import code
 
 import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
@@ -241,6 +242,21 @@ class software(object):
         self.log.debug(f'software variables: {self.sw_vars}')
 
     def __del__(self):
+        # Insure proper priority for conda channels
+        try:
+            if 'ana_powerup_repo_channels' in self.sw_vars:
+                chan_list = []
+                for chan in ('free', 'main', 'ibmai'):
+                    for item in self.sw_vars['ana_powerup_repo_channels']:
+                        if chan in item:
+                            chan_list.append(item)
+                # prepend any remaining which are not in ('free', 'main', 'ibmai')
+                for item in self.sw_vars['ana_powerup_repo_channels']:
+                    if item not in chan_list:
+                        chan_list = [item] + chan_list
+                self.sw_vars['ana_powerup_repo_channels'] = chan_list
+        except:
+            pass
         if not os.path.exists(GEN_SOFTWARE_PATH):
             os.mkdir(GEN_SOFTWARE_PATH)
         if self.eval_ver:
