@@ -15,7 +15,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import tempfile
 import argparse
 import os
 import sys
@@ -75,6 +75,13 @@ def exit(rc, *extra):
             else:  # rc == RC_ERROR:
                 raise Exception(err)
 
+def get_string(string):
+    tempstring = " "
+    tempstring +=string
+    tempstring += " }}"
+    return tempstring
+
+#
 def dependency_folder_collector():
    #sub_proc_display("ansible-fetch copy_text_files_from_client.yml",
    #                 shell=True)
@@ -132,11 +139,11 @@ def parse_ansible_output(output):
     pass
 
 def do_run_ansible_cmd(cmd):
-    LOG.debug("\nRunning: {0}".format(cmd))
     output = ""
+    cmd = f"{ANSIBLE_PREFIX} '{cmd}' {ACCESS}" 
+    print("\nRunning: {0}".format(cmd))
     try:
-        output = bash_cmd(f"ansible all -i {HOST_PATH} -m shell -a '"
-                               f"{cmd} '{ACCESS}")										   #client
+        output = bash_cmd(cmd)										   #client
         LOG.info("\nOutput:\n{0}".format(output))
     except Exception as e :
          LOG.error("\nINFO failed to run {0}\n{1}".format(cmd,e))
@@ -155,6 +162,112 @@ def do_base_system_install(hosts):
 
 def do_remove_yum_dvd_repo():
     yum_remove_dvd()
+
+redhat_subscription =  '''- name: Create Red Hat Registration 
+  hosts: "{{ variable_host | default('') }}" 
+  tasks:
+    - name: Get RedHat Subscription Manager on Node rhsm.sh script
+      shell:  "wget --no-check-certificate --user='{0}' --password='{1}' -O /tmp/ibm-rhsm.sh https://ftp3.linux.ibm.com/dl.php?file=/redhat/ibm-rhsm.sh"
+    - name: Run  rhsm.sh  script
+      shell: "bash /tmp/ibm-rhsm.sh"
+      become: True
+      environment:
+        FTP3USER: '{2}'
+        FTP3PASS: '{3}'
+        FTP3FORCE: y'''
+
+def do_public_setup(hosts):
+    # ip route add default via  192.168.65.3
+    # setup network script to static
+    #    DEVICE=eth15
+     #  TYPE=Ethernet
+     #  BOOTPROTO=none
+     #  ONBOOT=yes
+     #  IPADDR=192.168.65.21
+     #  PREFIX=24
+     #  GATEWAY=192.168.65.3
+     #  NM_CONTROLLED=no
+     #  DEFROUTE=yes
+     #  ZONE=public
+    # setup redhat license
+    # add to /etc/hosts 
+    #   192.168.65.21 server-1
+    #change hostname to server-1 
+    #   hostnamectl set-hostname server-1
+    # install nfs-utils
+    # remove dvd iso repo
+    #   sudo rm -rf /etc/yum.repos.d/*dvd*
+    # add conda defaults to .condarc
+    # pypi repo set to output repo by removing  --index-url http://{{ host_ip.stdout }}/repos/pypi/simple
+    # and --trusted-host {{ host_ip.stdout }} 
+     # make direcoroy
+     #  sudo mkdir -p /nfs/pwrai
+     # 
+     # setup fstab to persist
+     # (make sure the owner matches the current user (not root)
+     # The owner of /nfs/pwrai  and it's subdirectories should now be nfsnobody, 
+     # the owner of directories under pwrai  (ie rh) should be the local user)
+     # 
+     #   echo "9.3.89.51:/media/shnfs_sdo/nfs/pwrai  /nfs/pwrai  nfs nolock,acl,rsize=8192,wsize=8192,timeo=14,intr,nfsvers=3 0 0" | sudo tee --append /etc/fstab
+    pass
+
+def do_private_setup(hosts):
+    # remove ip route add default via  192.168.65.3
+    # setup network script to static
+    #    DEVICE=eth15
+     #  TYPE=Ethernet
+     #  BOOTPROTO=none
+     #  ONBOOT=yes
+     #  IPADDR=192.168.65.21
+     #  PREFIX=24
+     #  GATEWAY=192.168.65.3
+     #  NM_CONTROLLED=no
+     #  DEFROUTE=yes
+     #  ZONE=public
+    # setup redhat license
+    # add to /etc/hosts 
+    #   192.168.65.21 server-1
+    #change hostname to server-1 
+    #   hostnamectl set-hostname server-1
+    # install nfs-utils
+    # add  dvd iso repo
+    #   sudo rm -rf /etc/yum.repos.d/*dvd*
+    # add conda defaults to .condarc
+    # pypi repo set to output repo by removing  --index-url http://{{ host_ip.stdout }}/repos/pypi/simple
+    # and --trusted-host {{ host_ip.stdout }} 
+     # make direcoroy
+     #  sudo mkdir -p /nfs/pwrai
+     # 
+     # setup fstab to persist
+     # (make sure the owner matches the current user (not root)
+     # The owner of /nfs/pwrai  and it's subdirectories should now be nfsnobody, 
+     # the owner of directories under pwrai  (ie rh) should be the local user)
+     # 
+     #   echo "9.3.89.51:/media/shnfs_sdo/nfs/pwrai  /nfs/pwrai  nfs nolock,acl,rsize=8192,wsize=8192,timeo=14,intr,nfsvers=3 0 0" | sudo tee --append /etc/fstab
+    pass
+
+def do_run_redhat_sub(hosts):
+    # todo get input from user
+    runfile = tempfile.NamedTemporaryFile() 
+    subscribe = redhat_subscription.format('',
+                                           '', 
+                                           '',
+                                           '')
+    print(f"{runfile.name}")
+    with open(runfile.name,'w') as f:
+        f.write(subscribe)
+    output = bash_cmd(f"ansible-playbook {runfile.name} --extra-vars=\"variable_host={0}\" '{ACCESS}'".format(hosts))
+    print(output)
+def get_cmd_install_rhel_repos():
+    name =  "Install Rhell Rhepos"
+    cmd = 'sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm && sudo subscription-manager repos --enable "rhel-*-optional-rpms"\
+        --enable "rhel-*-extras-rpms"  --enable "rhel-ha-for-rhel-*-server-rpms"'
+    return cmd,name
+def do_install_rhel_repos(hosts):
+    LOG.debug("Install Rhel Public Repos")
+    cmd,name = get_cmd_install_rhel_repos()
+    output  = do_run_ansible_cmd(cmd)
+    print(output)
 
 def file_collecter(file_name,process):
 
@@ -335,6 +448,20 @@ def configure_spectrum_conductor():
     file_collecter(file_name='dlinsights_conda_post_install.txt',
              process='source /opt/anaconda3/bin/activate dlinsights && '
                      'conda list --explicit')
+def do_call_file_collector(args):
+    soft_type = args.soft_type 
+    environment = args.environment 
+    at_time = args.at_time 
+    command = f"{environment} list"
+    if environment == "conda":
+        command = command + " --explicit"
+    else:
+        pippath = "/opt/anaconda3/envs/{soft_type}/bin/"
+        comand = pippath + command
+
+    file_collecter(file_name=f'{soft_type}_{environment}_{at_time}_install.txt',
+             process=f'source /opt/anaconda3/bin/activate {soft_type} && '
+                     f'{command}')
 
 def powerai_tunning():
     # Gather post yum list from client
@@ -412,6 +539,17 @@ def parse_input(args):
                   [('hosts', 'hosts file path', False)])
     add_subparser('powerai_tunning', "run yum list insalled on all the hosts",
                   [('hosts', 'hosts file path', False)])
+
+    add_subparser('run_redhat_sub', "run redhat subscription",
+                  [('hosts', 'hosts file path', False)])
+    add_subparser('install_rhel_repos', "run install rhel repos on hosts",
+                  [('hosts', 'hosts file path', False)])
+    add_subparser('call_file_collector', "call file collector",
+                  [('soft_type', 'dlipy2, dlipy3, dlinsights', True),
+                    ('environment', 'pip or conda', True),
+                    ('at_time', 'pre or post', True)
+                   ])
+
     #  add_subparser('bundle', "Bundle Paie software, assume bundle from /srv directory",
                   #  [('to', 'bundle paie software to?', True)])
 #
@@ -436,6 +574,22 @@ def validate_exists(name, path):
         exit(RC_ARGS, "{1} does not exist ({0})".format(path, name))
     LOG.debug("{1} = {0}".format(path, name))
     return path
+
+def validate_values(envs, environment):
+    if environment not in envs:
+        LOG.debug("{1} != {0}".format(environment, " ".join(envs)))
+        exit(RC_ARGS, "Only options are: ".format(" ".join(envs)))
+    return environment
+
+def validate_environment(environment):
+    envs = ["pip", "conda"]
+    return validate_values(envs, environment)
+
+def validate_at_time(at_time):
+    return validate_values(["post", "pre"],at_time) 
+
+def validate_soft_type(soft_type):
+    return validate_values(['dlinsights',"dlipy2", "dlipy3"],soft_type) 
 
 def validate_hosts(hosts):
     if not hosts:
