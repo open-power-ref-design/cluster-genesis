@@ -65,6 +65,7 @@ COBBLER_PASS = 'cobbler'
 DHCP_POOL_START = 21
 SWITCH_LOCK_PATH = '/var/lock/'
 OS_IMAGES_URLS_FILENAME = 'os-image-urls.yml'
+DOCKERFILE = 'Dockerfile'
 
 
 class Color:
@@ -311,6 +312,10 @@ def get_os_image_urls():
     os_image_urls_yaml_path = get_os_image_urls_yaml_path()
     os_image_urls = yaml.load(open(os_image_urls_yaml_path))['os_image_urls']
     return os_image_urls
+
+
+def get_dockerfile_path():
+    return os.path.join(GEN_PATH, DOCKERFILE)
 
 
 if os.path.isfile(GEN_PATH + "playbooks/host_vars/localhost"):

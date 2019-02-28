@@ -26,6 +26,7 @@ from shutil import copy2
 from subprocess import Popen, PIPE
 from netaddr import IPNetwork, IPAddress, IPSet
 from tabulate import tabulate
+import hashlib
 
 from lib.config import Config
 import lib.logger as logger
@@ -984,3 +985,19 @@ def get_col_pos(tbl, hdrs, row_char='-'):
 
 def timestamp():
     return datetime.datetime.now().strftime("%d-%h-%Y-%H-%M-%S")
+
+
+def sha1sum(file_path):
+    """ Calculate sha1 checksum of single file
+
+    Args:
+        file_path (str): Path to file
+
+    Returns:
+        str: sha1 checksum
+    """
+    sha1sum = hashlib.sha1()
+    with open(file_path, 'rb') as file_object:
+        for block in iter(lambda: file_object.read(sha1sum.block_size), b''):
+            sha1sum.update(block)
+    return sha1sum.hexdigest()

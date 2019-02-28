@@ -28,7 +28,7 @@ import lib.logger as logger
 from lib.config import Config
 from lib.exception import UserException
 import lib.genesis as gen
-from lib.utilities import sub_proc_display
+from lib.utilities import sub_proc_display, sha1sum
 
 
 class Container(object):
@@ -52,8 +52,10 @@ class Container(object):
         self.cont_os_images_path = gen.get_container_os_images_path()
         self.cont_playbooks_path = gen.get_container_playbooks_path()
         self.depl_package_path = gen.get_package_path()
+        self.depl_scripts_path = gen.get_scripts_path()
         self.depl_python_path = gen.get_python_path()
         self.depl_playbooks_path = gen.get_playbooks_path()
+        self.depl_dockerfile_path = gen.get_dockerfile_path()
 
         if name is True or name is None:
             for vlan in self.cfg.yield_depl_netw_client_vlan('pxe'):
@@ -118,7 +120,7 @@ class Container(object):
                 sys.exit('POWER-Up stopped at user request')
         else:
             # Make sure image is built
-            self.build_image()
+            tag = self.build_image()
 
             # Create inventory mount
             source = gen.get_symlink_realpath(self.cfg.config_path)
@@ -140,7 +142,7 @@ class Container(object):
             try:
                 self.log.info(f"Creating Docker container '{self.name}'")
                 self.cont = (
-                    self.client.containers.run(image=self.image.id,
+                    self.client.containers.run(image=tag,
                                                name=self.name,
                                                cap_add=["NET_ADMIN"],
                                                tty=True,
@@ -162,6 +164,16 @@ class Container(object):
                 self.log.error(msg)
                 raise UserException(msg)
             self.log.debug("Re-started container '{self.name}'")
+
+        # Copy current scripts into container
+        self.copy(self.depl_scripts_path, self.cont_scripts_path)
+
+        # Build current python venv
+        self.copy(os.path.join(self.depl_package_path, 'requirements.txt'),
+                  self.cont_package_path + '/')
+        self.run_command([os.path.join(self.cont_scripts_path,
+                                       'venv_install.sh'),
+                          self.cont_package_path + '/'])
 
         # Create '/root/.ssh' directory
         self.run_command(['mkdir', '-p', '/root/.ssh'])
@@ -228,12 +240,18 @@ class Container(object):
         self.connect_networks()
 
     def build_image(self):
-        self.log.info("Building Docker image "
-                      f"'{self.DEFAULT_CONTAINER_NAME}'")
+        repo_name = self.DEFAULT_CONTAINER_NAME
+        dockerfile_tag = sha1sum(self.depl_dockerfile_path)
+        tag = f"{repo_name}:{dockerfile_tag}"
+        if len(self.client.images.list(name=tag)) > 0:
+            self.log.info(f"Using existing Docker image '{tag}'")
+            return tag
+        else:
+            self.log.info(f"Building Docker image '{repo_name}'")
         try:
             self.image, build_logs = self.client.images.build(
                 path=gen.get_package_path(),
-                tag=self.DEFAULT_CONTAINER_NAME,
+                tag=tag,
                 rm=True)
         except docker.errors.APIError as exc:
             msg = ("Failed to create image "
@@ -242,6 +260,7 @@ class Container(object):
             raise UserException(msg)
         self.log.debug("Created image "
                        f"'{self.DEFAULT_CONTAINER_NAME}'")
+        return tag
 
     def connect_networks(self):
         for network, ipaddr in self.create_networks():
