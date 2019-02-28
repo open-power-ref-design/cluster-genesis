@@ -73,21 +73,7 @@ class software(object):
         self.log.info(f"Using architecture: {self.arch}")
         # add filename to distinguish architecture
         self.base_filename = f'{self.my_name}' if self.arch == 'ppc64le' else f'{self.my_name}_{self.arch}'
-        self.state = {'EPEL Repository': '-',
-                      'CUDA Driver Repository': '-',
-                      'IBM AI Repository': '-',
-                      'WMLA license content': '-',
-                      'Dependent Packages Repository': '-',
-                      'Python Package Repository': '-',
-                      'Anaconda content': '-',
-                      'Anaconda Free Repository': '-',
-                      'Anaconda Main Repository': '-',
-                      'Spectrum conductor content': '-',
-                      'Spectrum conductor content entitlement': '-',
-                      'Spectrum DLI content': '-',
-                      'Spectrum DLI content entitlement': '-',
-                      'Nginx Web Server': '-',
-                      'Firewall': '-'}
+        self.state = self.get_state() 
         # Only yum repos should be listed under self.repo_id
         self.repo_id = {'EPEL Repository': f'epel-{self.arch}',
                         'Dependent Packages Repository': 'dependencies',
@@ -113,7 +99,7 @@ class software(object):
                     input('\nPress enter to continue')
                 # clear out any licensed version of PowerAI files
                 else:
-                    self.sw_vars['content_files']['powerai-enterprise-license'] = ''
+                    self.sw_vars['content_files']['ibm-wmla-license'] = ''
                     self.sw_vars['content_files']['spectrum-conductor'] = ''
                     self.sw_vars['content_files']['spectrum-conductor-entitlement'] = ''
                     self.sw_vars['content_files']['spectrum-dli'] = ''
@@ -135,7 +121,7 @@ class software(object):
                     input('\nPress enter to continue')
                 # clear out any eval version of PowerAI Enterprise files
                 else:
-                    self.sw_vars['content_files']['powerai-enterprise-license'] = ''
+                    self.sw_vars['content_files']['ibm-wmla-license'] = ''
                     self.sw_vars['content_files']['spectrum-conductor'] = ''
                     self.sw_vars['content_files']['spectrum-conductor-entitlement'] = ''
                     self.sw_vars['content_files']['spectrum-dli'] = ''
@@ -216,6 +202,41 @@ class software(object):
         self.vault_pass_file = f'{GEN_SOFTWARE_PATH}.vault'
 
         self.log.debug(f'software variables: {self.sw_vars}')
+    def get_state(self):
+        if self.arch == "ppc64le":
+            return {'EPEL Repository':'-',
+                                      'CUDA Driver Repository': '-',
+                                      'IBM AI Repository': '-',
+                                      'WMLA license content': '-',
+                                      'Dependent Packages Repository': '-',
+                                      'Python Package Repository': '-',
+                                      'Anaconda content': '-',
+                                      'Anaconda Free Repository': '-',
+                                      'Anaconda Main Repository': '-',
+                                      'Spectrum conductor content': '-',
+                                      'Spectrum conductor content entitlement': '-',
+                                      'Spectrum DLI content': '-',
+                                      'Spectrum DLI content entitlement': '-',
+                                      'Nginx Web Server': '-',
+                                      'Firewall': '-'}
+        else:
+            return {'EPEL Repository':'-',
+                                      'CUDA Driver Repository': '-',
+                                      'IBM AI Repository': '-',
+                                      'WMLA license content': '-',
+                                      'Dependent Packages Repository': '-',
+                                      'Python Package Repository': '-',
+                                      'Anaconda content': '-',
+                                      'Conda-forge linux-64 Repository': '-',
+                                      'Conda-forge noarch Repository': '-',
+                                      'Anaconda Free Repository': '-',
+                                      'Anaconda Main Repository': '-',
+                                      'Spectrum conductor content': '-',
+                                      'Spectrum conductor content entitlement': '-',
+                                      'Spectrum DLI content': '-',
+                                      'Spectrum DLI content entitlement': '-',
+                                      'Nginx Web Server': '-',
+                                      'Firewall': '-'}
 
     def __del__(self):
         # Insure proper priority for conda channels
@@ -263,7 +284,7 @@ class software(object):
                 'Before beginning, the following files should be extracted from the\n'
                 'WatsonMLA Enterprise binary file and present on this node;\n'
                 f'- mldl-repo-local-5.4.0-*.{self.arch}.rpm\n'
-                f'- powerai-enterprise-license-1.1.2-*.{self.arch}.rpm\n'
+                f'- wmlaa-1.2.1.0*.{self.arch}.rpm\n'
                 f'- conductor2.3.0.0_{self.arch}.bin\n'
                 '- conductor_entitlement.dat\n'
                 f'- dli-1.2.1.0_{self.arch}.bin\n'
@@ -373,13 +394,15 @@ class software(object):
                 continue
 
             # Anaconda Conda-forge repo status
-            if item == 'Conda-forge Repository':
-                repodata = glob.glob(f'/srv/repos/anaconda/conda-forge'
-                                     '/noarch/repodata.json', recursive=True)
-                if repodata:
-                    self.state[item] = f'{item} is setup'
-                continue
-
+            for it in ['','noarch', 'linux-64', "linux-ppc64le"]:
+                it = 'noarch'if it == '' else it 
+                if item == f'Conda-forge {it} Repository':
+                    repodata = glob.glob('/srv/repos/anaconda/conda-forge'
+                                         f'/{it}/repodata.json', recursive=True)
+                    if repodata:
+                        self.state[item] = f'{item} is setup'
+                    continue
+            
         exists = True
         if which == 'all':
             heading1('Preparation Summary')
@@ -640,7 +663,7 @@ class software(object):
         repo_id = 'ibmai'
         repo_name = 'IBM AI Repository'
         baseurl = ('https://public.dhe.ibm.com/ibmdl/export/pub/software/server/'
-                   'ibm-ai/conda/')
+                   'ibm-ai/conda/'+'linux-'+self.ana_platform_basename+"/")
         heading1(f'Set up {repo_name}\n')
 
         vars_key = get_name_dir(repo_name)  # format the name
@@ -1054,11 +1077,16 @@ class software(object):
                 rl = self.pkgs['anaconda_main_noarch']['reject_list']
                 repo.sync_ana(noarch_url, acclist=al, rejlist=rl)
 
-    def create_conda_forge_repo(self, eval_ver=False, non_int=False):
+    def create_conda_forge_repo(self, eval_ver=False, non_int=False): 
+        for i in ['noarch', 'linux-64']:
+            if f'Conda-forge {i} Repository' in self.state:
+                self._create_conda_forge_repo(arch_type=i)
+    
+    def _create_conda_forge_repo(self, eval_ver=False, non_int=False,arch_type="noarch"):
         # Setup Anaconda conda-forge Repo.  (not a YUM repo)
         repo_id = 'anaconda'
-        repo_name = 'Conda-forge noarch Repository'
-        baseurl = 'https://conda.anaconda.org/conda-forge/noarch/'
+        repo_name = f'Conda-forge {arch_type} Repository'
+        baseurl = f'https://conda.anaconda.org/conda-forge/{arch_type}/'
         heading1(f'Set up {repo_name}\n')
 
         vars_key = get_name_dir(repo_name)  # format the name
@@ -1067,26 +1095,26 @@ class software(object):
         else:
             alt_url = None
 
-        exists = self.status_prep(which='Conda-forge Repository')
+        exists = self.status_prep(which=repo_name)
         if exists:
-            self.log.info('The Conda-forge Repository exists already'
+            self.log.info(f'The Conda-forge {arch_type} Repository exists already'
                           ' in the POWER-Up server\n')
 
         repo = PowerupAnaRepoFromRepo(repo_id, repo_name, arch=self.arch)
 
         ch = repo.get_action(exists)
         if ch in 'Y':
-            url = repo.get_repo_url(baseurl, alt_url, contains=['noarch'],
+            url = repo.get_repo_url(baseurl, alt_url, contains=[arch_type],
                                     excludes=['main'],
                                     filelist=['configparser-3.5*'])
             if url:
                 if not url == baseurl:
                     self.sw_vars[f'{vars_key}-alt-url'] = url
-
-                al = self.pkgs['conda_forge_noarch_pkgs']['accept_list']
+                pkg_yml_name = ''.join('_' if c == '-' else c for c in arch_type)
+                al = self.pkgs[f'conda_forge_{pkg_yml_name}_pkgs']['accept_list']
 
                 dest_dir = repo.sync_ana(url, acclist=al)
-                dest_dir = dest_dir[4 + dest_dir.find('/srv'):7 + dest_dir.find('noarch')]
+                dest_dir = dest_dir[4 + dest_dir.find('/srv'):7 + dest_dir.find(arch_type)]
                 # form .condarc channel entry. Note that conda adds
                 # the corresponding 'noarch' channel automatically.
                 channel = f'  - http://{{{{ host_ip.stdout }}}}{dest_dir}'
@@ -1383,8 +1411,8 @@ class software(object):
         self.create_conda_free_repo()
 
         self.create_conda_main_repo()
-
-        #  self.create_conda_forge_repo()
+        
+        self.create_conda_forge_repo()
 
         self.create_pypi_repo()
 

@@ -717,13 +717,11 @@ class Gen(object):
             else:
                 soft = software_module.software(self.args.eval, self.args.non_interactive, self.args.arch)
             try:
-                if (self.args.prep is True or self.args.all is True) and self.args.step is None:
+                if (self.args.prep is True or self.args.all is True) and self.args.get_state is not None:
                     try:
-                        soft.prep()
+                        soft.status_prep()
                     except AttributeError as exc:
-                        print(exc.message)
-                        print('The software class needs to implement a '
-                              'method named "setup"')
+                        print(exc)
                 elif (self.args.prep is True or self.args.all is True) and self.args.step is not None:
                     try:
                         soft.prep_init()
@@ -733,6 +731,13 @@ class Gen(object):
                         soft.prep_post()
                     except AttributeError as exc:
                         print(exc)
+                elif (self.args.prep is True or self.args.all is True) and self.args.step is None:
+                    try:
+                        soft.prep()
+                    except AttributeError as exc:
+                        print(exc.message)
+                        print('The software class needs to implement a '
+                              'method named "setup"')
             except KeyboardInterrupt as e:
                 soft.prep_post()
                 print('User exited ...\n' + str(e))

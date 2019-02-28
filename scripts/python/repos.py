@@ -590,7 +590,7 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
                 cmd = (f'wget -N -S -P {dest_dir} {url}{file}')
                 res, err, rc = sub_proc_exec(cmd, shell=True)
                 if rc != 0 and file == 'repodata.json':
-                    self.log.error(f'Error downloading {file}.  rc: {rc}')
+                    self.log.error(f'Error downloading {file}.  rc: {rc} url:{url} dest_dir:{dest_dir}\ncmd:{cmd}')
                 err = err.splitlines()
                 for line in err:
                     if '-- not retrieving' in line:

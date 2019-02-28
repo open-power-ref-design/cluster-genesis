@@ -415,12 +415,17 @@ def get_args(parser_args=False):
                  'wmla_license', 'spectrum_dli',
                  'dependency_repo', 'conda_content_repo',
                  'conda_free_repo', 'conda_main_repo',
-                 'conda_forge_repo', 'create_pypi_repo',
+                 'conda_forge_repo', 'pypi_repo',
                  'epel_repo', 'custom_repo'],
         help='Runs the software phase with specified step')
+
+    parser_software.add_argument(
+        '--get_state',
+        default=None,
+        action="store_true",
+        help='Get state of prep phase')
     # 'utils' subcommand arguments
     parser_utils.set_defaults(utils=True)
-
     parser_utils.add_argument(
         '--scan-pxe-network',
         action='store_true',
