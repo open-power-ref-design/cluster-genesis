@@ -61,12 +61,25 @@
         create: True
 
     - name: Update switch mac address tables
-      shell: "dhclient -r && dhclient {{ item }} -1 || true"
+      shell: "dhclient -r && dhclient -n -1 {{ item }} || true"
       become: true
       when:
         - item != 'lo'
         - "ansible_host != hostvars[inventory_hostname]['ansible_' + \
            item.replace('-', '_')].get('ipv4', {}).get('address')"
+        - ansible_distribution == 'Ubuntu'
+      loop: "{{ ansible_interfaces }}"
+      environment:
+        PATH_DHCLIENT_CONF: /run/dhclient.conf
+
+    - name: Update switch mac address tables
+      shell: "dhclient -r && dhclient -1 {{ item }} || true"
+      become: true
+      when:
+        - item != 'lo'
+        - "ansible_host != hostvars[inventory_hostname]['ansible_' + \
+           item.replace('-', '_')].get('ipv4', {}).get('address')"
+        - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
       loop: "{{ ansible_interfaces }}"
       environment:
         PATH_DHCLIENT_CONF: /run/dhclient.conf
