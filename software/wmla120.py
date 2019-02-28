@@ -34,6 +34,7 @@ import pwd
 import grp
 import click
 
+
 import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
     PowerupAnaRepoFromRepo, PowerupRepoFromRpm, setup_source_file, \
@@ -813,6 +814,7 @@ class software(object):
             print(f'{repo_name} repository not updated')
         if ch != 'S':
             repo_dir = '/cuda-drivers-[4-9][0-9][0-9].[0-9]*-[0-9]*'
+
             files = glob.glob(repo_dir, recursive=True)
             if files:
                 self.sw_vars['cuda-drivers'] = re.search(r'cuda-drivers-\d+\.\d+-\d+',
@@ -891,6 +893,7 @@ class software(object):
         if ch == 'E':
             
             repo = PowerupRepo(repo_id, repo_name, proc_family=self.proc_family, root_dir=self.root_dir)
+
             repo_dir = repo.get_repo_dir()
             self._add_dependent_packages(repo_dir, dep_list)
             self._add_dependent_packages(repo_dir, more)
@@ -905,6 +908,7 @@ class software(object):
 
             repo = PowerupRepoFromDir(repo_id, repo_name, proc_family=self.proc_family,
                                       root_dir=self.root_dir)
+
 
             if f'{repo_id}_src_dir' in self.sw_vars:
                 src_dir = self.sw_vars[f'{repo_id}_src_dir']
@@ -928,6 +932,7 @@ class software(object):
 
             repo = PowerupYumRepoFromRepo(repo_id, repo_name, proc_family=self.proc_family,
                                           root_dir=self.root_dir)
+
             url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
                                     filelist=['bzip2-*'])
             if url:

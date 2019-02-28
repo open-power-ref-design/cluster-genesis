@@ -179,7 +179,9 @@ class PowerupRepo(object):
     """Base class for creating a yum repository for access by POWER-Up software
      clients.
     """
-    def __init__(self, repo_id, repo_name, arch='ppc64le', proc_family='family', rhel_ver='7', root_dir="/srv/"):
+
+    def __init__(self, repo_id, repo_name, arch='ppc64le', proc_family='family',
+                 rhel_ver='7'):
         self.repo_id = repo_id
         self.repo_name = repo_name
         self.arch = arch
@@ -196,6 +198,7 @@ class PowerupRepo(object):
                              f'{self.repo_id}')
         self.anarepo_dir = f'{self.root_dir}/repos/{self.repo_id}'
         self.pypirepo_dir = f'{self.root_dir}/repos/{self.repo_id}'
+
         self.log = logger.getlogger()
 
     def get_repo_dir(self):
@@ -380,6 +383,7 @@ class PowerupRepoFromRpm(PowerupRepo):
     def __init__(self, repo_id, repo_name, arch='ppc64le', rhel_ver='7', proc_family='family', root_dir="/srv/"):
         super(PowerupRepoFromRpm, self).__init__(repo_id, repo_name, arch, proc_family, rhel_ver, root_dir)
 
+
     def get_rpm_path(self, filepath='/home/**/*.rpm'):
         """Interactive search for the rpm path.
         Returns: Path to file or None
@@ -453,6 +457,7 @@ class PowerupYumRepoFromRepo(PowerupRepo):
     
     def __init__(self, repo_id, repo_name, arch='ppc64le', proc_family='family', rhel_ver='7', root_dir="/srv/"):
         super(PowerupYumRepoFromRepo, self).__init__(repo_id, repo_name, arch, proc_family, rhel_ver, root_dir)
+
 
     def sync(self):
         self.log.info(f'Syncing {self.repo_name}')
@@ -767,6 +772,7 @@ class PowerupRepoFromDir(PowerupRepo):
     def __init__(self, repo_id, repo_name, arch='ppc64le', proc_family='family', rhel_ver='7', root_dir="/srv/"):
         super(PowerupRepoFromDir, self).__init__(repo_id, repo_name, arch, proc_family, rhel_ver, root_dir)
     
+
     def copy_dirs(self, src_dir=None):
         if os.path.exists(self.repo_dir):
             if get_yesno(f'Directory {self.repo_dir} already exists.\nOK to replace it? '):
