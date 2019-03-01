@@ -275,7 +275,6 @@ class Gen(object):
         except FileNotFoundError as exc:
             log.debug(f'Unable to create copy of config file. {exc}')
 
-
     def _install_cobbler(self):
         from lib.container import Container
 

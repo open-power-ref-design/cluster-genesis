@@ -76,15 +76,16 @@ class Bmc(object):
         if self.bmc_type == 'openbmc':
             self.error('Not implemented')
             return
-            #return open_bmc.get_system_info(self.host, self.bmc)
+            # return open_bmc.get_system_info(self.host, self.bmc)
         if self.bmc_type == 'ipmi':
-            return ipmi.get_system_inventory_in_background(self.host, self.user, self.pw)
+            return ipmi.get_system_inventory_in_background(self.host,
+                                                           self.user, self.pw)
 
     def extract_system_info(self, inventory):
         if self.bmc_type == 'openbmc':
             self.error('Not implemented')
             return
-            #return open_bmc.extract_system_info(inventory)
+            # return open_bmc.extract_system_info(inventory)
         if self.bmc_type == 'ipmi':
             return ipmi.extract_system_info(inventory)
 
@@ -92,7 +93,7 @@ class Bmc(object):
         if self.bmc_type == 'openbmc':
             self.error('Not implemented')
             return
-            #return open_bmc.extract_system_info(inventory)
+            # return open_bmc.extract_system_info(inventory)
         if self.bmc_type == 'ipmi':
             return ipmi.extract_system_sn_pn(inventory)
 

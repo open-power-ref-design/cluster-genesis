@@ -27,7 +27,7 @@ from subprocess import Popen, PIPE
 from netaddr import IPNetwork, IPAddress, IPSet
 from tabulate import tabulate
 from textwrap import dedent
-import code
+# import code
 
 from lib.config import Config
 import lib.logger as logger
@@ -114,7 +114,8 @@ def has_dhcp_servers(interface):
 def scan_subnet(cidr):
     """Scans a subnet for responding devices.
     Args:
-        cidr (str): subnet in cidr format or can be list of ips seperated by spaces
+        cidr (str): subnet in cidr format or can be list of ips separated by
+                    spaces
     """
     cmd = f'sudo nmap -sn {cidr}'
     res, err, rc = sub_proc_exec(cmd)
@@ -137,8 +138,8 @@ def scan_subnet(cidr):
 def scan_subnet_for_port_open(cidr, port):
     """Scans a subnet for responding devices.
     Args:
-        cidr (str or list): subnet in cidr format or can be list of ips seperated
-        by spaces.
+        cidr (str or list): subnet in cidr format or can be list of ips
+                            separated by spaces.
         port (str or int) : tcp port to check
     """
     if isinstance(cidr, list):
@@ -146,15 +147,18 @@ def scan_subnet_for_port_open(cidr, port):
     cmd = f'sudo nmap -p {port} {cidr}'
     res, err, rc = sub_proc_exec(cmd)
     items = []
-    #code.interact(banner='scan subnet for port1', local=dict(globals(), **locals()))
+    # code.interact(banner='scan subnet for port1',
+    #               local=dict(globals(), **locals()))
     if rc != 0:
         LOG.error(f'Error while scanning subnet {cidr}, rc: {rc}')
     for line in res.split('Nmap scan report'):
         match = re.search(PATTERN_EMBEDDED_IP, line)
-        #code.interact(banner='scan subnet for port2', local=dict(globals(), **locals()))
+        # code.interact(banner='scan subnet for port2',
+        #               local=dict(globals(), **locals()))
         if match:
             ip = match.group(0)
-            match2 = re.search(r'\d+/tcp\s+open.+' + rf'({PATTERN_MAC})', line, re.DOTALL)
+            match2 = re.search(r'\d+/tcp\s+open.+' + rf'({PATTERN_MAC})', line,
+                               re.DOTALL)
             if match2:
                 mac = match2.group(1)
                 if match2:
@@ -505,8 +509,8 @@ def fileglob_to_regx(fileglob):
     return regx
 
 
-def get_url(url='http://', fileglob='', prompt_name='', repo_chk='', contains=[],
-            excludes=[], filelist=[]):
+def get_url(url='http://', fileglob='', prompt_name='', repo_chk='',
+            contains=[], excludes=[], filelist=[]):
     """Input a URL from user. The URL is checked for validity using curl and
     wget and the user can continue modifying it indefinitely until a response
     is obtained or he can enter 'sss' to skip (stop) entry.
@@ -521,17 +525,17 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk='', contains=[]
 
     fileglob and repo_chk are mutually exclusive.
 
-    If neither fileglob nor repo_chk are specified, and the url does not end in '/'
-    then the url is assumed to be looking for a file.
+    If neither fileglob nor repo_chk are specified, and the url does not end
+    in '/' then the url is assumed to be looking for a file.
 
     Inputs:
         url (str). Valid URLs are http:, https:, and file:
         fileglob (str) standard linux fileglobs with *, ? or []
         repo_chk (str) 'yum', 'ana' or 'pypi'
-        contains (list of strings) Filter criteria to be used in combination with
-            repo_chk. After finding repos of the type in 'repo_chk', the list is
-            restricted to those urls that contain elements from 'contains' and no
-            elements of 'excludes'.
+        contains (list of strings) Filter criteria to be used in combination
+            with repo_chk. After finding repos of the type in 'repo_chk', the
+            list is restricted to those urls that contain elements from
+            'contains' and no elements of 'excludes'.
         excludes (list of strings)
         filelist (list of strings) Can be globs. Used to validate a repo. The
             specified files must be present
@@ -558,7 +562,8 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk='', contains=[]
             pass
         else:
             if 'http:' in url or 'https:' in url:
-                response = re.search(r'HTTP\/\d+.\d+\s+200\s+ok', url_info, re.IGNORECASE)
+                response = re.search(r'HTTP\/\d+.\d+\s+200\s+ok', url_info,
+                                     re.IGNORECASE)
                 if response:
                     repo_mrkr = {'yum': '/repodata/', 'ana': 'repodata.json',
                                  'pypi': '/simple/'}
@@ -585,9 +590,9 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk='', contains=[]
 
                         found = []
                         # Include items containing any element of 'contains'
-                        # and exclude items containing any element of 'excludes'
-                        # If no item meets criteria, then use any / all
-                        # items but include a warning.
+                        # and exclude items containing any element of
+                        # 'excludes' If no item meets criteria, then use
+                        # any / all items but include a warning.
                         if repo_chk:
                             for _url in _found:
                                 if (any([item for item in contains if item in
@@ -601,8 +606,8 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk='', contains=[]
                         elif _found:
                             _list = _found
                             if repo_chk:
-                                print(bold('\nWarning. The following url(s) were '
-                                           'found but do not match the '
+                                print(bold('\nWarning. The following url(s) '
+                                           'were found but do not match the '
                                            'search criteria'))
                         else:
                             _list = []
@@ -615,8 +620,9 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk='', contains=[]
                                     if files_present(url, filelist):
                                         break
                                     else:
-                                        print('\nChosen URL does not appear to '
-                                              'be valid. File check failed.')
+                                        print('\nChosen URL does not appear '
+                                              'to be valid. File check '
+                                              'failed.')
                                         if get_yesno('Use selection anyway'):
                                             break
                                 else:
@@ -691,7 +697,8 @@ def get_dir(src_dir):
         path = src_dir
     # path = os.getcwd()
     while True:
-        path = rlinput(f'Enter an absolute directory location (S to skip): ', path)
+        path = rlinput(f'Enter an absolute directory location (S to skip): ',
+                       path)
         if path == 'S':
             return None
         if os.path.exists(path):
@@ -715,8 +722,9 @@ def get_dir(src_dir):
             non_rpm_filelist += rows * ['']
             list2 = non_rpm_filelist[:cnt]
             print('\n' + bold(path))
-            print(tabulate(list(zip(list1, list2)), headers=[bold('RPM Files'),
-                  bold('Other files')], tablefmt='psql'))
+            print(tabulate(list(zip(list1, list2)),
+                           headers=[bold('RPM Files'),
+                                    bold('Other files')], tablefmt='psql'))
 
             if rpm_cnt > 0:
                 print(bold(f'{rpm_cnt} rpm files found'))
@@ -766,16 +774,18 @@ def scan_ping_network(network_type='all', config_path=None):
 
 def get_selection(items, choices=None, prompt='Enter a selection: ', sep='\n',
                   allow_none=False, allow_retry=False):
-    """Prompt user to select a choice. Entered choice can be a member of choices or
-    items, but a member of choices is always returned as choice. If choices is not
-    specified a numeric list is generated. Note that if choices or items is a string
-    it will be 'split' using sep. If you wish to include sep in the displayed
-    choices or items, an alternate seperator can be specified.
+    """Prompt user to select a choice. Entered choice can be a member of
+    choices or items, but a member of choices is always returned as choice. If
+    choices is not specified a numeric list is generated. Note that if choices
+    or items is a string it will be 'split' using sep. If you wish to include
+    sep in the displayed choices or items, an alternate seperator can be
+    specified.
     ex: ch, item = get_selection('Apple pie\nChocolate cake')
-    ex: ch, item = get_selection('Apple pie.Chocolate cake', 'Item 1.Item 2', sep='.')
+    ex: ch, item = get_selection('Apple pie.Chocolate cake', 'Item 1.Item 2',
+                                 sep='.')
     Inputs:
-        choices (str or list or tuple): Choices. If not specified, a numeric list is
-        generated.
+        choices (str or list or tuple): Choices. If not specified, a numeric
+                                        list is generated.
         items (str or list or tuple): Description of choices or items to select
     returns:
        ch (str): One of the elements in choices
@@ -824,10 +834,10 @@ def get_selection(items, choices=None, prompt='Enter a selection: ', sep='\n',
 
 
 def get_src_path(src_name):
-    """Search local disk for src_name and allow interactive selection if more than
-    one match. Note that the user is not given the option to change the search
-    criteria. Searching starts recursively in the /home directory and expands to
-    entire file system if no match in /home.
+    """Search local disk for src_name and allow interactive selection if more
+    than one match. Note that the user is not given the option to change the
+    search criteria. Searching starts recursively in the /home directory and
+    expands to entire file system if no match in /home.
     """
     log = logger.getlogger()
     while True:
@@ -853,11 +863,13 @@ def get_src_path(src_name):
             if not resp:
                 print(f'Source file {src_name} not found')
                 if not get_yesno('Search again', 'y/no', default='y'):
-                    log.error(f'Source file {src_name} not found.\n {src_name} is not'
-                              ' setup in the POWER-Up software server.')
+                    log.error(f'Source file {src_name} not found.\n '
+                              f'{src_name} is not setup in the POWER-Up '
+                              'software server.')
                     return None
             else:
-                ch, src_path = get_selection(resp, prompt='Select a source file: ',
+                ch, src_path = get_selection(resp,
+                                             prompt='Select a source file: ',
                                              allow_none=True, allow_retry=True)
                 if ch != 'R':
                     return src_path
@@ -875,13 +887,16 @@ def get_file_path(filename='/home'):
     """
     print(bold('\nFile search hints:'))
     print('/home/user1/abc.*         Search for abc.* under home/user1/')
-    print('/home/user1/**/abc.*      Search recursively for abc.* under /home/user1/')
-    print('/home/user1/myfile[56].2  Search for myfile5.2 or myfile6.2 under /home/user1/')
+    print('/home/user1/**/abc.*      Search recursively for abc.* under '
+          '/home/user1/')
+    print('/home/user1/myfile[56].2  Search for myfile5.2 or myfile6.2 under '
+          '/home/user1/')
     print('/home/user1/*/            List directories under /home/user1')
     print()
     maxl = 40
     while True:
-        print("Enter a file name to search for ('L' to leave without making a selction): ")
+        print("Enter a file name to search for ('L' to leave without making a "
+              "selction): ")
         filename = rlinput(bold("File: "), filename)
         print()
         if filename == 'L' or filename == "'L'":
@@ -890,7 +905,8 @@ def get_file_path(filename='/home'):
         if files:
             print(bold(f'Found {len(files)} matching'))
             if len(files) > maxl:
-                print(f'\nSearch returned more than {maxl} items. Showing first {maxl}')
+                print(f'\nSearch returned more than {maxl} items. Showing '
+                      f'first {maxl}')
                 files = files[:40]
             choices = [str(i + 1) for i in range(len(files))]
             choices.append('S')
