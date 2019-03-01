@@ -15,16 +15,12 @@ ibm_ai_conda_noarch:
 #  reject_list:
 anaconda_free_linux_ppc64le:
   accept_list:
-    - backports.weakref-1.0rc1-py27_0.tar.bz2
-    - blas-1.0-openblas.tar.bz2
     - cython-0.25.2-py27_0.tar.bz2
     - cython-0.25.2-py36_0.tar.bz2
     - ipython-5.3.0-py27_0.tar.bz2
     - ipython-5.3.0-py36_0.tar.bz2
     - pandas-0.20.3-py27_1.tar.bz2
     - pandas-0.20.3-py36_1.tar.bz2
-    - python-lmdb-0.92-py27_0.tar.bz2
-    - python-lmdb-0.92-py36_0.tar.bz2
     - redis-py-2.10.5-py27_0.tar.bz2
     - redis-py-2.10.5-py36_0.tar.bz2
     - requests-2.13.0-py27_0.tar.bz2
@@ -42,13 +38,15 @@ anaconda_main_linux_ppc64le:
     - asn1crypto-0.24.0-py27_0.tar.bz2
     - astor-0.7.1-py27_0.tar.bz2
     - astor-0.7.1-py36_0.tar.bz2
-    - atomicwrites-1.3.0-py_0.tar.bz2
+    #- atomicwrites-1.3.0-py_0.tar.bz2
     - attrs-18.2.0-py27h28b3542_0.tar.bz2
     - attrs-18.2.0-py36h28b3542_0.tar.bz2
     - backports-1.0-py27_1.tar.bz2
     - backports.functools_lru_cache-1.5-py27_1.tar.bz2
     - backports.shutil_get_terminal_size-1.0.0-py27_2.tar.bz2
+    - backports.weakref-1.0.post1-py27_0.tar.bz2
     - backports_abc-0.5-py27_0.tar.bz2
+    - blas-1.0-openblas.tar.bz2
     - bokeh-1.0.4-py27_0.tar.bz2
     - bokeh-1.0.4-py36_0.tar.bz2
     - boost-1.67.0-py27_4.tar.bz2
@@ -61,11 +59,13 @@ anaconda_main_linux_ppc64le:
     - certifi-2018.11.29-py36_0.tar.bz2
     - cffi-1.11.5-py27h9745a5d_0.tar.bz2
     - cffi-1.11.5-py36h9745a5d_0.tar.bz2
+    - cffi-1.12.1-py27h2e261b9_0.tar.bz2
     - chardet-3.0.4-py27_1.tar.bz2
     - chardet-3.0.4-py36_1.tar.bz2
     - click-7.0-py27_0.tar.bz2
     - click-7.0-py36_0.tar.bz2
-    - cloudpickle-0.7.0-py_0.tar.bz2
+    - cloudpickle-0.8.0-py27_0.tar.bz2
+    - cloudpickle-0.8.0-py36_0.tar.bz2
     - coverage-4.5.2-py27h7b6447c_0.tar.bz2
     - coverage-4.5.2-py36h7b6447c_0.tar.bz2
     - cryptography-2.5-py27h1ba5d50_0.tar.bz2
@@ -73,12 +73,13 @@ anaconda_main_linux_ppc64le:
     - cycler-0.10.0-py36_0.tar.bz2
     - cytoolz-0.9.0.1-py27h14c3975_1.tar.bz2
     - cytoolz-0.9.0.1-py36h14c3975_1.tar.bz2
-    - dask-1.1.1-py_0.tar.bz2
-    - dask-core-1.1.1-py_0.tar.bz2
+    - dask-1.1.2-py27_0.tar.bz2
+    - dask-1.1.2-py36_0.tar.bz2
+    #- dask-core-1.1.2-py_0.tar.bz2
     - decorator-4.3.2-py27_0.tar.bz2
     - decorator-4.3.2-py36_0.tar.bz2
-    - distributed-1.25.3-py27_0.tar.bz2
-    - distributed-1.25.3-py36_0.tar.bz2
+    - distributed-1.26.0-py27_0.tar.bz2
+    - distributed-1.26.0-py36_0.tar.bz2
     - enum34-1.1.6-py27_1.tar.bz2
     - ffmpeg-4.0-hcdf2ecd_0.tar.bz2
     - flask-1.0.2-py27_1.tar.bz2
@@ -90,7 +91,7 @@ anaconda_main_linux_ppc64le:
     - functools32-3.2.3.2-py27_1.tar.bz2
     - future-0.17.1-py27_0.tar.bz2
     - future-0.17.1-py36_0.tar.bz2
-    - futures-3.2.0-py27_0.tar.bz2
+#    - futures-3.2.0-py27_0.tar.bz2
     - gast-0.2.2-py27_0.tar.bz2
     - gast-0.2.2-py36_0.tar.bz2
     - get_terminal_size-1.0.0-0.tar.bz2
@@ -108,8 +109,8 @@ anaconda_main_linux_ppc64le:
     - hypothesis-3.59.1-py36h39e3cac_0.tar.bz2
     - icu-58.2-h64fc554_1.tar.bz2
     - idna-2.8-py27_0.tar.bz2
-    - imageio-2.4.1-py27_0.tar.bz2
-    - imageio-2.4.1-py36_0.tar.bz2
+    - imageio-2.5.0-py27_0.tar.bz2
+    - imageio-2.5.0-py36_0.tar.bz2
     - ipaddress-1.0.22-py27_0.tar.bz2
     - ipython_genutils-0.2.0-py27_0.tar.bz2
     - ipython_genutils-0.2.0-py36_0.tar.bz2
@@ -145,15 +146,15 @@ anaconda_main_linux_ppc64le:
     - libxcb-1.13-h1bed415_0.tar.bz2
     - libxml2-2.9.9-he19cac6_0.tar.bz2
     - linecache2-1.0.0-py27_0.tar.bz2
-    - llvmlite-0.27.0-py27hd408876_0.tar.bz2
-    - llvmlite-0.27.0-py36hd408876_0.tar.bz2
+    - llvmlite-0.26.0-py27hd408876_0.tar.bz2
+    - llvmlite-0.26.0-py36hd408876_0.tar.bz2
     - lmdb-0.9.22-hf484d3e_1.tar.bz2
     - locket-0.2.0-py27_1.tar.bz2
     - locket-0.2.0-py36_1.tar.bz2
     - markdown-3.0.1-py27_0.tar.bz2
     - markdown-3.0.1-py36_0.tar.bz2
-    - markupsafe-1.1.0-py27h7b6447c_0.tar.bz2
-    - markupsafe-1.1.0-py36h7b6447c_0.tar.bz2
+    - markupsafe-1.1.1-py27h7b6447c_0.tar.bz2
+    - markupsafe-1.1.1-py36h7b6447c_0.tar.bz2
     - matplotlib-2.2.3-py27hb69df0a_0.tar.bz2
     - matplotlib-3.0.2-py36h5429711_0.tar.bz2
     - mock-2.0.0-py27_0.tar.bz2
@@ -169,8 +170,8 @@ anaconda_main_linux_ppc64le:
     - ninja-1.8.2-py36h6bb024c_1.tar.bz2
     - nose-1.3.7-py27_2.tar.bz2
     - nose-1.3.7-py36_2.tar.bz2
-    - numba-0.42.0-py27h962f231_0.tar.bz2
-    - numba-0.42.0-py36h962f231_0.tar.bz2
+    - numba-0.41.0-py27h962f231_0.tar.bz2
+    - numba-0.41.0-py36h962f231_0.tar.bz2
     - numpy-1.14.5-py27h2aefc1b_4.tar.bz2
     - numpy-1.14.5-py36h2aefc1b_4.tar.bz2
     - numpy-base-1.14.5-py27h2b20989_4.tar.bz2
@@ -194,19 +195,19 @@ anaconda_main_linux_ppc64le:
     - pickleshare-0.7.5-py36_0.tar.bz2
     - pillow-5.3.0-py27h0d2faf8_0.tar.bz2
     - pillow-5.3.0-py36h0d2faf8_0.tar.bz2
-    - pip-19.0.1-py27_0.tar.bz2
-    - pip-19.0.1-py36_0.tar.bz2
+    - pip-19.0.3-py27_0.tar.bz2
+    - pip-19.0.3-py36_0.tar.bz2
     - pixman-0.34.0-h1f8d8dc_3.tar.bz2
-    - pluggy-0.8.1-py27_0.tar.bz2
-    - pluggy-0.8.1-py36_0.tar.bz2
+    - pluggy-0.9.0-py27_0.tar.bz2
+    - pluggy-0.9.0-py36_0.tar.bz2
     - prompt_toolkit-1.0.15-py27_0.tar.bz2
     - prompt_toolkit-1.0.15-py36_0.tar.bz2
     - psutil-5.5.0-py27h7b6447c_0.tar.bz2
     - psutil-5.5.0-py36h7b6447c_0.tar.bz2
     - ptyprocess-0.6.0-py27_0.tar.bz2
     - ptyprocess-0.6.0-py36_0.tar.bz2
-    - py-1.7.0-py27_0.tar.bz2
-    - py-1.7.0-py36_0.tar.bz2
+    - py-1.8.0-py27_0.tar.bz2
+    - py-1.8.0-py36_0.tar.bz2
     - py-boost-1.67.0-py27h04863e7_4.tar.bz2
     - py-boost-1.67.0-py36h04863e7_4.tar.bz2
     - pycparser-2.19-py27_0.tar.bz2
@@ -220,10 +221,12 @@ anaconda_main_linux_ppc64le:
     - pytest-4.1.1-py36_0.tar.bz2
     - python-2.7.15-h81612d6_6.tar.bz2
     - python-3.6.8-h4134adf_0.tar.bz2
-    - python-dateutil-2.7.5-py27_0.tar.bz2
-    - python-dateutil-2.7.5-py36_0.tar.bz2
+    - python-dateutil-2.8.0-py27_0.tar.bz2
+    - python-dateutil-2.8.0-py36_0.tar.bz2
     - python-gflags-3.1.2-py27_0.tar.bz2
     - python-gflags-3.1.2-py36_0.tar.bz2
+    - python-lmdb-0.94-py27h14c3975_0.tar.bz2
+    - python-lmdb-0.94-py36h14c3975_0.tar.bz2
     - pytz-2018.9-py27_0.tar.bz2
     - pytz-2018.9-py36_0.tar.bz2
     - pywavelets-1.0.1-py27hdd07704_0.tar.bz2
@@ -274,8 +277,8 @@ anaconda_main_linux_ppc64le:
     - wcwidth-0.1.7-py36_0.tar.bz2
     - werkzeug-0.14.1-py27_0.tar.bz2
     - werkzeug-0.14.1-py36_0.tar.bz2
-    - wheel-0.32.3-py27_0.tar.bz2
-    - wheel-0.32.3-py36_0.tar.bz2
+    - wheel-0.33.1-py27_0.tar.bz2
+    - wheel-0.33.1-py36_0.tar.bz2
     - xz-5.2.4-h14c3975_4.tar.bz2
     - yaml-0.1.7-h1bed415_2.tar.bz2
     - zeromq-4.2.5-hf484d3e_0.tar.bz2
@@ -288,9 +291,7 @@ anaconda_main_linux_ppc64le:
 anaconda_main_noarch:
   accept_list:
     - atomicwrites-1.3.0-py_0.tar.bz2
-    - cloudpickle-0.7.0-py_0.tar.bz2
-    - dask-core-1.1.1-py_0.tar.bz2
-    - dask-1.1.1-py_0.tar.bz2
+    - dask-core-1.1.2-py_0.tar.bz2
   reject_list: all
 
 python3_specific_pkgs:
@@ -308,14 +309,13 @@ python_pkgs:
     - boto3==1.9.99
     - botocore==1.12.99
     - bz2file==0.98
-    - certifi==2018.11.29
     - chardet==3.0.4
     - Click==7.0
     - cliff==2.14.0
     - cmd2==0.8.9
     - configparser==3.5.0
     - contextlib2==0.5.5
-    - debtcollector==1.20.0
+    - debtcollector==1.21.0
     - decorator==4.3.2
     - docutils==0.14
     - dogpile.cache==0.7.1
@@ -336,12 +336,13 @@ python_pkgs:
     - itsdangerous==1.1.0
     - Jinja2==2.10
     - jmespath==0.9.3
+    - jmespath==0.9.4
     - jsonpatch==1.23
     - jsonpointer==2.0
     - jsonschema==2.6.0
-    - keystoneauth1==3.11.2
+    - keystoneauth1==3.13.0
     - Mako==1.0.7
-    - MarkupSafe==1.1.0
+    - MarkupSafe==1.1.1
     - mongoengine==0.11.0
     - monotonic==1.5
     - msgpack==0.6.1
@@ -349,16 +350,15 @@ python_pkgs:
     - netaddr==0.7.19
     - netifaces==0.10.9
     - numpy==1.12.1
-    - openstacksdk==0.24.0
-    - os-service-types==1.5.0
-    - osc-lib==1.12.0
-    - oslo.config==6.8.0
-    - oslo.i18n==3.23.0
-    - oslo.serialization==2.28.1
-    - oslo.utils==3.40.2
+    - openstacksdk==0.25.0
+    - os-service-types==1.6.0
+    - osc-lib==1.12.1
+    - oslo.config==6.8.1
+    - oslo.i18n==3.23.1
+    - oslo.serialization==2.28.2
+    - oslo.utils==3.40.3
     - pathlib==1.0.1
-    - pbr==5.1.2
-    - pip==19.0.1
+    - pbr==5.1.3
     - prettytable==0.7.2
     - pymongo==3.7.2
     - pyparsing==2.3.1
@@ -378,11 +378,10 @@ python_pkgs:
     - rfc3986==1.2.0
     - s3transfer==0.2.0
     - scipy==1.0.1
-    - setuptools==40.8.0
     - simplejson==3.16.0
     - smart-open==1.8.0
     - SQLAlchemy==1.1.13
-    - stevedore==1.30.0
+    - stevedore==1.30.1
     - subprocess32==3.5.3
     - unicodecsv==0.14.1
     - urllib3==1.21.1
@@ -390,8 +389,9 @@ python_pkgs:
     - warlock==1.3.0
     - wcwidth==0.1.7
     - Werkzeug==0.14.1
-    - wheel==0.32.3
     - wrapt==1.11.1
+# Note that one of the EPEL packages (libaec, libaec-devel) was at
+# different levels on p8 and p9
 epel_pkgs:
     - dkms-2.6.1-1.el7.noarch
     - gflags-2.1.1-6.el7.ppc64le
@@ -402,8 +402,8 @@ epel_pkgs:
     - hdf5-devel-1.8.12-10.el7.ppc64le
     - leveldb-1.12.0-11.el7.ppc64le
     - leveldb-devel-1.12.0-11.el7.ppc64le
-    - libaec-1.0.2-1.el7.ppc64le
-    - libaec-devel-1.0.2-1.el7.ppc64le
+    - libaec-1.0.4-1.el7.ppc64le
+    - libaec-devel-1.0.4-1.el7.ppc64le
     - libsodium-1.0.17-1.el7.ppc64le
     - libsodium-devel-1.0.17-1.el7.ppc64le
     - lmdb-0.9.22-2.el7.ppc64le
@@ -422,7 +422,115 @@ epel_pkgs:
     - openblas-threads64-0.3.3-2.el7.ppc64le
     - openblas-threads64_-0.3.3-2.el7.ppc64le
     - opencl-filesystem-1.0-5.el7.noarch
-yum_pkgs_p8: []
+yum_pkgs_p8:
+    - adwaita-cursor-theme-3.28.0-1.el7.noarch
+    - adwaita-icon-theme-3.28.0-1.el7.noarch
+    - at-spi2-atk-2.26.2-1.el7.ppc64le
+    - at-spi2-core-2.28.0-1.el7.ppc64le
+    - bind-libs-32:9.9.4-73.el7_6.ppc64le
+    - bind-libs-lite-32:9.9.4-73.el7_6.ppc64le
+    - bind-license-32:9.9.4-73.el7_6.noarch
+    - bind-utils-32:9.9.4-73.el7_6.ppc64le
+    - bzip2-1.0.6-13.el7.ppc64le
+    - cairo-gobject-1.15.12-3.el7.ppc64le
+    - colord-libs-1.3.4-1.el7.ppc64le
+    - copy-jdk-configs-3.3-10.el7_5.noarch
+    - cpp-4.8.5-36.el7.ppc64le
+    - dconf-0.28.0-4.el7.ppc64le
+    - dejavu-serif-fonts-2.33-6.el7.noarch
+    - elfutils-libelf-devel-0.172-2.el7.ppc64le
+    - freetype-2.8-12.el7_6.1.ppc64le
+    - freetype-devel-2.8-12.el7_6.1.ppc64le
+    - gcc-4.8.5-36.el7.ppc64le
+    - gcc-c++-4.8.5-36.el7.ppc64le
+    - gcc-gfortran-4.8.5-36.el7.ppc64le
+    - glib-networking-2.56.1-1.el7.ppc64le
+    - glibc-2.17-260.el7_6.3.ppc64le
+    - glibc-common-2.17-260.el7_6.3.ppc64le
+    - glibc-devel-2.17-260.el7_6.3.ppc64le
+    - glibc-headers-2.17-260.el7_6.3.ppc64le
+    - gnutls-3.3.29-8.el7.ppc64le
+    - gsettings-desktop-schemas-3.28.0-2.el7.ppc64le
+    - gssproxy-0.7.0-21.el7.ppc64le
+    - gtk3-3.22.30-3.el7.ppc64le
+    - java-1.8.0-ibm-1:1.8.0.5.25-1jpp.1.el7.ppc64le
+    - javapackages-tools-3.4.1-11.el7.noarch
+    - json-glib-1.4.2-2.el7.ppc64le
+    - kernel-3.10.0-957.5.1.el7.ppc64le
+    - kernel-bootwrapper-3.10.0-957.5.1.el7.ppc64le
+    - kernel-devel-3.10.0-957.5.1.el7.ppc64le
+    - kernel-headers-3.10.0-957.5.1.el7.ppc64le
+    - kernel-tools-3.10.0-957.5.1.el7.ppc64le
+    - kernel-tools-libs-3.10.0-957.5.1.el7.ppc64le
+    - keyutils-1.5.8-3.el7.ppc64le
+    - keyutils-libs-devel-1.5.8-3.el7.ppc64le
+    - krb5-devel-1.15.1-37.el7_6.ppc64le
+    - krb5-libs-1.15.1-37.el7_6.ppc64le
+    - lcms2-2.6-3.el7.ppc64le
+    - libX11-devel-1.6.5-2.el7.ppc64le
+    - libXau-devel-1.0.8-2.1.el7.ppc64le
+    - libXdmcp-1.1.2-6.el7.ppc64le
+    - libXfont2-2.0.3-1.el7.ppc64le
+    - libXtst-1.2.3-1.el7.ppc64le
+    - libatomic-4.8.5-36.el7.ppc64le
+    - libbasicobjects-0.1.1-32.el7.ppc64le
+    - libcollection-0.7.0-32.el7.ppc64le
+    - libcom_err-devel-1.42.9-13.el7.ppc64le
+    - libepoxy-1.5.2-1.el7.ppc64le
+    - libevent-2.0.21-4.el7.ppc64le
+    - libffi-devel-3.0.13-18.el7.ppc64le
+    - libfontenc-1.1.3-3.el7.ppc64le
+    - libgfortran-4.8.5-36.el7.ppc64le
+    - libglvnd-gles-1:1.0.1-0.8.git5baa1e5.el7.ppc64le
+    - libglvnd-opengl-1:1.0.1-0.8.git5baa1e5.el7.ppc64le
+    - libgusb-0.2.9-1.el7.ppc64le
+    - libini_config-1.3.1-32.el7.ppc64le
+    - libkadm5-1.15.1-37.el7_6.ppc64le
+    - libmodman-2.0.1-8.el7.ppc64le
+    - libmpc-1.0.1-3.el7.ppc64le
+    - libnfsidmap-0.25-19.el7.ppc64le
+    - libpath_utils-0.2.1-32.el7.ppc64le
+    - libpciaccess-0.14-1.el7.ppc64le
+    - libpng-devel-2:1.5.13-7.el7_2.ppc64le
+    - libproxy-0.4.11-11.el7.ppc64le
+    - libref_array-0.1.5-32.el7.ppc64le
+    - libselinux-devel-2.5-14.1.el7.ppc64le
+    - libsepol-devel-2.5-10.el7.ppc64le
+    - libsoup-2.62.2-2.el7.ppc64le
+    - libstdc++-devel-4.8.5-36.el7.ppc64le
+    - libtirpc-0.2.4-0.15.el7.ppc64le
+    - libusbx-1.0.21-1.el7.ppc64le
+    - libvdpau-1.1.1-3.el7.ppc64le
+    - libverto-devel-0.2.5-4.el7.ppc64le
+    - libverto-libevent-0.2.5-4.el7.ppc64le
+    - libwayland-cursor-1.15.0-1.el7.ppc64le
+    - libwayland-egl-1.15.0-1.el7.ppc64le
+    - libxcb-devel-1.13-1.el7.ppc64le
+    - libxkbcommon-0.7.1-1.el7.ppc64le
+    - libxkbfile-1.0.9-3.el7.ppc64le
+    - mpfr-3.1.1-4.el7.ppc64le
+    - net-tools-2.0-0.24.20131004git.el7.ppc64le
+    - nettle-2.7.1-8.el7.ppc64le
+    - nfs-utils-1:1.3.0-0.61.el7.ppc64le
+    - openssl-devel-1:1.0.2k-16.el7.ppc64le
+    - pcre-devel-8.32-17.el7.ppc64le
+    - python-chardet-2.2.1-1.el7_1.noarch
+    - python-javapackages-3.4.1-11.el7.noarch
+    - python-kitchen-1.1.1-5.el7.noarch
+    - quota-1:4.01-17.el7.ppc64le
+    - quota-nls-1:4.01-17.el7.noarch
+    - rest-0.8.1-2.el7.ppc64le
+    - rpcbind-0.2.0-47.el7.ppc64le
+    - tcp_wrappers-7.6-77.el7.ppc64le
+    - trousers-0.3.14-2.el7.ppc64le
+    - vulkan-filesystem-1.1.73.0-1.el7.noarch
+    - xkeyboard-config-2.24-1.el7.noarch
+    - xorg-x11-proto-devel-2018.4-1.el7.noarch
+    - xorg-x11-server-Xorg-1.20.1-5.2.el7_6.ppc64le
+    - xorg-x11-server-common-1.20.1-5.2.el7_6.ppc64le
+    - xorg-x11-xkb-utils-7.7-14.el7.ppc64le
+    - yum-utils-1.1.31-50.el7.noarch
+    - zlib-devel-1.2.7-18.el7.ppc64le
 yum_pkgs_p9:
     - adwaita-cursor-theme-3.28.0-1.el7.noarch
     - adwaita-icon-theme-3.28.0-1.el7.noarch
