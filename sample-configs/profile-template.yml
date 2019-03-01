@@ -171,8 +171,7 @@ node:
         dtype: no-save
 
     node_list:
-        val:
-            - null
+        val: []
         values:
             - null
         desc: Node list
