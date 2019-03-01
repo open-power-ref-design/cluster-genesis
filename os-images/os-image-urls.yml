@@ -20,14 +20,14 @@ os_image_urls:
     images:
       - url: http://releases.ubuntu.com/14.04.5/ubuntu-14.04.5-server-amd64.iso
         sha1sum: 5e567024c385cc8f90c83d6763c6e4f1cd5deb6f
-  - name: ubuntu-16.04.5-server-amd64
+  - name: ubuntu-16.04.6-server-amd64
     images:
-      - url: http://releases.ubuntu.com/16.04/ubuntu-16.04.5-server-amd64.iso
-        sha1sum: ee32c555567dd5407c58a1cfc7e668ab37a99d99
-  - name: ubuntu-16.04.5-server-ppc64el
+      - url: http://releases.ubuntu.com/16.04/ubuntu-16.04.6-server-amd64.iso
+        sha1sum: 056b7c15efc15bbbf40bf1a9ff1a3531fcbf70a2
+  - name: ubuntu-16.04.6-server-ppc64el
     images:
-      - url: http://cdimage.ubuntu.com/releases/16.04.5/release/ubuntu-16.04.5-server-ppc64el.iso
-        sha1sum: ccc734b96543e29127e0864bf88f17faea667100
+      - url: http://cdimage.ubuntu.com/releases/16.04.6/release/ubuntu-16.04.6-server-ppc64el.iso
+        sha1sum: 3c990f38646b7fbd75e560df52b60f0c37c6b7ab
   - name: ubuntu-18.04.2-live-server-amd64
     images:
       - url: http://releases.ubuntu.com/18.04/ubuntu-18.04.2-live-server-amd64.iso
