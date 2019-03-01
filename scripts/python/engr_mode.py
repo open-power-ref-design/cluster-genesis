@@ -128,6 +128,8 @@ def pre_post_file_collect(task):
                                         #Clean cache
 
    def conda_clean_cache():
+      input('Clean conda caches (sudo conda clean all). Press return when ready')
+      return
       conda_cache = "/opt/anaconda3/conda-bld/"
       conda_cache_dir = ['src_cache','git_cache','hg_cache','svn_cache']
       ansible_prefix = f'ansible all -i {host_path} -m shell -a '
@@ -141,6 +143,8 @@ def pre_post_file_collect(task):
             print ("\nINFO Cache directories do not exist\n")
 
    def yum_clean_cache():
+      input('Clean yum caches (sudo yum clean all). Press return when ready')
+      return
       yum_cache_dir = '/var/cache/yum'
       print("\n*ENGINEERING MODE* INFO - Checking for yum cache")
       try:
