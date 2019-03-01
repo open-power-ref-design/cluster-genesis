@@ -97,7 +97,7 @@ def setup_image_config_files(path, html_dir):
             util.copy_file(path + _file, html_dir + 'ubuntu_sources')
 
 
-def cobbler_add_distro(kernel, initrd, name):
+def cobbler_add_distro(name, kernel, initrd):
     """Add distro and profile to Cobbler
 
     Args:
