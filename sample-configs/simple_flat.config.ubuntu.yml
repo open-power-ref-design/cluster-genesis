@@ -1,5 +1,5 @@
 ---
-# Copyright 2018 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -93,7 +93,6 @@ interfaces:
       netmask: 255.255.255.0
       broadcast: 10.3.89.255
       gateway: 10.3.89.1
-      method: static
       mtu: 9000
     - label: external2
       description: Additional data network

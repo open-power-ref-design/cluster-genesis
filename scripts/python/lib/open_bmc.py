@@ -337,6 +337,60 @@ def checkFWactivation(host, session):
     return False
 
 
+def get_system_info(host, session, timeout=5):
+    log = logger.getlogger()
+
+    url = (f"https://{host}/xyz/openbmc_project/inventory/system")
+    httpHeader = {'Content-Type': 'application/json'}
+    try:
+        res = session.get(url, headers=httpHeader, verify=False, timeout=timeout)
+    except(requests.exceptions.Timeout) as exc:
+        log.debug('BMC request timeout error. Host: {host}')
+        log.debug(exc)
+        res = None
+    except(requests.exceptions.ConnectionError) as exc:
+        log.debug('BMC request connection error. Host: {host}')
+        log.debug(exc)
+        res = None
+    else:
+        try:
+            res = json.loads(res.text)
+            # res = (res['data']['Model'], res['data']['SerialNumber'])
+        except (json.JSONDecodeError, AttributeError) as exc:
+            log.error(f'Error in JSON response from BMC {host}')
+            log.debug(exc)
+            res = None
+    log.debug(f'BMC PN and SN: {res}')
+    return res
+
+
+def get_system_sn_pn(host, session, timeout=5):
+    log = logger.getlogger()
+
+    url = (f"https://{host}/xyz/openbmc_project/inventory/system")
+    httpHeader = {'Content-Type': 'application/json'}
+    try:
+        res = session.get(url, headers=httpHeader, verify=False, timeout=timeout)
+    except(requests.exceptions.Timeout) as exc:
+        log.debug('BMC request timeout error. Host: {host}')
+        log.debug(exc)
+        res = None
+    except(requests.exceptions.ConnectionError) as exc:
+        log.debug('BMC request connection error. Host: {host}')
+        log.debug(exc)
+        res = None
+    else:
+        try:
+            res = json.loads(res.text) #['data']['Model'] # ['data'].split('.')[-1].lower()
+            res = (res['data']['SerialNumber'], res['data']['Model'])
+        except (json.JSONDecodeError, AttributeError) as exc:
+            log.error(f'Error in JSON response from BMC {host}')
+            log.debug(exc)
+            res = None
+    log.debug(f'BMC SN and PN: {res}')
+    return res
+
+
 def bmcPowerState(host, session, timeout):
     log = logger.getlogger()
 

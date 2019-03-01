@@ -48,6 +48,17 @@ network:
             prefix: bmc_subnet_prefix
             ifc: bmc_ethernet_ifc
 
+    bmc_ethernet_ifc:
+        val:
+        desc: BMC Ethernet Ifc
+        help: Ethernet port used to access the BMC interfaces. If a route exists
+            which matches the BMC subnet, the interface associated with that route is
+            is displayed and can not be altered. If a route matching the BMC subnet does
+            not exist, a list of 'UP' physical interfaces is presented when you press
+            enter. Cursor up or down and press enter to select an interface.
+        ftype: eth-ifc
+
+
     bmc_address_mode:
         val: dhcp
         values:
@@ -58,16 +69,6 @@ network:
             If dhcp is selected, PowerUp will setup a DHCP server on this node in
             the subnet specified in 'BMC subnet'
         ftype: select-one
-
-    bmc_ethernet_ifc:
-        val:
-        desc: BMC Ethernet Ifc
-        help: Ethernet port used to access the BMC interfaces. If a route exists
-            which matches the BMC subnet, the interface associated with that route is
-            is displayed and can not be altered. If a route matching the BMC subnet does
-            not exist, a list of 'UP' physical interfaces is presented when you press
-            enter. Cursor up or down and press enter to select an interface.
-        ftype: eth-ifc
 
     pxe_vlan_number:
         val:
@@ -106,17 +107,6 @@ network:
             prefix: pxe_subnet_prefix
             ifc: pxe_ethernet_ifc
 
-    pxe_address_mode:
-        val: dhcp
-        values:
-            - dhcp
-            - static
-        desc: PXE address mode
-        help: If static is selected, existing ipv4 addresses will be used and unchanged.
-            If dhcp is selected, PowerUp will setup a DHCP server on this node in
-            the subnet specified in 'PXE subnet'
-        ftype: select-one
-
     pxe_ethernet_ifc:
         val:
         desc: PXE Ethernet Ifc
@@ -127,6 +117,16 @@ network:
             enter. Cursor up or down and press enter to select an interface.
         ftype: eth-ifc
 
+    pxe_address_mode:
+        val: dhcp
+        values:
+            - dhcp
+            - static
+        desc: PXE address mode
+        help: If static is selected, existing ipv4 addresses will be used and unchanged.
+            If dhcp is selected, PowerUp will setup a DHCP server on this node in
+            the subnet specified in 'PXE subnet'
+        ftype: select-one
 
 ######################## Node configuration
 node:
@@ -157,14 +157,28 @@ node:
         ftype: file
         dtype: file-iso
 
+    devices_found:
+        val:
+        desc: Devices found
+        help: Number of devices responding to ICMP echo requests
+        floc: skipline
+        dtype: no-save
+
+    bmcs_found:
+        val:
+        desc: BMCs found
+        help: Number of devices with port 623 open (IPMI)
+        dtype: no-save
+
     node_list:
         val:
-            - 0
+            - null
         values:
             - null
         desc: Node list
         help: This field contains the list of discovered nodes on the BMC subnet. Nodes
             in this list respond to OpenBMC or IPMI communication protocol.
+        floc: skipline
         ftype: select-multi
         dtype: no-save
 

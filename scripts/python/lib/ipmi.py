@@ -18,9 +18,13 @@
 from pyghmi import exceptions as pyghmi_exception
 from pyghmi.ipmi import command
 from pyghmi.ipmi.private import session
+import re
 from enum import Enum
+import yaml
+import code
 
 import lib.logger as logger
+import lib.utilities as u
 
 
 def login(host, username, pw, timeout=None):
@@ -36,11 +40,12 @@ def login(host, username, pw, timeout=None):
     log = logger.getlogger()
 
     if timeout:
-        log.warning('Timeout has now affect for ipmi hostBootSource')
+        log.debug('Timeout has no affect for ipmi hostBootSource')
 
     session.Session.initting_sessions = {}
     try:
         mysess = command.Command(host, username, pw)
+        #mysess = Ipmi_cmd(host, username, pw)
     except pyghmi_exception.IpmiException as exc:
         log.error(f'Failed IPMI login to BMC {host}')
         log.error(exc)
@@ -64,6 +69,147 @@ def logout(host, user, pw, bmc):
     log.debug(f'Closing IPMI connection to: {host} result: {res}')
     del bmc.ipmi_session.initialized
     return res
+
+
+def ipmi_fru2dict(fru_str):
+    """Convert the ipmitool fru output to a dictionary. The function first
+        converts the input string to yaml, then yaml load is used to create a
+        dictionary.
+    Args:
+        fru_str (str): Result of running 'ipmitool fru'
+    returns: A dictionary who's keys are the FRUs
+    """
+    yaml_data = []
+    #code.interact(banner='ipmi.ipmi_fru2dict', local=dict(globals(), **locals()))
+    lines = fru_str.splitlines()
+    for i, _line in enumerate(lines):
+        # Strip out any excess white space (including tabs) around the ':'
+        line = re.sub(r'\s*:\s*', ': ', _line)
+        # Check for blank lines
+        if re.search(r'^\s*$', line):
+            yaml_data.append(line)
+            continue
+        if i < len(lines) - 1:
+            # If indentation is increasing on the following line, then convert the
+            # current line to a dictionary key.
+            indent = re.search(r'[ \t]*', line).span()[1]
+            next_indent = re.search(r'[ \t]*', lines[i + 1]).span()[1]
+            if next_indent > indent:
+                line = re.sub(r'\s*:\s*', ':', line)
+                # if ':' in middle of line take the second half, else
+                # take the beginning
+                if line.split(':')[1]:
+                    line = line.split(':')[1]
+                else:
+                    line = line.split(':')[0]
+                yaml_data.append(line + ':')
+            else:
+                if ':' not in line:
+                    line += ':'
+                split = line.split(':', 1)
+                # Add quotes around the value to handle non alphanumerics
+                line = split[0] + ': "' + split[1] + '"'
+                yaml_data.append(line)
+    yaml_data = '\n'.join(yaml_data)
+    return yaml.load(yaml_data)
+
+
+def extract_system_sn_pn(ipmi_fru_str):
+    fru_item = extract_system_info(ipmi_fru_str)
+    fru_item = fru_item[list(fru_item.keys())[0]]
+
+    return fru_item['Chassis Serial'].strip(), fru_item['Chassis Part Number'].strip()
+
+
+def extract_system_info(ipmi_fru_str):
+    """ Extract the system information from the ipmitool fru result.
+    The fru string is search for keywords to try to locate the system info.
+    Args:
+        ipmi_fru_str (str) : result of ipmitool fru command
+    returns:
+        dictionary with system fru info
+    """
+    #code.interact(banner='extract_system_info', local=dict(globals(), **locals()))
+    yaml_dict = ipmi_fru2dict(ipmi_fru_str)
+    fru_item = ''
+    for item in yaml_dict:
+        for srch_item in ['NODE', 'SYS', 'Backplane', 'MP', 'Mainboard']:
+            #code.interact(banner='There', local=dict(globals(), **locals()))
+            if srch_item in item:
+                fru_item = yaml_dict[item]
+                break
+        if fru_item:
+            fru_item = {item: fru_item}
+            break
+    if not fru_item:
+        fru_item = yaml_dict
+        #fru_item = yaml_dict[list(yaml_dict.keys())[0]]
+    return fru_item
+
+
+def get_system_inventory(host, user, pw):
+    log = logger.getlogger()
+    cmd = f'ipmitool -I lanplus -H {host} -U {user} -P {pw} fru'
+    #code.interact(banner='ipmi.get_system_info', local=dict(globals(), **locals()))
+    res, err, rc = u.sub_proc_exec(cmd)
+    if rc == 0:
+        return res
+    else:
+        log.debug(f'Unable to read system information from {host}, rc: {rc}')
+
+
+def get_system_info(host, user, pw):
+    log = logger.getlogger()
+    #cmd = f'ipmitool -I lanplus -H {host} -U {user} -P {pw} fru'
+    #code.interact(banner='ipmi.get_system_info', local=dict(globals(), **locals()))
+    #res, err, rc = u.sub_proc_exec(cmd)
+    inv = get_system_inventory(host, user, pw)
+
+    if inv:
+        sys_info = extract_system_info(inv)
+        return sys_info
+    else:
+        log.debug(f'Unable to read system information from {host}')
+
+
+def get_system_sn_pn(host, user, pw):
+    log = logger.getlogger()
+    sys_info = get_system_info(host, user, pw)
+    if not sys_info:
+        return
+    else:
+        #code.interact(banner='ipmi.get_system_sn_pn', local=dict(globals(), **locals()))
+        key = list(sys_info.keys())[0]
+        return (sys_info[key]['Chassis Serial'], sys_info[key]['Chassis Part Number'])
+
+
+def get_system_inventory_in_background(host, user, pw):
+    """ Launches a background subprocess (using Popen) to gather fru information from
+    a target node. The reference to the subprocess class is returned. The background
+    subprocess can be polled for completion using process.poll
+    Fru information can be read using process.communicate
+
+    example:
+    p = get_system_inventory_in_background('192.168.36.21', 'ADMIN', 'admin')
+    ready = False
+    while not ready:
+        if p.poll():
+            ready = True
+    sys_inv = p.communicate()
+    sys_info = extract_system_info_from_inventory(sys_inv)  # returns dict
+    sn, pn = extract_system_sn_pn_from_inventory(sys_inv)
+    """
+    log = logger.getlogger()
+    cmd = f'ipmitool -I lanplus -H {host} -U {user} -P {pw} fru'
+    #code.interact(banner='ipmi.get_system_info', local=dict(globals(), **locals()))
+    try:
+        process = u.sub_proc_launch(cmd)
+    except OSError:
+        log.error('An OS error occurred while attempting to run ipmitool fru cmd')
+    except ValueError:
+        log.error('An incorrect argument was passed to the subprocess running ipmitool')
+
+    return process
 
 
 def chassisPower(host, op, bmc, timeout=6):
@@ -143,7 +289,7 @@ def hostBootSource(host, source, bmc, timeout=None):
         safe = 'safe'
 
     if timeout:
-        log.warning('Timeout has now affect for ipmi hostBootSource')
+        log.debug('Timeout has no affect for ipmi hostBootSource')
 
     if source:
         try:
@@ -191,7 +337,7 @@ def hostBootMode(host, mode, bmc, timeout=None):
         bios = 'setup'
 
     if timeout:
-        log.warning('Timeout has now affect for ipmi hostBootMode')
+        log.debug('Timeout has no affect for ipmi hostBootMode')
 
     if mode:
         try:
