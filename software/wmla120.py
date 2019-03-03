@@ -498,7 +498,7 @@ class software(object):
             repo = PowerupRepo(repo_id, repo_name)
             content = repo.get_yum_dotrepo_content(baseurl, gpgcheck=0)
             repo.write_yum_dot_repo_file(content)
-            cmd = 'yum makecache'
+            cmd = 'sudo yum makecache'
             resp, err, rc = sub_proc_exec(cmd)
             if rc != 0:
                 self.log.error('A problem occured while creating the yum caches')
@@ -706,7 +706,7 @@ class software(object):
         # cuda packages repo can be created from a local directory or an
         # existing repository on another node.
         repo_id = 'cuda'
-        repo_name = 'Cuda Driver'
+        repo_name = 'Cuda Driver Repository'
         baseurl = f'http://developer.download.nvidia.com/compute/cuda/repos/rhel7/{self.arch}'
         gpgkey = f'{baseurl}/7fa2af80.pub'
         heading1(f'Set up {repo_name} repository')
@@ -717,10 +717,6 @@ class software(object):
             alt_url = self.sw_vars[f'{repo_id}_alt_url']
         else:
             alt_url = None
-        # Enable the public repo
-        repo_cuda = PowerupRepo(repo_id, repo_name)
-        dot_repo_content = repo_cuda.get_yum_dotrepo_content(url=baseurl, gpgkey=gpgkey)
-        repo_cuda.write_yum_dot_repo_file(dot_repo_content)
 
         exists = self.status_prep(which='CUDA Driver Repository')
         if exists:
@@ -749,6 +745,11 @@ class software(object):
                                          'Repository source? ')
 
         if ch == 'P':
+            # Enable the public repo
+            repo_cuda = PowerupRepo(repo_id, repo_name)
+            dot_repo_content = repo_cuda.get_yum_dotrepo_content(url=baseurl, gpgkey=gpgkey)
+            repo_cuda.write_yum_dot_repo_file(dot_repo_content)
+
             repo = PowerupRepo(repo_id, repo_name)
             repo_dir = repo.get_repo_dir()
             self._add_dependent_packages(repo_dir, pkg_list)
@@ -892,11 +893,12 @@ class software(object):
         if ch == 'E':
             repo = PowerupRepo(repo_id, repo_name, proc_family=self.proc_family)
             repo_dir = repo.get_repo_dir()
+            os.makedirs(repo_dir, exist_ok=True)
             self._add_dependent_packages(repo_dir, dep_list)
             self._add_dependent_packages(repo_dir, more)
             repo.create_meta()
-            content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
-            repo.write_yum_dot_repo_file(content)
+            # content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+            # repo.write_yum_dot_repo_file(content)
             content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
             filename = repo_id + '-powerup.repo'
             self.sw_vars['yum_powerup_repo_files'][filename] = content
@@ -912,8 +914,8 @@ class software(object):
             if src_dir:
                 self.sw_vars[f'{repo_id}_src_dir'] = src_dir
                 repo.create_meta()
-                content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
-                repo.write_yum_dot_repo_file(content)
+                # content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+                # repo.write_yum_dot_repo_file(content)
                 content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
                 filename = repo_id + '-powerup.repo'
                 self.sw_vars['yum_powerup_repo_files'][filename] = content
@@ -940,9 +942,9 @@ class software(object):
                 repo.create_meta()
 
                 # Setup local access to the new repo copy in /srv/repo/
-                if platform.machine() == self.arch:
-                    content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
-                    repo.write_yum_dot_repo_file(content)
+                # if platform.machine() == self.arch:
+                #    content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+                #    repo.write_yum_dot_repo_file(content)
                 # Prep setup of POWER-Up client access to the repo copy
                 content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
                 filename = repo_id + '-powerup.repo'
@@ -1193,8 +1195,8 @@ class software(object):
             self._add_dependent_packages(repo_dir, epel_list)
             self._add_dependent_packages(repo_dir, more)
             repo.create_meta()
-            content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
-            repo.write_yum_dot_repo_file(content)
+            # content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+            # repo.write_yum_dot_repo_file(content)
             content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
             filename = repo_id + '-powerup.repo'
             self.sw_vars['yum_powerup_repo_files'][filename] = content
@@ -1210,8 +1212,8 @@ class software(object):
             if src_dir:
                 self.sw_vars[f'{repo_id}_src_dir'] = src_dir
                 repo.create_meta()
-                content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
-                repo.write_yum_dot_repo_file(content)
+                # content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+                # repo.write_yum_dot_repo_file(content)
                 content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
                 filename = repo_id + '-powerup.repo'
                 self.sw_vars['yum_powerup_repo_files'][filename] = content
@@ -1237,9 +1239,9 @@ class software(object):
                 repo.create_meta()
 
                 # Setup local access to the new repo copy in /srv/repo/
-                if platform.machine() == self.arch:
-                    content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
-                    repo.write_yum_dot_repo_file(content)
+                #if platform.machine() == self.arch:
+                #    content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
+                #    repo.write_yum_dot_repo_file(content)
                 # Prep setup of POWER-Up client access to the repo copy
                 content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
                 filename = repo_id + '-powerup.repo'

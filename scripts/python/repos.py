@@ -454,8 +454,8 @@ class PowerupYumRepoFromRepo(PowerupRepo):
     """
     def __init__(self, repo_id, repo_name, arch='ppc64le', proc_family='family',
                  rhel_ver='7'):
-        super(PowerupYumRepoFromRepo, self).__init__(repo_id, repo_name, proc_family,
-                                                     arch, rhel_ver)
+        super(PowerupYumRepoFromRepo, self).__init__(repo_id, repo_name, arch,
+                                                     proc_family, rhel_ver)
 
     def sync(self):
         self.log.info(f'Syncing {self.repo_name}')
