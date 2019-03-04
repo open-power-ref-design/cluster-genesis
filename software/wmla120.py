@@ -574,7 +574,7 @@ class software(object):
         ch = repo.get_action(exists)
         if ch in 'Y':
             # if not exists or ch == 'F':
-            url = repo.get_repo_url(baseurl, alt_url, contains=['ibm-ai', 'linux',
+            url = repo.get_repo_url(baseurl, alt_url, contains=['ibmai', 'linux',
                                     f'{self.arch}'], excludes=['noarch', 'main'],
                                     filelist=['caffe-1.0*'])
             if url:
@@ -1005,7 +1005,7 @@ class software(object):
             # if not exists or ch == 'F':
             url = repo.get_repo_url(baseurl, alt_url, contains=['free', 'linux',
                                     f'{platform_basename}'], excludes=['noarch', 'main'],
-                                    filelist=['conda-4.3*'])
+                                    filelist=['cython-*'])
             if url:
                 if not url == baseurl:
                     self.sw_vars[f'{vars_key}-alt-url'] = url
@@ -1051,7 +1051,7 @@ class software(object):
         if ch in 'Y':
             url = repo.get_repo_url(baseurl, alt_url, contains=['main', 'linux',
                                     f'{platform_basename}'], excludes=['noarch', 'free'],
-                                    filelist=['numpy-1.15*'])
+                                    filelist=['bzip2-*'])
             if url:
                 if not url == baseurl:
                     self.sw_vars[f'{vars_key}-alt-url'] = url

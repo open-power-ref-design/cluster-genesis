@@ -7,7 +7,7 @@ ibm_ai_conda_linux_ppc64le:
     accept_list: all
     reject_list:
 ibm_ai_conda_noarch:
-    accept_list:
+    accept_list: all
     reject_list:
 #conda_forge_noarch_pkgs:
 #  accept_list:
