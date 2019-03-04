@@ -1,0 +1,9 @@
+#- name: Get route to client
+#  command: "{{ hostvars['localhost']['python_executable_local'] }} \
+#  {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+#  {{ inventory_hostname }}"
+#  delegate_to: localhost
+#  register: host_ip
+
+- name: ENGR_MODE Playbook Pause
+  command: "input(press Any Key to continue.)"

@@ -1,0 +1,62 @@
+---
+- name: Setting Variables
+  set_fact:
+    yum_pre: client_yum_pre_install.txt
+    pip_pre: client_pip_pre_install.txt
+
+- name: Set dependencies directory variable
+  set_fact:
+    dependencies_dir: "../../logs/dependencies/"
+
+            #Create Dependencies Directory
+- name: Check that the check if dependencies directory exists
+  stat:
+    path: "{{dependencies_dir}}"
+  register: dep_result
+  delegate_to: localhost
+
+- name: Create dependencies directory
+  file:
+    path: "{{dependencies_dir}}"
+    state: directory
+    owner: jonest
+    mode: 0777
+  when: dep_result.stat.exists == False
+  delegate_to: localhost
+
+- name: Get route to client
+  command: "{{ hostvars['localhost']['python_executable_local'] }} \
+  {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+  {{ inventory_hostname }}"
+  delegate_to: localhost
+  register: host_ip
+
+                        #YUM
+- name: Check if YUM pre data exists
+  stat:
+    path: "~/{{yum_pre}}"
+  register: yum_pre_result
+
+- name: Create YUM pre data file, if data doesnt exist already on client
+  shell: "yum list installed | sed 1,2d | xargs -n3 | column -t > {{yum_pre}}"
+  when: yum_pre_result.stat.exists == False
+
+- name: Copy YUM data back to deployer
+  fetch:
+    src: "~/{{yum_pre}}"
+    dest: "{{dependencies_dir}}"
+
+                        #PIP
+- name: Check that the check if PIP pre data exists
+  stat:
+    path: "~/{{pip_pre}}"
+  register: pip_pre_result
+
+- name: Create PIP pre data file, if data doesnt exist already on client
+  shell: "touch {{pip_pre}}"
+  when: pip_pre_result.stat.exists == False
+
+- name: Copy PIP data back to deployer
+  fetch:
+    src: "~/{{pip_pre}}"
+    dest: "{{dependencies_dir}}"
