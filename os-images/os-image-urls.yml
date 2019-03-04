@@ -28,10 +28,6 @@ os_image_urls:
     images:
       - url: http://cdimage.ubuntu.com/releases/16.04.6/release/ubuntu-16.04.6-server-ppc64el.iso
         sha1sum: 3c990f38646b7fbd75e560df52b60f0c37c6b7ab
-  - name: ubuntu-18.04.2-live-server-amd64
-    images:
-      - url: http://releases.ubuntu.com/18.04/ubuntu-18.04.2-live-server-amd64.iso
-        sha1sum: aa9606eb8c0bbce00552907f541547c4c510134f
   - name: ubuntu-18.04.2-server-amd64
     images:
       - url: http://cdimage.ubuntu.com/releases/18.04/release/ubuntu-18.04.2-server-amd64.iso

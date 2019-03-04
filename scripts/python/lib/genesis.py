@@ -286,7 +286,6 @@ def get_os_profile_pointers():
         "ubuntu-14.04-server-amd64": "ubuntu-14.04.5-server-amd64",
         "ubuntu-16.04-server-amd64": "ubuntu-16.04.6-server-amd64",
         "ubuntu-16.04-server-ppc64el": "ubuntu-16.04.6-server-ppc64el",
-        "ubuntu-18.04-live-server-amd64": "ubuntu-18.04.2-live-server-amd64",
         "ubuntu-18.04-server-amd64": "ubuntu-18.04.2-server-amd64",
         "ubuntu-18.04-server-ppc64el": "ubuntu-18.04.2-server-ppc64el"}
 
