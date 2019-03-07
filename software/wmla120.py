@@ -1619,9 +1619,17 @@ class software(object):
                                             'spark')
         _set_spectrum_conductor_install_env(self.sw_vars['ansible_inventory'],
                                             'dli', ana_ver)
+
         specific_arch = "_" + self.arch if self.arch == 'x86_64' else ""
-        install_tasks = yaml.load(open(GEN_SOFTWARE_PATH +
-                                       f'{self.my_name}_install_procedure{specific_arch}.yml'))
+        self.run_ansible_task(GEN_SOFTWARE_PATH + f'{self.my_name}_install_procedure{specific_arch}.yml')
+
+    def run_ansible_task(self, yamlfile):
+        log = logger.getlogger()
+        try:
+            install_tasks = yaml.load(open(yamlfile))
+        except Exception as e:
+            log.error("unable to open file: {0}\n error: {1}".format(yamlfile, e))
+            raise e
 
         for task in install_tasks:
             if 'engr_mode' in task['tasks'] and not self.eng_mode:
@@ -1642,6 +1650,10 @@ class software(object):
 #            if self.eng_mode == 'gather-dependencies':
 #                pass
         print('Done')
+
+    def get_software_path(self, tasks_path):
+        tasks_path = f'{self.my_name}_ansible/' + tasks_path
+        return f'{GEN_SOFTWARE_PATH}{tasks_path}'
 
     def _run_ansible_tasks(self, tasks_path, extra_args=''):
         log = logger.getlogger()
