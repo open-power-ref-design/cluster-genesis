@@ -249,6 +249,7 @@ class Inventory(object):
         self.dbase.dump_inventory(self.inv)
 
     def update_switches(self):
+        switches = []
         self.inv.switches = switches
         self.dbase.dump_inventory(self.inv)
 
