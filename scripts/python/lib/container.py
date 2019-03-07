@@ -243,23 +243,23 @@ class Container(object):
         repo_name = self.DEFAULT_CONTAINER_NAME
         dockerfile_tag = sha1sum(self.depl_dockerfile_path)
         tag = f"{repo_name}:{dockerfile_tag}"
-        if len(self.client.images.list(name=tag)) > 0:
-            self.log.info(f"Using existing Docker image '{tag}'")
-            return tag
-        else:
-            self.log.info(f"Building Docker image '{repo_name}'")
         try:
-            self.image, build_logs = self.client.images.build(
-                path=gen.get_package_path(),
-                tag=tag,
-                rm=True)
-        except docker.errors.APIError as exc:
-            msg = ("Failed to create image "
-                   f"'{self.DEFAULT_CONTAINER_NAME}': {exc}")
-            self.log.error(msg)
-            raise UserException(msg)
-        self.log.debug("Created image "
-                       f"'{self.DEFAULT_CONTAINER_NAME}'")
+            self.client.images.get(tag)
+            self.log.info(f"Using existing Docker image '{tag}'")
+        except docker.errors.ImageNotFound:
+            self.log.info(f"Building Docker image '{repo_name}'")
+            try:
+                self.image, build_logs = self.client.images.build(
+                    path=gen.get_package_path(),
+                    tag=tag,
+                    rm=True)
+            except docker.errors.APIError as exc:
+                msg = ("Failed to create image "
+                       f"'{self.DEFAULT_CONTAINER_NAME}': {exc}")
+                self.log.error(msg)
+                raise UserException(msg)
+            self.log.debug("Created image "
+                           f"'{self.DEFAULT_CONTAINER_NAME}'")
         return tag
 
     def connect_networks(self):
