@@ -1,0 +1,42 @@
+---
+    # source /opt/ibm/spectrumcomputing/profile.platform
+    #  egosh user logon -u Admin -x Admin
+    #  egosh service stop all
+    #  egosh ego shutdown
+    #  sudo bash /opt/ibm/spectrumcomputing/uninstall/deeplearningimpactuninstall-1.2.2.0.sh
+    #  sudo bash /opt/ibm/spectrumcomputing/uninstall/conductorsparkuninstall-2.3.0.sh
+    #  sudo rm -rf /root/.powerai
+    #  sudo rm -rf /opt/anaconda3
+    #  sudo rm -rf /opt/ibm
+- name: Gathering data 
+  set_fact:
+    install_dir_ibm: "/opt/ibm"
+    install_dir_anaconda: "/opt/anaconda3"
+    install_dir_license: "/root/.powerai"
+    stop_services: "source /opt/ibm/spectrumcomputing/profile.platform && egosh user logon -u Admin -x Admin && egosh service stop all && printf 'Y'| egosh ego shutdown"
+    uninstall_dli: "printf 'Y' | sudo bash /opt/ibm/spectrumcomputing/uninstall/deeplearningimpactuninstall-1.2.2.0.sh"
+    uninstall_conductor: "printf 'Y' | sudo bash /opt/ibm/spectrumcomputing/uninstall/conductorsparkuninstall-2.3.0.sh"
+
+- name: Stop All Spectrum Computing Services and Shutdown
+  shell: "{{ stop_services }}"
+  become: yes
+
+- name: Uninstall DLI
+  shell: "{{ uninstall_dli }}"
+  become: yes
+
+- name: Uninstall Conductor 
+  shell: "{{ uninstall_conductor }}"
+  become: yes
+
+- name: Removing PowerAI Licencse 
+  shell: "sudo rm -rf {{ install_dir_license }}"
+  become: yes
+
+- name: Removing Anacoda 
+  shell: "sudo rm -rf {{ install_dir_anaconda }}"
+  become: yes
+
+- name: Removing IBM /opt dir 
+  shell: "sudo rm -rf {{ install_dir_ibm }}"
+  become: yes
