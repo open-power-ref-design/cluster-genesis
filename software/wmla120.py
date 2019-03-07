@@ -42,9 +42,9 @@ from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
 from software_hosts import get_ansible_inventory, validate_software_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, Color, \
     get_selection, get_yesno, rlinput, bold, ansible_pprint, replace_regex
-from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path
+from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path, GEN_DEPS_PATH
 
-from engr_mode import pre_post_file_collect, dependency_folder_collector
+#from engr_mode import pre_post_file_collect, dependency_folder_collector
 
 
 class software(object):
@@ -64,9 +64,8 @@ class software(object):
         self.proc_family = proc_family
         if self.arch == 'x86_64' and not proc_family:
             self.proc_family = self.arch
-        self.eng_mode = None
+        self.eng_mode = True
         # self.eng_mode = 'custom-repo'
-        # self.eng_mode = 'gather-dependencies'
         yaml.add_constructor(YAMLVault.yaml_tag, YAMLVault.from_yaml)
         self.arch = arch
         self.log.info(f"Using architecture: {self.arch}")
@@ -1581,10 +1580,12 @@ class software(object):
         install_tasks = yaml.load(open(GEN_SOFTWARE_PATH +
                                        f'{self.my_name}_install_procedure.yml'))
 
-        if self.eng_mode == 'gather-dependencies':
-            dependency_folder_collector()  # ENGINEERING MODE
-
         for task in install_tasks:
+            if 'engr_mode' in task['tasks']:    #ENGR_MODE
+                if self.eng_mode:
+                    heading1("*ENGINEERING MODE ACTIVE*")
+                else:
+                    continue
             heading1(f"Client Node Action: {task['description']}")
             if task['description'] == "Install Anaconda installer":
                 _interactive_anaconda_license_accept(
@@ -1598,8 +1599,11 @@ class software(object):
             if 'hosts' in task:
                 extra_args = f"--limit \'{task['hosts']},localhost\'"
             self._run_ansible_tasks(task['tasks'], extra_args)
-            if self.eng_mode == 'gather-dependencies':
-                pre_post_file_collect(task['tasks'])  # ENGINEERING MODE
+            if 'engr_mode' in task['tasks']:                 #ENGR_MODE
+                if self.eng_mode:
+                     input("Engineering Pause Initiated: Press Any Key to Continue.")
+                else:
+                    continue
         print('Done')
 
     def _run_ansible_tasks(self, tasks_path, extra_args=''):

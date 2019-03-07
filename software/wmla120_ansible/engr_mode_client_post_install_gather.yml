@@ -6,7 +6,7 @@
 
 - name: Set dependencies directory variable
   set_fact:
-    dependencies_dir: "../../logs/dependencies/"
+    dependencies_dir: "{{ hostvars['localhost']['deps_path_local'] }}"
 
 - name: Get route to client
   command: "{{ hostvars['localhost']['python_executable_local'] }} \
@@ -18,7 +18,7 @@
                         #YUYM
 - name: Check that the check if YUM post data exists
   stat:
-    path: "/{{yum_post}}"
+    path: "{{ ansible_env.HOME }}/{{yum_post}}"
   register: yum_post_result
 
 - name: Create YUM post data file, if data doesnt exist already on client
@@ -27,13 +27,13 @@
 
 - name: Copy YUM data back to deployer
   fetch:
-    src: "~/{{yum_post}}"
+    src: "{{ ansible_env.HOME }}/{{yum_post}}"
     dest: "{{dependencies_dir}}"
 
                         #PIP
 - name: Check that the check if PIP post data exists
   stat:
-    path: "/{{pip_post}}"
+    path: "{{ ansible_env.HOME }}/{{pip_post}}"
   register: pip_post_result
 
 - name: Create PIP post data file, if data doesnt exist already on client
@@ -42,5 +42,5 @@
 
 - name: Copy PIP data back to deployer
   fetch:
-    src: "~/{{pip_post}}"
+    src: "{{ ansible_env.HOME }}/{{pip_post}}"
     dest: "{{dependencies_dir}}"
