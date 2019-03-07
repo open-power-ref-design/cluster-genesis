@@ -49,6 +49,8 @@ class DatabaseConfig(object):
         """
 
         if not os.path.isfile(config_file):
+            if os.path.isfile(os.path.join(gen.GEN_PATH, config_file)):
+                self.cfg = os.path.join(gen.GEN_PATH, config_file)
             msg = 'Could not find config file: ' + config_file
             self.log.error(msg)
             raise UserException(msg)

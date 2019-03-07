@@ -370,6 +370,7 @@ class Container(object):
     def copy(self, source_path, cont_dest_path):
         self.log.debug(f"Copy '{source_path}' into "
                        f"'{self.cont.name}:{cont_dest_path}'")
+        orig_cwd = os.getcwd()
         os.chdir(os.path.dirname(source_path))
         source_base = os.path.basename(source_path)
 
@@ -381,3 +382,4 @@ class Container(object):
             os.remove(source_path + '.tar')
         else:
             self.log.error("Container 'put_archive' error!")
+        os.chdir(orig_cwd)
