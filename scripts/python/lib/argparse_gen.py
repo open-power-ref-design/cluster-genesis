@@ -407,9 +407,14 @@ def get_args(parser_args=False):
         choices=['ppc64le', 'x86_64'],
         help='Runs the software phase with specified architecture')
 
+    parser_software.add_argument(
+        '--run_ansible_task',
+        default=None,
+        nargs='?',
+        help='Runs ansbile task from specified software directory')
+
     # 'utils' subcommand arguments
     parser_utils.set_defaults(utils=True)
-
     parser_utils.add_argument(
         '--scan-pxe-network',
         action='store_true',

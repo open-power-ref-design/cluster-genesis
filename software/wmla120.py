@@ -33,7 +33,6 @@ from getpass import getpass
 import pwd
 import grp
 import click
-import code
 
 import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
@@ -1576,9 +1575,15 @@ class software(object):
         _set_spectrum_conductor_install_env(self.sw_vars['ansible_inventory'],
                                             'dli', ana_ver)
 
-        install_tasks = yaml.load(open(GEN_SOFTWARE_PATH +
-                                       f'{self.my_name}_install_procedure.yml'))
+        self.run_ansible_task(GEN_SOFTWARE_PATH + f'{self.my_name}_install_procedure.yml')
 
+    def run_ansible_task(self, yamlfile):
+        log = logger.getlogger()
+        try:
+            install_tasks = yaml.load(open(yamlfile))
+        except Exception as e:
+            log.error("unable to open file: {0}\n error: {1}".format(yamlfile, e))
+            raise e
         if self.eng_mode == 'gather-dependencies':
             dependency_folder_collector()  # ENGINEERING MODE
 

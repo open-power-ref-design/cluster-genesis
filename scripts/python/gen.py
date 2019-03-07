@@ -730,13 +730,42 @@ class Gen(object):
                     print(exc)
                     print('The software class needs to implement a '
                           'method named "init_clients"')
-            if self.args.install is True or self.args.all is True:
-                try:
-                    soft.install()
-                except AttributeError as exc:
-                    print(exc)
-                    print('The software class needs to implement a '
-                          'method named "install"')
+
+            try:
+                if (self.args.install is True or self.args.all is True) and self.args.run_ansible_task is not None:
+                    try:
+                        run_this = "run_ansible_task"
+                        import tempfile
+                        run_it_file = '''---\n- description: Running file {0}\n  tasks: {1}\n'''.format(self.args.run_ansible_task,
+                                                                                                        os.path.basename(self.args.run_ansible_task))
+                        if hasattr(soft, run_this):
+                            func = getattr(soft, run_this)
+                            if not os.path.isfile(self.args.run_ansible_task):
+                                print('\nUnable to find: ' + self.args.run_ansible_task)
+                            else:
+                                fileobj = tempfile.NamedTemporaryFile()
+                                print(fileobj.name)
+                                with open(fileobj.name, 'w') as f:
+                                    f.write(run_it_file)
+                                    f.seek(0)
+                                    func(fileobj.name)
+                        else:
+                            print('\nUnable to find: ' + run_this + " in :" + self.args.name)
+                    except AttributeError as exc:
+                        print(exc)
+
+                elif (self.args.install is True or self.args.all is True) and self.args.run_ansible_task is None:
+                    try:
+                        soft.install()
+                    except AttributeError as exc:
+                        print(exc.message)
+                        print('The software class needs to implement a '
+                              'method named "setup"')
+            except KeyboardInterrupt as e:
+                print('User exited ...\n' + str(e))
+            except Exception as e:
+                raise e
+
             if self.args.README is True:
                 try:
                     soft.README()
