@@ -381,7 +381,7 @@ def get_system_sn_pn(host, session, timeout=5):
         res = None
     else:
         try:
-            res = json.loads(res.text) #['data']['Model'] # ['data'].split('.')[-1].lower()
+            res = json.loads(res.text)
             res = (res['data']['SerialNumber'], res['data']['Model'])
         except (json.JSONDecodeError, AttributeError) as exc:
             log.error(f'Error in JSON response from BMC {host}')
