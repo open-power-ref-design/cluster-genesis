@@ -599,6 +599,10 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
             # Get the list of packages in the repo. Note that if both acclist
             # and rejlist are not provided the full set of packages is downloaded
             pkgs = self.get_pkg_list(os.path.join(dest_dir, 'repodata.json'))
+            if pkgs is None:
+                self.log.error('repodata.json file not found')
+                return None
+
             download_set = set(pkgs)
 
             if acclist and acclist != 'all':
