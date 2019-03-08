@@ -9,176 +9,126 @@ ibm_ai_conda_linux_x86_64:
 ibm_ai_conda_noarch:
     accept_list:
     reject_list:
-conda_forge_noarch_pkgs:
-  accept_list:
-    - configparser-3.5.0-py_1000.tar.bz2
-  reject_list:
 anaconda_free_linux_x86_64:
   accept_list:
-    - asn1crypto-0.22.0-py27_0.tar.bz2
-    - backports-1.0-py27_0.tar.bz2
-    - backports.weakref-1.0rc1-py27_0.tar.bz2
-    - backports_abc-0.5-py27_0.tar.bz2
-    - blas-1.0-openblas.tar.bz2
-    - bzip2-1.0.6-3.tar.bz2
-    - certifi-2016.2.28-py27_0.tar.bz2
-    - certifi-2016.2.28-py36_0.tar.bz2
-    - cffi-1.10.0-py27_0.tar.bz2
-    - chardet-3.0.4-py27_0.tar.bz2
-    - chardet-3.0.4-py36_0.tar.bz2
-    - cloudpickle-0.4.0-py27_0.tar.bz2
-    - cloudpickle-0.4.0-py36_0.tar.bz2
-    - configparser-3.5.0-py27_0.tar.bz2
-    - coverage-4.3.4-py27_0.tar.bz2
-    - coverage-4.3.4-py36_0.tar.bz2
-    - cycler-0.10.0-py27_0.tar.bz2
-    - cycler-0.10.0-py36_0.tar.bz2
     - cython-0.25.2-py27_0.tar.bz2
     - cython-0.25.2-py36_0.tar.bz2
-    - enum34-1.1.6-py27_0.tar.bz2
-    - funcsigs-1.0.2-py27_0.tar.bz2
-    - functools32-3.2.3.2-py27_0.tar.bz2
-    - future-0.16.0-py27_1.tar.bz2
-    - future-0.16.0-py36_1.tar.bz2
-    - futures-3.1.1-py27_0.tar.bz2
-    - get_terminal_size-1.0.0-py27_0.tar.bz2
-    - idna-2.6-py27_0.tar.bz2
-    - ipaddress-1.0.18-py27_0.tar.bz2
     - ipython-5.3.0-py27_0.tar.bz2
     - ipython-5.3.0-py36_0.tar.bz2
-    - ipython_genutils-0.2.0-py27_0.tar.bz2
-    - ipython_genutils-0.2.0-py36_0.tar.bz2
-    - itsdangerous-0.24-py27_0.tar.bz2
-    - itsdangerous-0.24-py36_0.tar.bz2
-    - jpeg-9b-0.tar.bz2
-    - libffi-3.2.1-1.tar.bz2
-    - markdown-2.6.8-py27_0.tar.bz2
-    - markdown-2.6.8-py36_0.tar.bz2
-    - markupsafe-1.0-py27_1.tar.bz2
-    - markupsafe-1.0-py27_1.tar.bz2
-    - markupsafe-1.0-py36_1.tar.bz2
-    - mock-2.0.0-py27_0.tar.bz2
-    - mock-2.0.0-py36_0.tar.bz2
-    - nose-1.3.7-py27_1.tar.bz2
-    - nose-1.3.7-py36_1.tar.bz2
-    - olefile-0.44-py27_0.tar.bz2
-    - olefile-0.44-py36_0.tar.bz2
-    - openssl-1.0.2l-0.tar.bz2
-    - pandas-0.20.3-py27_1.tar.bz2
-    - pandas-0.20.3-py36_1.tar.bz2
-    - path.py-10.3.1-py27_0.tar.bz2
-    - path.py-10.3.1-py36_0.tar.bz2
-    - pathlib2-2.3.0-py27_0.tar.bz2
-    - pbr-1.10.0-py27_0.tar.bz2
-    - pbr-1.10.0-py36_0.tar.bz2
-    - pcre-8.39-1.tar.bz2
-    - pexpect-4.2.1-py27_0.tar.bz2
-    - pexpect-4.2.1-py36_0.tar.bz2
-    - pickleshare-0.7.4-py27_0.tar.bz2
-    - pickleshare-0.7.4-py36_0.tar.bz2
-    - pip-9.0.1-py27_1.tar.bz2
-    - pip-9.0.1-py36_1.tar.bz2
-    - pixman-0.34.0-0.tar.bz2
-    - prompt_toolkit-1.0.15-py27_0.tar.bz2
-    - prompt_toolkit-1.0.15-py36_0.tar.bz2
-    - ptyprocess-0.5.2-py27_0.tar.bz2
-    - ptyprocess-0.5.2-py36_0.tar.bz2
-    - pycparser-2.18-py27_0.tar.bz2
-    - pycparser-2.18-py36_0.tar.bz2
-    - pygments-2.2.0-py27_0.tar.bz2
-    - pygments-2.2.0-py36_0.tar.bz2
-    - pyparsing-2.2.0-py27_0.tar.bz2
-    - pyparsing-2.2.0-py36_0.tar.bz2
-    - python-2.7.13-1.tar.bz2
-    - python-3.6.2-0.tar.bz2
-    - python-dateutil-2.6.1-py27_0.tar.bz2
-    - python-dateutil-2.6.1-py36_0.tar.bz2
-    - pytz-2017.2-py27_0.tar.bz2
-    - pytz-2017.2-py36_0.tar.bz2
-    - pywavelets-0.5.2-np113py27_1.tar.bz2
-    - pywavelets-0.5.2-np113py36_1.tar.bz2
-    - pyyaml-3.12-py27_0.tar.bz2
-    - pyyaml-3.12-py36_0.tar.bz2
-    - redis-3.2.0-0.tar.bz2
+    - libgfortran-3.0.0-1.tar.bz2
+    - libtorch-0.1.12-nomkl_0.tar.bz2
+    - openblas-0.2.19-0.tar.bz2
+    - python-lmdb-0.92-py27_0.tar.bz2
+    - python-lmdb-0.92-py36_0.tar.bz2
+    - pytorch-0.1.12-py27_nomkl_0.tar.bz2
+    - pytorch-0.1.12-py36_nomkl_0.tar.bz2
     - redis-py-2.10.5-py27_0.tar.bz2
     - redis-py-2.10.5-py36_0.tar.bz2
     - requests-2.13.0-py27_0.tar.bz2
     - requests-2.13.0-py36_0.tar.bz2
-    - scandir-1.5-py27_0.tar.bz2
-    - setuptools-36.4.0-py27_1.tar.bz2
-    - setuptools-36.4.0-py36_1.tar.bz2
-    - simplegeneric-0.8.1-py27_1.tar.bz2
-    - simplegeneric-0.8.1-py36_1.tar.bz2
-    - singledispatch-3.4.0.3-py27_0.tar.bz2
-    - six-1.10.0-py27_0.tar.bz2
-    - sqlite-3.13.0-0.tar.bz2
-    - ssl_match_hostname-3.5.0.1-py27_0.tar.bz2
-    - subprocess32-3.2.7-py27_0.tar.bz2
-    - toolz-0.8.2-py27_0.tar.bz2
-    - toolz-0.8.2-py36_0.tar.bz2
-    - tornado-4.5.2-py27_0.tar.bz2
-    - tornado-4.5.2-py36_0.tar.bz2
-    - traitlets-4.3.2-py27_0.tar.bz2
-    - traitlets-4.3.2-py36_0.tar.bz2
-    - wcwidth-0.1.7-py27_0.tar.bz2
-    - wcwidth-0.1.7-py36_0.tar.bz2
-    - wheel-0.29.0-py27_0.tar.bz2
-    - wheel-0.29.0-py36_0.tar.bz2
-    - yaml-0.1.6-0.tar.bz2
-    - zlib-1.2.11-1.tar.bz2
   reject_list:
 anaconda_free_noarch:
   accept_list:
   reject_list: all
-
 anaconda_main_linux_x86_64:
   accept_list:
-    - absl-py-0.6.1-py27_0.tar.bz2
-    - absl-py-0.6.1-py36_0.tar.bz2
+    - absl-py-0.7.0-py27_0.tar.bz2
+    - absl-py-0.7.0-py36_0.tar.bz2
+    - asn1crypto-0.24.0-py27_0.tar.bz2
     - astor-0.7.1-py27_0.tar.bz2
     - astor-0.7.1-py36_0.tar.bz2
-    - atomicwrites-1.2.1-py27_0.tar.bz2
-    - atomicwrites-1.2.1-py36_0.tar.bz2
     - attrs-18.2.0-py27h28b3542_0.tar.bz2
     - attrs-18.2.0-py36h28b3542_0.tar.bz2
+    - backports-1.0-py27_1.tar.bz2
     - backports.functools_lru_cache-1.5-py27_1.tar.bz2
+    - backports.shutil_get_terminal_size-1.0.0-py27_2.tar.bz2
+    - backports.weakref-1.0.post1-py27_0.tar.bz2
+    - backports_abc-0.5-py27_0.tar.bz2
+    - binutils_impl_linux-64-2.28.1-had2808c_3.tar.bz2
+    - binutils_linux-64-7.2.0-had2808c_27.tar.bz2
+    - blas-1.0-openblas.tar.bz2
+    - bokeh-1.0.4-py27_0.tar.bz2
+    - bokeh-1.0.4-py36_0.tar.bz2
     - boost-1.67.0-py27_4.tar.bz2
     - boost-1.67.0-py36_4.tar.bz2
-    - ca-certificates-2018.03.07-hf82bc7d_0.tar.bz2
+    - bzip2-1.0.6-h14c3975_5.tar.bz2
+    - c-ares-1.15.0-h7b6447c_1.tar.bz2
+    - ca-certificates-2019.1.23-0.tar.bz2
     - cairo-1.14.12-h8948797_3.tar.bz2
-    - cffi-1.11.5-py27h9745a5d_0.tar.bz2
-    - cffi-1.11.5-py36h9745a5d_0.tar.bz2
+    - certifi-2018.11.29-py27_0.tar.bz2
+    - certifi-2018.11.29-py36_0.tar.bz2
+    - cffi-1.11.5-py27he75722e_1.tar.bz2
+    - cffi-1.11.5-py36he75722e_1.tar.bz2
+    - cffi-1.12.1-py27h2e261b9_0.tar.bz2
+    - chardet-3.0.4-py27_1.tar.bz2
+    - chardet-3.0.4-py36_1.tar.bz2
     - click-7.0-py27_0.tar.bz2
     - click-7.0-py36_0.tar.bz2
-    - cryptography-2.3.1-py27h1ba5d50_2.tar.bz2
-    - dask-core-0.20.0-py27_0.tar.bz2
-    - dask-core-0.20.0-py36_0.tar.bz2
-    - decorator-4.3.0-py27_0.tar.bz2
-    - decorator-4.3.0-py36_0.tar.bz2
+    - cloudpickle-0.8.0-py27_0.tar.bz2
+    - cloudpickle-0.8.0-py36_0.tar.bz2
+    - coverage-4.5.2-py27h7b6447c_0.tar.bz2
+    - coverage-4.5.2-py36h7b6447c_0.tar.bz2
+    - cryptography-2.5-py27h1ba5d50_0.tar.bz2
+    - cycler-0.10.0-py27_0.tar.bz2
+    - cycler-0.10.0-py36_0.tar.bz2
+    - cytoolz-0.9.0.1-py27h14c3975_1.tar.bz2
+    - cytoolz-0.9.0.1-py36h14c3975_1.tar.bz2
+    - dask-1.1.2-py27_0.tar.bz2
+    - dask-1.1.2-py36_0.tar.bz2
+    - dbus-1.13.6-h746ee38_0.tar.bz2
+    - decorator-4.3.2-py27_0.tar.bz2
+    - decorator-4.3.2-py36_0.tar.bz2
+    - distributed-1.26.0-py27_0.tar.bz2
+    - distributed-1.26.0-py36_0.tar.bz2
+    - enum34-1.1.6-py27_1.tar.bz2
+    - expat-2.2.6-he6710b0_0.tar.bz2
     - ffmpeg-4.0-hcdf2ecd_0.tar.bz2
     - flask-1.0.2-py27_1.tar.bz2
     - flask-1.0.2-py36_1.tar.bz2
     - fontconfig-2.13.0-h9420a91_0.tar.bz2
     - freeglut-3.0.0-hf484d3e_5.tar.bz2
-    - freetype-2.9.1-h8a8886c_0.tar.bz2
-    - gast-0.2.0-py27_0.tar.bz2
-    - gast-0.2.0-py36_0.tar.bz2
-    - glib-2.56.1-hdbcaa40_0.tar.bz2
-    - graphite2-1.3.12-h23475e2_2.tar.bz2
-    - grpcio-1.12.1-py27hdbcaa40_0.tar.bz2
-    - grpcio-1.12.1-py36hdbcaa40_0.tar.bz2
-    - h5py-2.8.0-py27h8d01980_0.tar.bz2
-    - h5py-2.8.0-py36h8d01980_0.tar.bz2
+    - freetype-2.9.1-h8a8886c_1.tar.bz2
+    - funcsigs-1.0.2-py27_0.tar.bz2
+    - functools32-3.2.3.2-py27_1.tar.bz2
+    - future-0.17.1-py27_0.tar.bz2
+    - future-0.17.1-py36_0.tar.bz2
+    - futures-3.2.0-py27_0.tar.bz2
+    - gast-0.2.2-py27_0.tar.bz2
+    - gast-0.2.2-py36_0.tar.bz2
+    - gcc_impl_linux-64-7.2.0-habb00fd_3.tar.bz2
+    - gcc_linux-64-7.2.0-h550dcbe_27.tar.bz2
+    - get_terminal_size-1.0.0-haa9412d_0.tar.bz2
+    - glib-2.56.2-hd408876_0.tar.bz2
+    - graphite2-1.3.13-h23475e2_0.tar.bz2
+    - grpcio-1.16.1-py27hf8bcb03_1.tar.bz2
+    - grpcio-1.16.1-py36hf8bcb03_1.tar.bz2
+    - gst-plugins-base-1.14.0-hbbd80ab_1.tar.bz2
+    - gstreamer-1.14.0-hb453b48_1.tar.bz2
+    - gxx_impl_linux-64-7.2.0-hdf63c60_3.tar.bz2
+    - gxx_linux-64-7.2.0-h550dcbe_27.tar.bz2
+    - h5py-2.8.0-py27h989c5e5_3.tar.bz2
+    - h5py-2.8.0-py36h989c5e5_3.tar.bz2
     - harfbuzz-1.8.8-hffaf4a1_0.tar.bz2
     - hdf5-1.10.2-hba1933b_1.tar.bz2
+    - heapdict-1.0.0-py27_2.tar.bz2
+    - heapdict-1.0.0-py36_2.tar.bz2
     - hypothesis-3.59.1-py27h39e3cac_0.tar.bz2
     - hypothesis-3.59.1-py36h39e3cac_0.tar.bz2
-    - icu-58.2-h64fc554_1.tar.bz2
-    - imageio-2.4.1-py27_0.tar.bz2
-    - imageio-2.4.1-py36_0.tar.bz2
+    - icu-58.2-h9c2bf20_1.tar.bz2
+    - idna-2.8-py27_0.tar.bz2
+    - imageio-2.5.0-py27_0.tar.bz2
+    - imageio-2.5.0-py36_0.tar.bz2
+    - ipaddress-1.0.22-py27_0.tar.bz2
+    - ipython_genutils-0.2.0-py27_0.tar.bz2
+    - ipython_genutils-0.2.0-py36_0.tar.bz2
+    - itsdangerous-1.1.0-py27_0.tar.bz2
+    - itsdangerous-1.1.0-py36_0.tar.bz2
     - jasper-2.0.14-h07fcdf6_1.tar.bz2
     - jinja2-2.10-py27_0.tar.bz2
     - jinja2-2.10-py36_0.tar.bz2
+    - jpeg-9b-h024ee3a_2.tar.bz2
+    - keras-2.1.6-py27_0.tar.bz2
+    - keras-2.1.6-py36_0.tar.bz2
     - keras-applications-1.0.6-py27_0.tar.bz2
     - keras-applications-1.0.6-py36_0.tar.bz2
     - keras-preprocessing-1.0.5-py27_0.tar.bz2
@@ -187,178 +137,265 @@ anaconda_main_linux_x86_64:
     - kiwisolver-1.0.1-py36hf484d3e_0.tar.bz2
     - leveldb-1.20-hf484d3e_1.tar.bz2
     - libboost-1.67.0-h46d08c1_4.tar.bz2
-    - libedit-3.1.20170329-h6b74fdf_2.tar.bz2
-    - libgcc-ng-8.2.0-h822a55f_1.tar.bz2
-    - libgfortran-ng-7.3.0-h822a55f_1.tar.bz2
+    - libedit-3.1.20181209-hc058e9b_0.tar.bz2
+    - libffi-3.2.1-hd88cf55_4.tar.bz2
+    - libgcc-7.2.0-h69d50b8_2.tar.bz2
+    - libgcc-ng-8.2.0-hdf63c60_1.tar.bz2
+    - libgfortran-ng-7.2.0-hdf63c60_3.tar.bz2
     - libglu-9.0.0-hf484d3e_1.tar.bz2
     - libopenblas-0.2.20-h9ac9557_7.tar.bz2
     - libopus-1.3-h7b6447c_0.tar.bz2
-    - libpng-1.6.35-hbc83047_0.tar.bz2
-    - libstdcxx-ng-8.2.0-h822a55f_1.tar.bz2
-    - libtiff-4.0.9-he85c1e1_1.tar.bz2
+    - libpng-1.6.36-hbc83047_0.tar.bz2
+    - libsodium-1.0.16-h1bed415_0.tar.bz2
+    - libstdcxx-ng-8.2.0-hdf63c60_1.tar.bz2
+    - libtiff-4.0.10-h2733197_2.tar.bz2
     - libuuid-1.0.3-h1bed415_2.tar.bz2
-    - libvpx-1.7.0-hf484d3e_0.tar.bz2
-    - libxcb-1.13-h1bed415_0.tar.bz2
-    - libxml2-2.9.8-h26e45fe_1.tar.bz2
+    - libvpx-1.7.0-h439df22_0.tar.bz2
+    - libxcb-1.13-h1bed415_1.tar.bz2
+    - libxml2-2.9.9-he19cac6_0.tar.bz2
     - linecache2-1.0.0-py27_0.tar.bz2
     - lmdb-0.9.22-hf484d3e_1.tar.bz2
+    - locket-0.2.0-py27_1.tar.bz2
+    - locket-0.2.0-py36_1.tar.bz2
+    - markdown-3.0.1-py27_0.tar.bz2
+    - markdown-3.0.1-py36_0.tar.bz2
+    - markupsafe-1.1.1-py27h7b6447c_0.tar.bz2
+    - markupsafe-1.1.1-py36h7b6447c_0.tar.bz2
     - matplotlib-2.2.3-py27hb69df0a_0.tar.bz2
-    - matplotlib-3.0.1-py36h5429711_0.tar.bz2
-    - more-itertools-4.3.0-py27_0.tar.bz2
-    - more-itertools-4.3.0-py36_0.tar.bz2
-    - ncurses-6.1-hf484d3e_0.tar.bz2
+    - matplotlib-3.0.2-py36h5429711_0.tar.bz2
+    - mock-2.0.0-py27_0.tar.bz2
+    - mock-2.0.0-py36_0.tar.bz2
+    - more-itertools-5.0.0-py27_0.tar.bz2
+    - more-itertools-5.0.0-py36_0.tar.bz2
+    - msgpack-python-0.6.1-py27hfd86e86_1.tar.bz2
+    - msgpack-python-0.6.1-py36hfd86e86_1.tar.bz2
+    - ncurses-6.1-he6710b0_1.tar.bz2
     - networkx-2.2-py27_1.tar.bz2
     - networkx-2.2-py36_1.tar.bz2
     - ninja-1.8.2-py27h6bb024c_1.tar.bz2
     - ninja-1.8.2-py36h6bb024c_1.tar.bz2
-    - numpy-1.13.3-py27h7cdd4dd_0.tar.bz2
-    - numpy-1.13.3-py36h7cdd4dd_0.tar.bz2
-    - openblas-0.2.20-7.tar.bz2
+    - nose-1.3.7-py27_2.tar.bz2
+    - nose-1.3.7-py36_2.tar.bz2
+    - numpy-1.14.5-py27h2aefc1b_4.tar.bz2
+    - numpy-1.14.5-py36h2aefc1b_4.tar.bz2
+    - numpy-base-1.14.5-py27h2b20989_4.tar.bz2
+    - numpy-base-1.14.5-py36h2b20989_4.tar.bz2
+    - olefile-0.46-py27_0.tar.bz2
+    - olefile-0.46-py36_0.tar.bz2
     - openblas-devel-0.2.20-7.tar.bz2
-    - openssl-1.1.1a-h7b6447c_0.tar.bz2
-    - pillow-5.3.0-py27h0d2faf8_0.tar.bz2
-    - pillow-5.3.0-py36h0d2faf8_0.tar.bz2
-    - pluggy-0.8.0-py27_0.tar.bz2
-    - pluggy-0.8.0-py36_0.tar.bz2
-    - psutil-5.4.7-py27h14c3975_0.tar.bz2
-    - psutil-5.4.7-py36h14c3975_0.tar.bz2
-    - py-1.7.0-py27_0.tar.bz2
-    - py-1.7.0-py36_0.tar.bz2
+    - openssl-1.1.1b-h7b6447c_0.tar.bz2
+    - packaging-19.0-py27_0.tar.bz2
+    - packaging-19.0-py36_0.tar.bz2
+    - pandas-0.20.3-py27hfd1eabf_2.tar.bz2
+    - pandas-0.20.3-py36h6022372_2.tar.bz2
+    - partd-0.3.9-py27_0.tar.bz2
+    - partd-0.3.9-py36_0.tar.bz2
+    - pathlib2-2.3.3-py27_0.tar.bz2
+    - pbr-5.1.1-py27_0.tar.bz2
+    - pbr-5.1.1-py36_0.tar.bz2
+    - pcre-8.42-h439df22_0.tar.bz2
+    - pexpect-4.6.0-py27_0.tar.bz2
+    - pexpect-4.6.0-py36_0.tar.bz2
+    - pickleshare-0.7.5-py27_0.tar.bz2
+    - pickleshare-0.7.5-py36_0.tar.bz2
+    - pillow-5.3.0-py27h34e0f95_0.tar.bz2
+    - pillow-5.3.0-py36h34e0f95_0.tar.bz2
+    - pip-19.0.3-py27_0.tar.bz2
+    - pip-19.0.3-py36_0.tar.bz2
+    - pixman-0.36.0-h7b6447c_0.tar.bz2
+    - pluggy-0.9.0-py27_0.tar.bz2
+    - pluggy-0.9.0-py36_0.tar.bz2
+    - prompt_toolkit-1.0.15-py27_0.tar.bz2
+    - prompt_toolkit-1.0.15-py36_0.tar.bz2
+    - psutil-5.5.0-py27h7b6447c_0.tar.bz2
+    - psutil-5.5.0-py36h7b6447c_0.tar.bz2
+    - ptyprocess-0.6.0-py27_0.tar.bz2
+    - ptyprocess-0.6.0-py36_0.tar.bz2
+    - py-1.8.0-py27_0.tar.bz2
+    - py-1.8.0-py36_0.tar.bz2
     - py-boost-1.67.0-py27h04863e7_4.tar.bz2
     - py-boost-1.67.0-py36h04863e7_4.tar.bz2
+    - pycparser-2.19-py27_0.tar.bz2
+    - pycparser-2.19-py36_0.tar.bz2
+    - pygments-2.3.1-py27_0.tar.bz2
+    - pygments-2.3.1-py36_0.tar.bz2
     - pyopenssl-18.0.0-py27_0.tar.bz2
-    - pytest-3.9.1-py27_0.tar.bz2
-    - pytest-3.9.1-py36_0.tar.bz2
-    - python-2.7.15-h81612d6_4.tar.bz2
-    - python-lmdb-0.94-py27h14c3975_0.tar.bz2
-    - python-lmdb-0.94-py36h14c3975_0.tar.bz2
+    - pyparsing-2.3.1-py27_0.tar.bz2
+    - pyparsing-2.3.1-py36_0.tar.bz2
+    - pyqt-5.9.2-py27h05f1152_2.tar.bz2
+    - pyqt-5.9.2-py36h05f1152_2.tar.bz2
+    - pytest-4.1.1-py27_0.tar.bz2
+    - pytest-4.1.1-py36_0.tar.bz2
+    - python-2.7.15-h9bab390_6.tar.bz2
+    - python-3.6.8-h0371630_0.tar.bz2
+    - python-dateutil-2.8.0-py27_0.tar.bz2
+    - python-dateutil-2.8.0-py36_0.tar.bz2
+    - python-gflags-3.1.2-py27_0.tar.bz2
+    - python-gflags-3.1.2-py36_0.tar.bz2
+    - pytz-2018.9-py27_0.tar.bz2
+    - pytz-2018.9-py36_0.tar.bz2
+    - pywavelets-1.0.1-py27hdd07704_0.tar.bz2
+    - pywavelets-1.0.1-py36hdd07704_0.tar.bz2
+    - pyyaml-3.12-py27h14c3975_1.tar.bz2
+    - pyyaml-3.12-py36h14c3975_1.tar.bz2
+    - pyzmq-16.0.3-py27hc579512_0.tar.bz2
+    - pyzmq-16.0.3-py36he2533c7_0.tar.bz2
+    - qt-5.9.7-h5867ecd_1.tar.bz2
     - readline-7.0-h7b6447c_5.tar.bz2
-    - scikit-image-0.14.0-py27hf484d3e_1.tar.bz2
-    - scikit-image-0.14.0-py36hf484d3e_1.tar.bz2
-    - scikit-learn-0.19.1-py27h6cfcb94_0.tar.bz2
-    - scikit-learn-0.19.1-py36h6cfcb94_0.tar.bz2
-    - scipy-1.1.0-py27h9c1e066_0.tar.bz2
-    - scipy-1.1.0-py36h9c1e066_0.tar.bz2
-    - six-1.11.0-py27_1.tar.bz2
-    - six-1.11.0-py36_1.tar.bz2
-    - snappy-1.1.7-h1532aa0_3.tar.bz2
-    - sqlite-3.25.2-h7b6447c_0.tar.bz2
+    - redis-5.0.3-h7b6447c_0.tar.bz2
+    - scandir-1.9.0-py27h14c3975_0.tar.bz2
+    - scikit-image-0.13.1-py27h14c3975_1.tar.bz2
+    - scikit-image-0.13.1-py36h14c3975_1.tar.bz2
+    - scikit-learn-0.19.1-py27_nomklh6cfcb94_0.tar.bz2
+    - scikit-learn-0.19.1-py36_nomklh6cfcb94_0.tar.bz2
+    - scipy-1.1.0-py27_nomklh9c1e066_0.tar.bz2
+    - scipy-1.1.0-py36_nomklh9c1e066_0.tar.bz2
+    - setuptools-40.8.0-py27_0.tar.bz2
+    - setuptools-40.8.0-py36_0.tar.bz2
+    - simplegeneric-0.8.1-py27_2.tar.bz2
+    - simplegeneric-0.8.1-py36_2.tar.bz2
+    - singledispatch-3.4.0.3-py27_0.tar.bz2
+    - sip-4.19.8-py27hf484d3e_0.tar.bz2
+    - sip-4.19.8-py36hf484d3e_0.tar.bz2
+    - six-1.12.0-py27_0.tar.bz2
+    - six-1.12.0-py36_0.tar.bz2
+    - snappy-1.1.7-hbae5bb6_3.tar.bz2
+    - sortedcontainers-2.1.0-py27_0.tar.bz2
+    - sortedcontainers-2.1.0-py36_0.tar.bz2
+    - sqlite-3.26.0-h7b6447c_0.tar.bz2
+    - subprocess32-3.5.3-py27h7b6447c_0.tar.bz2
     - tabulate-0.8.2-py27_0.tar.bz2
     - tabulate-0.8.2-py36_0.tar.bz2
+    - tblib-1.3.2-py27_0.tar.bz2
+    - tblib-1.3.2-py36_0.tar.bz2
     - termcolor-1.1.0-py27_1.tar.bz2
     - termcolor-1.1.0-py36_1.tar.bz2
     - tk-8.6.8-hbc83047_0.tar.bz2
-    - tqdm-4.28.1-py27h28b3542_0.tar.bz2
-    - tqdm-4.28.1-py36h28b3542_0.tar.bz2
+    - toolz-0.9.0-py27_0.tar.bz2
+    - toolz-0.9.0-py36_0.tar.bz2
+    - tornado-5.1.1-py27h7b6447c_0.tar.bz2
+    - tornado-5.1.1-py36h7b6447c_0.tar.bz2
     - traceback2-1.4.0-py27_0.tar.bz2
+    - traitlets-4.3.2-py27_0.tar.bz2
+    - traitlets-4.3.2-py36_0.tar.bz2
+    - typing-3.6.4-py27_0.tar.bz2
     - typing-3.6.4-py36_0.tar.bz2
-    - typing-3.6.6-py27_0.tar.bz2
     - unittest2-1.1.0-py27_0.tar.bz2
+    - wcwidth-0.1.7-py27_0.tar.bz2
+    - wcwidth-0.1.7-py36_0.tar.bz2
     - werkzeug-0.14.1-py27_0.tar.bz2
     - werkzeug-0.14.1-py36_0.tar.bz2
+    - wheel-0.33.1-py27_0.tar.bz2
+    - wheel-0.33.1-py36_0.tar.bz2
     - xz-5.2.4-h14c3975_4.tar.bz2
+    - yaml-0.1.7-had09818_2.tar.bz2
+    - zeromq-4.2.5-hf484d3e_1.tar.bz2
+    - zict-0.1.3-py27_0.tar.bz2
+    - zict-0.1.3-py36_0.tar.bz2
+    - zlib-1.2.11-h7b6447c_3.tar.bz2
+    - zstd-1.3.7-h0b5b093_0.tar.bz2
   reject_list:
 
 anaconda_main_noarch:
   accept_list:
-  reject_list: all
+    - atomicwrites-1.3.0-py_0.tar.bz2
+    - dask-core-1.1.2-py_0.tar.bz2
+  reject_list: 
 
 python3_specific_pkgs:
-- deprecation==2.0.5
-- docutils>=0.10
-- enum34==1.1.6
-- '"futures>=2.2.0,<4.0.0"'
-- os_service_types==1.2.0
+    - deprecation==2.0.5
+    - docutils>=0.10
+    - enum34==1.1.6
+    - '"futures>=2.2.0,<4.0.0"'
+    - os_service_types==1.2.0
 python_pkgs:
-- boto==2.49.0
-- boto3==1.9.36
-- botocore==1.12.36
-- bz2file==0.98
-- docutils==0.14
-- easydict==1.6
-- gensim==3.6.0
-- hanziconv==0.3.2
-- ipaddress==1.0.22
-- jmespath==0.9.3
-- Keras==2.0.5
-- python-gflags==2.0
-- s3transfer==0.1.13
-- smart-open==1.7.1
-- Theano==1.0.2
-- urllib3==1.23
-- alembic==0.8.2
-- appdirs==1.4.3
-- Babel==2.6.0
-- click==6.7
-- cliff==2.13.0
-- cmd2==0.8.8
-- contextlib2==0.5.5
-- debtcollector==1.20.0
-- decorator==4.3.0
-- deprecation==2.0.5
-- dogpile.cache==0.6.7
-- elasticsearch==5.2.0
-- Flask==0.12.2
-- Flask-Cors==3.0.3
-- Flask-HTTPAuth==3.2.2
-- Flask-Script==2.0.5
-- funcsigs==1.0.2
-- functools32==3.2.3.post2
-- futures==3.1.1
-- iso8601==0.1.12
-- itsdangerous==0.24
-- Jinja2==2.10
-- jsonpatch==1.23
-- jsonpointer==2.0
-- jsonschema==2.6.0
-- keystoneauth1==3.10.0
-- Mako==1.0.7
-- MarkupSafe==1.0
-- mongoengine==0.11.0
-- monotonic==1.5
-- msgpack==0.5.6
-- munch==2.3.2
-- netaddr==0.7.19
-- netifaces==0.10.7
-- numpy==1.12.1
-- openstacksdk==0.17.1
-- os-service-types==1.2.0
-- osc-lib==1.11.0
-- oslo.config==6.4.0
-- oslo.i18n==3.21.0
-- oslo.serialization==2.27.0
-- oslo.utils==3.36.4
-- packaging==17.1
-- pathlib==1.0.1
-- pbr==4.2.0
-- positional==1.2.1
-- prettytable==0.7.2
-- pymongo==3.7.1
-- pyparsing==2.2.0
-- pyperclip==1.6.4
-- python-cinderclient==4.0.1
-- python-editor==1.0.3
-- python-glanceclient==2.12.1
-- python-heatclient==1.2.0
-- python-keystoneclient==3.8.0
-- python-novaclient==11.0.0
-- python-openstackclient==3.16.0
-- python-swiftclient==3.6.0
-- pytz==2018.5
-- PyYAML==3.13
-- requests==2.14.2
-- requestsexceptions==1.4.0
-- rfc3986==1.1.0
-- scipy==1.0.1
-- simplejson==3.16.0
-- SQLAlchemy==1.1.13
-- stevedore==1.29.0
-- subprocess32==3.5.2
-- unicodecsv==0.14.1
-- warlock==1.3.0
-- wcwidth==0.1.7
-- Werkzeug==0.14.1
-- wrapt==1.10.11
+    - alembic==0.8.2
+    - appdirs==1.4.3
+    - Babel==2.6.0
+    - boto==2.49.0
+    - boto3==1.9.103
+    - botocore==1.12.103
+    - bz2file==0.98
+    - chardet==3.0.4
+    - Click==7.0
+    - cliff==2.14.0
+    - cmd2==0.8.9
+    - configparser==3.5.0
+    - contextlib2==0.5.5
+    - debtcollector==1.20.0
+    - decorator==4.3.2
+    - docutils==0.14
+    - dogpile.cache==0.7.1
+    - easydict==1.9
+    - elasticsearch==5.2.0
+    - Flask==0.12.2
+    - Flask-Cors==3.0.3
+    - Flask-HTTPAuth==3.2.2
+    - Flask-Script==2.0.5
+    - funcsigs==1.0.2
+    - functools32==3.2.3.post2
+    - futures==3.1.1
+    - gensim==3.6.0
+    - hanziconv==0.3.2
+    - idna==2.5
+    - ipaddress==1.0.22
+    - iso8601==0.1.12
+    - itsdangerous==1.1.0
+    - Jinja2==2.10
+    - jmespath==0.9.4
+    - jsonpatch==1.23
+    - jsonpointer==2.0
+    - jsonschema==2.6.0
+    - keystoneauth1==3.11.2
+    - Mako==1.0.7
+    - MarkupSafe==1.1.1
+    - mongoengine==0.11.0
+    - monotonic==1.5
+    - msgpack==0.6.1
+    - munch==2.3.2
+    - netaddr==0.7.19
+    - netifaces==0.10.9
+    - numpy==1.12.1
+    - openstacksdk==0.24.0
+    - os-service-types==1.5.0
+    - osc-lib==1.12.0
+    - oslo.config==6.8.0
+    - oslo.i18n==3.23.0
+    - oslo.serialization==2.28.1
+    - oslo.utils==3.40.2
+    - pathlib==1.0.1
+    - pbr==5.1.2
+    - prettytable==0.7.2
+    - pymongo==3.7.2
+    - pyparsing==2.3.1
+    - pyperclip==1.7.0
+    - python-cinderclient==4.1.0
+    - python-editor==1.0.4
+    - python-glanceclient==2.15.0
+    - python-heatclient==1.2.0
+    - python-keystoneclient==3.17.0
+    - python-novaclient==12.0.0
+    - python-openstackclient==3.17.0
+    - python-swiftclient==3.6.0
+    - pytz==2018.9
+    - PyYAML==3.13
+    - requests==2.18.0
+    - requestsexceptions==1.4.0
+    - rfc3986==1.2.0
+    - s3transfer==0.2.0
+    - scipy==1.0.1
+    - simplejson==3.16.0
+    - smart-open==1.8.0
+    - SQLAlchemy==1.1.13
+    - stevedore==1.30.0
+    - subprocess32==3.5.3
+    - unicodecsv==0.14.1
+    - urllib3==1.21.1
+    - urllib3==1.24.1
+    - warlock==1.3.0
+    - wcwidth==0.1.7
+    - Werkzeug==0.14.1
+    - wrapt==1.11.1
 epel_pkgs:
 - dkms-2.6.1-1.el7.noarch
 - gflags-2.1.1-6.el7.x86_64

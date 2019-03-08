@@ -5,3 +5,4 @@ mock>=2.0.0
 pep8>=1.7.1
 pylint>=2.1.1
 testrepository>=0.0.20  # Apache-2.0/BSD
+pexpect==4.6.0
