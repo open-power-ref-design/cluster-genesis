@@ -406,8 +406,8 @@ epel_pkgs:
 - hdf5-devel-1.8.12-10.el7.x86_64
 - leveldb-1.12.0-11.el7.x86_64
 - leveldb-devel-1.12.0-11.el7.x86_64
-- libaec-1.0.2-1.el7.x86_64
-- libaec-devel-1.0.2-1.el7.x86_64
+- libaec*
+- libaec-devel*
 - libsodium-1.0.17-1.el7.x86_64
 - libsodium-devel-1.0.17-1.el7.x86_64
 - lmdb-0.9.22-2.el7.x86_64
@@ -426,7 +426,7 @@ epel_pkgs:
 - openblas-threads64-0.3.3-2.el7.x86_64
 - openblas-threads64_-0.3.3-2.el7.x86_64
 - opencl-filesystem-1.0-5.el7.noarch
-yum_pkgs:
+yum_pkgs_x86_64:
 - adwaita-cursor-theme-3.28.0-1.el7.noarch
 - adwaita-icon-theme-3.28.0-1.el7.noarch
 - at-spi2-atk-2.26.2-1.el7.x86_64
