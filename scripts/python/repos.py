@@ -646,25 +646,31 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
         self._update_repodata(dest_dir)
 
         # Filter content of index.html
-        if '/pkgs' in dest_dir:
+        if '/pkgs' in dest_dir or '/ibmai' in dest_dir:
             filelist = os.listdir(dest_dir)
             filecnt = 0
-            dest = dest_dir + 'index.html'
-            src = dest_dir + 'index-src.html'
+            dest = os.path.join(dest_dir, 'index.html')
+            src = os.path.join(dest_dir, 'index-src.html')
             os.rename(dest, src)
             line = ''
             with open(src, 'r') as s, open(dest, 'w') as d:
+                # copy Table header info over to new index.html
                 while '<tr>' not in line:
                     line = s.readline()
+                    if '<table>' in line:
+                        table_indent = line.find('<table>')
                     d.write(line)
-                d.write(line)
                 row = ''
+                # Copy table rows till end of table found
                 while '</table>' not in row:
                     row, filename = _get_table_row(s)
                     if filename in filelist or 'Filename' in row:
                         d.write(row)
-                        filecnt += 1
-                d.write(row)
+                        if filename in filelist:
+                            filecnt += 1
+                    elif '</table>' in row:
+                        row = '          '[0:table_indent] + '</table>\n'
+                        d.write(row)
                 while True:
                     line = s.readline()
                     if not line:
@@ -673,7 +679,10 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
                     if ts:
                         ts = ts.group(1).replace('+', '\\+')
                         line = re.sub(ts, time.asctime(), line)
-                    line = re.sub(r'Files:\s+\d+', f'Files: {filecnt-2}', line)
+                        dec = 1  # Assume repodata.json always present
+                        dec = dec + 1 if 'repodata2.json' in filelist else dec
+                        dec = dec + 1 if 'repodata.json.bz2' in filelist else dec
+                        line = re.sub(r'Files:\s+\d+', f'Files: {filecnt-dec}', line)
                     d.write(line)
         else:
             # Remove index.html files retrieved from conda-forge so they don't
