@@ -117,10 +117,9 @@ class Lenovo(SwitchCommon):
             indcs = get_col_pos(port_info, ('Port', 'Tag', 'PVID', r'VLAN\(s'))
             port_info = port_info.splitlines()
             for line in port_info:
+                line = self.sanitize_line(line)
                 # pad to 86 chars
                 line = f'{line:<86}'
-                # remove "Press q to quit, any other key to continue" line
-                line = re.sub('\\x1b.*\\x08', '', line)
                 # look for rows (look for first few fields)
                 match = re.search(r'^\s*\w+\s+\d+\s+(y|n)', line)
                 if match:
@@ -262,6 +261,12 @@ class Lenovo(SwitchCommon):
             raise SwitchException(
                 'Failed configuring management interface ip {}'.format(intf))
         return
+
+    @staticmethod
+    def sanitize_line(line):
+        # remove "Press q to quit, any other key to continue" line
+        line = re.sub('\\x1b.*\\x08', '', line)
+        return line
 
 
 class switch(object):
