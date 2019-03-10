@@ -117,17 +117,6 @@ network:
             enter. Cursor up or down and press enter to select an interface.
         ftype: eth-ifc
 
-    pxe_address_mode:
-        val: dhcp
-        values:
-            - dhcp
-            - static
-        desc: PXE address mode
-        help: If static is selected, existing ipv4 addresses will be used and unchanged.
-            If dhcp is selected, PowerUp will setup a DHCP server on this node in
-            the subnet specified in 'PXE subnet'
-        ftype: select-one
-
 ######################## Node configuration
 node:
     bmc_userid:
@@ -171,8 +160,7 @@ node:
         dtype: no-save
 
     node_list:
-        val:
-            - null
+        val: []
         values:
             - null
         desc: Node list
