@@ -572,7 +572,8 @@ class Gen(object):
             else:
                 self.config_file_path += self.args.config_file_name
 
-            if not os.path.isfile(self.config_file_path):
+            if (not self.args.osinstall and
+                not os.path.isfile(self.config_file_path)):
                 print('{} not found. Please specify a file name'.format(
                     self.config_file_path))
                 sys.exit(1)
