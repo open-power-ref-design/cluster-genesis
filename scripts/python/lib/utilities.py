@@ -28,7 +28,6 @@ from netaddr import IPNetwork, IPAddress, IPSet
 from tabulate import tabulate
 import hashlib
 from textwrap import dedent
-# import code
 
 from lib.config import Config
 import lib.logger as logger
@@ -1073,6 +1072,8 @@ def nginx_modify_conf(conf_path, directives={}, locations={}, reload=True,
             for line in file_object:
                 if 'server {' in line:
                     collecting_directive_data = True
+                elif not line.strip():
+                    continue  # continue if blank line
                 elif 'location' in line:
                     collecting_directive_data = False
                     current_location = line.strip()[9:-2]
@@ -1090,6 +1091,8 @@ def nginx_modify_conf(conf_path, directives={}, locations={}, reload=True,
                     collecting_directive_data = False
                 elif collecting_directive_data:
                     data_split = line.split(maxsplit=1)
+                    #code.interact(banner='nginx mod conf', local=dict(globals(), **locals()))
+                    #print(f'data_split: {data_split}')
                     if data_split[0] not in directives:
                         directives[data_split[0]] = data_split[1].strip()
 
