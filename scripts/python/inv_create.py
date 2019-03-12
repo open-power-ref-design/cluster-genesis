@@ -37,9 +37,11 @@ class InventoryCreate(object):
 
         nodes = InventoryNodes(cfg_path=self.config_path)
         nodes.create_nodes()
+        nodes.inv.update_nodes()
 
         switches = InventorySwitches(cfg_path=self.config_path)
         switches.create_switches()
+        nodes.inv.update_switches()
 
 
 if __name__ == '__main__':
