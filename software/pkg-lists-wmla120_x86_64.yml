@@ -468,7 +468,6 @@ yum_pkgs_x86_64:
 - javapackages-tools-3.4.1-11.el7.noarch
 - json-glib-1.4.2-2.el7.x86_64
 - kernel-3.10.0-862.11.6.el7.x86_64
-- kernel-bootwrapper-3.10.0-862.11.6.el7.x86_64
 - kernel-devel-3.10.0-862.11.6.el7.x86_64
 - kernel-headers-3.10.0-862.11.6.el7.x86_64
 - kernel-tools-3.10.0-862.11.6.el7.x86_64
