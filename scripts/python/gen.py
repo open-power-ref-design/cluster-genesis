@@ -555,7 +555,7 @@ class Gen(object):
             else:
                 self.config_file_path += self.args.config_file_name
 
-            if not os.path.isfile(self.config_file_path):
+            if not os.path.isfile(self.config_file_path) and not (hasattr(self.args, "bundle_to") or hasattr(self.args, 'bundle_from')):
                 print('{} not found. Please specify a file name'.format(
                     self.config_file_path))
                 sys.exit(1)
@@ -752,11 +752,11 @@ class Gen(object):
                 try:
                     in_dir = bundle.validate_directories(soft.root_dir, self.args.extract_from[0])
                     if in_dir is not None:
-                        msg = 'Some diretories exist in {0} directory\n{1}'.format(soft.root_dir, "\n".join(in_dir))
+                        msg = 'Directories exist in {0} directory and will be overwritten\nDirectories: \n\t{1}'.format(soft.root_dir, "\n\t".join(in_dir))
                         log.warning(msg)
                         while True:
                             try:
-                                resp = input("Enter C to continue extracting or 'T' to terminate ")
+                                resp = input("Enter C to continue extracting or 'T' to terminate \n")
                                 if resp == 'T':
                                     log.info("'{}' entered. Terminating POWER-Up at user request".format(resp))
                                     sys.exit(1)

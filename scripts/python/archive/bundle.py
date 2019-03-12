@@ -26,6 +26,8 @@ import time
 from setuptools.archive_util import unpack_tarfile
 
 
+PAIE_SRV = "/srv/"
+ENG_MODE = True 
 COMPRESSION = "gz"
 RC_SUCCESS = 0
 RC_ERROR = 99  # generic failure
@@ -33,9 +35,7 @@ RC_ARGS = 2  # failed to parse args given
 RC_SRV = 20  # srv directory does not exist
 RC_USER_EXIT = 40  # keyboard exit
 RC_PERMISSION = 41  # Permission denied
-PAIE_SRV = "/srv/"
 PAIE_EXTRACT_SRV = "/tmp/srv/"
-ENG_MODE = False
 LOG = ""
 STANDALONE = True
 LOGFILE = os.path.splitext(os.path.basename(__file__))[0] + ".log"
@@ -188,7 +188,7 @@ def setup_logging(debug="INFO"):
 
 def parse_input(args):
     parser = argparse.ArgumentParser(description="Utility for Archiving/Unarchiving\
-                                     PowerAIE Node Deployer environment")
+                                     WMLA Node Deployer environment")
     subparsers = parser.add_subparsers()
 
     def add_subparser(cmd, cmd_help, args=None):
@@ -222,14 +222,14 @@ def parse_input(args):
     add_subparser('list', "List files in tar object",
                   [('src', 'source file to list', True)])
 
-    add_subparser('bundle', "Bundle Paie software, assume bundle from /srv directory",
-                  [('to', 'bundle paie software to?', True)])
+    add_subparser('bundle', "Bundle WMLA software, assume bundle from {0} directory".format(PAIE_SRV),
+                  [('to', 'bundle WMLA software to?', True)])
 
     subparsers.choices['bundle'].add_argument('--compress', dest="compress",
                                               required=False, action="store_true",
                                               help='compress using gzip')
 
-    add_subparser('extract_bundle', "Extract bundle Paie software assume to /srv",
+    add_subparser('extract_bundle', "Extract bundle WMLA software assume to {0}".format(PAIE_SRV),
                   [('from_archive', 'from which archive to extract paie software?', True)])
 
     if not args:
@@ -278,10 +278,8 @@ def validate_src(path):
 
 def list(args):
     try:
-        extlist = get_top_level_dir_list_from_tar("/tmp/something.tar.gz")
-        LOG.info(extlist)
-        this_list = get_top_level_dirs("/srv/", extlist)
-        LOG.info(this_list)
+        extlist = get_top_level_dir_list_from_tar(args.src)
+        get_top_level_dirs(PAIE_SRV, extlist)
         with tarfile.open(args.src) as tarlist:
             for i in tarlist:
                 LOG.info(i.name)
@@ -290,7 +288,7 @@ def list(args):
 
 
 def archive(args):
-    dir_path = os.path.dirname(os.path.realpath(args.dest))
+    dir_path = args.dest
     file_name = os.path.splitext(args.dest)[0]
     file_name_ext = os.path.splitext(args.dest)[1]
     try:
@@ -308,10 +306,13 @@ def archive(args):
 
         if args.compress is False or args.compress is None:
             args.compress = False
-            LOG.info("not compressing")
+            LOG.debug("not compressing")
 
         try:
-            LOG.info("archiving {0} to {1}".format(args.path, fileobj.name))
+            timestr = time.strftime("%Y_%m%d-%H_%M_%S")
+            nameis = "wmla" + "." + timestr + ".tar" + (".gz" if args.compress else "")
+            filename = dir_path + nameis
+            LOG.info("archiving {0} to {1}".format(args.path, filename))
             start = time.time()
             archive_this(args.path, fileObj=fileobj, compress=args.compress)
             end = time.time()
@@ -323,8 +324,9 @@ def archive(args):
                     pass
             exit(RC_ERROR, "Uncaught exception: {0}".format(e))
         else:
-            LOG.info("created: {0}, size in bytes: {1}, total time: {2} seconds".format(fileobj.name,
-                                                                                        os.stat(fileobj.name).st_size,
+            os.rename(fileobj.name, filename)
+            LOG.info("created: {0}, size in bytes: {1}, total time: {2} seconds".format(filename,
+                                                                                        os.stat(filename).st_size,
                                                                                         int((end - start))))
         finally:
             if fileobj is not None:
