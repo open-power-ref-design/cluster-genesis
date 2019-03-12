@@ -462,7 +462,6 @@ class MyButtonPress(npyscreen.MiniButtonPress):
 
         elif self.name == 'Scan for nodes':
             self.parent.scan = True
-            self.name = 'Stop node scan'
             # 0.5 sec to initiate scanning in 0.5 s
             self.parent.keypress_timeout = 5
 
@@ -590,6 +589,13 @@ class Pup_form(npyscreen.ActionFormV2):
                                              relx=x,
                                              rely=y)
 
+            elif ftype == 'ftext':
+                self.fields[item] = self.add(npyscreen.FixedText,
+                                             name=fname,
+                                             value=str(self.form[item]['val']),
+                                             max_width=self.x - (28 + 2),
+                                             relx=28)
+
             # no ftype specified therefore Title text
             else:
                 self.fields[item] = self.add(npyscreen.TitleText,
@@ -598,8 +604,9 @@ class Pup_form(npyscreen.ActionFormV2):
                                              begin_entry_at=20, width=40,
                                              relx=relx)
 
-            if hasattr(self.form[item], 'ftype') and (
-                    'button' in self.form[item]['ftype']):
+            if hasattr((self.form[item], 'ftype') and (
+                       'button' in self.form[item]['ftype'] or
+                       'ftext' in self.form[item]['ftype'])):
                 pass
             else:
                 self.fields[item].entry_widget.add_handlers({curses.KEY_F1:
@@ -631,10 +638,13 @@ class Pup_form(npyscreen.ActionFormV2):
                 if self.form[item]['dtype'] == 'no-save':
                     if item == 'node_list':
                         if len(self.fields[item].value) == 0:
-                            msg = ('No nodes selected!\n'
-                                   'Exit without installing to any clients?')
+                            msg += [('No nodes selected!\n'
+                                    'Exit without installing to any clients?')]
                             res = npyscreen.notify_yes_no(msg, title='Warning',
                                                           editw=1)
+                            if res:
+                                self.next_form = None
+                                sys.exit("Ending OSInstall at user request")
                         else:
                             selected_nodes = []
                             for index in self.fields[item].value:
@@ -725,53 +735,76 @@ class Pup_form(npyscreen.ActionFormV2):
         Args:
             mask_prefix (str): Of the form 'ipmask prefix' or ipmask or prefix
         """
-        # npyscreen.notify_confirm(f'mask_prefix: {mask_prefix}', editw=1)
-        match1 = re.search(r'(?:.*\s+)*((?:\d{1,3}\.){3}\d{1,3})\s*',
-                           mask_prefix)
-        match2 = re.search(r'\s*(\d{1,2})\s*$', mask_prefix)
+        msg = ''
+        mask_prefix = mask_prefix.strip()
+        if mask_prefix:
+            mask = mask_prefix.split()[0]
+            prefix = mask_prefix.split()[-1]
+        else:
+            msg = ('Neither the netmask or prefix are valid.\n'
+                   'Using default netmask and prefix')
+            mask = '255.255.255.0'
+            prefix = '24'
+        prefix_match = re.search(r'^(\d{1,2})\s*$', prefix)
 
-        if match1:
-            try:
-                parts = match1.group(1).strip().split('.')
-                if (len(parts) == 4 and
-                        all(0 <= int(part) < 256 for part in parts)):
-                    mask = match1.group(1)
-            except (ValueError, AttributeError, TypeError):
-                mask = None
-
+        if u.is_netmask(mask):
+            pass
         else:
             mask = None
 
-        if match2:
+        if prefix_match:
             try:
-                prefix = int(match2.group(1))
+                prefix = int(prefix_match.group(1))
                 prefix = prefix if 0 < prefix < 33 else None
             except (ValueError, TypeError):
                 prefix = None
         else:
             prefix = None
 
-        msg = ('The entered mask and prefix do not match. The prefix is given '
-               'precendence. If you wish to enter just a netmask, a prefix '
-               'will be calculated. If you wish to enter just a prefix, a '
-               'netmask will be calulated.')
-
         tmp = u.get_prefix(mask) if mask else 0
-        if prefix != tmp:
+        if prefix and mask and prefix != tmp:
+            msg = ('The entered mask and prefix do not match. The prefix is '
+                   'given precendence. If you wish to enter just a netmask, '
+                   'a prefix will be calculated. If you wish to enter just '
+                   'a prefix, a netmask will be calulated.')
+            mask = u.get_netmask(prefix)
+        elif prefix and not mask:
+            mask = u.get_netmask(prefix)
+        elif mask and not prefix:
+            prefix = u.get_prefix(mask)
+        elif (not prefix) and not mask:
+            msg = ('Neither the netmask or prefix are valid.\n'
+                   'Using default netmask and prefix')
+            mask = '255.255.255.0'
+            prefix = '24'
+
+        if msg:
             npyscreen.notify_confirm(msg, editw=1)
-        # npyscreen.notify_confirm(f'mask: {mask} prefix: {prefix}', editw=1)
         return mask, prefix
 
+    def write_node_list(self, node_list):
+        pass
+
     def while_waiting(self):
-        if self.scan:
+        if self.scan:  # Initiated by button press
+            scan_uid = self.fields['bmc_userid'].value
+            scan_pw = self.fields['bmc_password'].value
+
+            if scan_uid != self.scan_uid or scan_pw != self.scan_pw:
+                self.talking_nodes = {}
+                self.fields['node_list'].values = [None]
+                self.fields['node_list'].value = []
+                self.fields['devices_found'].value = None
+                self.fields['bmcs_found'].value = None
+                self.scan_uid = scan_uid
+                self.scan_pw = scan_pw
+
             self.keypress_timeout = 100  # set scan loop back to 10 sec
             p = self.parentApp.prof.get_network_profile_tuple()
-            msg = ["Initiating scan.",
-                   "Enter 'Stop node scan' to stop node scanning"]
+
+            msg = ['Attempting to communicate with BMCs']
             npyscreen.notify(msg)
-            sleep(1.5)
-            self.display()
-            # nodes is list of tuples (ip, mac)
+
             nodes = u.scan_subnet(p.bmc_subnet_cidr)
             node_dict = {node[0]: node[1] for node in nodes}
 
@@ -780,23 +813,11 @@ class Pup_form(npyscreen.ActionFormV2):
             ips = [node[0] for node in nodes]
 
             nodes = u.scan_subnet_for_port_open(ips, 623)
-
             ips = [node[0] for node in nodes]
             self.fields['bmcs_found'].value = str(len(nodes))
 
-            scan_uid = self.fields['bmc_userid'].value
-            scan_pw = self.fields['bmc_password'].value
-
-            if scan_uid != self.scan_uid or scan_pw != self.scan_pw:
-                self.talking_nodes = {}
-                self.fields['node_list'].values = [()]
-                self.fields['node_list'].value = 0
-                self.fields['devices_found'].value = None
-                self.fields['bmcs_found'].value = None
-                self.scan_uid = scan_uid
-                self.scan_pw = scan_pw
-
             node_list = self._get_bmcs_sn_pn(ips, scan_uid, scan_pw)
+            self.display()
             if node_list:
                 for node in node_list:
                     if node not in self.talking_nodes:
@@ -804,14 +825,19 @@ class Pup_form(npyscreen.ActionFormV2):
                                                     (node_dict[node], node))
             field_list = [', '.join(self.talking_nodes[node])
                           for node in self.talking_nodes]
+            field_list = [None] if field_list == [] else field_list
+            bmcs_found_cnt = self.fields['bmcs_found'].value
 
-            if len(self.talking_nodes) == int(self.fields['bmcs_found'].value):
+            try:
+                bmcs_found_cnt = int(self.fields['bmcs_found'].value)
+            except (TypeError, ValueError):
+                bmcs_found_cnt = 0
+            if len(self.talking_nodes) == bmcs_found_cnt:
                 self.scan = False
                 self.fields['scan_for_nodes'].name = 'Scan for nodes'
-
-            # code.interact(banner='waiting - scan2',
-            #               local=dict(globals(), **locals()))
-            # npyscreen.notify_confirm(f'field list: {field_list}', editw=1)
+            else:
+                self.fields['scan_for_nodes'].name = 'Stop node scan'
+            self.display()
             self.fields['node_list'].values = field_list
             self.display()
 
@@ -978,10 +1004,9 @@ class Pup_form(npyscreen.ActionFormV2):
             self.prev_field = field
         else:
             self.prev_field = ''
-
         if instance.name not in ['OK', 'Cancel', 'CANCEL',
                                  'Edit network config', 'Scan for nodes',
-                                 'Stop node scan']:
+                                 'Stop node scan', 'node list header']:
             if field:
                 self.helpmsg = self.form[field].help
         else:
@@ -997,9 +1022,6 @@ class Pup_form(npyscreen.ActionFormV2):
     def when_press_edit_networks(self):
         self.next_form = 'MAIN'
         self.parentApp.switchForm('MAIN')
-
-    def scan_for_nodes(self):
-        npyscreen.notify_confirm('Scanning for nodes')
 
     def configure_services(self):
         notify_title = "Configuring Services"
@@ -1133,11 +1155,12 @@ def main(prof_path):
 #            print(f'{route:<12}: {routes[route]}')
 
 #        pro = Profile(prof_path)
+#        profile = pro.get_profile()
 #        p = pro.get_network_profile_tuple()
 #        nodes = u.scan_subnet(p.bmc_subnet_cidr)
 #        ips = [node[0] for node in nodes]
-#        # code.interact(banner='osinstall.main1',
-#        #               local=dict(globals(), **locals()))
+        # code.interact(banner='osinstall.main1',
+        #               local=dict(globals(), **locals()))
 #        nodes = u.scan_subnet_for_port_open(ips, 623)
 #        ips = [node[0] for node in nodes]
 #        n = pro.get_node_profile_tuple()

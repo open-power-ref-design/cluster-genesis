@@ -171,6 +171,19 @@ def is_ipaddr(ip):
         return True
 
 
+def is_netmask(mask):
+    from netaddr import AddrFormatError
+    try:
+        if IPAddress(mask).is_netmask():
+            res = True
+        else:
+            res = False
+    except AddrFormatError:
+        res = False
+
+    return res
+
+
 def get_network_addr(ipaddr, prefix):
     """ Return the base address of the subnet in which the ipaddr / prefix
         reside.
@@ -1091,8 +1104,6 @@ def nginx_modify_conf(conf_path, directives={}, locations={}, reload=True,
                     collecting_directive_data = False
                 elif collecting_directive_data:
                     data_split = line.split(maxsplit=1)
-                    #code.interact(banner='nginx mod conf', local=dict(globals(), **locals()))
-                    #print(f'data_split: {data_split}')
                     if data_split[0] not in directives:
                         directives[data_split[0]] = data_split[1].strip()
 
