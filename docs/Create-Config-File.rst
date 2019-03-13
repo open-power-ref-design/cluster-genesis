@@ -10,7 +10,7 @@ platform be sure to use an editor, such as *LibreOffice*, which supports saving
 text files with the newline terminating character or use *dos2unix* to convert
 the windows text file to unix format.
 
-Sample config files can be found in the *cluster-genesis/sample-configs*
+Sample config files can be found in the *power-up/sample-configs*
 directory. Once a config file has been created, rename it to *config.yml* and
 move it to the project root directory. YAML files support data structures such
 as lists, dictionaries and scalars.  The *Cluster Configuration File
@@ -26,7 +26,7 @@ spacing can result in failure to parse the file.
 Schema and logic validation of the config file can be performed with the
 *pup.py* command::
 
-    $ cd cluster-genesis
+    $ cd power-up
     $ source pup-venv/bin/activate
     $ ./scripts/python/pup.py validate --config-file
 
@@ -98,8 +98,8 @@ inconsistent between boot and final OS install. For OpenPOWER S812LC, the two
 drives in the rear of the unit are typically used for OS install. These drives
 should normally be specified as */dev/sdj* and */dev/sdk*.
 
-Post Genesis Activities
------------------------
+Post POWER-Up Activities
+------------------------
 
 Once deployment has completed it is possible to launch additional commands or
 scripts specified in the *Software Bootstrap* section.  These can perform

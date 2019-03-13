@@ -135,7 +135,7 @@ class Bmc(object):
 
 
 if __name__ == '__main__':
-    """Show status of the Cluster Genesis environment
+    """Show status of the POWER-Up environment
     Args:
         INV_FILE (string): Inventory file.
         LOG_LEVEL (string): Log level.

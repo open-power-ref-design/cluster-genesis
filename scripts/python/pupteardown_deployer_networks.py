@@ -182,7 +182,7 @@ def _delete_ifc_cfg(ifc, ipaddr='', netmask=''):
         broadcast (str) interface broadcast address
     """
     if OPSYS == 'Ubuntu':
-        file_path = '/etc/network/interfaces.d/' + ifc + '-genesis-generated'
+        file_path = '/etc/network/interfaces.d/' + ifc + '-powerup-generated'
         if os.path.exists(file_path):
             LOG.info('Deleting {} config file'.format(file_path))
             os.remove(file_path)

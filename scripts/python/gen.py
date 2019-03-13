@@ -232,7 +232,7 @@ class Gen(object):
         #     print("Press enter to continue using the existing inventory.")
         #     print("Type 'C' to continue creating a new inventory. "
         #           "WARNING: Contents of current file will be overwritten!")
-        #     resp = input("Type 'T' to terminate Cluster Genesis ")
+        #     resp = input("Type 'T' to terminate POWER-Up ")
         #     if resp == 'T':
         #         sys.exit('POWER-Up stopped at user request')
         #     elif resp == 'C':
@@ -303,11 +303,13 @@ class Gen(object):
         cont = Container(self.config_file_path)
         local_os_images = gen.get_os_images_path()
         cont_os_images = gen.get_container_os_images_path()
-        try:
-            cont.copy(local_os_images, cont_os_images)
-        except UserException as exc:
-            print('Fail:', str(exc), file=sys.stderr)
-            sys.exit(1)
+        for item in os.listdir(local_os_images):
+            try:
+                cont.copy(os.path.join(local_os_images, item),
+                          os.path.join(cont_os_images, item))
+            except UserException as exc:
+                print('Fail:', str(exc), file=sys.stderr)
+                sys.exit(1)
         print('Success: OS images downloaded and copied into container')
 
     def _inv_add_ports_ipmi(self):

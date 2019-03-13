@@ -416,8 +416,7 @@ class SwitchCommon(object):
             self.log.error('Unable to ping switch.  {}'.format(exc))
             return False
 
-    @staticmethod
-    def get_port_to_mac(mac_address_table, fmt='std', port_prefix=' '):
+    def get_port_to_mac(self, mac_address_table, fmt='std', port_prefix=' '):
         """Convert MAC address table to dictionary.
 
         Args:
@@ -461,6 +460,7 @@ class SwitchCommon(object):
             match = _mac_regex.search(line)
 
             if match:
+                line = self.sanitize_line(line)
                 mac = match.group()
                 log.debug('Found mac address: {}'.format(mac))
                 _mac = mac
@@ -478,6 +478,10 @@ class SwitchCommon(object):
                 else:
                     mac_dict[port].append(_mac)
         return mac_dict
+
+    @staticmethod
+    def sanitize_line(line):
+        return line
 
     def enable_lacp(self):
         self.send_cmd(self.ENABLE_LACP)

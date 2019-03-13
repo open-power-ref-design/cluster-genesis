@@ -25,7 +25,7 @@ import lib.logger as logger
 
 
 def teardown_deployer_container(config_path):
-    """Teardown the Cluster Genesis container on the deployer.
+    """Teardown the POWER-Up container on the deployer.
     This function is idempotent.
     """
     log = logger.getlogger()

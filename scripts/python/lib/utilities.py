@@ -27,6 +27,7 @@ from subprocess import Popen, PIPE
 from netaddr import IPNetwork, IPAddress, IPSet
 from tabulate import tabulate
 from textwrap import dedent
+import hashlib
 # import code
 
 from lib.config import Config
@@ -1426,3 +1427,19 @@ def extract_iso_image(iso_path, dest_dir):
 
 def timestamp():
     return datetime.datetime.now().strftime("%d-%h-%Y-%H-%M-%S")
+
+
+def sha1sum(file_path):
+    """ Calculate sha1 checksum of single file
+
+    Args:
+        file_path (str): Path to file
+
+    Returns:
+        str: sha1 checksum
+    """
+    sha1sum = hashlib.sha1()
+    with open(file_path, 'rb') as file_object:
+        for block in iter(lambda: file_object.read(sha1sum.block_size), b''):
+            sha1sum.update(block)
+    return sha1sum.hexdigest()

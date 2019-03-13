@@ -19,21 +19,13 @@ import argparse
 import sys
 import os.path
 import wget
-import hashlib
 
 import lib.logger as logger
 from lib.config import Config
 from lib.genesis import check_os_profile, get_os_images_path, GEN_PATH, \
     get_os_image_urls
 from lib.exception import UserException
-
-
-def _sha1sum(file_path):
-    sha1sum = hashlib.sha1()
-    with open(file_path, 'rb') as file_object:
-        for block in iter(lambda: file_object.read(sha1sum.block_size), b''):
-            sha1sum.update(block)
-    return sha1sum.hexdigest()
+from lib.utilities import sha1sum
 
 
 def download_os_images(config_path=None):
@@ -59,8 +51,7 @@ def download_os_images(config_path=None):
                         print('')
                         sys.stdout.flush()
                     log.info('Verifying OS image sha1sum: %s' % dest)
-                    sha1sum = _sha1sum(dest)
-                    if image['sha1sum'] != sha1sum:
+                    if image['sha1sum'] != sha1sum(dest):
                         msg = ('OS image sha1sum verification failed: %s' %
                                dest)
                         log.error(msg)

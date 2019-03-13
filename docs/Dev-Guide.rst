@@ -3,7 +3,7 @@
 Developer Guide
 ===============
 
-Cluster Genesis development is overseen by a team of IBM engineers.
+POWER-Up development is overseen by a team of IBM engineers.
 
 Git Repository Model
 --------------------
@@ -46,7 +46,7 @@ Commit Message Rules
 Your Commit message can be validated within the tox environment
 (see below for setup of the tox environment)::
 
-    cluster-genesis$ tox -e commit-message-validate
+    power-up$ tox -e commit-message-validate
 
 Unit Tests and Linters
 ----------------------
@@ -59,20 +59,20 @@ various linters.
 
 To run tox first install python dependencies::
 
-    cluster-genesis$ ./scripts/install.sh
+    power-up$ ./scripts/install.sh
 
 Install tox::
 
-    cluster-genesis$ pip install tox
+    power-up$ pip install tox
 
 To run all tox test environments::
 
-    cluster-genesis$ tox
+    power-up$ tox
 
 List test environments::
 
-    cluster-genesis$ tox -l
-    py27
+    power-up$ tox -l
+    py36
     bashate
     flake8
     ansible-lint
@@ -82,20 +82,20 @@ List test environments::
 
 Run only 'flake8' test environment::
 
-    cluster-genesis$ tox -e flake8
+    power-up$ tox -e flake8
 
 Unit Test
 ~~~~~~~~~
 
-Unit test scripts reside in the `cluster-genesis/tests/unit/` directory.
+Unit test scripts reside in the `power-up/tests/unit/` directory.
 
 Unit tests can be run through tox::
 
-    cluster-genesis$ tox -e py27
+    power-up$ tox -e py36
 
 Or called directly through python (be mindful of your python environment!)::
 
-    cluster-genesis$ python -m unittest discover
+    power-up$ python -m unittest discover
 
 Linters
 ~~~~~~~
@@ -109,18 +109,18 @@ linters are used:
 
 Linters can be run through tox::
 
-    cluster-genesis$ tox -e bashate
-    cluster-genesis$ tox -e flake8
-    cluster-genesis$ tox -e ansible-lint
+    power-up$ tox -e bashate
+    power-up$ tox -e flake8
+    power-up$ tox -e ansible-lint
 
 Or called directly (again, be mindful of your python environment!)
 
 *Pylint* and *pycodestyle* validation is not automatically launched when
 issuing the *tox* command. They need to be called out explicitly::
 
-    cluster-genesis$ tox -e pycodestyle
-    cluster-genesis$ tox -e pylint
-    cluster-genesis$ tox -e pylint-errors
+    power-up$ tox -e pycodestyle
+    power-up$ tox -e pylint
+    power-up$ tox -e pylint-errors
 
 File Format Validation
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -128,7 +128,7 @@ File Format Validation
 Ensure that each text file is in *unix* mode where lines are terminated by a
 linefeed::
 
-    cluster-genesis$ tox -e file-format
+    power-up$ tox -e file-format
 
 Copyright Date Validation
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -136,4 +136,4 @@ Copyright Date Validation
 If any changed files include a copyright header the year must be current. This
 rule is enforced within a tox environment::
 
-    cluster-genesis$ tox -e verify-copyright
+    power-up$ tox -e verify-copyright

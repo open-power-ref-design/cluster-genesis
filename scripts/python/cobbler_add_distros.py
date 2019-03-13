@@ -108,7 +108,6 @@ def cobbler_add_distro(name, kernel, initrd):
 
     log = logger.getlogger()
     name_list = [item.lower() for item in name.split('-')]
-
     if 'ubuntu' in name_list:
         breed = 'ubuntu'
         for item in name_list:
@@ -145,6 +144,9 @@ def cobbler_add_distro(name, kernel, initrd):
             kickstart = '%s%s.ks' % (KICKSTARTS_DIR, name)
         else:
             kickstart = '%sRHEL-7-default.ks' % KICKSTARTS_DIR
+    else:
+        log.info(f'Cobbler distro {name} unrecognized and not added')
+        return
 
     cobbler_server = xmlrpc.client.Server("http://127.0.0.1/cobbler_api")
     token = cobbler_server.login(COBBLER_USER, COBBLER_PASS)

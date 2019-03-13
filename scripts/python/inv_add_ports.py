@@ -288,12 +288,12 @@ def get_port_status(dhcp_leases_file, port_type, config_path):
         log.warning('Incomplete! Found {} of {} nodes'.format(status[0], status[1]))
         print('{}-------------------------------------------{}'.format(yellow, endc))
         print("\nPress enter to continue gathering port information.")
-        resp = input("Enter C to continue Cluster Genesis or 'T' to terminate ")
+        resp = input("Enter C to continue POWER-Up or 'T' to terminate ")
         if resp == 'T':
-            log.info("'{}' entered. Terminating Genesis at user request".format(resp))
+            log.info("'{}' entered. Terminating POWER-Up at user request".format(resp))
             sys.exit(1)
         elif resp == 'C':
-            log.info("'{}' entered. Continuing Genesis".format(resp))
+            log.info("'{}' entered. Continuing POWER-Up".format(resp))
             break
 
 
