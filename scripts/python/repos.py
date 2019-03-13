@@ -53,7 +53,7 @@ def setup_source_file(name, src_glob, url='', alt_url='http://',
         name (str): Name for the source. Used for prompts and dest dir (/srv/{name}).
     Returns:
         state (bool) : state is True if a file matching the src_name exists
-            in the dest directory or was succesfully copied there. state is
+            in the dest directory or was successfully copied there. state is
             False if there is no file matching src_name in the dest directory
             OR if the attempt to copy a new file to the dest directory failed.
         src_path (str) : The path for the file found / chosen by the user. If
@@ -370,7 +370,7 @@ class PowerupRepo(object):
             self.log.error(f'Repo creation error: rc: {rc} stderr: {err}')
         else:
             self.log.info(f'Repo {action[0]} process for {self.repo_id} finished'
-                          ' succesfully')
+                          ' successfully')
 
 
 class PowerupRepoFromRpm(PowerupRepo):
