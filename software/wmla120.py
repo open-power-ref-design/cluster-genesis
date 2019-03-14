@@ -244,7 +244,7 @@ class software(object):
     def README(self):
         print(bold('\nWMLA Enterprise software installer module'))
         text = ('\nThis module installs the Watson Machine Learning Accelerated\n'
-                'Enterprise software to a cluster of OpenPOWER and x86 nodes.\n\n'
+                'Enterprise software to a cluster of OpenPOWER or x86 nodes.\n\n'
                 'WMLA Enterprise installation involves three steps;\n'
                 '\n  1 - Preparation. Prepares the installer node software server.\n'
                 '       The preparation phase may be run multiple times if needed.\n'
