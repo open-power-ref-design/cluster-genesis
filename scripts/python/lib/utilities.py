@@ -27,7 +27,6 @@ from subprocess import Popen, PIPE
 from netaddr import IPNetwork, IPAddress, IPSet
 from tabulate import tabulate
 import hashlib
-import code
 
 from lib.config import Config
 import lib.logger as logger
@@ -1034,3 +1033,35 @@ def sha1sum(file_path):
         for block in iter(lambda: file_object.read(sha1sum.block_size), b''):
             sha1sum.update(block)
     return sha1sum.hexdigest()
+
+
+def clear_curses():
+    """ Curses cleanup
+
+    Reset terminal normal mode after running curses application
+    """
+    from curses import nocbreak, echo, endwin
+    nocbreak()
+    echo()
+    endwin()
+
+
+def interact(**kwargs):
+    """ Wrapper for code.interact with curses cleanup
+
+    Args:
+        **kwargs: See code.interact documentation
+    """
+    import code
+    clear_curses()
+    code.interact(**kwargs)
+
+
+def breakpoint():
+    """ Wrapper for pdb.set_trace() with curses cleanup
+
+    Note: python>=3.7 includes a built-in 'breakpoint()'
+    """
+    from pdb import set_trace
+    clear_curses()
+    set_trace()
