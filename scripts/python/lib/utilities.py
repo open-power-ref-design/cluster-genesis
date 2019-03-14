@@ -1379,22 +1379,26 @@ def extract_iso_image(iso_path, dest_dir):
     initrd = None
     if {'ubuntu', 'amd64'}.issubset(filename_parsed):
         sub_path = 'install/netboot/ubuntu-installer/amd64'
-        kernel = os.path.join(name, sub_path, 'linux')
-        initrd = os.path.join(name, sub_path, 'initrd.gz')
+        kernel = os.path.join(iso_dir, sub_path, 'linux')
+        initrd = os.path.join(iso_dir, sub_path, 'initrd.gz')
+        if not os.path.isfile(kernel):
+            sub_path = 'casper'
+            kernel = os.path.join(iso_dir, sub_path, 'vmlinux')
+            initrd = os.path.join(iso_dir, sub_path, 'initrd')
     elif {'ubuntu', 'ppc64el'}.issubset(filename_parsed):
         sub_path = 'install/netboot/ubuntu-installer/ppc64el'
-        kernel = os.path.join(name, sub_path, 'vmlinux')
-        initrd = os.path.join(name, sub_path, 'initrd.gz')
+        kernel = os.path.join(iso_dir, sub_path, 'vmlinux')
+        initrd = os.path.join(iso_dir, sub_path, 'initrd.gz')
     elif ({'rhel', 'x86_64'}.issubset(filename_parsed) or
             {'centos', 'x86_64'}.issubset(filename_parsed)):
         sub_path = 'images/pxeboot'
-        kernel = os.path.join(name, sub_path, 'vmlinuz')
-        initrd = os.path.join(name, sub_path, 'initrd.img')
+        kernel = os.path.join(iso_dir, sub_path, 'vmlinuz')
+        initrd = os.path.join(iso_dir, sub_path, 'initrd.img')
     elif ({'rhel', 'ppc64le'}.issubset(filename_parsed) or
             {'centos', 'ppc64le'}.issubset(filename_parsed)):
         sub_path = 'ppc/ppc64'
-        kernel = os.path.join(name, sub_path, 'vmlinuz')
-        initrd = os.path.join(name, sub_path, 'initrd.img')
+        kernel = os.path.join(iso_dir, sub_path, 'vmlinuz')
+        initrd = os.path.join(iso_dir, sub_path, 'initrd.img')
 
     if not os.path.isfile(kernel):
         kernel = None
