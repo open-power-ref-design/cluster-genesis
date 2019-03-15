@@ -89,7 +89,6 @@ anaconda_main_linux_ppc64le:
     - functools32-3.2.3.2-py27_1.tar.bz2
     - future-0.17.1-py27_0.tar.bz2
     - future-0.17.1-py36_0.tar.bz2
-    - futures-3.2.0-py27_0.tar.bz2
     - gast-0.2.2-py27_0.tar.bz2
     - gast-0.2.2-py36_0.tar.bz2
     - get_terminal_size-1.0.0-0.tar.bz2
