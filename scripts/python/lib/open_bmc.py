@@ -397,7 +397,6 @@ def get_system_sn_pn(host, session, timeout=5):
         res = None
     else:
         try:
-            # ['data']['Model'] # ['data'].split('.')[-1].lower()
             res = json.loads(res.text)
             res = (res['data']['SerialNumber'], res['data']['Model'])
         except (json.JSONDecodeError, AttributeError) as exc:

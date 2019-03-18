@@ -21,7 +21,6 @@ from pyghmi.ipmi.private import session
 import re
 from enum import Enum
 import yaml
-# import code
 
 import lib.logger as logger
 import lib.utilities as u
@@ -46,7 +45,6 @@ def login(host, username, pw, timeout=None):
     session.Session.initting_sessions = {}
     try:
         mysess = command.Command(host, username, pw)
-        # mysess = Ipmi_cmd(host, username, pw)
     except pyghmi_exception.IpmiException as exc:
         log.error(f'Failed IPMI login to BMC {host}')
         log.error(exc)
@@ -81,8 +79,6 @@ def ipmi_fru2dict(fru_str):
     returns: A dictionary who's keys are the FRUs
     """
     yaml_data = []
-    # code.interact(banner='ipmi.ipmi_fru2dict',
-    #               local=dict(globals(), **locals()))
     lines = fru_str.splitlines()
     for i, _line in enumerate(lines):
         # Strip out any excess white space (including tabs) around the ':'
@@ -132,13 +128,10 @@ def extract_system_info(ipmi_fru_str):
     returns:
         dictionary with system fru info
     """
-    # code.interact(banner='extract_system_info',
-    #               local=dict(globals(), **locals()))
     yaml_dict = ipmi_fru2dict(ipmi_fru_str)
     fru_item = ''
     for item in yaml_dict:
         for srch_item in ['NODE', 'SYS', 'Backplane', 'MP', 'Mainboard']:
-            # code.interact(banner='There', local=dict(globals(), **locals()))
             if srch_item in item:
                 fru_item = yaml_dict[item]
                 break
@@ -147,15 +140,13 @@ def extract_system_info(ipmi_fru_str):
             break
     if not fru_item:
         fru_item = yaml_dict
-        # fru_item = yaml_dict[list(yaml_dict.keys())[0]]
+
     return fru_item
 
 
 def get_system_inventory(host, user, pw):
     log = logger.getlogger()
     cmd = f'ipmitool -I lanplus -H {host} -U {user} -P {pw} fru'
-    # code.interact(banner='ipmi.get_system_info',
-    #               local=dict(globals(), **locals()))
     res, err, rc = u.sub_proc_exec(cmd)
     if rc == 0:
         return res
@@ -165,10 +156,7 @@ def get_system_inventory(host, user, pw):
 
 def get_system_info(host, user, pw):
     log = logger.getlogger()
-    # cmd = f'ipmitool -I lanplus -H {host} -U {user} -P {pw} fru'
-    # code.interact(banner='ipmi.get_system_info',
-    #               local=dict(globals(), **locals()))
-    # res, err, rc = u.sub_proc_exec(cmd)
+
     inv = get_system_inventory(host, user, pw)
 
     if inv:
@@ -183,8 +171,6 @@ def get_system_sn_pn(host, user, pw):
     if not sys_info:
         return
     else:
-        # code.interact(banner='ipmi.get_system_sn_pn',
-        #               local=dict(globals(), **locals()))
         key = list(sys_info.keys())[0]
         return (sys_info[key]['Chassis Serial'],
                 sys_info[key]['Chassis Part Number'])
@@ -208,8 +194,6 @@ def get_system_inventory_in_background(host, user, pw):
     """
     log = logger.getlogger()
     cmd = f'ipmitool -I lanplus -H {host} -U {user} -P {pw} fru'
-    # code.interact(banner='ipmi.get_system_info',
-    #               local=dict(globals(), **locals()))
     try:
         process = u.sub_proc_launch(cmd)
     except OSError:

@@ -28,7 +28,6 @@ from netaddr import IPNetwork, IPAddress, IPSet
 from tabulate import tabulate
 from textwrap import dedent
 import hashlib
-# import code
 
 from lib.config import Config
 import lib.logger as logger
@@ -148,14 +147,10 @@ def scan_subnet_for_port_open(cidr, port):
     cmd = f'sudo nmap -p {port} {cidr}'
     res, err, rc = sub_proc_exec(cmd)
     items = []
-    # code.interact(banner='scan subnet for port1',
-    #               local=dict(globals(), **locals()))
     if rc != 0:
         LOG.error(f'Error while scanning subnet {cidr}, rc: {rc}')
     for line in res.split('Nmap scan report'):
         match = re.search(PATTERN_EMBEDDED_IP, line)
-        # code.interact(banner='scan subnet for port2',
-        #               local=dict(globals(), **locals()))
         if match:
             ip = match.group(0)
             match2 = re.search(r'\d+/tcp\s+open.+' + rf'({PATTERN_MAC})', line,
@@ -1447,3 +1442,35 @@ def sha1sum(file_path):
         for block in iter(lambda: file_object.read(sha1sum.block_size), b''):
             sha1sum.update(block)
     return sha1sum.hexdigest()
+
+
+def clear_curses():
+    """ Curses cleanup
+
+    Reset terminal normal mode after running curses application
+    """
+    from curses import nocbreak, echo, endwin
+    nocbreak()
+    echo()
+    endwin()
+
+
+def interact(**kwargs):
+    """ Wrapper for code.interact with curses cleanup
+
+    Args:
+        **kwargs: See code.interact documentation
+    """
+    import code
+    clear_curses()
+    code.interact(**kwargs)
+
+
+def breakpoint():
+    """ Wrapper for pdb.set_trace() with curses cleanup
+
+    Note: python>=3.7 includes a built-in 'breakpoint()'
+    """
+    from pdb import set_trace
+    clear_curses()
+    set_trace()
