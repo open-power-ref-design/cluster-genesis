@@ -18,29 +18,30 @@
                         #YUYM
 - name: Check that the check if YUM post data exists
   stat:
-    path: "/{{yum_post}}"
+    path: "/{{ yum_post }}"
   register: yum_post_result
 
 - name: Create YUM post data file, if data doesnt exist already on client
-  shell: "yum list installed | sed 1,2d | xargs -n3 | column -t > {{yum_post}}"
-  when: yum_post_result.stat.exists == False
+  shell: "yum list installed | sed 1,2d | xargs -n3 | column -t > \
+          {{ yum_post }}"
+  when: not yum_post_result.stat.exists
 
 - name: Copy YUM data back to deployer
   fetch:
-    src: "~/{{yum_post}}"
-    dest: "{{dependencies_dir}}"
+    src: "~/{{ yum_post }}"
+    dest: "{{ dependencies_dir }}"
 
                         #PIP
 - name: Check that the check if PIP post data exists
   stat:
-    path: "/{{pip_post}}"
+    path: "/{{ pip_post }}"
   register: pip_post_result
 
 - name: Create PIP post data file, if data doesnt exist already on client
-  shell: "touch {{pip_post}}"
-  when: pip_post_result.stat.exists == False
+  shell: "touch {{ pip_post }}"
+  when: not pip_post_result.stat.exists
 
 - name: Copy PIP data back to deployer
   fetch:
-    src: "~/{{pip_post}}"
-    dest: "{{dependencies_dir}}"
+    src: "~/{{ pip_post }}"
+    dest: "{{ dependencies_dir }}"
