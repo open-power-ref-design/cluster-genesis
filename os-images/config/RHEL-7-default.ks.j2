@@ -1,0 +1,63 @@
+# Kickstart for RHEL7
+
+install
+url --url=http://{{ http_server }}/{{ http_repo_dir }}/
+
+text
+
+keyboard --vckeymap=us --xlayouts='us'
+lang en_US.UTF-8
+timezone {{ timezone }}{% if utc %} --utc{% endif %}
+
+auth --enableshadow --enablemd5
+user --name={{ default_user }} --groups=wheel --password={{ default_pass }}{% if pass_crypted %} --iscrypted{% endif %}
+rootpw{% if pass_crypted %} --iscrypted{% endif %} {{ default_pass }}
+network --hostname={{ hostname }}.{{ domain }}
+
+{% if install_disk is none %}
+%include /tmp/select-first-disk
+{% else %}
+clearpart --all --initlabel
+ignoredisk --only-use={{ install_disk }}
+bootloader --location=mbr --boot-drive={{ install_disk }}
+autopart --nohome
+{% endif %}
+
+reboot
+
+%packages
+@core
+bridge-utils
+vim
+wget
+ntp
+%end
+
+%pre
+#!/bin/bash
+for disk in /dev/sd[a-z]; do
+disk_list="$disk_list $disk"
+done
+
+disk=$(echo $disk_list | cut -d' ' -f1)
+
+echo "clearpart --all --initlabel" > /tmp/select-first-disk
+echo "ignoredisk --only-use=$disk" >> /tmp/select-first-disk
+echo "bootloader --location=mbr --boot-drive=$disk" >> /tmp/select-first-disk
+echo "autopart --nohome" >> /tmp/select-first-disk
+
+%end
+
+%post
+# Add yum sources
+# Add ssh keys to root
+mkdir /root/.ssh
+chmod 700 /root/.ssh
+wget http://{{ http_server }}/authorized_keys -O /root/.ssh/authorized_keys
+chmod 600 /root/.ssh/authorized_keys
+echo -e "[{{ http_repo_name }}]" > /etc/yum.repos.d/{{ http_repo_name }}.repo
+echo -e "name={{ http_repo_name }}" >> /etc/yum.repos.d/{{ http_repo_name }}.repo
+echo -e "baseurl=http://{{ http_server }}/{{ http_repo_dir }}/" >> /etc/yum.repos.d/{{ http_repo_name }}.repo
+echo -e "enabled=1" >> /etc/yum.repos.d/{{ http_repo_name }}.repo
+echo -e "gpgcheck=0" >> /etc/yum.repos.d/{{ http_repo_name }}.repo
+%end

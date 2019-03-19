@@ -25,63 +25,53 @@ import lib.genesis as gen
 OS_IMAGES_DIR = gen.get_container_os_images_path() + '/'
 OS_CONFIG_DIR = OS_IMAGES_DIR + 'config/'
 
-HTML_DIR = '/var/www/html/'
+APACHE2_HTML_DIR = '/var/www/html/'
 KICKSTARTS_DIR = '/var/lib/cobbler/kickstarts/'
 SNIPPETS_DIR = '/var/lib/cobbler/snippets/'
 COBBLER_USER = gen.get_cobbler_user()
 COBBLER_PASS = gen.get_cobbler_pass()
 
 
-def extract_iso_images(path):
+def extract_iso_images(path, html_dir):
     """Extract ISO images into webserver directory
+
     Args:
-        path (str): Directory path containing ISOs
+        path (str): Directory path containing ISOs or path to single
+                    ISO file
+        html_dir (str): Path to root http directory
 
     Returns:
-        list: Paths to extracted ISO images
+        list: List of tuples ('str: Extracted image directory name',
+                              'str: Relative path to kernel',
+                              'str: Relative path to initrd')
     """
 
     return_list = []
 
-    if not path.endswith('/'):
-        path += '/'
+    if os.path.isdir(path):
+        if not path.endswith('/'):
+            path += '/'
+        file_list = os.listdir(path)
+    elif os.path.isfile(path):
+        file_list = [os.path.basename(path)]
+        path = os.path.dirname(path) + '/'
 
     # Extract ISO into web directory for access over http
-    for _file in os.listdir(path):
+    for _file in file_list:
         if _file.endswith('.iso'):
-            name = os.path.splitext(_file)[0]
-            dest_dir = HTML_DIR + name
-
-            # If dest dir already exists continue to next file
-            if not os.path.isdir(dest_dir):
-                os.mkdir(dest_dir)
-                util.bash_cmd('xorriso -osirrox on -indev %s -extract / %s' %
-                              ((path + _file), dest_dir))
-                util.bash_cmd('chmod 755 $(find %s -type d)' % dest_dir)
-
-            # Do not return paths to "mini" isos
-            if not _file.endswith('mini.iso'):
-                return_list.append(dest_dir)
-
-    # Ubuntu ppc64el before 16.04.2 requires files from netboot mini iso
-    for _file in os.listdir(path):
-        if _file.endswith('mini.iso'):
-            src_dir = (HTML_DIR + _file[:-4] +
-                       '/install/')
-            dest_dir = (HTML_DIR + _file[:-9] +
-                        '/install/netboot/ubuntu-installer/ppc64el/')
-            if not os.path.isdir(dest_dir):
-                os.makedirs(dest_dir)
-            for netboot_file in os.listdir(src_dir):
-                util.copy_file(src_dir + netboot_file, dest_dir)
+            kernel, initrd = util.extract_iso_image(path + _file, html_dir)
+            name = _file[:-4]
+            return_list.append((name, kernel, initrd))
 
     return return_list
 
 
-def setup_image_config_files(path):
+def setup_image_config_files(path, html_dir):
     """Setup image config files
+
     Args:
         path (str): Directory path image config files
+        html_dir (str): Path to root http directory
     """
 
     if not path.endswith('/'):
@@ -100,18 +90,20 @@ def setup_image_config_files(path):
         util.copy_file(snippets_src_dir + _file, SNIPPETS_DIR)
 
     # Copy apt source lists to web repo directory
-    if not os.path.isdir(HTML_DIR + 'ubuntu_sources'):
-        os.makedirs(HTML_DIR + 'ubuntu_sources')
+    if not os.path.isdir(html_dir + 'ubuntu_sources'):
+        os.makedirs(html_dir + 'ubuntu_sources')
     for _file in os.listdir(path):
         if _file.endswith('.list'):
-            util.copy_file(path + _file, HTML_DIR + 'ubuntu_sources')
+            util.copy_file(path + _file, html_dir + 'ubuntu_sources')
 
 
-def cobbler_add_distro(path, name):
+def cobbler_add_distro(name, kernel, initrd):
     """Add distro and profile to Cobbler
+
     Args:
-        path (str): Path to OS image files
         name (str): Name of distro/profile
+        kernel (str): Path to kernel
+        initrd (str): Path to initrd
     """
 
     log = logger.getlogger()
@@ -121,17 +113,8 @@ def cobbler_add_distro(path, name):
         for item in name_list:
             if item == 'amd64':
                 arch = 'x86_64'
-                subdir = "install/netboot/ubuntu-installer/amd64"
-                kernel = f"{path}/{subdir}/linux"
-                initrd = f"{path}/{subdir}/initrd.gz"
-                if not os.path.isfile(kernel):
-                    kernel = f"{path}/casper/vmlinuz"
-                    initrd = f"{path}/casper/initrd"
             elif item == 'ppc64el':
                 arch = 'ppc64le'
-                subdir = "install/netboot/ubuntu-installer/ppc64el"
-                kernel = f"{path}/{subdir}/vmlinux"
-                initrd = f"{path}/{subdir}/initrd.gz"
             elif item.startswith('14.04'):
                 os_version = 'trusty'
             elif item.startswith('16.04'):
@@ -152,12 +135,8 @@ def cobbler_add_distro(path, name):
         for item in name_list:
             if item == 'x86_64':
                 arch = 'x86_64'
-                kernel = "%s/images/pxeboot/vmlinuz" % path
-                initrd = "%s/images/pxeboot/initrd.img" % path
             elif item == 'ppc64le':
                 arch = 'ppc64le'
-                kernel = "%s/ppc/ppc64/vmlinuz" % path
-                initrd = "%s/ppc/ppc64/initrd.img" % path
             elif item.startswith('7'):
                 os_version = 'rhel7'
         kernel_options = "text"
@@ -165,16 +144,6 @@ def cobbler_add_distro(path, name):
             kickstart = '%s%s.ks' % (KICKSTARTS_DIR, name)
         else:
             kickstart = '%sRHEL-7-default.ks' % KICKSTARTS_DIR
-
-    elif 'introspection' in name_list:
-        breed = 'redhat'  # use default since there is no "buildroot" breed
-        os_version = ''
-        arch = 'ppc64le'
-        kernel = "%s/vmlinux" % path
-        initrd = "%s/rootfs.cpio.gz" % path
-        kernel_options = ''
-        kickstart = ''
-
     else:
         log.info(f'Cobbler distro {name} unrecognized and not added')
         return
@@ -220,9 +189,8 @@ def cobbler_add_distro(path, name):
         token)
     cobbler_server.save_distro(new_distro_create, token)
 
-    log.info(
-        "Cobbler Add Distro: name=%s, path=%s" %
-        (name, path))
+    log.info(f"Cobbler Add Distro: name={name}")
+    log.debug(f"name={name} kernel={kernel} initrd{initrd}")
 
     new_profile_create = cobbler_server.new_profile(token)
     cobbler_server.modify_profile(
@@ -306,16 +274,19 @@ def cobbler_add_profile(distro, name):
 if __name__ == '__main__':
     logger.create()
 
-    distros = extract_iso_images(OS_IMAGES_DIR)
+    distros = extract_iso_images(OS_IMAGES_DIR, APACHE2_HTML_DIR)
 
-    setup_image_config_files(OS_CONFIG_DIR)
+    setup_image_config_files(OS_CONFIG_DIR, APACHE2_HTML_DIR)
 
     for distro in distros:
-        cobbler_add_distro(distro, os.path.basename(distro))
+        name = distro[0]
+        kernel = os.path.join(APACHE2_HTML_DIR, distro[1])
+        initrd = os.path.join(APACHE2_HTML_DIR, distro[2])
+        cobbler_add_distro(name, kernel, initrd)
 
     for _file in os.listdir(OS_CONFIG_DIR):
         if _file.endswith('.seed') or _file.endswith('.ks'):
             profile = _file[:-5]
             distro = _file.rsplit('.', 2)[0]
-            if profile != distro and os.path.isdir(HTML_DIR + distro):
+            if profile != distro and os.path.isdir(APACHE2_HTML_DIR + distro):
                 cobbler_add_profile(distro, profile)

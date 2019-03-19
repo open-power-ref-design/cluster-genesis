@@ -18,14 +18,11 @@
 import argparse
 import os
 import re
-import sys
-import time
 import lib.genesis as gen
 import yaml
-import code
+# import code
 
 import lib.logger as logger
-from lib.utilities import Color
 
 
 def ipmi_fru2dict(fru_str):
@@ -46,8 +43,8 @@ def ipmi_fru2dict(fru_str):
             yaml_data.append(line)
             continue
         if i < len(lines) - 1:
-            # If indentation is increasing on the following line, then convert the
-            # current line to a dictionary key.
+            # If indentation is increasing on the following line, then convert
+            # the current line to a dictionary key.
             indent = re.search(r'[ \t]*', line).span()[1]
             next_indent = re.search(r'[ \t]*', lines[i + 1]).span()[1]
             if next_indent > indent:
@@ -72,7 +69,8 @@ def _get_system_sn_pn(ipmi_fru_str):
     fru_item = _get_system_info(ipmi_fru_str)
     fru_item = fru_item[list(fru_item.keys())[0]]
 
-    return fru_item['Chassis Serial'].strip(), fru_item['Chassis Part Number'].strip()
+    return (fru_item['Chassis Serial'].strip(),
+            fru_item['Chassis Part Number'].strip())
 
 
 def _get_system_info(ipmi_fru_str):
@@ -80,7 +78,7 @@ def _get_system_info(ipmi_fru_str):
     fru_item = ''
     for item in yaml_dict:
         for srch_item in ['NODE', 'SYS', 'Backplane', 'MP', 'Mainboard']:
-            #code.interact(banner='There', local=dict(globals(), **locals()))
+            # code.interact(banner='There', local=dict(globals(), **locals()))
             if srch_item in item:
                 fru_item = yaml_dict[item]
                 break
@@ -89,7 +87,7 @@ def _get_system_info(ipmi_fru_str):
             break
     if not fru_item:
         fru_item = yaml_dict
-        #fru_item = yaml_dict[list(yaml_dict.keys())[0]]
+        # fru_item = yaml_dict[list(yaml_dict.keys())[0]]
     return fru_item
 
 

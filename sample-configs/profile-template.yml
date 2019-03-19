@@ -8,7 +8,7 @@
 #                 previous field)
 # floc: x,y Causes the field to be placed at relx,rely
 # The 'ftype' item determines the type of field used. Default is text.
-# ftype: file, text, ftext, ttext     (file search field, text input field, fixed text)
+# ftype: file, text, ftext  (file search field, text input field, fixed text)
 # dtype:    determines the type of data checking applied to the field
 #           valid dtypes are intm-n, int-or-none, ipv4, ipv4mask
 

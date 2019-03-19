@@ -78,7 +78,8 @@ class Bmc(object):
             return
             # return open_bmc.get_system_info(self.host, self.bmc)
         if self.bmc_type == 'ipmi':
-            return ipmi.get_system_inventory_in_background(self.host, self.user, self.pw)
+            return ipmi.get_system_inventory_in_background(self.host,
+                                                           self.user, self.pw)
 
     def extract_system_info(self, inventory):
         if self.bmc_type == 'openbmc':

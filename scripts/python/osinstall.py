@@ -462,6 +462,7 @@ class MyButtonPress(npyscreen.MiniButtonPress):
 
         elif self.name == 'Scan for nodes':
             self.parent.scan = True
+            # self.name = 'Stop node scan'
             # 0.5 sec to initiate scanning in 0.5 s
             self.parent.keypress_timeout = 5
 
@@ -1158,8 +1159,8 @@ def main(prof_path):
 #        p = pro.get_network_profile_tuple()
 #        nodes = u.scan_subnet(p.bmc_subnet_cidr)
 #        ips = [node[0] for node in nodes]
-        # code.interact(banner='osinstall.main1',
-        #               local=dict(globals(), **locals()))
+#        # code.interact(banner='osinstall.main1',
+#        #               local=dict(globals(), **locals()))
 #        nodes = u.scan_subnet_for_port_open(ips, 623)
 #        ips = [node[0] for node in nodes]
 #        n = pro.get_node_profile_tuple()

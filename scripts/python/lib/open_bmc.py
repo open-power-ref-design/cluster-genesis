@@ -38,7 +38,8 @@ def login(host, username, pw, timeout=10):
     mysess = requests.session()
     try:
         r = mysess.post(f'https://{host}/login', headers=httpHeader,
-                        json={"data": [username, pw]}, verify=False, timeout=timeout)
+                        json={"data": [username, pw]}, verify=False,
+                        timeout=timeout)
     except(requests.exceptions.Timeout) as err:
         log.debug(f'BMC login session request timout error {err}')
         mysess = None
@@ -63,7 +64,8 @@ def logout(host, username, pw, session, timeout=10):
     """
          Logs out of the bmc and terminates the session
 
-         @param host: string, the hostname or IP address of the bmc to log out of
+         @param host: string, the hostname or IP address of the bmc to log
+                              out of
          @param username: The user name for the bmc to log out of
          @param pw: The password for the BMC to log out of
          @param session: the active session to use
@@ -72,7 +74,8 @@ def logout(host, username, pw, session, timeout=10):
     httpHeader = {'Content-Type': 'application/json'}
     try:
         r = session.post(f'https://{host}/logout', headers=httpHeader,
-                         json={"data": [username, pw]}, verify=False, timeout=timeout)
+                         json={"data": [username, pw]}, verify=False,
+                         timeout=timeout)
     except(requests.exceptions.Timeout) as err:
         log.debug(f'BMC session request timout error {err}')
     except(requests.exceptions.ConnectionError) as err:
@@ -105,10 +108,11 @@ def hostBootMode(host, mode, session, timeout=5):
             log.error(f'Invalid Boot mode: {mode} Key error {exc}')
             raise
 
-        url = (f"https://{host}/xyz/openbmc_project/control/host0/boot/one_time/"
-               "attr/BootMode")
+        url = (f"https://{host}/xyz/openbmc_project/control/host0/boot/"
+               "one_time/attr/BootMode")
         httpHeader = {'Content-Type': 'application/json'}
-        data = f'xyz.openbmc_project.Control.Boot.Mode.Modes.{BootMode[mode].value}'
+        data = ('xyz.openbmc_project.Control.Boot.Mode.Modes.'
+                f'{BootMode[mode].value}')
         data = '{"data":"' + data + '"}'
         try:
             res = session.put(url, headers=httpHeader, data=data, verify=False,
@@ -125,11 +129,12 @@ def hostBootMode(host, mode, session, timeout=5):
                 return
 
     else:
-        url = (f"https://{host}/xyz/openbmc_project/control/host0/boot/one_time/"
-               "attr/BootMode")
+        url = (f"https://{host}/xyz/openbmc_project/control/host0/boot/"
+               "one_time/attr/BootMode")
         httpHeader = {'Content-Type': 'application/json'}
         try:
-            res = session.get(url, headers=httpHeader, verify=False, timeout=timeout)
+            res = session.get(url, headers=httpHeader, verify=False,
+                              timeout=timeout)
         except(requests.exceptions.Timeout) as exc:
             log.error(f'BMC request timeout error. {exc}')
         else:
@@ -158,8 +163,8 @@ def hostBootSource(host, source, session, timeout=5):
         except KeyError as exc:
             log.error(f'Invalid Boot source: {source} Key error {exc}')
             raise
-        url = (f"https://{host}/xyz/openbmc_project/control/host0/boot/one_time/"
-               "attr/BootSource")
+        url = (f"https://{host}/xyz/openbmc_project/control/host0/boot/"
+               "one_time/attr/BootSource")
         httpHeader = {'Content-Type': 'application/json'}
         data = ('xyz.openbmc_project.Control.Boot.Source.Sources.'
                 f'{BootSource[source].value}')
@@ -177,11 +182,12 @@ def hostBootSource(host, source, session, timeout=5):
                           f'reason: {res.reason}')
                 return
     else:
-        url = (f"https://{host}/xyz/openbmc_project/control/host0/boot/one_time/"
-               "attr/BootSource")
+        url = (f"https://{host}/xyz/openbmc_project/control/host0/boot/"
+               "one_time/attr/BootSource")
         httpHeader = {'Content-Type': 'application/json'}
         try:
-            res = session.get(url, headers=httpHeader, verify=False, timeout=timeout)
+            res = session.get(url, headers=httpHeader, verify=False,
+                              timeout=timeout)
         except(requests.exceptions.Timeout) as exc:
             log.error(f'BMC request timeout error. {exc}')
         else:
@@ -190,15 +196,14 @@ def hostBootSource(host, source, session, timeout=5):
 
 
 def chassisPower(host, op, session, timeout=5):
-    """
-         called by the chassis function. Controls the power state of the chassis,
-         or gets the status
+    """  called by the chassis function. Controls the power state of the
+         chassis, or gets the status
 
          @param host: string, the hostname or IP address of the bmc
          @param args: contains additional arguments used by the fru sub command
          @param session: the active session to use
-         @param args.json: boolean, if this flag is set to true, the output will be
-            provided in json format for programmatic consumption
+         @param args.json: boolean, if this flag is set to true, the output
+            will be provided in json format for programmatic consumption
     """
     log = logger.getlogger()
     op = op.lower()
@@ -232,13 +237,15 @@ def chassisPower(host, op, session, timeout=5):
 
     if PowerOp[op].value not in ('status', 'bmcstatus'):
         if checkFWactivation(host, session):
-            log.debug("Chassis Power control disabled during firmware activation")
+            log.debug("Chassis Power control disabled during firmware "
+                      "activation")
             return
 
             log.debug(msg[op])
         url = (f"https://{host}/xyz/openbmc_project/state/host0/attr/"
                "RequestedHostTransition")
-        data = f'"xyz.openbmc_project.State.Host.Transition.{PowerOp[op].value}"'
+        data = ('"xyz.openbmc_project.State.Host.Transition.'
+                f'{PowerOp[op].value}"')
         data = '{"data":' + data + '}'
         try:
             res = session.put(url, headers=httpHeader, data=data, verify=False,
@@ -260,12 +267,14 @@ def chassisPower(host, op, session, timeout=5):
 
     elif PowerOp[op].value in ('bmcstatus', 'status'):
         if PowerOp[op].value == 'bmcstatus':
-            url = f"https://{host}/xyz/openbmc_project/state/bmc0/attr/CurrentBMCState"
+            url = (f"https://{host}/xyz/openbmc_project/state/bmc0/attr/"
+                   "CurrentBMCState")
         else:
             url = (f"https://{host}/xyz/openbmc_project/state/chassis0/attr/"
                    "CurrentPowerState")
         try:
-            res = session.get(url, headers=httpHeader, verify=False, timeout=timeout)
+            res = session.get(url, headers=httpHeader, verify=False,
+                              timeout=timeout)
         except(requests.exceptions.Timeout) as exc:
             log.debug('BMC request timeout error. Host: {host}')
             log.debug(exc)
@@ -289,21 +298,26 @@ def chassisPower(host, op, session, timeout=5):
                     res = None
     return res
 
-#        url="https://"+host+"/xyz/openbmc_project/state/host0/attr/CurrentHostState"
+#        url=("https://"+host+"/xyz/openbmc_project/state/host0/attr/"
+#             "CurrentHostState")
 #        try:
-#            res = session.get(url, headers=httpHeader, verify=False, timeout=30)
+#            res = session.get(url, headers=httpHeader, verify=False,
+#                              timeout=30)
 #        except(requests.exceptions.Timeout):
 #            return(connectionErrHandler(args.json, "Timeout", None))
 #        hostState = json.loads(res.text)['data'].split('.')[-1]
-#        url="https://"+host+"/xyz/openbmc_project/state/bmc0/attr/CurrentBMCState"
+#        url=("https://"+host+"/xyz/openbmc_project/state/bmc0/attr/"
+#             "CurrentBMCState")
 #        try:
-#            res = session.get(url, headers=httpHeader, verify=False, timeout=30)
+#            res = session.get(url, headers=httpHeader, verify=False,
+#                              timeout=30)
 #        except(requests.exceptions.Timeout):
 #            return(connectionErrHandler(args.json, "Timeout", None))
 #        bmcState = json.loads(res.text)['data'].split('.')[-1]
 #
-#        return "Chassis Power State: " +chassisState + "\nHost Power State: " + \
-#           hostState + "\nBMC Power State: " + bmcState
+#        return ("Chassis Power State: " +chassisState +
+#                 "\nHost Power State: " + hostState + "\nBMC Power State: " +
+#                 bmcState)
 #    else:
 #        return "Invalid chassis power command"
 #
@@ -343,7 +357,8 @@ def get_system_info(host, session, timeout=5):
     url = (f"https://{host}/xyz/openbmc_project/inventory/system")
     httpHeader = {'Content-Type': 'application/json'}
     try:
-        res = session.get(url, headers=httpHeader, verify=False, timeout=timeout)
+        res = session.get(url, headers=httpHeader, verify=False,
+                          timeout=timeout)
     except(requests.exceptions.Timeout) as exc:
         log.debug('BMC request timeout error. Host: {host}')
         log.debug(exc)
@@ -370,7 +385,8 @@ def get_system_sn_pn(host, session, timeout=5):
     url = (f"https://{host}/xyz/openbmc_project/inventory/system")
     httpHeader = {'Content-Type': 'application/json'}
     try:
-        res = session.get(url, headers=httpHeader, verify=False, timeout=timeout)
+        res = session.get(url, headers=httpHeader, verify=False,
+                          timeout=timeout)
     except(requests.exceptions.Timeout) as exc:
         log.debug('BMC request timeout error. Host: {host}')
         log.debug(exc)
@@ -397,7 +413,8 @@ def bmcPowerState(host, session, timeout):
     url = f"https://{host}/xyz/openbmc_project/state/bmc0/attr/CurrentBMCState"
     httpHeader = {'Content-Type': 'application/json'}
     try:
-        res = session.get(url, headers=httpHeader, verify=False, timeout=timeout)
+        res = session.get(url, headers=httpHeader, verify=False,
+                          timeout=timeout)
     except(requests.exceptions.Timeout) as exc:
         log.debug('BMC request timeout error. Host: {host}')
         log.debug(exc)
@@ -419,14 +436,16 @@ def bmcPowerState(host, session, timeout):
 
 def bmcReset(host, op, session):
     """
-         controls resetting the bmc. warm reset reboots the bmc, cold reset removes
-         the configuration and reboots.
+         controls resetting the bmc. warm reset reboots the bmc, cold reset
+         removes the configuration and reboots.
 
          @param host: string, the hostname or IP address of the bmc
-         @param args: contains additional arguments used by the bmcReset sub command
+         @param args: contains additional arguments used by the bmcReset sub
+                      command
          @param session: the active session to use
-         @param args.json: boolean, if this flag is set to true, the output will be
-            provided in json format for programmatic consumption
+         @param args.json: boolean, if this flag is set to true, the output
+                                    will be provided in json format for
+                                    programmatic consumption
          @return : response from BMC if reset accepted, else None
     """
     log = logger.getlogger()
@@ -451,7 +470,8 @@ def bmcReset(host, op, session):
         httpHeader = {'Content-Type': 'application/json'}
         data = '{"data":"xyz.openbmc_project.State.BMC.Transition.Reboot"}'
         try:
-            res = session.put(url, headers=httpHeader, data=data, verify=False, timeout=5)
+            res = session.put(url, headers=httpHeader, data=data, verify=False,
+                              timeout=5)
         except(requests.exceptions.Timeout) as exc:
             log.error(f'BMC request timeout error. Host: {host}')
             log.debug(exc)

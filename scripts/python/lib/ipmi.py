@@ -33,7 +33,8 @@ def login(host, username, pw, timeout=None):
          host: (str), the hostname or IP address of the bmc to log into
          username: (str) The user name for the bmc to log into
          pw: (str) The password for the BMC to log into
-         timeout (None) : Does nothing. Provides compatibility with open_bmc args
+         timeout (None) : Does nothing. Provides compatibility with open_bmc
+                          args
          return: Session object
     """
     log = logger.getlogger()
@@ -87,8 +88,8 @@ def ipmi_fru2dict(fru_str):
             yaml_data.append(line)
             continue
         if i < len(lines) - 1:
-            # If indentation is increasing on the following line, then convert the
-            # current line to a dictionary key.
+            # If indentation is increasing on the following line, then convert
+            # the current line to a dictionary key.
             indent = re.search(r'[ \t]*', line).span()[1]
             next_indent = re.search(r'[ \t]*', lines[i + 1]).span()[1]
             if next_indent > indent:
@@ -115,7 +116,8 @@ def extract_system_sn_pn(ipmi_fru_str):
     fru_item = extract_system_info(ipmi_fru_str)
     fru_item = fru_item[list(fru_item.keys())[0]]
 
-    return fru_item['Chassis Serial'].strip(), fru_item['Chassis Part Number'].strip()
+    return (fru_item['Chassis Serial'].strip(),
+            fru_item['Chassis Part Number'].strip())
 
 
 def extract_system_info(ipmi_fru_str):
@@ -138,6 +140,7 @@ def extract_system_info(ipmi_fru_str):
             break
     if not fru_item:
         fru_item = yaml_dict
+
     return fru_item
 
 
@@ -153,6 +156,7 @@ def get_system_inventory(host, user, pw):
 
 def get_system_info(host, user, pw):
     log = logger.getlogger()
+
     inv = get_system_inventory(host, user, pw)
 
     if inv:
@@ -168,14 +172,15 @@ def get_system_sn_pn(host, user, pw):
         return
     else:
         key = list(sys_info.keys())[0]
-        return (sys_info[key]['Chassis Serial'], sys_info[key]['Chassis Part Number'])
+        return (sys_info[key]['Chassis Serial'],
+                sys_info[key]['Chassis Part Number'])
 
 
 def get_system_inventory_in_background(host, user, pw):
-    """ Launches a background subprocess (using Popen) to gather fru information from
-    a target node. The reference to the subprocess class is returned. The background
-    subprocess can be polled for completion using process.poll
-    Fru information can be read using process.communicate
+    """ Launches a background subprocess (using Popen) to gather fru
+    information from a target node. The reference to the subprocess class is
+    returned. The background subprocess can be polled for completion using
+    process.poll Fru information can be read using process.communicate
 
     example:
     p = get_system_inventory_in_background('192.168.36.21', 'ADMIN', 'admin')
@@ -192,9 +197,11 @@ def get_system_inventory_in_background(host, user, pw):
     try:
         process = u.sub_proc_launch(cmd)
     except OSError:
-        log.error('An OS error occurred while attempting to run ipmitool fru cmd')
+        log.error('An OS error occurred while attempting to run ipmitool fru '
+                  'cmd')
     except ValueError:
-        log.error('An incorrect argument was passed to the subprocess running ipmitool')
+        log.error('An incorrect argument was passed to the subprocess running '
+                  'ipmitool')
 
     return process
 
@@ -245,7 +252,8 @@ def chassisPower(host, op, bmc, timeout=6):
         try:
             res = bmc.set_power(PowerOp[op].value, timeout)
         except pyghmi_exception.IpmiException as exc:
-            log.error(f'Failed IPMI set power state {PowerOp[op].value} from BMC {host}')
+            log.error(f'Failed IPMI set power state {PowerOp[op].value} from '
+                      f'BMC {host}')
             log.error(exc)
             res = None
         else:
@@ -259,7 +267,8 @@ def hostBootSource(host, source, bmc, timeout=None):
         host: string, the hostname or IP address of the bmc
         source: (str) The source to boot from.
             If empty, returns the boot source.
-        timeout (None) : Does nothing. Provides compatibility with open_bmc args
+        timeout (None) : Does nothing. Provides compatibility with open_bmc
+                         args
     returns: (str) boot source
     """
     log = logger.getlogger()
@@ -288,8 +297,8 @@ def hostBootSource(host, source, bmc, timeout=None):
         try:
             res = bmc.set_bootdev(BootSource[source].value, persist=False)
         except pyghmi_exception.IpmiException as exc:
-            log.error(f'Failed IPMI set boot device {BootSource[source].value} '
-                      f'from BMC {host}. {exc} ')
+            log.error('Failed IPMI set boot device '
+                      f'{BootSource[source].value} from BMC {host}. {exc} ')
             res = None
         else:
             res = res['bootdev']
@@ -312,7 +321,8 @@ def hostBootMode(host, mode, bmc, timeout=None):
         host: string, the hostname or IP address of the bmc
         source: (str) The source to boot from.
         If empty, returns the boot source.
-        timeout (None) : Does nothing. Provides compatibility with open_bmc args
+        timeout (None) : Does nothing. Provides compatibility with open_bmc
+                         args
     returns (str) : boot mode
     """
     log = logger.getlogger()
@@ -356,11 +366,12 @@ def hostBootMode(host, mode, bmc, timeout=None):
 
 def bmcReset(host, op, bmc):
     """
-         controls resetting the bmc. warm reset reboots the bmc, cold reset removes
-         the configuration and reboots.
+         controls resetting the bmc. warm reset reboots the bmc, cold reset
+         removes the configuration and reboots.
          Args:
             host: string, the hostname or IP address of the bmc
-            args: contains additional arguments used by the bmcReset sub command
+            args: contains additional arguments used by the bmcReset sub
+                  command
             bmc: the active bmc connection to use
          returns : True if reset accepted, else False
     """
@@ -379,7 +390,8 @@ def bmcReset(host, op, bmc):
 
     if(BmcOp[op].value == "cold"):
         try:
-            # 'raw_command used here instead of reset_bmc so as to get the response
+            # 'raw_command used here instead of reset_bmc so as to get the
+            #  response
             res = bmc.reset_bmc()
         except pyghmi_exception.IpmiException:
             log.error(f'Failed cold reboot of BMC {host}')
