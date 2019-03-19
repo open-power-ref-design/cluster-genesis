@@ -70,6 +70,11 @@ def nginx_setup(root_dir='/srv', repo_id='nginx'):
     if rc != 0:
         log.error('Failed to enable nginx service')
 
+    cmd = 'systemctl start nginx.service'
+    resp, err, rc = sub_proc_exec(cmd)
+    if rc != 0:
+        log.error('Failed to start nginx service')
+
     if os.path.isfile('/etc/nginx/conf.d/default.conf'):
         try:
             os.rename('/etc/nginx/conf.d/default.conf',
