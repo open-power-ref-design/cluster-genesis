@@ -84,12 +84,12 @@ class software(object):
         self._load_pkglist()
 
         try:
-            self.sw_vars = yaml.load(open(GEN_SOFTWARE_PATH + f'{self.sw_vars_file_name}'))
+            self.sw_vars = yaml.safe_load(open(GEN_SOFTWARE_PATH + f'{self.sw_vars_file_name}'))
         except IOError:
             # if no eval vars file exist, see if the license var file exists
             # and start with that
             try:
-                self.sw_vars = yaml.load(open(GEN_SOFTWARE_PATH + f'{self.sw_vars_file_name}'))
+                self.sw_vars = yaml.safe_load(open(GEN_SOFTWARE_PATH + f'{self.sw_vars_file_name}'))
             except IOError:
                 self.log.info('Creating software vars yaml file')
                 self.sw_vars = {}
@@ -115,14 +115,14 @@ class software(object):
         if self.eval_ver:
             self.eval_prep_timestamp = self.sw_vars['prep-timestamp']
             try:
-                temp = yaml.load(open(GEN_SOFTWARE_PATH + f'{self.sw_vars_file_name}'))
+                temp = yaml.safe_load(open(GEN_SOFTWARE_PATH + f'{self.sw_vars_file_name}'))
                 self.lic_prep_timestamp = temp['prep-timestamp']
             except (IOError, KeyError):
                 self.lic_prep_timestamp = 0
         else:
             self.lic_prep_timestamp = self.sw_vars['prep-timestamp']
             try:
-                temp = yaml.load(open(GEN_SOFTWARE_PATH + f'{self.sw_vars_file_name}'))
+                temp = yaml.safe_load(open(GEN_SOFTWARE_PATH + f'{self.sw_vars_file_name}'))
                 self.eval_prep_timestamp = temp['prep-timestamp']
             except (IOError, KeyError):
                 self.eval_prep_timestamp = 0
@@ -1360,7 +1360,7 @@ class software(object):
 
     def _load_pkglist(self):
         try:
-            self.pkgs = yaml.load(open(GEN_SOFTWARE_PATH + f'pkg-lists-{self.base_filename}.yml'))
+            self.pkgs = yaml.safe_load(open(GEN_SOFTWARE_PATH + f'pkg-lists-{self.base_filename}.yml'))
         except IOError:
             self.log.error(f'Error opening the pkg lists file '
                            f'(pkg-lists-{self.base_filename}.yml)')
@@ -1372,7 +1372,7 @@ class software(object):
         # regular extression of [0-9]{0,3} Other asterisks are converted to regular
         # expression of .*
         try:
-            file_lists = yaml.load(open(GEN_SOFTWARE_PATH + f'file-lists-{self.base_filename}.yml'))
+            file_lists = yaml.safe_load(open(GEN_SOFTWARE_PATH + f'file-lists-{self.base_filename}.yml'))
         except IOError:
             self.log.info('Error while reading installation file lists for WMLA Enterprise')
             sys.exit('exiting')
@@ -1589,7 +1589,7 @@ class software(object):
         _set_spectrum_conductor_install_env(self.sw_vars['ansible_inventory'],
                                             'dli', ana_ver)
         specific_arch = "_" + self.arch if self.arch == 'x86_64' else ""
-        install_tasks = yaml.load(open(GEN_SOFTWARE_PATH +
+        install_tasks = yaml.safe_load(open(GEN_SOFTWARE_PATH +
                                        f'{self.my_name}_install_procedure{specific_arch}.yml'))
 
 #        if self.eng_mode == 'gather-dependencies':
@@ -1802,7 +1802,7 @@ def _set_spectrum_conductor_install_env(ansible_inventory, package, ana_ver=None
     init = True
     while not env_validated:
         try:
-            for key, value in yaml.load(open(envs_path)).items():
+            for key, value in yaml.safe_load(open(envs_path)).items():
                 if value is None:
                     break
             else:
