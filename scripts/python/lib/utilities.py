@@ -1068,6 +1068,8 @@ def nginx_modify_conf(conf_path, directives={}, locations={}, reload=True,
             for line in file_object:
                 if 'server {' in line:
                     collecting_directive_data = True
+                elif not line.strip():
+                    continue  # continue if blank line
                 elif 'location' in line:
                     collecting_directive_data = False
                     current_location = line.strip()[9:-2]
