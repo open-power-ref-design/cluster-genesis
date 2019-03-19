@@ -61,7 +61,9 @@ def extract_iso_images(path, html_dir):
         if _file.endswith('.iso'):
             kernel, initrd = util.extract_iso_image(path + _file, html_dir)
             name = _file[:-4]
-            return_list.append((name, kernel, initrd))
+            return_list.append((name,
+                                os.path.join(html_dir, kernel),
+                                os.path.join(html_dir, initrd)))
 
     return return_list
 
