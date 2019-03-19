@@ -229,13 +229,10 @@ def main():
 
         write_merged_files(merged_sets, pkg_type)
 
-    # merge_function(yum_pre_files, yum_post_files, 'yum')
-    # merge_function(conda_pre_files, conda_post_files, 'conda')
-
     file_check(pip_pre_files)
     file_check(pip_post_files)
-    # merge_function(yum_pre_files, yum_post_files, 'yum')
-    # merge_function(conda_pre_files, conda_post_files, 'conda')
+    merge_function(yum_pre_files, yum_post_files, 'yum')
+    merge_function(conda_pre_files, conda_post_files, 'conda')
     merge_function(pip_pre_files, pip_post_files, 'pip')
 
 
