@@ -24,27 +24,195 @@ import copy
 from orderedattrdict.yamlutils import AttrDictYAMLLoader
 from collections import namedtuple
 from pyroute2 import IPRoute
+import re
 import sys
-from time import sleep
+from netaddr import IPNetwork
+from jinja2 import Template
+from time import time, sleep
 
 import lib.logger as logger
 import lib.interfaces as interfaces
-from lib.genesis import get_package_path, get_sample_configs_path
+from lib.genesis import get_package_path, get_sample_configs_path, \
+    get_os_images_path
 import lib.utilities as u
+from nginx_setup import nginx_setup
+from ip_route_get_to import ip_route_get_to
+from lib.bmc import Bmc
 
 GEN_PATH = get_package_path()
 GEN_SAMPLE_CONFIGS_PATH = get_sample_configs_path()
 
 IPR = IPRoute()
 
-PROFILE = 'profile.yml'
+PROFILE = os.path.join(GEN_PATH, 'profile.yml')
+NODE_LIST = os.path.join(GEN_PATH, 'node_list.yml')
 
 
 def osinstall(profile_path):
     log = logger.getlogger()
     log.debug('osinstall')
+
     osi = OSinstall(profile_path)
     osi.run()
+
+
+def dnsmasq_configuration(profile_object):
+    p = profile_object.get_network_profile_tuple()
+    dhcp_start = 21
+    dhcp_lease_time = '5m'
+    if (p.bmc_address_mode == 'static' or
+            p.bmc_ethernet_ifc == p.pxe_ethernet_ifc):
+        interfaces = p.pxe_ethernet_ifc
+    else:
+        interfaces = (p.bmc_ethernet_ifc + ',' + p.pxe_ethernet_ifc)
+
+    pxe_network = IPNetwork(p.pxe_subnet_cidr)
+    dhcp_pxe_ip_range = (str(pxe_network.network + dhcp_start) + ',' +
+                         str(pxe_network.network + pxe_network.size - 1))
+
+    rc = u.dnsmasq_config_pxelinux(interface=interfaces,
+                                   dhcp_range=dhcp_pxe_ip_range,
+                                   lease_time=dhcp_lease_time)
+
+    if rc != 0:
+        return rc
+
+    if p.bmc_address_mode == 'dhcp':
+        bmc_network = IPNetwork(p.bmc_subnet_cidr)
+        dhcp_bmc_ip_range = (str(bmc_network.network + dhcp_start) + ',' +
+                             str(bmc_network.network + bmc_network.size - 1))
+        rc = u.dnsmasq_add_dhcp_range(dhcp_range=dhcp_bmc_ip_range,
+                                      lease_time=dhcp_lease_time)
+
+    return rc
+
+
+def extract_install_image(profile_object):
+    http_root = '/srv'
+    http_osinstall = 'osinstall'
+
+    p = profile_object.get_node_profile_tuple()
+
+    image_dir = os.path.join(http_root, http_osinstall)
+    if not os.path.isdir(image_dir):
+        os.mkdir(image_dir)
+        os.chmod(image_dir, 0o755)
+    kernel, initrd = u.extract_iso_image(p.iso_image_file, image_dir)
+
+    return kernel, initrd
+
+
+def render_kickstart(profile_object, kickstart_template=None):
+    http_root = '/srv'
+    http_osinstall = 'osinstall'
+
+    p_netw = profile_object.get_network_profile_tuple()
+    p_node = profile_object.get_node_profile_tuple()
+
+    kickstart = None
+
+    image_name = os.path.basename(p_node.iso_image_file)[:-4]
+
+    if kickstart_template is None:
+        if 'ubuntu' in image_name.lower():
+            kickstart_template = os.path.join(get_os_images_path(),
+                                              'config/ubuntu-default.seed')
+        elif 'rhel' in image_name.lower():
+            kickstart_template = os.path.join(get_os_images_path(),
+                                              'config/RHEL-7-default.ks.j2')
+
+    if kickstart_template is not None:
+        kickstart = os.path.join(http_osinstall,
+                                 os.path.basename(kickstart_template))
+        if kickstart.endswith('.j2'):
+            kickstart = kickstart[:-3]
+        kickstart_out = os.path.join(http_root,
+                                     http_osinstall,
+                                     os.path.basename(kickstart_template))
+        if kickstart_out.endswith('.j2'):
+            kickstart_out = kickstart_out[:-3]
+
+        j2_vars = {'default_user': 'rhel75',
+                   'default_pass': 'passw0rd',
+                   'pass_crypted': False,
+                   'install_disk': None,
+                   'domain': 'localdomain',
+                   'timezone': 'America/Chicago',
+                   'utc': True,
+                   }
+
+        pxe_network = IPNetwork(p_netw.pxe_subnet_cidr)
+        j2_vars['http_server'] = ip_route_get_to(str(pxe_network.ip))
+
+        j2_vars['http_repo_name'] = image_name
+        j2_vars['http_repo_dir'] = os.path.join(http_osinstall,
+                                                j2_vars['http_repo_name'])
+
+        j2_vars['hostname'] = p_node.hostname
+
+        with open(kickstart_template, 'r') as file_object:
+            template = Template(file_object.read())
+
+        with open(kickstart_out, 'w') as file_object:
+            file_object.write(template.render(**j2_vars))
+
+        os.chmod(kickstart_out, 0o755)
+
+    return kickstart
+
+
+def pxelinux_configuration(profile_object, kernel, initrd, kickstart):
+    log = logger.getlogger()
+    http_osinstall = 'osinstall'
+    p = profile_object.get_network_profile_tuple()
+    pxe_network = IPNetwork(p.pxe_subnet_cidr)
+    server = ip_route_get_to(str(pxe_network.ip))
+    if server not in pxe_network:
+        log.error(f'No direct route to PXE subnet! route={server}')
+
+    u.pxelinux_set_default(
+        server=server,
+        kernel=os.path.join(http_osinstall, kernel),
+        initrd=os.path.join(http_osinstall, initrd),
+        kickstart=kickstart)
+
+
+def initiate_pxeboot(profile_object, node_list_file):
+    log = logger.getlogger()
+    p_node = profile_object.get_node_profile_tuple()
+    node_list = yaml.load(open(node_list_file))
+    for node in node_list:
+        ip = node['bmc_ip']
+        userid = p_node.bmc_userid
+        passwd = p_node.bmc_password
+        bmc = Bmc(ip, userid, passwd)
+        if bmc.is_connected():
+            log.debug(f"Successfully connected to BMC: host={ip} "
+                      f"userid={userid} password={passwd}")
+            bmc.chassis_power('off')
+            bmc.host_boot_source(source='network')
+            bmc.chassis_power('on')
+        else:
+            log.error(f"Unable to connect to BMC: host={ip} "
+                      f"userid={userid} password={passwd}")
+
+
+def reset_bootdev(profile_object, node_list_file):
+    log = logger.getlogger()
+    p_node = profile_object.get_node_profile_tuple()
+    node_list = yaml.load(open(node_list_file))
+    for node in node_list:
+        ip = node['bmc_ip']
+        userid = p_node.bmc_userid
+        passwd = p_node.bmc_password
+        bmc = Bmc(ip, userid, passwd)
+        if bmc.is_connected():
+            log.debug(f"Successfully connected to BMC: host={ip} "
+                      f"userid={userid} password={passwd}")
+            bmc.host_boot_source(source='disk')
+        else:
+            log.error(f"Unable to connect to BMC: host={ip} "
+                      f"userid={userid} password={passwd}")
 
 
 class Profile():
@@ -64,24 +232,26 @@ class Profile():
                 self.prof_path = os.path.join(GEN_SAMPLE_CONFIGS_PATH,
                                               'profile-template.yml')
         try:
-            self.profile = yaml.load(open(self.prof_path), Loader=AttrDictYAMLLoader)
+            self.profile = yaml.load(open(self.prof_path),
+                                     Loader=AttrDictYAMLLoader)
         except IOError:
-            self.log.error(f'Unable to open the profile file: {self.prof_path}')
+            self.log.error('Unable to open the profile file: '
+                           f'{self.prof_path}')
             sys.exit(f'Unable to open the profile file: {self.prof_path}\n'
                      'Unable to continue with OS install')
 
     def get_profile(self):
         """Returns an ordered attribute dictionary with the profile data.
-        This is generally intended for use by Profile and the entry menu, not by
-        application code
+        This is generally intended for use by Profile and the entry menu, not
+        by application code
         """
         return self.profile
 
     def get_network_profile(self):
-        """Returns an ordered attribute dictionary with the network profile data.
-        This is generally intended for use by the entry menu, not by application
-        code. deepcopy is used to return a new copy of the relevent profile, not
-        a reference to the original.
+        """Returns an ordered attribute dictionary with the network profile
+        data. This is generally intended for use by the entry menu, not by
+        application code. deepcopy is used to return a new copy of the relevent
+        profile, not a reference to the original.
         """
         return copy.deepcopy(self.profile.network)
 
@@ -113,14 +283,14 @@ class Profile():
 
     def update_network_profile(self, profile):
         self.profile.network = profile
-        with open(GEN_PATH + 'profile.yml', 'w') as f:
+        with open(PROFILE, 'w') as f:
             yaml.dump(self.profile, f, indent=4, default_flow_style=False)
 
     def get_node_profile(self):
         """Returns an ordered attribute dictionary with the node profile data.
-        This is generally intended for use by the entry menu, not by application
-        code. deepcopy is used to return a new copy of the relevent profile, not
-        a reference to the original.
+        This is generally intended for use by the entry menu, not by
+        application code. deepcopy is used to return a new copy of the relevent
+        profile, not a reference to the original.
         """
         return copy.deepcopy(self.profile.node)
 
@@ -141,7 +311,7 @@ class Profile():
 
     def update_node_profile(self, profile):
         self.profile.node = profile
-        with open(GEN_PATH + 'profile.yml', 'w') as f:
+        with open(PROFILE, 'w') as f:
             yaml.dump(self.profile, f, indent=4, default_flow_style=False)
 
 
@@ -219,7 +389,7 @@ class OSinstall(npyscreen.NPSAppManaged):
                 msg += ['- Warning a DHCP server exists already on',
                         '  the interface specified for BMC access. ',
                         f'  Offered address: {dhcp["IP Offered"]}',
-                        f'  From server: {dhcp["Server Identifier"]}']
+                        f'  From server:     {dhcp["Server Identifier"]}']
 
         if prof.pxe_ethernet_ifc.val:
             dhcp = u.get_dhcp_servers(prof.pxe_ethernet_ifc.val)
@@ -227,7 +397,7 @@ class OSinstall(npyscreen.NPSAppManaged):
                 msg += ['- Warning a DHCP server exists already on',
                         '  the interface specified for PXE access. ',
                         f'  Offered address: {dhcp["IP Offered"]}',
-                        f'  From server: {dhcp["Server Identifier"]}']
+                        f'  From server:     {dhcp["Server Identifier"]}']
 
         return msg
 
@@ -239,24 +409,31 @@ class OSinstall(npyscreen.NPSAppManaged):
         # create tagged vlan interfaces if any
         if p.bmc_vlan_number:
             bmc_ifc = p.bmc_ethernet_ifc + '.' + p.bmc_vlan_number
-            if not self.ifcs.is_vlan_used_elsewhere(p.bmc_vlan_number, bmc_ifc):
-                self.ifcs.create_tagged_ifc(p.bmc_ethernet_ifc, p.bmc_vlan_number)
+            if not self.ifcs.is_vlan_used_elsewhere(p.bmc_vlan_number,
+                                                    bmc_ifc):
+                self.ifcs.create_tagged_ifc(p.bmc_ethernet_ifc,
+                                            p.bmc_vlan_number)
 
         if p.pxe_vlan_number:
             pxe_ifc = p.pxe_ethernet_ifc + '.' + p.pxe_vlan_number
-            if not self.ifcs.is_vlan_used_elsewhere(p.pxe_vlan_number, pxe_ifc):
-                self.ifcs.create_tagged_ifc(p.pxe_ethernet_ifc, p.pxe_vlan_number)
+            if not self.ifcs.is_vlan_used_elsewhere(p.pxe_vlan_number,
+                                                    pxe_ifc):
+                self.ifcs.create_tagged_ifc(p.pxe_ethernet_ifc,
+                                            p.pxe_vlan_number)
 
-        if not self.ifcs.find_unused_addr_and_add_to_ifc(bmc_ifc, p.bmc_subnet_cidr):
+        if not self.ifcs.find_unused_addr_and_add_to_ifc(bmc_ifc,
+                                                         p.bmc_subnet_cidr):
             self.log.error(f'Failed to add an addr to {bmc_ifc}')
 
-        if not self.ifcs.find_unused_addr_and_add_to_ifc(pxe_ifc, p.pxe_subnet_cidr):
+        if not self.ifcs.find_unused_addr_and_add_to_ifc(pxe_ifc,
+                                                         p.pxe_subnet_cidr):
             self.log.error(f'Failed to add an addr to {pxe_ifc}')
 
 #            cmd = f'nmap -PR {p.bmc_subnet_cidr}'
 #            res, err, rc = u.sub_proc_exec(cmd)
 #            if rc != 0:
-#                self.log.error('An error occurred while scanning the BMC subnet')
+#                self.log.error('An error occurred while scanning the BMC '
+#                               'subnet')
 #            bmc_addr_dict = {}
 #            res = res.split('Nmap scan report')
 #            for item in res:
@@ -272,7 +449,8 @@ class OSinstall(npyscreen.NPSAppManaged):
 #            res = self.ifcs.route('del', dst=p.bmc_subnet_cidr,
 #                            oif=self.ifcs.link_lookup(ifname=bmc_ifc)[0])
 #            if res[0]['header']['error']:
-#                self.log.error(f'Error occurred removing route from {bmc_ifc}')
+#                self.log.error('Error occurred removing route from '
+#                               f'{bmc_ifc}')
 
 
 class MyButtonPress(npyscreen.MiniButtonPress):
@@ -281,11 +459,18 @@ class MyButtonPress(npyscreen.MiniButtonPress):
         if self.name == 'Edit network config':
             self.parent.next_form = 'MAIN'
             self.parent.parentApp.switchForm('MAIN')
-        if self.name == 'Scan for nodes':
-            p = self.parent.parentApp.prof.get_network_profile_tuple()
-            nodes = u.scan_subnet(p.bmc_subnet_cidr)
-            self.parent.fields['node_list'].values = nodes
-            self.parent.display()
+
+        elif self.name == 'Scan for nodes':
+            self.parent.scan = True
+            self.name = 'Stop node scan'
+            # 0.5 sec to initiate scanning in 0.5 s
+            self.parent.keypress_timeout = 5
+
+        elif self.name == 'Stop node scan':
+            self.parent.scan = False
+            self.name = 'Scan for nodes'
+
+        self.parent.display()
 
 
 class Pup_form(npyscreen.ActionFormV2):
@@ -296,52 +481,62 @@ class Pup_form(npyscreen.ActionFormV2):
     def afterEditing(self):
         self.parentApp.setNextForm(self.next_form)
 
-    def create(self):
+    def create(self, *args, **keywords):
+        super(Pup_form, self).create(*args, **keywords)
+
+        self.keypress_timeout = 50  # hundreds of ms
+        self.scan = False
+        self.scanning = False
         self.y, self.x = self.useable_space()
         self.prev_field = ''
-        self.node = self.parentApp.get_form_data()
+        self.form = self.parentApp.get_form_data()
         self.fields = {}  # dictionary for holding field instances
         self.next_form = self.parentApp.NEXT_ACTIVE_FORM
-        self.node_list = []
+        self.talking_nodes = {}  # Nodes we can talk to using ipmi or openBMC
+        if hasattr(self.form, 'bmc_userid'):
+            self.scan_uid = self.form.bmc_userid.val
+            self.scan_pw = self.form.bmc_password.val
 
-        for item in self.node:
-            fname = self.node[item].desc
-            if hasattr(self.node[item], 'floc'):
-                if self.node[item]['floc'] == 'skipline':
+        for item in self.form:
+            fname = self.form[item].desc
+            if hasattr(self.form[item], 'floc'):
+                if self.form[item]['floc'] == 'skipline':
                     self.nextrely += 1
 
-                if 'sameline' in self.node[item]['floc']:
-                    relx = int(self.node[item]['floc'].lstrip('sameline'))
+                if 'sameline' in self.form[item]['floc']:
+                    relx = int(self.form[item]['floc'].lstrip('sameline'))
                 else:
                     relx = 2
             else:
                 relx = 2
             # Place the field
-            if hasattr(self.node[item], 'ftype'):
-                ftype = self.node[item]['ftype']
+            if hasattr(self.form[item], 'ftype'):
+                ftype = self.form[item]['ftype']
             else:
                 ftype = 'text'
-            if hasattr(self.node[item], 'dtype'):
-                dtype = self.node[item]['dtype']
+            if hasattr(self.form[item], 'dtype'):
+                dtype = self.form[item]['dtype']
             else:
                 dtype = 'text'
 
             if ftype == 'file':
-                if not self.node[item]['val']:
-                    self.node[item]['val'] = os.path.join(GEN_PATH, 'os-images')
+                if not self.form[item]['val']:
+                    self.form[item]['val'] = os.path.join(GEN_PATH,
+                                                          'os-images')
                 self.fields[item] = self.add(npyscreen.TitleFilenameCombo,
                                              name=fname,
-                                             value=str(self.node[item]['val']),
+                                             value=str(self.form[item]['val']),
                                              begin_entry_at=20)
 
             elif 'ipv4mask' in dtype:
                 self.fields[item] = self.add(npyscreen.TitleText, name=fname,
-                                             value=str(self.node[item]['val']),
+                                             value=str(self.form[item]['val']),
                                              begin_entry_at=20, width=40,
                                              relx=relx)
             elif 'eth-ifc' in ftype:
-                eth = self.node[item]['val']
-                eth_lst = self.parentApp.ifcs.get_up_interfaces_names(_type='phys')
+                eth = self.form[item]['val']
+                eth_lst = self.parentApp.ifcs.get_up_interfaces_names(
+                    _type='phys')
                 # Get the existing value to the top of the list
                 if eth in eth_lst:
                     eth_lst.remove(eth)
@@ -354,39 +549,44 @@ class Pup_form(npyscreen.ActionFormV2):
                                              begin_entry_at=20,
                                              scroll_exit=False)
             elif ftype == 'select-one':
-                if hasattr(self.node[item], 'val'):
-                    value = self.node[item]['values'].index(self.node[item]['val'])
+                if hasattr(self.form[item], 'val'):
+                    value = self.form[item]['values'].index(
+                        self.form[item]['val'])
                 else:
                     value = 0
-                self.fields[item] = self.add(npyscreen.TitleSelectOne, name=fname,
+                self.fields[item] = self.add(npyscreen.TitleSelectOne,
+                                             name=fname,
                                              max_height=2,
                                              value=value,
-                                             values=self.node[item]['values'],
+                                             values=self.form[item]['values'],
                                              scroll_exit=True,
                                              begin_entry_at=20, relx=relx)
 
             elif ftype == 'select-multi':
-                if hasattr(self.node[item], 'val'):
-                    if (hasattr(self.node[item], 'dtype') and
-                            self.node[item]['dtype'] == 'no-save'):
-                        value = list(self.node[item]['val'])
+                if hasattr(self.form[item], 'val'):
+                    if (hasattr(self.form[item], 'dtype') and
+                            self.form[item]['dtype'] == 'no-save'):
+                        value = list(self.form[item]['val'])
                     else:
-                        value = self.node[item]['val']
+                        value = self.form[item]['val']
                 else:
                     value = None
-                self.fields[item] = self.add(npyscreen.TitleMultiSelect, name=fname,
+                self.fields[item] = self.add(npyscreen.TitleMultiSelect,
+                                             name=fname,
                                              max_height=10,
                                              value=value,
-                                             values=self.node[item]['values'],
+                                             values=self.form[item]['values'],
                                              scroll_exit=True,
                                              begin_entry_at=20, relx=relx)
 
             elif 'button' in ftype:
                 if ',' in ftype:
-                    x = int(self.node[item]['ftype'].lstrip('button').split(',')[0])
-                    y = int(self.node[item]['ftype'].lstrip('button').split(',')[1])
+                    x = int(self.form[item]['ftype'].lstrip(
+                        'button').split(',')[0])
+                    y = int(self.form[item]['ftype'].lstrip(
+                        'button').split(',')[1])
                 self.fields[item] = self.add(MyButtonPress,
-                                             name=self.node[item]['desc'],
+                                             name=self.form[item]['desc'],
                                              relx=x,
                                              rely=y)
 
@@ -394,15 +594,16 @@ class Pup_form(npyscreen.ActionFormV2):
             else:
                 self.fields[item] = self.add(npyscreen.TitleText,
                                              name=fname,
-                                             value=str(self.node[item]['val']),
+                                             value=str(self.form[item]['val']),
                                              begin_entry_at=20, width=40,
                                              relx=relx)
 
-            if hasattr(self.node[item], 'ftype') and 'button' in self.node[item]['ftype']:
+            if hasattr(self.form[item], 'ftype') and (
+                    'button' in self.form[item]['ftype']):
                 pass
             else:
                 self.fields[item].entry_widget.add_handlers({curses.KEY_F1:
-                                                            self.h_help})
+                                                             self.h_help})
 
     def on_cancel(self):
         fvl = self.parentApp._FORM_VISIT_LIST
@@ -421,102 +622,227 @@ class Pup_form(npyscreen.ActionFormV2):
             self.next_form = fvl[-1]
 
     def on_ok(self):
-        for item in self.node:
-            if hasattr(self.node[item], 'dtype') and self.node[item]['dtype'] == 'no-save':
-                continue
-            if hasattr(self.node[item], 'ftype'):
-                if self.node[item]['ftype'] == 'eth-ifc':
-                    # npyscreen.notify_confirm(f'ifc value: {self.fields[item].value}',
-                    # editw=1)
+        res = True
+        fld_error = False
+        val_error = False
+        msg = []
+        for item in self.form:
+            if hasattr(self.form[item], 'dtype'):
+                if self.form[item]['dtype'] == 'no-save':
+                    if item == 'node_list':
+                        if len(self.fields[item].value) == 0:
+                            msg = ('No nodes selected!\n'
+                                   'Exit without installing to any clients?')
+                            res = npyscreen.notify_yes_no(msg, title='Warning',
+                                                          editw=1)
+                        else:
+                            selected_nodes = []
+                            for index in self.fields[item].value:
+                                bmc_ip = self.fields['node_list'].\
+                                    values[index].split(', ')[3]
+                                bmc_mac = self.fields['node_list'].\
+                                    values[index].split(', ')[2]
+                                selected_nodes.append({'bmc_ip': bmc_ip,
+                                                       'bmc_mac': bmc_mac})
+                            with open(NODE_LIST, 'w') as f:
+                                yaml.dump(selected_nodes, f, indent=4,
+                                          default_flow_style=False)
+                    continue
+                elif self.form[item]['dtype'] == 'ipv4':
+                    # npyscreen.notify_confirm(f"{self.fields[item].value}",
+                    #                          editw=1)
+                    if not u.is_ipaddr(self.fields[item].value):
+                        fld_error = True
+                        msg += [('Invalid ipv4 address: '
+                                 f'{self.fields[item].value}')]
+
+            if hasattr(self.form[item], 'ftype'):
+                if self.form[item]['ftype'] == 'eth-ifc':
                     if self.fields[item].value is None:
-                        self.node[item]['val'] = None
+                        self.form[item]['val'] = None
+                        fld_error = True
+                        msg += ['Missing ethernet interface.']
                     else:
-                        self.node[item]['val'] = \
+                        self.form[item]['val'] = \
                             self.fields[item].values[self.fields[item].value]
-                elif self.node[item]['ftype'] == 'select-one':
-                    self.node[item]['val'] = \
-                        self.node[item]['values'][self.fields[item].value[0]]
+                elif self.form[item]['ftype'] == 'select-one':
+                    self.form[item]['val'] = \
+                        self.form[item]['values'][self.fields[item].value[0]]
                 else:
                     if self.fields[item].value == 'None':
-                        self.node[item]['val'] = None
+                        self.form[item]['val'] = None
                     else:
-                        self.node[item]['val'] = self.fields[item].value
+                        self.form[item]['val'] = self.fields[item].value
             else:
                 if self.fields[item].value == 'None':
-                    self.node[item]['val'] = None
+                    self.form[item]['val'] = None
                 else:
-                    self.node[item]['val'] = self.fields[item].value
-        msg = ['Validating network profile']
-        if (hasattr(self.node, 'bmc_address_mode')):
-            if self.node.bmc_address_mode.val == 'dhcp' or self.node.pxe_ethernet_ifc.val:
-                msg += ['and checking for existing DHCP servers']
-            npyscreen.notify(msg, title='Info')
-            sleep(1)
-        msg = self.parentApp.is_valid_profile(self.node)
-        res = True
-        if msg:
+                    self.form[item]['val'] = self.fields[item].value
+        if not fld_error:
+            popmsg = ['Validating network profile']
+            if (hasattr(self.form, 'bmc_address_mode')):
+                if (self.form.bmc_address_mode.val == 'dhcp' or
+                        self.form.pxe_ethernet_ifc.val):
+                    popmsg += ['and checking for existing DHCP servers']
+                npyscreen.notify(popmsg, title='Info')
+                sleep(1)
+
+            msg += self.parentApp.is_valid_profile(self.form)
             if 'Error' in msg:
-                npyscreen.notify_confirm(f'{msg}\n Please resolve issues.',
-                                         title='cancel 1', editw=1)
-                # stay on this form
-                self.next_form = self.parentApp.NEXT_ACTIVE_FORM
-                res = False
-            else:
-                msg += ['---------------------',
-                        'Continue with OS install?',
-                        '(No to continue editing the profile data)']
+                val_error = True
 
-                editw = 1 if len(msg) < 10 else 0
-                res = npyscreen.notify_yes_no(msg, title='Profile validation', editw=editw)
+            if not fld_error or val_error:
+                res = True
+                if msg:
+                    msg += ['---------------------',
+                            'Continue with OS install?',
+                            '(No to continue editing the profile data)']
 
-        if res:
-            if self.parentApp.NEXT_ACTIVE_FORM == 'MAIN':
-                self.parentApp.prof.update_network_profile(self.node)
-                self.next_form = 'NODE'
-            elif self.parentApp.NEXT_ACTIVE_FORM == 'NODE':
-                self.parentApp.prof.update_node_profile(self.node)
-                self.next_form = None
+                    editw = 1 if len(msg) < 10 else 0
+                    res = npyscreen.notify_yes_no(msg,
+                                                  title='Profile validation',
+                                                  editw=editw)
 
-        else:
+                if res:
+                    if self.parentApp.NEXT_ACTIVE_FORM == 'MAIN':
+                        self.parentApp.prof.update_network_profile(self.form)
+                        self.next_form = 'NODE'
+                        self.configure_services()
+                    elif self.parentApp.NEXT_ACTIVE_FORM == 'NODE':
+                        self.parentApp.prof.update_node_profile(self.form)
+                        self.initiate_os_installation()
+                        self.next_form = None
+
+        elif fld_error or val_error:
+            msg += ['Please reslove issues.']
+            npyscreen.notify_confirm(msg, title='cancel', editw=1)
             # stay on this form
             self.next_form = self.parentApp.NEXT_ACTIVE_FORM
+
+    def get_mask_and_prefix(self, mask_prefix):
+        """ Extracts a mask and prefix from a string containing a mask and / or
+            a prefix.
+        Args:
+            mask_prefix (str): Of the form 'ipmask prefix' or ipmask or prefix
+        """
+        # npyscreen.notify_confirm(f'mask_prefix: {mask_prefix}', editw=1)
+        match1 = re.search(r'(?:.*\s+)*((?:\d{1,3}\.){3}\d{1,3})\s*',
+                           mask_prefix)
+        match2 = re.search(r'\s*(\d{1,2})\s*$', mask_prefix)
+
+        if match1:
+            try:
+                parts = match1.group(1).strip().split('.')
+                if (len(parts) == 4 and
+                        all(0 <= int(part) < 256 for part in parts)):
+                    mask = match1.group(1)
+            except (ValueError, AttributeError, TypeError):
+                mask = None
+
+        else:
+            mask = None
+
+        if match2:
+            try:
+                prefix = int(match2.group(1))
+                prefix = prefix if 0 < prefix < 33 else None
+            except (ValueError, TypeError):
+                prefix = None
+        else:
+            prefix = None
+
+        msg = ('The entered mask and prefix do not match. The prefix is given '
+               'precendence. If you wish to enter just a netmask, a prefix '
+               'will be calculated. If you wish to enter just a prefix, a '
+               'netmask will be calulated.')
+
+        tmp = u.get_prefix(mask) if mask else 0
+        if prefix != tmp:
+            npyscreen.notify_confirm(msg, editw=1)
+        # npyscreen.notify_confirm(f'mask: {mask} prefix: {prefix}', editw=1)
+        return mask, prefix
+
+    def while_waiting(self):
+        if self.scan:
+            self.keypress_timeout = 100  # set scan loop back to 10 sec
+            p = self.parentApp.prof.get_network_profile_tuple()
+            msg = ["Initiating scan.",
+                   "Enter 'Stop node scan' to stop node scanning"]
+            npyscreen.notify(msg)
+            sleep(1.5)
+            self.display()
+            # nodes is list of tuples (ip, mac)
+            nodes = u.scan_subnet(p.bmc_subnet_cidr)
+            node_dict = {node[0]: node[1] for node in nodes}
+
+            self.fields['devices_found'].value = str(len(nodes))
+
+            ips = [node[0] for node in nodes]
+
+            nodes = u.scan_subnet_for_port_open(ips, 623)
+
+            ips = [node[0] for node in nodes]
+            self.fields['bmcs_found'].value = str(len(nodes))
+
+            scan_uid = self.fields['bmc_userid'].value
+            scan_pw = self.fields['bmc_password'].value
+
+            if scan_uid != self.scan_uid or scan_pw != self.scan_pw:
+                self.talking_nodes = {}
+                self.fields['node_list'].values = [()]
+                self.fields['node_list'].value = 0
+                self.fields['devices_found'].value = None
+                self.fields['bmcs_found'].value = None
+                self.scan_uid = scan_uid
+                self.scan_pw = scan_pw
+
+            node_list = self._get_bmcs_sn_pn(ips, scan_uid, scan_pw)
+            if node_list:
+                for node in node_list:
+                    if node not in self.talking_nodes:
+                        self.talking_nodes[node] = (node_list[node] +
+                                                    (node_dict[node], node))
+            field_list = [', '.join(self.talking_nodes[node])
+                          for node in self.talking_nodes]
+
+            if len(self.talking_nodes) == int(self.fields['bmcs_found'].value):
+                self.scan = False
+                self.fields['scan_for_nodes'].name = 'Scan for nodes'
+
+            # code.interact(banner='waiting - scan2',
+            #               local=dict(globals(), **locals()))
+            # npyscreen.notify_confirm(f'field list: {field_list}', editw=1)
+            self.fields['node_list'].values = field_list
+            self.display()
 
     def while_editing(self, instance):
         # instance is the instance of the widget you're moving into
         field = ''
-        for item in self.node:
+        for item in self.form:
             # lookup field from instance name
-            if instance.name == self.node[item].desc:
+            if instance.name == self.form[item].desc:
                 field = item
                 break
-        # npyscreen.notify_confirm(f'field: {field} prev field: {self.prev_field}', editw=1)
+        # npyscreen.notify_confirm(
+        #         f'field: {field} prev field: {self.prev_field}', editw=1)
         # On instantiation, self.prev_field is empty
         if self.prev_field:
-            if field and hasattr(self.node[field], 'dtype'):
-                field_dtype = self.node[field]['dtype']
+            if field and hasattr(self.form[field], 'dtype'):
+                field_dtype = self.form[field]['dtype']
             else:
                 field_dtype = None
-#            if hasattr(self.node[self.prev_field], 'dtype'):
-#                prev_field_dtype = self.node[self.prev_field]['dtype']
-#            else:
-#                prev_field_dtype = None
-
-#            if hasattr(self.node[self.prev_field], 'ftype'):
-#                prev_field_ftype = self.node[self.prev_field]['ftype']
-#            else:
-#                prev_field_ftype = None
 
         if self.prev_field and field_dtype != 'no-save':
-            if hasattr(self.node[self.prev_field], 'dtype'):
-                prev_fld_dtype = self.node[self.prev_field]['dtype']
+            if hasattr(self.form[self.prev_field], 'dtype'):
+                prev_fld_dtype = self.form[self.prev_field]['dtype']
             else:
                 prev_fld_dtype = 'text'
-            if hasattr(self.node[self.prev_field], 'ftype'):
-                prev_fld_ftype = self.node[self.prev_field]['ftype']
+            if hasattr(self.form[self.prev_field], 'ftype'):
+                prev_fld_ftype = self.form[self.prev_field]['ftype']
             else:
                 prev_fld_ftype = 'text'
-            if hasattr(self.node[self.prev_field], 'lnkd_flds'):
-                prev_fld_lnkd_flds = self.node[self.prev_field]['lnkd_flds']
+            if hasattr(self.form[self.prev_field], 'lnkd_flds'):
+                prev_fld_lnkd_flds = self.form[self.prev_field]['lnkd_flds']
             else:
                 prev_fld_lnkd_flds = None
 
@@ -524,96 +850,126 @@ class Pup_form(npyscreen.ActionFormV2):
 
             if prev_fld_dtype == 'ipv4':
                 if not u.is_ipaddr(prev_fld_val):
-                    npyscreen.notify_confirm(f'Invalid Field value: {prev_fld_val}',
+                    npyscreen.notify_confirm(('Invalid Field value: '
+                                              f'{prev_fld_val}'),
                                              title=self.prev_field, editw=1)
                 else:
                     if prev_fld_lnkd_flds:
-                        prefix = int(self.fields[prev_fld_lnkd_flds.prefix].value.split()[-1])
+                        prefix = int(self.fields[prev_fld_lnkd_flds.prefix].
+                                     value.split()[-1])
 
                         net_addr = u.get_network_addr(prev_fld_val, prefix)
                         if net_addr != prev_fld_val:
-                            npyscreen.notify_confirm(f'IP addr modified to: {net_addr}',
-                                                     title=self.prev_field, editw=1)
+                            npyscreen.notify_confirm(('IP addr modified to: '
+                                                      f'{net_addr}'),
+                                                     title=self.prev_field,
+                                                     editw=1)
                             self.fields[self.prev_field].value = net_addr
                             self.display()
 
-                        cidr = prev_fld_val + '/' + self.fields[prev_fld_lnkd_flds.prefix].value.split()[-1]
+                        cidr = (prev_fld_val + '/' +
+                                self.fields[prev_fld_lnkd_flds.prefix].
+                                value.split()[-1])
                         ifc = self.parentApp.ifcs.get_interface_for_route(cidr)
                         # npyscreen.notify_confirm(f'ifc: {ifc}', editw=1)
                     if not ifc:
-                        ifc = self.parentApp.ifcs.get_up_interfaces_names(_type='phys')
+                        ifc = self.parentApp.ifcs.\
+                            get_up_interfaces_names(_type='phys')
                     else:
                         ifc = [ifc]
                     if ifc:
-                        self.fields[self.node[self.prev_field]['lnkd_flds']['ifc']].values = ifc
+                        self.fields[self.form[
+                            self.prev_field]['lnkd_flds']['ifc']].values = ifc
                         idx = 0 if len(ifc) == 1 else None
-                        self.fields[self.node[self.prev_field]['lnkd_flds']['ifc']].value = idx
+                        self.fields[self.form[
+                            self.prev_field]['lnkd_flds']['ifc']].value = idx
                         self.display()
 
             elif prev_fld_dtype == 'ipv4mask':
-                prefix = int(prev_fld_val.split()[-1])
-                if prefix < 1 or prefix > 32:
-                    npyscreen.notify_confirm(f'Invalid Field value: {prev_fld_val}',
+                mask, prefix = self.get_mask_and_prefix(prev_fld_val)
+                if not prefix and not mask:
+                    npyscreen.notify_confirm(('Invalid Field value: '
+                                              f'{prev_fld_val}'),
                                              title=self.prev_field, editw=1)
                     prefix = 24
-                # update the mask part of the field
-                if len(prev_fld_val.split()[-1]) == 2:
+                    mask = '255.255.255.0'
+                elif prefix:
                     mask = u.get_netmask(prefix)
-                    self.fields[self.prev_field].value = f'{mask} {prefix}'
-                    self.display()
+                else:
+                    prefix = u.get_prefix(mask)
+                self.fields[self.prev_field].value = f'{mask} {prefix}'
+                self.display()
+
                 if prev_fld_lnkd_flds:
                     # get the ip address from the linked field
-                    cidr = self.fields[prev_fld_lnkd_flds.subnet].value + '/' + prev_fld_val.split()[-1]
+                    cidr = (self.fields[prev_fld_lnkd_flds.subnet].value +
+                            '/' +
+                            self.fields[self.prev_field].value.split()[-1])
+                    # npyscreen.notify_confirm(f'cidr: {cidr}', editw=1)
                     ifc = self.parentApp.ifcs.get_interface_for_route(cidr)
                     if not ifc:
-                        ifc = self.parentApp.ifcs.get_up_interfaces_names(_type='phys')
+                        ifc = self.parentApp.ifcs.get_up_interfaces_names(
+                            _type='phys')
                     else:
                         ifc = [ifc]
                     if ifc:
-                        self.fields[self.node[self.prev_field]['lnkd_flds']['ifc']].values = ifc
+                        self.fields[self.form[
+                            self.prev_field]['lnkd_flds']['ifc']].values = ifc
                         idx = 0 if len(ifc) == 1 else None
-                        self.fields[self.node[self.prev_field]['lnkd_flds']['ifc']].value = idx
+                        self.fields[self.form[
+                            self.prev_field]['lnkd_flds']['ifc']].value = idx
                         self.display()
 
             elif 'int-or-none' in prev_fld_dtype:
-                rng = self.node[self.prev_field]['dtype'].lstrip('int-or-none').\
-                    split('-')
+                rng = self.form[self.prev_field]['dtype'].\
+                    lstrip('int-or-none').split('-')
                 if prev_fld_val:
                     prev_fld_val = prev_fld_val.strip(' ')
                 if prev_fld_val and prev_fld_val != 'None':
                     try:
                         int(prev_fld_val)
                     except ValueError:
-                        npyscreen.notify_confirm(f"Enter digits 0-9 or enter 'None' "
-                                                 "or leave blank",
-                                                 title=self.prev_field, editw=1)
+                        npyscreen.notify_confirm("Enter digits 0-9 or enter "
+                                                 "'None' or leave blank",
+                                                 title=self.prev_field,
+                                                 editw=1)
                     else:
-                        if int(prev_fld_val) < int(rng[0]) or int(prev_fld_val) > int(rng[1]):
-                            msg = (f'Invalid Field value: {prev_fld_val}. Please leave empty or '
-                                   'enter a value between 2 and 4094.')
-                            npyscreen.notify_confirm(msg, title=self.prev_field, editw=1)
+                        if (int(prev_fld_val) < int(rng[0]) or
+                                int(prev_fld_val) > int(rng[1])):
+                            msg = (f'Invalid Field value: {prev_fld_val}. '
+                                   'Please leave empty or enter a value '
+                                   'between 2 and 4094.')
+                            npyscreen.notify_confirm(msg,
+                                                     title=self.prev_field,
+                                                     editw=1)
 
             elif 'int' in prev_fld_dtype:
-                rng = self.node[self.prev_field]['dtype'].lstrip('int').split('-')
+                rng = self.form[self.prev_field]['dtype'].lstrip('int').\
+                    split('-')
                 if prev_fld_val:
                     try:
                         int(prev_fld_val)
                     except ValueError:
                         npyscreen.notify_confirm(f'Enter digits 0-9',
-                                                 title=self.prev_field, editw=1)
+                                                 title=self.prev_field,
+                                                 editw=1)
                     else:
-                        if int(prev_fld_val) < int(rng[0]) or int(prev_fld_val) > int(rng[1]):
-                            msg = (f'Invalid Field value: {prev_fld_val}. Please enter a value '
-                                   f'between 2 and 4094.')
-                            npyscreen.notify_confirm(msg, title=self.prev_field, editw=1)
+                        if (int(prev_fld_val) < int(rng[0]) or
+                                int(prev_fld_val) > int(rng[1])):
+                            msg = (f'Invalid Field value: {prev_fld_val}. '
+                                   'Please enter a value between 2 and 4094.')
+                            npyscreen.notify_confirm(msg,
+                                                     title=self.prev_field,
+                                                     editw=1)
 
             elif 'file' in prev_fld_dtype:
                 if not os.path.isfile(prev_fld_val):
-                    npyscreen.notify_confirm(f'Specified iso file does not exist: {prev_fld_val}',
+                    npyscreen.notify_confirm('Specified iso file does not '
+                                             f'exist: {prev_fld_val}',
                                              title=self.prev_field, editw=1)
                 elif '-iso' in prev_fld_dtype and '.iso' not in prev_fld_val:
-                    npyscreen.notify_confirm('Warning, the selected file does not have a '
-                                             '.iso extension',
+                    npyscreen.notify_confirm('Warning, the selected file does '
+                                             'not have a .iso extension',
                                              title=self.prev_field, editw=1)
             elif 'eth-ifc' in prev_fld_ftype:
                 pass
@@ -623,9 +979,11 @@ class Pup_form(npyscreen.ActionFormV2):
         else:
             self.prev_field = ''
 
-        if instance.name not in ['OK', 'Cancel', 'CANCEL', 'Edit network config',
-                                 'Scan for nodes']:
-            self.helpmsg = self.node[field].help
+        if instance.name not in ['OK', 'Cancel', 'CANCEL',
+                                 'Edit network config', 'Scan for nodes',
+                                 'Stop node scan']:
+            if field:
+                self.helpmsg = self.form[field].help
         else:
             self.prev_field = ''
 
@@ -633,7 +991,8 @@ class Pup_form(npyscreen.ActionFormV2):
         npyscreen.notify_confirm(self.helpmsg, title=self.prev_field, editw=1)
 
     def h_enter(self, char):
-        npyscreen.notify_yes_no(f'Field Error: {self.field}', title='Enter', editw=1)
+        npyscreen.notify_yes_no(f'Field Error: {self.field}', title='Enter',
+                                editw=1)
 
     def when_press_edit_networks(self):
         self.next_form = 'MAIN'
@@ -642,15 +1001,125 @@ class Pup_form(npyscreen.ActionFormV2):
     def scan_for_nodes(self):
         npyscreen.notify_confirm('Scanning for nodes')
 
+    def configure_services(self):
+        notify_title = "Configuring Services"
+
+        msg = "Adding firewall rules... "
+        npyscreen.notify(msg, title=notify_title)
+        rc = u.firewall_add_services(['http', 'tftp', 'dhcp'])
+        if rc != 0:
+            msg += "ERROR\nFailed to configure firewall!"
+            npyscreen.notify_confirm(msg, title=notify_title, editw=1)
+            self.next_form = None
+            return
+
+        msg += "done\nInstall and configure nginx... "
+        npyscreen.notify(msg, title=notify_title)
+        rc = nginx_setup(root_dir='/srv')
+        if rc != 0:
+            msg += "ERROR\nFailed to configure nginx!"
+            npyscreen.notify_confirm(msg, title=notify_title, editw=1)
+            self.next_form = None
+            return
+
+        msg += "done\nConfigure dnsmasq... "
+        npyscreen.notify(msg, title=notify_title)
+        rc = dnsmasq_configuration(self.parentApp.prof)
+        if rc != 0:
+            msg += "ERROR\nFailed to configure dnsmasq!"
+            npyscreen.notify_confirm(msg, title=notify_title, editw=1)
+            self.next_form = None
+            return
+        msg += "done\n"
+        npyscreen.notify(msg, title=notify_title)
+        sleep(1)
+
+    def initiate_os_installation(self):
+        notify_title = "Client OS Installation"
+
+        msg = "Extracting files from install image... "
+        npyscreen.notify(msg, title=notify_title)
+        kernel, initrd = extract_install_image(self.parentApp.prof)
+
+        msg += "done\nGenerate kickstart file... "
+        npyscreen.notify(msg, title=notify_title)
+        kickstart = render_kickstart(self.parentApp.prof)
+
+        msg += "done\nGenerate pxelinux configuration... "
+        npyscreen.notify(msg, title=notify_title)
+        pxelinux_configuration(self.parentApp.prof, kernel, initrd, kickstart)
+
+        msg += "done\nPXE boot nodes... "
+        npyscreen.notify(msg, title=notify_title)
+        initiate_pxeboot(self.parentApp.prof, NODE_LIST)
+
+        msg += "done\nWait 5 minutes... "
+        npyscreen.notify(msg, title=notify_title)
+        sleep(300)
+
+        msg += "done\nReset node boot device to disk... "
+        npyscreen.notify(msg, title=notify_title)
+        reset_bootdev(self.parentApp.prof, NODE_LIST)
+
+        msg += "done\n"
+        npyscreen.notify_confirm(msg, title=notify_title, editw=1)
+
+    def _get_bmcs_sn_pn(self, node_list, uid, pw):
+        """ Scan the node list for BMCs. Return the sn and pn of nodes which
+        responded
+
+        Args:
+            node_list: Tuple or list of node ipv4 addresses
+        returns:
+            List of tuples containing ip, sn, pn
+        """
+        # create dict to hold Bmc class instances
+        bmc_inst = {}
+        # list for responding BMCs
+        sn_pn_list = {}
+
+        for ip in node_list:
+            this_bmc = Bmc(ip, uid, pw, 'ipmi')
+            if this_bmc.is_connected():
+                bmc_inst[ip] = this_bmc
+
+        # Create dict to hold inventory gathering sub process instances
+        sub_proc_instance = {}
+        # Start a sub process instance to gather inventory for each node.
+        for node in bmc_inst:
+            sub_proc_instance[node] = bmc_inst[node].\
+                get_system_inventory_in_background()
+        # poll for inventory gathering completion
+        st_time = time()
+        timeout = 15  # seconds
+
+        while time() < st_time + timeout and len(sn_pn_list) < len(bmc_inst):
+            for node in sub_proc_instance:
+                if sub_proc_instance[node].poll() is not None:
+                    if (sub_proc_instance[node].poll() == 0 and
+                            node not in sn_pn_list):
+                        inv, stderr = sub_proc_instance[node].communicate()
+                        inv = inv.decode('utf-8')
+                        sn_pn_list[node] = bmc_inst[node].\
+                            extract_system_sn_pn(inv)
+
+        for node in bmc_inst:
+            bmc_inst[node].logout()
+
+        return sn_pn_list
+
 
 def validate(profile_tuple):
     LOG = logger.getlogger()
-    if profile_tuple.bmc_address_mode == "dhcp" or profile_tuple.pxe_address_mode == "dhcp":
+    if profile_tuple.bmc_address_mode == "dhcp" or (
+            profile_tuple.pxe_address_mode == "dhcp"):
         hasDhcpServers = u.has_dhcp_servers(profile_tuple.ethernet_port)
         if not hasDhcpServers:
-            LOG.warn("No Dhcp servers found on {0}".format(profile_tuple.ethernet_port))
+            LOG.warn("No Dhcp servers found on {0}".format(
+                profile_tuple.ethernet_port))
         else:
-            LOG.info("Dhcp servers found on {0}".format(profile_tuple.ethernet_port))
+            LOG.info("Dhcp servers found on {0}".format(
+                profile_tuple.ethernet_port))
 
 
 def main(prof_path):
@@ -662,10 +1131,22 @@ def main(prof_path):
 #        routes = osi.ifcs.get_interfaces_routes()
 #        for route in routes:
 #            print(f'{route:<12}: {routes[route]}')
-        pro = Profile(prof_path)
-        p = pro.get_network_profile_tuple()
-        log.debug(p)
+
+#        pro = Profile(prof_path)
+#        p = pro.get_network_profile_tuple()
+#        nodes = u.scan_subnet(p.bmc_subnet_cidr)
+#        ips = [node[0] for node in nodes]
+#        # code.interact(banner='osinstall.main1',
+#        #               local=dict(globals(), **locals()))
+#        nodes = u.scan_subnet_for_port_open(ips, 623)
+#        ips = [node[0] for node in nodes]
 #        n = pro.get_node_profile_tuple()
+#        code.interact(banner='osinstall.main2',
+#                      local=dict(globals(), **locals()))
+#        sn_pn_good_list = _get_bmcs_sn_pn(ips, n.bmc_userid, n.bmc_password)
+#        code.interact(banner='osinstall.main4',
+#                      local=dict(globals(), **locals()))
+
 #        res = osi.ifcs.get_interfaces_names()
 #        print(res)
 #        res = osi.ifcs.get_up_interfaces_names('phys')
@@ -689,5 +1170,5 @@ if __name__ == '__main__':
 
     if args.log_lvl_print == 'debug':
         print(args)
-    logger.create('nolog', 'info')
+    logger.create('nolog', 'nolog')
     main(args.prof_path)

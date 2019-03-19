@@ -1,5 +1,5 @@
 ---
-# Copyright 2017 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -60,7 +60,7 @@
           vars:
             msg: |
               Ansible is not yet able to connect to all client nodes. Cluster
-              Genesis will continue to poll connections, but if a client is
+              POWER-Up will continue to poll connections, but if a client is
               seen as 'installing' for an extended period of time it is likely
               that the installer has encountered a problem. You may be able to
               interact with the installer via IPMI SOL console to resolve the

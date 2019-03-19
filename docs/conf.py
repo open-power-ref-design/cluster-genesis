@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Cluster Genesis User Guide documentation build configuration file, created by
+# POWER-Up User Guide documentation build configuration file, created by
 # sphinx-quickstart on Wed Jan 04 15:13:29 2017.
 #
 # This file is execfile()d with the current directory set to its
@@ -138,7 +138,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'ClusterGenesisUserGuide.tex',
-     u'Cluster Genesis User Guide Documentation', u'Ray Harrington', 'manual'),
+     u'POWER-Up User Guide Documentation', u'Ray Harrington', 'manual'),
 ]
 
 
@@ -148,7 +148,7 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     (master_doc, 'clustergenesisuserguide',
-     u'Cluster Genesis User Guide Documentation', [author], 1)
+     u'POWER-Up User Guide Documentation', [author], 1)
 ]
 
 
@@ -159,7 +159,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     (master_doc, 'ClusterGenesisUserGuide',
-     u'Cluster Genesis User Guide Documentation', author,
+     u'POWER-Up User Guide Documentation', author,
      'ClusterGenesisUserGuide', 'One line description of project.',
      'Miscellaneous')
 ]

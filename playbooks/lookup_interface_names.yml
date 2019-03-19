@@ -1,5 +1,5 @@
 ---
-# Copyright 2018 IBM Corp.
+# Copyright 2019 IBM Corp.
 #
 # All Rights Reserved.
 #
@@ -65,4 +65,53 @@
                 {{ scripts_path }}/python/inv_set_interface_names.py \
                 {{ item.key }} {{ item.value }} {{ config_path }}"
       with_dict: "{{ set_macs_all }}"
+
+- name: Disable any ifcfg scripts that will become stale after renames
+  hosts: client_nodes
+  gather_facts: True
+  vars:
+    stale_devs: []
+  tasks:
+    - block:
+        - name: Create list of PXE devices that will be renamed
+          set_fact:
+            stale_devs: "{{ stale_devs + [mac_to_device[item.0|lower]] }}"
+          with_together:
+            - "{{ vars['pxe']['macs'] }}"
+            - "{{ vars['pxe']['rename'] }}"
+            - "{{ vars['pxe']['devices'] }}"
+          when:
+            - item.0 is not none
+            - item.1
+            - item.2 != mac_to_device[item.0|lower]
+
+        - name: Create list of Data devices that will be renamed
+          set_fact:
+            stale_devs: "{{ stale_devs + [mac_to_device[item.0|lower]] }}"
+          with_together:
+            - "{{ vars['data']['macs'] }}"
+            - "{{ vars['data']['rename'] }}"
+            - "{{ vars['data']['devices'] }}"
+          when:
+            - item.0 is not none
+            - item.1
+            - item.2 != mac_to_device[item.0|lower]
+
+        - name: Find all interface configuration scripts
+          find:
+            paths: /etc/sysconfig/network-scripts/
+            patterns: 'ifcfg-*'
+          register: ifcfg_scripts
+
+        - name: Disable any interface scripts that will become stale
+          lineinfile:
+            path: "{{ item.path }}"
+            regexp: '^ONBOOT='
+            line: 'ONBOOT=no  # Disabled by POWER-Up'
+          when:
+            - (item.path | basename).split('-')[1] != 'lo'
+            - (item.path | basename).split('-')[1] in stale_devs
+          loop: "{{ ifcfg_scripts.files }}"
+      when: (ansible_distribution == 'CentOS' or
+             ansible_distribution == 'RedHat')
 ...

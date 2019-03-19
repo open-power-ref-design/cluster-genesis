@@ -48,7 +48,7 @@ class Bmc(object):
             if isinstance(self.bmc, requests.sessions.Session):
                 self.connected = True
         elif bmc_type == 'ipmi':
-            self.bmc = ipmi.login(host, user, pw)
+            self.bmc = ipmi.login(host, user, pw, timeout=timeout)
             if isinstance(self.bmc, ipmi.command.Command):
                 self.connected = True
         else:
@@ -59,6 +59,43 @@ class Bmc(object):
 
     def get_host(self):
         return self.host
+
+    def get_system_sn_pn(self, timeout=5):
+        if self.bmc_type == 'openbmc':
+            return open_bmc.get_system_sn_pn(self.host, self.bmc)
+        if self.bmc_type == 'ipmi':
+            return ipmi.get_system_sn_pn(self.host, self.user, self.pw)
+
+    def get_system_info(self, timeout=5):
+        if self.bmc_type == 'openbmc':
+            return open_bmc.get_system_info(self.host, self.bmc)
+        if self.bmc_type == 'ipmi':
+            return ipmi.get_system_info(self.host, self.user, self.pw)
+
+    def get_system_inventory_in_background(self):
+        if self.bmc_type == 'openbmc':
+            self.error('Not implemented')
+            return
+            # return open_bmc.get_system_info(self.host, self.bmc)
+        if self.bmc_type == 'ipmi':
+            return ipmi.get_system_inventory_in_background(self.host,
+                                                           self.user, self.pw)
+
+    def extract_system_info(self, inventory):
+        if self.bmc_type == 'openbmc':
+            self.error('Not implemented')
+            return
+            # return open_bmc.extract_system_info(inventory)
+        if self.bmc_type == 'ipmi':
+            return ipmi.extract_system_info(inventory)
+
+    def extract_system_sn_pn(self, inventory):
+        if self.bmc_type == 'openbmc':
+            self.error('Not implemented')
+            return
+            # return open_bmc.extract_system_info(inventory)
+        if self.bmc_type == 'ipmi':
+            return ipmi.extract_system_sn_pn(inventory)
 
     def logout(self):
         if self.bmc_type == 'openbmc':
@@ -98,7 +135,7 @@ class Bmc(object):
 
 
 if __name__ == '__main__':
-    """Show status of the Cluster Genesis environment
+    """Show status of the POWER-Up environment
     Args:
         INV_FILE (string): Inventory file.
         LOG_LEVEL (string): Log level.

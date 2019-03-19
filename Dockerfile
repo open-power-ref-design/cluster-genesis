@@ -52,7 +52,12 @@ RUN if [ $(uname -m) = "ppc64le" ]; then \
     syslinux-common; \
     fi
 
-COPY . /opt/power-up/
+COPY ./LICENSE /opt/power-up/
+COPY ./docs/* /opt/power-up/docs/
+COPY ./logs/* /opt/power-up/logs/
+COPY ./os-images/config* /opt/power-up/os-images/config/
+COPY ./requirements.txt /opt/power-up/
+COPY ./scripts/* /opt/power-up/scripts/
 
 RUN bash -e /opt/power-up/scripts/venv_install.sh /opt/power-up/
 

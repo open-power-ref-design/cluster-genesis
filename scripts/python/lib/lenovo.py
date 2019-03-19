@@ -36,8 +36,8 @@ class Lenovo(SwitchCommon):
     In passive mode, a filename can be generated which
     will contain the active mode switch commands used for switch
     configuration. This outfile will be written to the
-    'cluster-genesis/passive' directory if it exists or to the
-    'cluster-genesies' directory if the passive directory does not
+    'power-up/passive' directory if it exists or to the
+    'power-up' directory if the passive directory does not
     exist. If no outfile name is provided a default name is used.
     In active mode, the 'host, userid and password named variables
     are required. If 'mode' is not provided, it is defaulted to 'passive'.
@@ -117,6 +117,7 @@ class Lenovo(SwitchCommon):
             indcs = get_col_pos(port_info, ('Port', 'Tag', 'PVID', r'VLAN\(s'))
             port_info = port_info.splitlines()
             for line in port_info:
+                line = self.sanitize_line(line)
                 # pad to 86 chars
                 line = f'{line:<86}'
                 # look for rows (look for first few fields)
@@ -260,6 +261,12 @@ class Lenovo(SwitchCommon):
             raise SwitchException(
                 'Failed configuring management interface ip {}'.format(intf))
         return
+
+    @staticmethod
+    def sanitize_line(line):
+        # remove "Press q to quit, any other key to continue" line
+        line = re.sub('\\x1b.*\\x08', '', line)
+        return line
 
 
 class switch(object):

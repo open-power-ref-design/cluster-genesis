@@ -65,6 +65,7 @@ COBBLER_PASS = 'cobbler'
 DHCP_POOL_START = 21
 SWITCH_LOCK_PATH = '/var/lock/'
 OS_IMAGES_URLS_FILENAME = 'os-image-urls.yml'
+DOCKERFILE = 'Dockerfile'
 
 
 class Color:
@@ -145,6 +146,10 @@ def get_container_name(config_path=None):
 def is_container():
     return os.path.isfile(os.path.join(
         CONTAINER_PACKAGE_PATH, CONTAINER_ID_FILE))
+
+
+def get_logs_path():
+    return GEN_LOGS_PATH
 
 
 def get_project_name():
@@ -288,11 +293,10 @@ def get_dhcp_pool_start():
 def get_os_profile_pointers():
     return {
         "ubuntu-14.04-server-amd64": "ubuntu-14.04.5-server-amd64",
-        "ubuntu-16.04-server-amd64": "ubuntu-16.04.5-server-amd64",
-        "ubuntu-16.04-server-ppc64el": "ubuntu-16.04.5-server-ppc64el",
-        "ubuntu-18.04-live-server-amd64": "ubuntu-18.04.1-live-server-amd64",
-        "ubuntu-18.04-server-amd64": "ubuntu-18.04.1-server-amd64",
-        "ubuntu-18.04-server-ppc64el": "ubuntu-18.04.1-server-ppc64el"}
+        "ubuntu-16.04-server-amd64": "ubuntu-16.04.6-server-amd64",
+        "ubuntu-16.04-server-ppc64el": "ubuntu-16.04.6-server-ppc64el",
+        "ubuntu-18.04-server-amd64": "ubuntu-18.04.2-server-amd64",
+        "ubuntu-18.04-server-ppc64el": "ubuntu-18.04.2-server-ppc64el"}
 
 
 def check_os_profile(profile):
@@ -311,6 +315,10 @@ def get_os_image_urls():
     os_image_urls_yaml_path = get_os_image_urls_yaml_path()
     os_image_urls = yaml.load(open(os_image_urls_yaml_path))['os_image_urls']
     return os_image_urls
+
+
+def get_dockerfile_path():
+    return os.path.join(GEN_PATH, DOCKERFILE)
 
 
 if os.path.isfile(GEN_PATH + "playbooks/host_vars/localhost"):

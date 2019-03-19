@@ -18,6 +18,7 @@ from glob import glob
 import os
 import re
 import sys
+import datetime
 import subprocess
 import fileinput
 import readline
@@ -25,9 +26,12 @@ from shutil import copy2
 from subprocess import Popen, PIPE
 from netaddr import IPNetwork, IPAddress, IPSet
 from tabulate import tabulate
+from textwrap import dedent
+import hashlib
 
 from lib.config import Config
 import lib.logger as logger
+from lib.exception import UserException
 
 PATTERN_DHCP = r"^\|_*\s+(.+):(.+)"
 PATTERN_MAC = r'([\da-fA-F]{2}:){5}[\da-fA-F]{2}'
@@ -108,6 +112,11 @@ def has_dhcp_servers(interface):
 
 
 def scan_subnet(cidr):
+    """Scans a subnet for responding devices.
+    Args:
+        cidr (str): subnet in cidr format or can be list of ips separated by
+                    spaces
+    """
     cmd = f'sudo nmap -sn {cidr}'
     res, err, rc = sub_proc_exec(cmd)
     items = []
@@ -123,6 +132,33 @@ def scan_subnet(cidr):
             else:
                 mac = ''
             items += [(ip, mac)]
+    return items
+
+
+def scan_subnet_for_port_open(cidr, port):
+    """Scans a subnet for responding devices.
+    Args:
+        cidr (str or list): subnet in cidr format or can be list of ips
+                            separated by spaces.
+        port (str or int) : tcp port to check
+    """
+    if isinstance(cidr, list):
+        cidr = ' '.join(cidr)
+    cmd = f'sudo nmap -p {port} {cidr}'
+    res, err, rc = sub_proc_exec(cmd)
+    items = []
+    if rc != 0:
+        LOG.error(f'Error while scanning subnet {cidr}, rc: {rc}')
+    for line in res.split('Nmap scan report'):
+        match = re.search(PATTERN_EMBEDDED_IP, line)
+        if match:
+            ip = match.group(0)
+            match2 = re.search(r'\d+/tcp\s+open.+' + rf'({PATTERN_MAC})', line,
+                               re.DOTALL)
+            if match2:
+                mac = match2.group(1)
+                if match2:
+                    items += [(ip, mac)]
     return items
 
 
@@ -188,9 +224,9 @@ def bash_cmd(cmd):
         output (str): stdout from command
     """
     log = logger.getlogger()
-    command = ['bash', '-c', cmd]
-    log.debug('Run subprocess: %s' % ' '.join(command))
-    output = subprocess.check_output(command, universal_newlines=True,
+    _cmd = ['bash', '-c', cmd]
+    log.debug('Run subprocess: %s' % ' '.join(_cmd))
+    output = subprocess.check_output(_cmd, universal_newlines=True,
                                      stderr=subprocess.STDOUT)
     try:
         output = output.decode('utf-8')
@@ -469,8 +505,8 @@ def fileglob_to_regx(fileglob):
     return regx
 
 
-def get_url(url='http://', fileglob='', prompt_name='', repo_chk='', contains=[],
-            excludes=[], filelist=[]):
+def get_url(url='http://', fileglob='', prompt_name='', repo_chk='',
+            contains=[], excludes=[], filelist=[]):
     """Input a URL from user. The URL is checked for validity using curl and
     wget and the user can continue modifying it indefinitely until a response
     is obtained or he can enter 'sss' to skip (stop) entry.
@@ -485,17 +521,17 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk='', contains=[]
 
     fileglob and repo_chk are mutually exclusive.
 
-    If neither fileglob nor repo_chk are specified, and the url does not end in '/'
-    then the url is assumed to be looking for a file.
+    If neither fileglob nor repo_chk are specified, and the url does not end
+    in '/' then the url is assumed to be looking for a file.
 
     Inputs:
         url (str). Valid URLs are http:, https:, and file:
         fileglob (str) standard linux fileglobs with *, ? or []
         repo_chk (str) 'yum', 'ana' or 'pypi'
-        contains (list of strings) Filter criteria to be used in combination with
-            repo_chk. After finding repos of the type in 'repo_chk', the list is
-            restricted to those urls that contain elements from 'contains' and no
-            elements of 'excludes'.
+        contains (list of strings) Filter criteria to be used in combination
+            with repo_chk. After finding repos of the type in 'repo_chk', the
+            list is restricted to those urls that contain elements from
+            'contains' and no elements of 'excludes'.
         excludes (list of strings)
         filelist (list of strings) Can be globs. Used to validate a repo. The
             specified files must be present
@@ -541,7 +577,8 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk='', contains=[]
             pass
         else:
             if 'http:' in url or 'https:' in url:
-                response = re.search(r'HTTP\/\d+.\d+\s+200\s+ok', url_info, re.IGNORECASE)
+                response = re.search(r'HTTP\/\d+.\d+\s+200\s+ok', url_info,
+                                     re.IGNORECASE)
                 if response:
                     repo_mrkr = {'yum': '/repodata/', 'ana': 'repodata.json',
                                  'pypi': '/simple/'}
@@ -568,9 +605,9 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk='', contains=[]
 
                         found = []
                         # Include items containing any element of 'contains'
-                        # and exclude items containing any element of 'excludes'
-                        # If no item meets criteria, then use any / all
-                        # items but include a warning.
+                        # and exclude items containing any element of
+                        # 'excludes' If no item meets criteria, then use
+                        # any / all items but include a warning.
                         if repo_chk:
                             for _url in _found:
                                 if (any([item for item in contains if item in
@@ -584,8 +621,8 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk='', contains=[]
                         elif _found:
                             _list = _found
                             if repo_chk:
-                                print(bold('\nWarning. The following url(s) were '
-                                           'found but do not match the '
+                                print(bold('\nWarning. The following url(s) '
+                                           'were found but do not match the '
                                            'search criteria'))
                         else:
                             _list = []
@@ -598,8 +635,9 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk='', contains=[]
                                     if files_present(url, filelist):
                                         break
                                     else:
-                                        print('\nChosen URL does not appear to '
-                                              'be valid. File check failed.')
+                                        print('\nChosen URL does not appear '
+                                              'to be valid. File check '
+                                              'failed.')
                                         if get_yesno('Use selection anyway'):
                                             break
                                 else:
@@ -674,7 +712,8 @@ def get_dir(src_dir):
         path = src_dir
     # path = os.getcwd()
     while True:
-        path = rlinput(f'Enter an absolute directory location (S to skip): ', path)
+        path = rlinput(f'Enter an absolute directory location (S to skip): ',
+                       path)
         if path == 'S':
             return None
         if os.path.exists(path):
@@ -698,8 +737,9 @@ def get_dir(src_dir):
             non_rpm_filelist += rows * ['']
             list2 = non_rpm_filelist[:cnt]
             print('\n' + bold(path))
-            print(tabulate(list(zip(list1, list2)), headers=[bold('RPM Files'),
-                  bold('Other files')], tablefmt='psql'))
+            print(tabulate(list(zip(list1, list2)),
+                           headers=[bold('RPM Files'),
+                                    bold('Other files')], tablefmt='psql'))
 
             if rpm_cnt > 0:
                 print(bold(f'{rpm_cnt} rpm files found'))
@@ -749,16 +789,18 @@ def scan_ping_network(network_type='all', config_path=None):
 
 def get_selection(items, choices=None, prompt='Enter a selection: ', sep='\n',
                   allow_none=False, allow_retry=False):
-    """Prompt user to select a choice. Entered choice can be a member of choices or
-    items, but a member of choices is always returned as choice. If choices is not
-    specified a numeric list is generated. Note that if choices or items is a string
-    it will be 'split' using sep. If you wish to include sep in the displayed
-    choices or items, an alternate seperator can be specified.
+    """Prompt user to select a choice. Entered choice can be a member of
+    choices or items, but a member of choices is always returned as choice. If
+    choices is not specified a numeric list is generated. Note that if choices
+    or items is a string it will be 'split' using sep. If you wish to include
+    sep in the displayed choices or items, an alternate seperator can be
+    specified.
     ex: ch, item = get_selection('Apple pie\nChocolate cake')
-    ex: ch, item = get_selection('Apple pie.Chocolate cake', 'Item 1.Item 2', sep='.')
+    ex: ch, item = get_selection('Apple pie.Chocolate cake', 'Item 1.Item 2',
+                                 sep='.')
     Inputs:
-        choices (str or list or tuple): Choices. If not specified, a numeric list is
-        generated.
+        choices (str or list or tuple): Choices. If not specified, a numeric
+                                        list is generated.
         items (str or list or tuple): Description of choices or items to select
     returns:
        ch (str): One of the elements in choices
@@ -807,10 +849,10 @@ def get_selection(items, choices=None, prompt='Enter a selection: ', sep='\n',
 
 
 def get_src_path(src_name):
-    """Search local disk for src_name and allow interactive selection if more than
-    one match. Note that the user is not given the option to change the search
-    criteria. Searching starts recursively in the /home directory and expands to
-    entire file system if no match in /home.
+    """Search local disk for src_name and allow interactive selection if more
+    than one match. Note that the user is not given the option to change the
+    search criteria. Searching starts recursively in the /home directory and
+    expands to entire file system if no match in /home.
     """
     log = logger.getlogger()
     while True:
@@ -836,11 +878,13 @@ def get_src_path(src_name):
             if not resp:
                 print(f'Source file {src_name} not found')
                 if not get_yesno('Search again', 'y/no', default='y'):
-                    log.error(f'Source file {src_name} not found.\n {src_name} is not'
-                              ' setup in the POWER-Up software server.')
+                    log.error(f'Source file {src_name} not found.\n '
+                              f'{src_name} is not setup in the POWER-Up '
+                              'software server.')
                     return None
             else:
-                ch, src_path = get_selection(resp, prompt='Select a source file: ',
+                ch, src_path = get_selection(resp,
+                                             prompt='Select a source file: ',
                                              allow_none=True, allow_retry=True)
                 if ch != 'R':
                     return src_path
@@ -858,13 +902,16 @@ def get_file_path(filename='/home'):
     """
     print(bold('\nFile search hints:'))
     print('/home/user1/abc.*         Search for abc.* under home/user1/')
-    print('/home/user1/**/abc.*      Search recursively for abc.* under /home/user1/')
-    print('/home/user1/myfile[56].2  Search for myfile5.2 or myfile6.2 under /home/user1/')
+    print('/home/user1/**/abc.*      Search recursively for abc.* under '
+          '/home/user1/')
+    print('/home/user1/myfile[56].2  Search for myfile5.2 or myfile6.2 under '
+          '/home/user1/')
     print('/home/user1/*/            List directories under /home/user1')
     print()
     maxl = 10
     while True:
-        print("Enter a file name to search for ('L' to leave without making a selction): ")
+        print("Enter a file name to search for ('L' to leave without making a "
+              "selction): ")
         filename = rlinput(bold("File: "), filename)
         print()
         if filename == 'L' or filename == "'L'":
@@ -873,8 +920,9 @@ def get_file_path(filename='/home'):
         if files:
             print(bold(f'Found {len(files)} matching'))
             if len(files) > maxl:
-                print(f'\nSearch returned more than {maxl} items. Showing first {maxl}')
-                files = files[:maxl]
+                print(f'\nSearch returned more than {maxl} items. Showing '
+                      f'first {maxl}')
+                files = files[:40]
             choices = [str(i + 1) for i in range(len(files))]
             choices.append('S')
             choices.append('L')
@@ -998,3 +1046,452 @@ def get_col_pos(tbl, hdrs, row_char='-'):
                 break
 
     return col_idx
+
+
+def nginx_modify_conf(conf_path, directives={}, locations={}, reload=True,
+                      clear=False):
+    """Create/modify nginx configuration file
+
+    Directives are defined in a dictionary, e.g.:
+
+        directives={'listen': 80', 'server_name': 'powerup'}
+
+    Locations are defined in a dictionary with values as strings or
+    lists, e.g.:
+
+        locations={'/': ['root /srv', 'autoindex on'],
+                   '/cobbler': 'alias /var/www/cobbler'}
+
+    *note: Semicolons (;) are auto added if not present
+
+    Args:
+        conf_path (str): Path to nginx configuration file
+        directives (dict, optional): Server directives
+        locations (dict, optional): Location definitions
+        reload (bool, optional): Reload nginx after writing config
+        clear (bool, optional): Remove any existing configuration data
+
+    Returns:
+        int: Return code from nginx syntax check ('nginx -t')
+             If syntax check rc=0 and reload=True the return code
+             from 'systemctl restart nginx.service'
+    """
+
+    collecting_directive_data = False
+    collecting_location_data = False
+    current_location = None
+
+    if not clear and os.path.isfile(conf_path):
+        LOG.debug(f"Loading existing nginx config: '{conf_path}")
+        with open(conf_path, 'r') as file_object:
+            for line in file_object:
+                if 'server {' in line:
+                    collecting_directive_data = True
+                elif not line.strip():
+                    continue  # continue if blank line
+                elif 'location' in line:
+                    collecting_directive_data = False
+                    current_location = line.strip()[9:-2]
+                    if current_location not in locations:
+                        collecting_location_data = True
+                        locations[current_location] = []
+                    else:
+                        current_location = None
+                elif '}' in line and collecting_location_data:
+                    collecting_location_data = False
+                    current_location = None
+                elif collecting_location_data:
+                    locations[current_location].append(line.strip())
+                elif '}' in line and collecting_directive_data:
+                    collecting_directive_data = False
+                elif collecting_directive_data:
+                    data_split = line.split(maxsplit=1)
+                    if data_split[0] not in directives:
+                        directives[data_split[0]] = data_split[1].strip()
+
+    LOG.debug(f"Writing nginx config: '{conf_path}")
+    with open(conf_path, 'w') as file_object:
+        file_object.write('server {\n')
+
+        for key, value in directives.items():
+            if not value.endswith(';'):
+                value = value + ';'
+            file_object.write(f'    {key} {value}\n')
+
+        for key, value_list in locations.items():
+            file_object.write(f'    location {key} ' + '{\n')
+            if type(value_list) is str:
+                value_list = value_list.split('\n')
+            for value in value_list:
+                if not value.endswith(';'):
+                    value = value + ';'
+                file_object.write(f'        {value}\n')
+            file_object.write('    }\n')
+
+        file_object.write('}\n')
+
+    cmd = (f'nginx -t')
+    stdout, stderr, rc = sub_proc_exec(cmd)
+    LOG.debug(f"Command: \'{cmd}\'\nstdout: \'{stdout}\'\n"
+              f"stderr: \'{stderr}\'\nrc: {rc}")
+    if rc != 0:
+        LOG.warning('Nginx configuration check failed')
+    elif reload:
+        cmd = ('systemctl restart nginx.service')
+        stdout, stderr, rc = sub_proc_exec(cmd)
+        LOG.debug(f"Command: \'{cmd}\'\nstdout: \'{stdout}\'\n"
+                  f"stderr: \'{stderr}\'\nrc: {rc}")
+        if rc != 0:
+            LOG.warning('Nginx failed to start')
+
+    return rc
+
+
+def dnsmasq_add_dhcp_range(dhcp_range,
+                           lease_time='1h',
+                           conf_path='/etc/dnsmasq.conf',
+                           reload=True):
+    """Add DHCP range to existing dnsmasq configuration
+
+    Args:
+        dhcp_range (str, optional): Range of IP addresses to lease to clients
+                                    formatted as "<start_ip>,<end_ip>"
+        lease_time (str, optional): Time duration of IP leases
+        conf_path (str, optional): Path to dnsmasq configuration file
+        reload (bool, optional): Reload dnsmasq after writing config
+
+    Returns:
+        int: Return code from nginx syntax check ('dnsmasq --test')
+             If syntax check rc=0 and reload=True the return code
+             from 'systemctl restart dnsmasq.service'
+    """
+
+    append_line(conf_path, f'dhcp-range={dhcp_range},{lease_time}',
+                check_exists=True)
+    cmd = (f'dnsmasq --test')
+    stdout, stderr, rc = sub_proc_exec(cmd)
+    LOG.debug(f"Command: \'{cmd}\'\nstdout: \'{stdout}\'\n"
+              f"stderr: \'{stderr}\'\nrc: {rc}")
+    if rc != 0:
+        LOG.warning('dnsmasq configuration check failed')
+    elif reload:
+        cmd = ('systemctl restart dnsmasq.service')
+        stdout, stderr, rc = sub_proc_exec(cmd)
+        LOG.debug(f"Command: \'{cmd}\'\nstdout: \'{stdout}\'\n"
+                  f"stderr: \'{stderr}\'\nrc: {rc}")
+        if rc != 0:
+            LOG.error('dnsmasq service restart failed')
+
+    return rc
+
+
+def dnsmasq_config_pxelinux(interface=None,
+                            dhcp_range=None,
+                            lease_time='1h',
+                            default_route=None,
+                            tftp_root='/var/lib/tftpboot',
+                            conf_path='/etc/dnsmasq.conf',
+                            reload=True):
+    """Create dnsmasq configuration to support PXE boots
+
+    *note*: This is overwrite any existing configuration located at
+            'conf_path'!
+
+    Args:
+        interface (str, optional): Only listen for requests on given interface
+        dhcp_range (str, optional): Range of IP addresses to lease to clients
+                                    formatted as "<start_ip>,<end_ip>"
+        lease_time (str, optional): Time duration of IP leases
+        default_route (str, optional): IP pushed to clients as default route
+        conf_path (str, optional): Path to dnsmasq configuration file
+        reload (bool, optional): Reload dnsmasq after writing config
+
+    Returns:
+        int: Return code from nginx syntax check ('dnsmasq --test')
+             If syntax check rc=0 and reload=True the return code
+             from 'systemctl restart dnsmasq.service'
+    """
+
+    backup_file(conf_path)
+
+    with open(conf_path, 'w') as file_object:
+        file_object.write(
+            "# POWER-Up generated configuration file for dnsmasq\n\n")
+
+        if interface is not None:
+            file_object.write(f"interface={interface}\n\n")
+
+        file_object.write(dedent(f"""\
+            dhcp-lease-max=1000
+            dhcp-authoritative
+            dhcp-boot=pxelinux.0
+
+            enable-tftp
+            tftp-root={tftp_root}
+            user=root
+        \n"""))
+
+        if default_route is not None:
+            file_object.write(f"dhcp-option=3,{default_route}\n\n")
+
+        if dhcp_range is not None:
+            file_object.write(f"dhcp-range={dhcp_range},{lease_time}\n")
+
+    cmd = (f'dnsmasq --test')
+    stdout, stderr, rc = sub_proc_exec(cmd)
+    LOG.debug(f"Command: \'{cmd}\'\nstdout: \'{stdout}\'\n"
+              f"stderr: \'{stderr}\'\nrc: {rc}")
+    if rc != 0:
+        LOG.warning('dnsmasq configuration check failed')
+    elif reload:
+        cmd = 'systemctl enable dnsmasq.service'
+        resp, err, rc = sub_proc_exec(cmd)
+        if rc != 0:
+            LOG.error('Failed to enable dnsmasq service')
+
+        cmd = 'systemctl restart dnsmasq.service'
+        stdout, stderr, rc = sub_proc_exec(cmd)
+        LOG.debug(f"Command: \'{cmd}\'\nstdout: \'{stdout}\'\n"
+                  f"stderr: \'{stderr}\'\nrc: {rc}")
+        if rc != 0:
+            LOG.error('dnsmasq service restart failed')
+
+    return rc
+
+
+def pxelinux_set_default(server,
+                         kernel,
+                         initrd,
+                         kickstart=None,
+                         kopts=None,
+                         dir_path='/var/lib/tftpboot/pxelinux.cfg/'):
+    """Create default pxelinux profile
+
+    This function assumes that the server is hosting the kernel,
+    initrd, and kickstart (if specified) over http. The default
+    'dir_path' requires root access.
+
+    Args:
+        server (str): IP or hostname of http server hosting files
+        kernel (str): HTTP path to installer kernel
+        initrd (str): HTTP path to installer initrd
+        kickstart (str, optional): HTTP path to installer kickstart
+        kopts (str, optional): Any additional kernel options
+        dir_path (str, optional): Path to pxelinux directory
+    """
+
+    kopts_base = (f"ksdevice=bootif lang=  kssendmac text")
+
+    if kickstart is not None:
+        kopts_base += f"  ks=http://{server}/{kickstart}"
+
+    if kopts is not None:
+        kopts = kopts_base + f"  {kopts}"
+    else:
+        kopts = kopts_base
+
+    default = os.path.join(dir_path, 'default')
+    os.makedirs(dir_path, exist_ok=True)
+
+    with open(default, 'w') as file_object:
+        file_object.write(dedent(f"""\
+            default linux
+
+            label linux
+              kernel http://{server}/{kernel}
+              initrd http://{server}/{initrd}
+              ipappend 2
+              append  {kopts}
+
+        """))
+
+
+def firewall_add_services(services):
+    """Add services to be allowed in firewall rules
+
+    Args:
+        services (str or list): Service(s) to be permanently allowed
+
+    Returns:
+        int: Binary error code
+    """
+
+    if type(services) is str:
+        services = [services]
+
+    fw_err = 0
+    cmd = 'systemctl status firewalld.service'
+    resp, err, rc = sub_proc_exec(cmd)
+    if 'Active: active (running)' in resp.splitlines()[2]:
+        LOG.debug('Firewall is running')
+    else:
+        cmd = 'systemctl enable firewalld.service'
+        resp, err, rc = sub_proc_exec(cmd)
+        if rc != 0:
+            fw_err += 1
+            LOG.error('Failed to enable firewall service')
+
+        cmd = 'systemctl start firewalld.service'
+        resp, err, rc = sub_proc_exec(cmd)
+        if rc != 0:
+            fw_err += 10
+            LOG.error('Failed to start firewall')
+
+    for service in services:
+        cmd = f'firewall-cmd --permanent --add-service={service}'
+        resp, err, rc = sub_proc_exec(cmd)
+        if rc != 0:
+            fw_err += 100
+            LOG.error(f'Failed to enable {service} service on firewall')
+
+    cmd = 'firewall-cmd --reload'
+    resp, err, rc = sub_proc_exec(cmd)
+    if 'success' not in resp:
+        fw_err += 1000
+        LOG.error('Error attempting to restart firewall')
+
+    return fw_err
+
+
+def extract_iso_image(iso_path, dest_dir):
+    """Extract ISO image into directory
+
+    If a (non-empty) directory matching the iso file already exists in
+    the destination directory extraction is not attempted.
+
+    Args:
+        iso_path (str): Path to ISO file
+        dest_dir (str): Path to an existing directory that the ISO will
+                        be extracted into. A subdirectory matching the
+                        image filename will be created.
+
+    Returns:
+        tuple: ('str: Relative path to kernel',
+                'str: Relative path to initrd')
+
+    Raises:
+        UserException: iso_path is not a valid file path
+                       iso_path does not end in '.iso'
+                       can't find kernel or initrd in extracted image
+    """
+
+    if not os.path.isfile(iso_path):
+        raise UserException(f"Invalid iso_path: '{iso_path}")
+    elif not iso_path.lower().endswith('.iso'):
+        raise UserException(f"File does not end with '.iso': '{iso_path}'")
+
+    name = os.path.basename(iso_path)[:-4]
+    iso_dir = os.path.join(dest_dir, name)
+
+    if not os.path.isdir(iso_dir):
+        os.makedirs(iso_dir)
+
+    if len(os.listdir(iso_dir)) == 0:
+        bash_cmd(f'xorriso -osirrox on -indev {iso_path} -extract / {iso_dir}')
+        bash_cmd(f'chmod 755 {iso_dir}')
+
+    filename_parsed = {item.lower() for item in name.split('-')}
+    kernel = None
+    initrd = None
+    if {'ubuntu', 'amd64'}.issubset(filename_parsed):
+        sub_path = 'install/netboot/ubuntu-installer/amd64'
+        kernel = os.path.join(iso_dir, sub_path, 'linux')
+        initrd = os.path.join(iso_dir, sub_path, 'initrd.gz')
+        if not os.path.isfile(kernel):
+            sub_path = 'casper'
+            kernel = os.path.join(iso_dir, sub_path, 'vmlinux')
+            initrd = os.path.join(iso_dir, sub_path, 'initrd')
+    elif {'ubuntu', 'ppc64el'}.issubset(filename_parsed):
+        sub_path = 'install/netboot/ubuntu-installer/ppc64el'
+        kernel = os.path.join(iso_dir, sub_path, 'vmlinux')
+        initrd = os.path.join(iso_dir, sub_path, 'initrd.gz')
+    elif ({'rhel', 'x86_64'}.issubset(filename_parsed) or
+            {'centos', 'x86_64'}.issubset(filename_parsed)):
+        sub_path = 'images/pxeboot'
+        kernel = os.path.join(iso_dir, sub_path, 'vmlinuz')
+        initrd = os.path.join(iso_dir, sub_path, 'initrd.img')
+    elif ({'rhel', 'ppc64le'}.issubset(filename_parsed) or
+            {'centos', 'ppc64le'}.issubset(filename_parsed)):
+        sub_path = 'ppc/ppc64'
+        kernel = os.path.join(iso_dir, sub_path, 'vmlinuz')
+        initrd = os.path.join(iso_dir, sub_path, 'initrd.img')
+
+    if not os.path.isfile(kernel):
+        kernel = None
+    if not os.path.isfile(initrd):
+        initrd = None
+
+    # If kernel or initrd isn't in the above matrix search for them
+    if kernel is None or initrd is None:
+        kernel_names = {'linux', 'vmlinux', 'vmlinuz'}
+        initrd_names = {'initrd.gz', 'initrd.img', 'initrd'}
+
+        for dirpath, dirnames, filenames in os.walk(iso_dir):
+            if kernel is None and not kernel_names.isdisjoint(set(filenames)):
+                rel_dir = os.path.relpath(dirpath, dest_dir)
+                kernel = (os.path.join(
+                    rel_dir, kernel_names.intersection(set(filenames)).pop()))
+            if initrd is None and not initrd_names.isdisjoint(set(filenames)):
+                rel_dir = os.path.relpath(dirpath, dest_dir)
+                initrd = (os.path.join(
+                    rel_dir, initrd_names.intersection(set(filenames)).pop()))
+            if kernel is not None and initrd is not None:
+                break
+
+    if kernel is None or initrd is None:
+        raise UserException("Unable to find kernel and/or initrd in ISO image:"
+                            f" kernel: '{kernel}' initrd: '{initrd}'")
+
+    return kernel, initrd
+
+
+def timestamp():
+    return datetime.datetime.now().strftime("%d-%h-%Y-%H-%M-%S")
+
+
+def sha1sum(file_path):
+    """ Calculate sha1 checksum of single file
+
+    Args:
+        file_path (str): Path to file
+
+    Returns:
+        str: sha1 checksum
+    """
+    sha1sum = hashlib.sha1()
+    with open(file_path, 'rb') as file_object:
+        for block in iter(lambda: file_object.read(sha1sum.block_size), b''):
+            sha1sum.update(block)
+    return sha1sum.hexdigest()
+
+
+def clear_curses():
+    """ Curses cleanup
+
+    Reset terminal normal mode after running curses application
+    """
+    from curses import nocbreak, echo, endwin
+    nocbreak()
+    echo()
+    endwin()
+
+
+def interact(**kwargs):
+    """ Wrapper for code.interact with curses cleanup
+
+    Args:
+        **kwargs: See code.interact documentation
+    """
+    import code
+    clear_curses()
+    code.interact(**kwargs)
+
+
+def breakpoint():
+    """ Wrapper for pdb.set_trace() with curses cleanup
+
+    Note: python>=3.7 includes a built-in 'breakpoint()'
+    """
+    from pdb import set_trace
+    clear_curses()
+    set_trace()

@@ -51,6 +51,7 @@ class Inventory(object):
         MGMT, DATA = range(2)
 
     class InvKey(object):
+        CONFIG_FILE = 'config_file'
         NODES = 'nodes'
         LABEL = 'label'
         HOSTNAME = 'hostname'
@@ -101,8 +102,14 @@ class Inventory(object):
         self.switch = None
         self.switch_type = None
 
+        if self.InvKey.CONFIG_FILE not in self.inv:
+            self.inv.config_file = cfg_file
+
         if self.InvKey.NODES not in self.inv:
             self.inv.nodes = []
+
+        if self.InvKey.SWITCHES not in self.inv:
+            self.inv.switches = []
 
         # Order is only kept in Python 3.6 and above
         # self.nodes = AttrDict({
@@ -239,6 +246,11 @@ class Inventory(object):
                     nodes[index][item_key] = item_value
 
         self.inv.nodes = nodes
+        self.dbase.dump_inventory(self.inv)
+
+    def update_switches(self):
+        switches = []
+        self.inv.switches = switches
         self.dbase.dump_inventory(self.inv)
 
     @staticmethod

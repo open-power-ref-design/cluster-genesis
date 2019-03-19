@@ -29,7 +29,7 @@ def validate_mgmt_mac_table_files(log, inv):
 
     Args:
         log (:obj:`Logger`): Log file object.
-        inv (:obj:`Inventory`): Cluster Genesis Inventory object.
+        inv (:obj:`Inventory`): POWER-Up Inventory object.
 
     Returns:
         boolean: True if all passive MAC address table files look good,
@@ -63,7 +63,7 @@ def validate_data_mac_table_files(log, inv):
 
     Args:
         log (:obj:`Logger`): Log file object.
-        inv (:obj:`Inventory`): Cluster Genesis Inventory object.
+        inv (:obj:`Inventory`): POWER-Up Inventory object.
 
     Returns:
         boolean: True if all passive MAC address table files look good,
@@ -104,7 +104,7 @@ def get_mac_table_file_path(switch_ip):
     """
     scripts_path = os.path.abspath(__file__)
     passive_path = (
-        re.match(r'(.*cluster\-genesis).*', scripts_path).group(1) +
+        re.match(r'(.*power\-up).*', scripts_path).group(1) +
         '/passive/')
     file_path = passive_path + switch_ip
 
@@ -116,7 +116,7 @@ def check_duplicate_files(log, inv):
 
     Args:
         log (:obj:`Logger`): Log file object.
-        inv (:obj:`Inventory`): Cluster Genesis Inventory object.
+        inv (:obj:`Inventory`): POWER-Up Inventory object.
 
     Returns:
         boolean: True if duplicate files found, False otherwise

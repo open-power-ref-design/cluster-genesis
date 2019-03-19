@@ -21,7 +21,7 @@ import importlib
 import os
 import sys
 import getpass
-import subprocess
+from subprocess import Popen, PIPE
 
 import enable_deployer_networks
 import enable_deployer_gateway
@@ -146,7 +146,7 @@ class Gen(object):
         print('Success: Created container')
 
     def _config_file(self):
-        from lib.inv_nodes import InventoryNodes
+        from lib.inv_items import InventoryNodes
         print(COL.scroll_ten, COL.up_ten)
         print('{}Validating cluster configuration file{}\n'.
               format(COL.header1, COL.endc))
@@ -156,6 +156,13 @@ class Gen(object):
         try:
             dbase.validate_config()
             nodes.create_nodes()
+            rc, stdout = _run_playbook("validate_bootstrap_vars.yml",
+                                       self.config_file_path,
+                                       extra_vars=self.args.extra_vars,
+                                       display=False,
+                                       load_config_vars=True)
+            if rc != 0:
+                raise UserCriticalException(stdout)
         except UserCriticalException as exc:
             message = 'Failure: Config file validation.\n' + str(exc)
             print('{}{}{}'.format(COL.red, message, COL.endc))
@@ -225,7 +232,7 @@ class Gen(object):
         #     print("Press enter to continue using the existing inventory.")
         #     print("Type 'C' to continue creating a new inventory. "
         #           "WARNING: Contents of current file will be overwritten!")
-        #     resp = input("Type 'T' to terminate Cluster Genesis ")
+        #     resp = input("Type 'T' to terminate POWER-Up ")
         #     if resp == 'T':
         #         sys.exit('POWER-Up stopped at user request')
         #     elif resp == 'C':
@@ -236,6 +243,10 @@ class Gen(object):
         #         return
 
         from lib.container import Container
+        from shutil import copy2
+        from lib.utilities import timestamp
+
+        log = logger.getlogger()
 
         cont = Container(self.config_file_path, self.args.create_inventory)
         cont.copy(self.config_file_path, self.cont_config_file_path)
@@ -250,7 +261,19 @@ class Gen(object):
             print('Fail:', str(exc), file=sys.stderr)
             sys.exit(1)
 
-        print('Success: Created inventory file')
+        log.info('Success: Created inventory file')
+
+        name = os.path.basename(self.config_file_path)
+        parts = name.rpartition('.')
+        bakupname = parts[0] + '-' + timestamp() + '.' + parts[2]
+        bakuppath = os.path.join(gen.get_logs_path(), 'config-files')
+        if not os.path.exists(bakuppath):
+            os.mkdir(bakuppath)
+
+        try:
+            copy2(self.config_file_path, os.path.join(bakuppath, bakupname))
+        except FileNotFoundError as exc:
+            log.debug(f'Unable to create copy of config file. {exc}')
 
     def _install_cobbler(self):
         from lib.container import Container
@@ -280,11 +303,13 @@ class Gen(object):
         cont = Container(self.config_file_path)
         local_os_images = gen.get_os_images_path()
         cont_os_images = gen.get_container_os_images_path()
-        try:
-            cont.copy(local_os_images, cont_os_images)
-        except UserException as exc:
-            print('Fail:', str(exc), file=sys.stderr)
-            sys.exit(1)
+        for item in os.listdir(local_os_images):
+            try:
+                cont.copy(os.path.join(local_os_images, item),
+                          os.path.join(cont_os_images, item))
+            except UserException as exc:
+                print('Fail:', str(exc), file=sys.stderr)
+                sys.exit(1)
         print('Success: OS images downloaded and copied into container')
 
     def _inv_add_ports_ipmi(self):
@@ -501,8 +526,20 @@ class Gen(object):
 
         print('Success: Interface names collected')
 
+    def _validate_bootstrap_vars(self):
+        rc, stdout = _run_playbook("validate_bootstrap_vars.yml",
+                                   self.config_file_path,
+                                   extra_vars=self.args.extra_vars,
+                                   display=False,
+                                   load_config_vars=True)
+        if rc != 0:
+            print(f'Failed to validate bootstrap vars:\n{stdout}')
+            sys.exit(1)
+
     def _config_client_os(self):
-        _run_playbook("configure_operating_systems.yml", self.config_file_path)
+        self._validate_bootstrap_vars()
+        _run_playbook("configure_operating_systems.yml", self.config_file_path,
+                      extra_vars=self.args.extra_vars)
         print('Success: Client operating systems are configured')
 
     def _scan_pxe_network(self):
@@ -514,6 +551,7 @@ class Gen(object):
         scan_ping_network('ipmi', self.config_file_path)
 
     def _osinstall(self):
+        # profile_path = osinstall.Profile()
         osinstall.osinstall(self.config_file_path)
         # print(self.config_file_path)
 
@@ -534,7 +572,8 @@ class Gen(object):
             else:
                 self.config_file_path += self.args.config_file_name
 
-            if not os.path.isfile(self.config_file_path):
+            if (not hasattr(self.args, 'osinstall') and
+                    not os.path.isfile(self.config_file_path)):
                 print('{} not found. Please specify a file name'.format(
                     self.config_file_path))
                 sys.exit(1)
@@ -681,6 +720,7 @@ class Gen(object):
                 self.args.lookup_interface_names = self.args.all
                 self.args.config_client_os = self.args.all
 
+            self._validate_bootstrap_vars()
             if argparse_gen.is_arg_present(self.args.ssh_keyscan):
                 self._ssh_keyscan()
             if argparse_gen.is_arg_present(self.args.gather_mac_addr):
@@ -780,7 +820,8 @@ class Gen(object):
             print('Unrecognized POWER-Up command')
 
 
-def _run_playbook(playbook, config_path):
+def _run_playbook(playbook, config_path, extra_vars=None, display=True,
+                  load_config_vars=False):
     log = logger.getlogger()
     config_pointer_file = gen.get_python_path() + '/config_pointer_file'
     with open(config_pointer_file, 'w') as f:
@@ -789,10 +830,25 @@ def _run_playbook(playbook, config_path):
     inventory = ' -i ' + gen.get_python_path() + '/inventory.py'
     playbook = ' ' + playbook
     cmd = ansible_playbook + inventory + playbook
+    if load_config_vars:
+        cmd += f" --extra-vars '@{config_path}'"
+    if extra_vars is not None:
+        cmd += f" --extra-vars '{' '.join(extra_vars)}'"
     command = ['bash', '-c', cmd]
     log.debug('Run subprocess: %s' % ' '.join(command))
-    process = subprocess.Popen(command, cwd=gen.get_playbooks_path())
-    process.wait()
+    if display:
+        process = Popen(command, cwd=gen.get_playbooks_path())
+        process.wait()
+        stdout = ''
+    else:
+        process = Popen(command, stdout=PIPE, stderr=PIPE,
+                        cwd=gen.get_playbooks_path())
+        stdout, stderr = process.communicate()
+        try:
+            stdout = stdout.decode('utf-8')
+        except AttributeError:
+            pass
+    return (process.returncode, stdout)
 
 
 if __name__ == '__main__':
