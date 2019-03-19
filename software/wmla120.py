@@ -43,8 +43,6 @@ from lib.utilities import sub_proc_display, sub_proc_exec, heading1, Color, \
     get_selection, get_yesno, rlinput, bold, ansible_pprint, replace_regex
 from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path
 
-from engr_mode import pre_post_file_collect, dependency_folder_collector
-
 
 class software(object):
     """ Software installation class. The prep method is used to setup
@@ -1594,8 +1592,8 @@ class software(object):
         install_tasks = yaml.load(open(GEN_SOFTWARE_PATH +
                                        f'{self.my_name}_install_procedure{specific_arch}.yml'))
 
-        if self.eng_mode == 'gather-dependencies':
-            dependency_folder_collector()  # ENGINEERING MODE
+#        if self.eng_mode == 'gather-dependencies':
+#            pass
 
         for task in install_tasks:
             heading1(f"Client Node Action: {task['description']}")
@@ -1611,8 +1609,8 @@ class software(object):
             if 'hosts' in task:
                 extra_args = f"--limit \'{task['hosts']},localhost\'"
             self._run_ansible_tasks(task['tasks'], extra_args)
-            if self.eng_mode == 'gather-dependencies':
-                pre_post_file_collect(task['tasks'])  # ENGINEERING MODE
+#            if self.eng_mode == 'gather-dependencies':
+#                pass
         print('Done')
 
     def _run_ansible_tasks(self, tasks_path, extra_args=''):
