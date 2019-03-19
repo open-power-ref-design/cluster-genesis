@@ -8,7 +8,7 @@
 #                 previous field)
 # floc: x,y Causes the field to be placed at relx,rely
 # The 'ftype' item determines the type of field used. Default is text.
-# ftype: file, text, ftext     (file search field, text input field, fixed text)
+# ftype: file, text, ftext, ttext     (file search field, text input field, fixed text)
 # dtype:    determines the type of data checking applied to the field
 #           valid dtypes are intm-n, int-or-none, ipv4, ipv4mask
 
@@ -23,7 +23,7 @@ network:
             user's responsibility to insure that a port virtual id (pvid) exists
             already on the switch ports to which the BMC ports are connected and
             that the switch port to which the installer node is connected is in
-            trunk mode with the PXE VLAN allowed.
+            trunk mode with the BMC VLAN allowed.
         dtype: int-or-none2-4094
 
     bmc_subnet_prefix:
@@ -37,7 +37,7 @@ network:
             ifc: bmc_ethernet_ifc
 
     bmc_subnet:
-        val: 192.168.11.0
+        val: 192.168.1.0
         desc: BMC subnet
         help: The BMC subnet is the subnet which contains the BMC ports of the
             nodes to be installed. Note that if Power-Up is configured to use
@@ -80,7 +80,7 @@ network:
             user's responsibility to insure that a port virtual id (pvid) exists
             already on the switch ports to which the BMC ports are connected and
             that the switch port to which the installer node is connected is in
-            trunk mode with the BMC VLAN allowed.
+            trunk mode with the PXE VLAN allowed.
         dtype: int-or-none2-4094
         floc: skipline
 
@@ -95,7 +95,7 @@ network:
             ifc: pxe_ethernet_ifc
 
     pxe_subnet:
-        val: 192.168.12.0
+        val: 192.168.2.0
         desc: PXE subnet
         help:
             The PXE subnet is the subnet which contains the PXEs ports of the
@@ -116,17 +116,6 @@ network:
             not exist, a list of 'UP' physical interfaces is presented when you press
             enter. Cursor up or down and press enter to select an interface.
         ftype: eth-ifc
-
-    pxe_address_mode:
-        val: dhcp
-        values:
-            - dhcp
-            - static
-        desc: PXE address mode
-        help: If static is selected, existing ipv4 addresses will be used and unchanged.
-            If dhcp is selected, PowerUp will setup a DHCP server on this node in
-            the subnet specified in 'PXE subnet'
-        ftype: select-one
 
 ######################## Node configuration
 node:
@@ -170,15 +159,21 @@ node:
         help: Number of devices with port 623 open (IPMI)
         dtype: no-save
 
+    node_list_header:
+        val: SERIAL NUMBER    PART NUMBER        MAC ADDRESS     IP ADDRESS
+        desc: node list header
+        floc: skipline
+        ftype: ftext
+
     node_list:
-        val:
-            - null
+        val: []
         values:
             - null
         desc: Node list
         help: This field contains the list of discovered nodes on the BMC subnet. Nodes
-            in this list respond to OpenBMC or IPMI communication protocol.
-        floc: skipline
+            in this list respond to OpenBMC or IPMI communication protocol. Press space bar
+            or enter to select a node for OS installation.
+        # floc: skipline
         ftype: select-multi
         dtype: no-save
 

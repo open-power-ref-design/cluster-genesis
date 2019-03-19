@@ -551,6 +551,7 @@ class Gen(object):
         scan_ping_network('ipmi', self.config_file_path)
 
     def _osinstall(self):
+        # profile_path = osinstall.Profile()
         osinstall.osinstall(self.config_file_path)
         # print(self.config_file_path)
 
@@ -571,7 +572,8 @@ class Gen(object):
             else:
                 self.config_file_path += self.args.config_file_name
 
-            if not os.path.isfile(self.config_file_path):
+            if (not self.args.osinstall and
+                    not os.path.isfile(self.config_file_path)):
                 print('{} not found. Please specify a file name'.format(
                     self.config_file_path))
                 sys.exit(1)

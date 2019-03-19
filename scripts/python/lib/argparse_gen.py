@@ -515,6 +515,10 @@ def get_parsed_args():
         get_args(parser_args=True)
     args = parser.parse_args()
 
+    # Force print level logging to nolog for osinstall unless set to debug
+    if args.osinstall and args.log_level_print[0] != 'debug':
+        args.log_level_print = ['nolog']
+
     # Check arguments
     try:
         if args.setup:
