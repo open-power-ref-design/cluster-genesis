@@ -27,7 +27,7 @@ import lib.logger as logger
 
 def ipmi_fru2dict(fru_str):
     """Convert the ipmitool fru output to a dictionary. The function first
-        convert the input string to yaml, then yaml load is used to create a
+        convert the input string to yaml, then yaml.safe_load is used to create a
         dictionary.
     Args:
         fru_str (str): Result of running 'ipmitool fru'
@@ -62,7 +62,7 @@ def ipmi_fru2dict(fru_str):
                 line = split[0] + ': "' + split[1] + '"'
                 yaml_data.append(line)
     yaml_data = '\n'.join(yaml_data)
-    return yaml.load(yaml_data)
+    return yaml.safe_load(yaml_data)
 
 
 def _get_system_sn_pn(ipmi_fru_str):
