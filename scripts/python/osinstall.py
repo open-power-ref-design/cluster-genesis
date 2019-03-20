@@ -180,7 +180,7 @@ def pxelinux_configuration(profile_object, kernel, initrd, kickstart):
 def initiate_pxeboot(profile_object, node_list_file):
     log = logger.getlogger()
     p_node = profile_object.get_node_profile_tuple()
-    node_list = yaml.load(open(node_list_file))
+    node_list = yaml.safe_load(open(node_list_file))
     for node in node_list:
         ip = node['bmc_ip']
         userid = p_node.bmc_userid
@@ -200,7 +200,7 @@ def initiate_pxeboot(profile_object, node_list_file):
 def reset_bootdev(profile_object, node_list_file):
     log = logger.getlogger()
     p_node = profile_object.get_node_profile_tuple()
-    node_list = yaml.load(open(node_list_file))
+    node_list = yaml.safe_load(open(node_list_file))
     for node in node_list:
         ip = node['bmc_ip']
         userid = p_node.bmc_userid
