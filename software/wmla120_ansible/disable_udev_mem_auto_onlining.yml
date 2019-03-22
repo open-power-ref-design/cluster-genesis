@@ -11,10 +11,17 @@
 - name: Disable udev Memory Auto-Onlining Rule
   replace:
     path: /etc/udev/rules.d/40-redhat.rules
-    regexp: '^(SUBSYSTEM=="memory")'
+    regexp: "{{ item }}"
     replace: '#\1'
   become: yes
-  loop: "{{ ansible_processor | unique | select('match', 'POWER9') | list }}"
+  loop:
+      - '^(.*memory_hotplug_end.*)'
+      - '^(ENV{.state}="online")'
+      - '^(PROGRAM="/bin/systemd-detect-virt")'
+      - '^(ATTR{state}=="offline")'
+  when: >
+      ansible_processor | unique | select('match', 'POWER9') | list |
+      length > 0
   notify: Reboot
 
 - meta: flush_handlers
