@@ -1495,3 +1495,41 @@ def breakpoint():
     from pdb import set_trace
     clear_curses()
     set_trace()
+
+
+def parse_rpm_filenames(filename):
+    """ returns the basename and the version for an rpm file
+        If filename is a list, a list of basenames and a list of
+        versions is returned.
+        If filename is a string, the basename and version are
+        returned as strings.
+    Args:
+        filename (str or list)
+    Returns basename and version
+    """
+    pattern_basename = r'([-_+\w.]+)(?=-(\d+[:.]\d+){1,3}).+'
+    pattern_version = r'(?<=[-:])(\d+[.])+\d(?=-)'
+    if isinstance(filename, list):
+        basename = []
+        version = []
+        for _file in filename:
+            res = re.search(pattern_basename, _file)
+            if res:
+                bn = res.group(1)
+            res = re.search(pattern_version, _file)
+            if res:
+                ver = res.group(0)
+            if bn and ver:
+                basename.append(bn)
+                version.append(ver)
+    elif isinstance(filename, str):
+        res = re.searc(pattern_basename, filename)
+        if res:
+            basename = res.group(1)
+        res = re.search(pattern_version, filename)
+        if res:
+            version = res.group(0)
+    else:
+        basename = version = None
+
+    return basename, version

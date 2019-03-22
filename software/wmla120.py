@@ -40,7 +40,8 @@ from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
     PowerupPypiRepoFromRepo, get_name_dir
 from software_hosts import get_ansible_inventory, validate_software_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, Color, \
-    get_selection, get_yesno, rlinput, bold, ansible_pprint, replace_regex
+    get_selection, get_yesno, rlinput, bold, ansible_pprint, replace_regex, \
+    parse_rpm_filenames
 from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path
 
 
@@ -556,7 +557,7 @@ class software(object):
 
             repo = PowerupRepo(repo_id, repo_name)
             repo_dir = repo.get_repo_dir()
-            self._add_dependent_packages(repo_dir, pkg_list)
+            self._add_dependent_packages(repo_dir, pkg_list, also_get_newer=False)
             repo.create_meta()
             content = repo.get_yum_dotrepo_content(gpgcheck=0, client=True)
             filename = repo_id + '-powerup.repo'
@@ -855,8 +856,8 @@ class software(object):
             repo = PowerupRepo(repo_id, repo_name, proc_family=self.proc_family)
             repo_dir = repo.get_repo_dir()
             os.makedirs(repo_dir, exist_ok=True)
-            self._add_dependent_packages(repo_dir, dep_list)
-            self._add_dependent_packages(repo_dir, more)
+            self._add_dependent_packages(repo_dir, dep_list, also_get_newer=True)
+            self._add_dependent_packages(repo_dir, more, also_get_newer=True)
             repo.create_meta()
             # content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
             # repo.write_yum_dot_repo_file(content)
@@ -1121,8 +1122,8 @@ class software(object):
         if ch == 'E':
             repo = PowerupRepo(repo_id, repo_name)
             repo_dir = repo.get_repo_dir()
-            self._add_dependent_packages(repo_dir, epel_list)
-            self._add_dependent_packages(repo_dir, more)
+            self._add_dependent_packages(repo_dir, epel_list, also_get_newer=True)
+            self._add_dependent_packages(repo_dir, more, also_get_newer=True)
             repo.create_meta()
             # content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
             # repo.write_yum_dot_repo_file(content)
@@ -1385,17 +1386,40 @@ class software(object):
                 self.globs = file_lists['globs']
                 self.files = file_lists['files']
 
-    def _add_dependent_packages(self, repo_dir, dep_list):
-        cmd = (f'yumdownloader --archlist={self.arch} --destdir '
-               f'{repo_dir} {dep_list}')
-        resp, err, rc = sub_proc_exec(cmd)
-        if rc != 0:
-            self.log.error('An error occurred while downloading dependent packages\n'
-                           f'rc: {rc} err: {err}')
-        resp = resp.splitlines()
-        for item in resp:
-            if 'No Match' in item:
-                self.log.error(f'Dependent packages download error. {item}')
+    def _add_dependent_packages(self, repo_dir, dep_list, also_get_newer=True):
+        if also_get_newer:
+            dep_list_list = dep_list.split()
+            versionless_dep_list, ver = parse_rpm_filenames(dep_list_list)
+            versionless_dep_list = ' '.join(versionless_dep_list)
+
+            cmd = (f'yumdownloader --archlist={self.arch} --destdir '
+                   f'{repo_dir} {versionless_dep_list}')
+            resp, err, rc = sub_proc_exec(cmd)
+            if rc != 0:
+                self.log.error('An error occurred while downloading dependent packages\n'
+                               f'rc: {rc} err: {err}')
+            resp = resp.splitlines()
+            for item in resp:
+                if 'No Match' in item:
+                    self.log.error(f'Dependent packages download error. {item}')
+            # Form new dep_list consisting of packages not already in repo_dir
+            in_repo_list = os.listdir(repo_dir)
+            dep_list = ''
+            for _file in dep_list_list:
+                if _file + '.rpm' not in in_repo_list:
+                    dep_list = dep_list + _file + ' '
+
+        if dep_list:
+            cmd = (f'yumdownloader --archlist={self.arch} --destdir '
+                   f'{repo_dir} {dep_list}')
+            resp, err, rc = sub_proc_exec(cmd)
+            if rc != 0:
+                self.log.error('An error occurred while downloading dependent packages\n'
+                               f'rc: {rc} err: {err}')
+            resp = resp.splitlines()
+            for item in resp:
+                if 'No Match' in item:
+                    self.log.error(f'Dependent packages download error. {item}')
 
         cmd = 'yum clean packages expire-cache'
         resp, err, rc = sub_proc_exec(cmd)
