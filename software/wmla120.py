@@ -1387,21 +1387,25 @@ class software(object):
                 self.files = file_lists['files']
 
     def _add_dependent_packages(self, repo_dir, dep_list, also_get_newer=True):
-        if also_get_newer:
-            dep_list_list = dep_list.split()
-            versionless_dep_list, ver = parse_rpm_filenames(dep_list_list)
-            versionless_dep_list = ' '.join(versionless_dep_list)
-
+        def yum_download(repo_dir, dep_list):
             cmd = (f'yumdownloader --archlist={self.arch} --destdir '
-                   f'{repo_dir} {versionless_dep_list}')
+                   f'{repo_dir} {dep_list}')
             resp, err, rc = sub_proc_exec(cmd)
             if rc != 0:
-                self.log.error('An error occurred while downloading dependent packages\n'
+                self.log.error('An error occurred while downloading dependent '
+                               f'packages.\n Download command: {cmd}'
                                f'rc: {rc} err: {err}')
             resp = resp.splitlines()
             for item in resp:
                 if 'No Match' in item:
                     self.log.error(f'Dependent packages download error. {item}')
+
+        if also_get_newer:
+            dep_list_list = dep_list.split()
+            versionless_dep_list, ver = parse_rpm_filenames(dep_list_list)
+            versionless_dep_list = ' '.join(versionless_dep_list)
+            yum_download(repo_dir, dep_list)
+
             # Form new dep_list consisting of packages not already in repo_dir
             in_repo_list = os.listdir(repo_dir)
             dep_list = ''
@@ -1410,16 +1414,7 @@ class software(object):
                     dep_list = dep_list + _file + ' '
 
         if dep_list:
-            cmd = (f'yumdownloader --archlist={self.arch} --destdir '
-                   f'{repo_dir} {dep_list}')
-            resp, err, rc = sub_proc_exec(cmd)
-            if rc != 0:
-                self.log.error('An error occurred while downloading dependent packages\n'
-                               f'rc: {rc} err: {err}')
-            resp = resp.splitlines()
-            for item in resp:
-                if 'No Match' in item:
-                    self.log.error(f'Dependent packages download error. {item}')
+            yum_download(repo_dir, dep_list)
 
         cmd = 'yum clean packages expire-cache'
         resp, err, rc = sub_proc_exec(cmd)
