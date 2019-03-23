@@ -1404,7 +1404,7 @@ class software(object):
             dep_list_list = dep_list.split()
             versionless_dep_list, ver = parse_rpm_filenames(dep_list_list)
             versionless_dep_list = ' '.join(versionless_dep_list)
-            yum_download(repo_dir, dep_list)
+            yum_download(repo_dir, versionless_dep_list)
 
             # Form new dep_list consisting of packages not already in repo_dir
             in_repo_list = os.listdir(repo_dir)
