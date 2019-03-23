@@ -22,7 +22,7 @@ files:
     Anaconda content: Anaconda3-2018.12-Linux-ppc64le.sh
     CUDA driver content: cuda-repo-rhel7-10-1-local-10.1.91-418.29-1.0-1.ppc64le.rpm
     # PowerAI content: mldl-repo-local-5.4.0-201811070827.b99c479.ppc64le.rpm
-    WMLA license content: ibm-wmla-license-1.2.0-133.e17f634.tar.bz2
+    WMLA license content: ibm-wmla-license-1.2.0-542.47a6e40.tar.bz2
     Spectrum conductor content: conductor2.3.0.0_ppc64le.bin
     Spectrum DLI content: dli-1.2.2.0_ppc64le.bin
     Spectrum conductor content entitlement: conductor_entitlement.dat
@@ -32,7 +32,7 @@ files_eval:
     Anaconda content: Anaconda3-2018.12-Linux-ppc64le.sh
     CUDA driver content: cuda-repo-rhel7-10-1-local-10.1.91-418.29-1.0-1.ppc64le.rpm
     # PowerAI content: mldl-repo-local-5.4.0-201810270571.66c790a.ppc64le.rpm
-    WMLA license content: ibm-wmla-license-eval-1.2.0-133.e17f634.tar.bz2
+    WMLA license content: ibm-wmla-license-eval-1.2.0-542.47a6e40.tar.bz2
     Spectrum conductor content: conductoreval2.3.0.0_ppc64le.bin
     Spectrum DLI content: dlieval-1.2.2.0_ppc64le.bin
     Spectrum conductor content entitlement: conductoreval_entitlement.dat
