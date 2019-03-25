@@ -1533,3 +1533,17 @@ def parse_rpm_filenames(filename):
         basename = version = None
 
     return basename, version
+
+
+def lscpu():
+    """ Get 'lscpu' output as dictionary
+
+    Returns:
+        dict: Output from 'lscpu'
+    """
+    stdout, stderr, returncode = sub_proc_exec('lscpu')
+    lscpu_dict = {}
+    for line in stdout.splitlines():
+        split = line.split(':', 1)
+        lscpu_dict[split[0].strip()] = split[1].strip()
+    return lscpu_dict

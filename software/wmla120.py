@@ -41,7 +41,7 @@ from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
 from software_hosts import get_ansible_inventory, validate_software_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, Color, \
     get_selection, get_yesno, rlinput, bold, ansible_pprint, replace_regex, \
-    parse_rpm_filenames
+    parse_rpm_filenames, lscpu
 from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path
 
 
@@ -815,6 +815,15 @@ class software(object):
 
         ch = 'S'
         if get_yesno(prompt=pr_str, yesno='Y/n'):
+            _lscpu = lscpu()
+            try:
+                if 'POWER8' in _lscpu['Model name'].upper():
+                    installer_proc_model = 'p8'
+                elif 'POWER9' in _lscpu['Model name'].upper():
+                    installer_proc_model = 'p9'
+            except KeyError:
+                installer_proc_model = None
+
             if self.arch == 'ppc64le' and not self.proc_family:
                 self.proc_family, item = get_selection('Power 8\nPower 9', 'p8\np9',
                                                        'Processor family? ')
@@ -845,7 +854,8 @@ class software(object):
             else:
                 alt_url = None
 
-            if platform.machine() == self.arch:
+            if (platform.machine() == self.arch and
+                    self.proc_family == installer_proc_model):
                 ch, item = get_selection('Sync required dependent packages from '
                                          'Enabled YUM repos\n'
                                          'Create from package files in a local Directory\n'
