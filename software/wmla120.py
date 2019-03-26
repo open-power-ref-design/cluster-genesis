@@ -248,9 +248,9 @@ class software(object):
                 'Enterprise software to a cluster of OpenPOWER or x86 nodes.\n'
                 'Before beginning installation, be sure that the pre-requisite\n'
                 'setup steps have been performed. For guidance, see:\n\n'
-                + kc_link +
+                '' + kc_link +
                 'For additional help in using the automated installer, see:\n\n'
-                + rtd_link +
+                '' + rtd_link +
                 'WMLA Enterprise installation involves three steps;\n'
                 '\n  1 - Preparation. Prepares the installer node software server.\n'
                 '       The preparation phase may be run multiple times if needed.\n'

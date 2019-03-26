@@ -718,6 +718,7 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
                 include versions. ie Keras==2.0.5
         """
         _python = 'python2.7' if py_ver == 27 else 'python'
+        _python = _python  # stop tox from whining
         if not os.path.isdir(self.pypirepo_dir):
             os.mkdir(self.pypirepo_dir)
         pkg_cnt = len(pkg_list.split())
