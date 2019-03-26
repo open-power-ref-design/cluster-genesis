@@ -40,6 +40,7 @@ Welcome to POWER-Up User's Guide documentation!
    Dev-Guide
    Build-Introspection
    Appendix-A
+   Appendix-B
    Appendix-D
    Appendix-E
    Appendix-F
