@@ -27,32 +27,27 @@
   when: not conda_dlipy3_env.stat.exists
   become: yes
 
-- name: Install tensorflow in dlipy3
-  shell: "{{ install_dir }}/bin/conda install --yes tensorflow powerai=1.6 -n dlipy3"
-  become: yes
-
-- name: Install caffe in dlipy3
-  shell: "{{ install_dir }}/bin/conda install --yes caffe powerai=1.6 -n dlipy3"
-  become: yes
-
-- name: Install pytorch in dlipy3
-  shell: "{{ install_dir }}/bin/conda install --yes pytorch powerai=1.6 -n dlipy3"
-  become: yes
-
 - name: Activate dlipy3 environment and install dependencies
   shell: "source {{ install_dir }}/bin/activate dlipy3 && {{ item }}"
+#  shell: "{{ install_dir }}/bin/conda activate dlipy3 && {{ item }}"
   loop:
     - "{{ install_dir }}/bin/conda install --yes powerai=1.6.0"
     - "{{ install_dir }}/bin/conda install --yes keras==2.1.6"
     - "{{ install_dir }}/bin/conda install --yes --no-update-dependencies \
-      cython==0.25.2 ipython==5.3.0 python-lmdb==0.94 nose==1.3.7 requests==2.13.0"
+      cython==0.29.4 ipython==5.3.0 python-lmdb==0.94 nose==1.3.7 requests==2.13.0"
     - "{{ install_dir }}/bin/conda install --yes --no-update-dependencies \
-      redis-py==2.10.5 chardet==3.0.4 flask==1.0.2 psutil==5.5.0"
+      redis-py==2.10.5 chardet==3.0.4 flask==1.0.2"
     - "{{ install_dir }}/bin/conda install --yes --no-update-dependencies \
-      python-gflags==3.1.2 pandas==0.20.3 pyzmq==16.0.3"
+      python-gflags==3.1.2 pandas==0.24.1 pyzmq==17.1.2"
     - "pip install --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
-      ipaddress==1.0.22 configparser==3.5.0 easydict==1.9 --trusted-host \
+      easydict==1.9 --trusted-host {{ host_ip.stdout }}"
+    - "pip install --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
+      hanziconv==0.3.2 gensim==3.6.0 --trusted-host {{ host_ip.stdout }}"
+    - "pip install --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
+      ipaddress==1.0.22 configparser==3.5.0 easydict==1.9 glog==0.3.1 --trusted-host \
       {{ host_ip.stdout }}"
+    - "pip install --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
+      asyncio==3.4.3 --trusted-host {{ host_ip.stdout }}"
   become: yes
 
 - name: Install additional packages for large model support
@@ -72,32 +67,29 @@
   when: not conda_dlipy2_env.stat.exists
   become: yes
 
-- name: Install tensorflow in dlipy2
-  shell: "{{ install_dir }}/bin/conda install --yes tensorflow powerai=1.6 -n dlipy2"
-  become: yes
-
-- name: Install caffe in dlipy2
-  shell: "{{ install_dir }}/bin/conda install --yes caffe powerai=1.6 -n dlipy2"
-  become: yes
-
-- name: Install pytorch in dlipy2
-  shell: "{{ install_dir }}/bin/conda install --yes pytorch powerai=1.6 -n dlipy2"
-  become: yes
-
 - name: Activate dlipy2 environment and install dependencies
   shell: "source {{ install_dir }}/bin/activate dlipy2 && {{ item }}"
+#  shell: "{{ install_dir }}/bin/conda activate dlipy2 && {{ item }}"
   loop:
     - "{{ install_dir }}/bin/conda install --yes powerai=1.6.0"
     - "{{ install_dir }}/bin/conda install --yes keras==2.1.6"
     - "{{ install_dir }}/bin/conda install --yes --no-update-dependencies \
-      cython==0.25.2 ipython==5.3.0 python-lmdb==0.94 nose==1.3.7 requests==2.13.0"
+      cython==0.29.4 ipython==5.3.0 python-lmdb==0.94 nose==1.3.7 requests==2.13.0"
     - "{{ install_dir }}/bin/conda install --yes --no-update-dependencies \
-      redis-py==2.10.5 chardet==3.0.4 flask==1.0.2 psutil==5.5.0"
+      redis-py==2.10.5 chardet==3.0.4 flask==1.0.2"
     - "{{ install_dir }}/bin/conda install --yes --no-update-dependencies \
-      python-gflags==3.1.2 pandas==0.20.3 pyzmq==16.0.3"
+      python-gflags==3.1.2 pandas==0.24.1 pyzmq==17.1.2"
+    - "{{ install_dir }}/bin/conda install --yes --no-update-dependencies \
+      ipaddress==1.0.22 configparser==3.5.0"
+    - "{{ install_dir }}/bin/conda install --yes --no-update-dependencies \
+      trollius==2.2"
     - "pip install --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
-      ipaddress==1.0.22 configparser==3.5.0 easydict==1.9 --trusted-host \
-      {{ host_ip.stdout }}"
+      weave==0.16.0 --trusted-host {{ host_ip.stdout }}"
+    - "pip install --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
+      ipaddress==1.0.22 configparser==3.5.0 easydict==1.9 glog==0.3.1 \
+      --trusted-host {{ host_ip.stdout }}"
+    - "pip install --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
+      hanziconv==0.3.2 gensim==3.6.0 --trusted-host {{ host_ip.stdout }}"
   become: yes
 
 - name: Install additional packages for large model support

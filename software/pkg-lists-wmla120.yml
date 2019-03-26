@@ -15,12 +15,8 @@ ibm_ai_conda_noarch:
 #  reject_list:
 anaconda_free_linux_ppc64le:
   accept_list:
-    - cython-0.25.2-py27_0.tar.bz2
-    - cython-0.25.2-py36_0.tar.bz2
     - ipython-5.3.0-py27_0.tar.bz2
     - ipython-5.3.0-py36_0.tar.bz2
-    - pandas-0.20.3-py27_1.tar.bz2
-    - pandas-0.20.3-py36_1.tar.bz2
     - redis-py-2.10.5-py27_0.tar.bz2
     - redis-py-2.10.5-py36_0.tar.bz2
     - requests-2.13.0-py27_0.tar.bz2
@@ -65,11 +61,14 @@ anaconda_main_linux_ppc64le:
     - click-7.0-py36_0.tar.bz2
     - cloudpickle-0.8.0-py27_0.tar.bz2
     - cloudpickle-0.8.0-py36_0.tar.bz2
+    - configparser-3.5.0-py27_0.tar.bz2
     - coverage-4.5.2-py27h7b6447c_0.tar.bz2
     - coverage-4.5.2-py36h7b6447c_0.tar.bz2
     - cryptography-2.5-py27h1ba5d50_0.tar.bz2
     - cycler-0.10.0-py27_0.tar.bz2
     - cycler-0.10.0-py36_0.tar.bz2
+    - cython-0.29.4-py27he6710b0_0.tar.bz2
+    - cython-0.29.4-py36he6710b0_0.tar.bz2
     - cytoolz-0.9.0.1-py27h14c3975_1.tar.bz2
     - cytoolz-0.9.0.1-py36h14c3975_1.tar.bz2
     - dask-1.1.2-py27_0.tar.bz2
@@ -180,6 +179,8 @@ anaconda_main_linux_ppc64le:
     - openssl-1.1.1a-h7b6447c_0.tar.bz2
     - packaging-19.0-py27_0.tar.bz2
     - packaging-19.0-py36_0.tar.bz2
+    - pandas-0.24.1-py27he6710b0_0.tar.bz2
+    - pandas-0.24.1-py36he6710b0_0.tar.bz2
     - partd-0.3.9-py27_0.tar.bz2
     - partd-0.3.9-py36_0.tar.bz2
     - pathlib2-2.3.3-py27_0.tar.bz2
@@ -230,8 +231,8 @@ anaconda_main_linux_ppc64le:
     - pywavelets-1.0.1-py36hdd07704_0.tar.bz2
     - pyyaml-3.12-py27h14c3975_1.tar.bz2
     - pyyaml-3.12-py36h14c3975_1.tar.bz2
-    - pyzmq-16.0.3-py27h14c3975_0.tar.bz2
-    - pyzmq-16.0.3-py36h14c3975_0.tar.bz2
+    - pyzmq-17.1.2-py27h14c3975_0.tar.bz2
+    - pyzmq-17.1.2-py36h14c3975_0.tar.bz2
     - readline-7.0-h7b6447c_5.tar.bz2
     - redis-5.0.3-h7b6447c_0.tar.bz2
     - scandir-1.9.0-py27h14c3975_0.tar.bz2
@@ -267,6 +268,8 @@ anaconda_main_linux_ppc64le:
     - traceback2-1.4.0-py27_0.tar.bz2
     - traitlets-4.3.2-py27_0.tar.bz2
     - traitlets-4.3.2-py36_0.tar.bz2
+    - trollius-2.2-py27h14c3975_0.tar.bz2
+    - trollius-2.2-py36h14c3975_0.tar.bz2
     - typing-3.6.4-py27_0.tar.bz2
     - typing-3.6.4-py36_0.tar.bz2
     - unittest2-1.1.0-py27_0.tar.bz2
@@ -300,6 +303,7 @@ python3_specific_pkgs:
 python_pkgs:
     - alembic==0.8.2
     - appdirs==1.4.3
+    - asyncio==3.4.3
     - Babel==2.6.0
     - boto==2.49.0
     - boto3==1.9.99
@@ -325,6 +329,7 @@ python_pkgs:
     - functools32==3.2.3.post2
     - futures==3.1.1
     - gensim==3.6.0
+    - glog==0.3.1
     - hanziconv==0.3.2
     - idna==2.5
     - ipaddress==1.0.22
@@ -384,6 +389,7 @@ python_pkgs:
     - urllib3==1.24.1
     - warlock==1.3.0
     - wcwidth==0.1.7
+    - weave==0.16.0
     - Werkzeug==0.14.1
     - wrapt==1.11.1
 # Note that one of the EPEL packages (libaec, libaec-devel) was at

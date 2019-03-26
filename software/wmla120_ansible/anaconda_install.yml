@@ -27,18 +27,10 @@
   when: anaconda_dir.stat.isdir is not defined or not anaconda_dir.stat.isdir
   become: yes
 
-- name: Add Anaconda install location to PATH in user's bashrc
-  lineinfile:
-    path: "{{ ansible_env.HOME }}/.bashrc"
-    regexp: ".*PATH=.*{{ install_dir }}/bin.*"
-    line: "export PATH=\"{{ install_dir }}/bin:$PATH\""
-
-#- name: Add Anaconda install location to PATH in root's bashrc
-#  lineinfile:
-#    path: "/root/.bashrc"
-#    regexp: ".*PATH=.*{{ install_dir }}/bin.*"
-#    line: "export PATH=\"{{ install_dir }}/bin:$PATH\""
-#  become: yes
+- name: Configure Anaconda
+  shell: "{{ install_dir }}/bin/conda config --system --set \
+          auto_update_conda false && {{ install_dir }}/bin/conda clean -tipsy"
+  become: yes
 
 - name: "Create {{ install_dir }}/.condarc"
   file:

@@ -1067,7 +1067,7 @@ class software(object):
         ch = repo.get_action(exists, exists_prompt_yn=True)
 
         pkg_list = ' '.join(self.pkgs['python_pkgs'])
-        if not exists and ch == 'Y':
+        if ch == 'Y':
             pkg_list = ' '.join(self.pkgs['python_pkgs'])
             pkg3_list = ' '.join(self.pkgs['python3_specific_pkgs'])
             url = repo.get_repo_url(baseurl, alt_url, name=repo_name,
