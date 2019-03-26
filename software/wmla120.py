@@ -816,13 +816,16 @@ class software(object):
         ch = 'S'
         if get_yesno(prompt=pr_str, yesno='Y/n'):
             _lscpu = lscpu()
+            installer_proc_model = None
             try:
                 if 'POWER8' in _lscpu['Model name'].upper():
                     installer_proc_model = 'p8'
                 elif 'POWER9' in _lscpu['Model name'].upper():
                     installer_proc_model = 'p9'
+                elif 'x86_64' in _lscpu['Architecture']:
+                    installer_proc_model = 'x86_64'
             except KeyError:
-                installer_proc_model = None
+                pass
 
             if self.arch == 'ppc64le' and not self.proc_family:
                 self.proc_family, item = get_selection('Power 8\nPower 9', 'p8\np9',
