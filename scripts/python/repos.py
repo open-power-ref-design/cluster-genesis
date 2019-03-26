@@ -53,7 +53,7 @@ def setup_source_file(name, src_glob, url='', alt_url='http://',
         name (str): Name for the source. Used for prompts and dest dir (/srv/{name}).
     Returns:
         state (bool) : state is True if a file matching the src_name exists
-            in the dest directory or was succesfully copied there. state is
+            in the dest directory or was successfully copied there. state is
             False if there is no file matching src_name in the dest directory
             OR if the attempt to copy a new file to the dest directory failed.
         src_path (str) : The path for the file found / chosen by the user. If
@@ -370,7 +370,7 @@ class PowerupRepo(object):
             self.log.error(f'Repo creation error: rc: {rc} stderr: {err}')
         else:
             self.log.info(f'Repo {action[0]} process for {self.repo_id} finished'
-                          ' succesfully')
+                          ' successfully')
 
 
 class PowerupRepoFromRpm(PowerupRepo):
@@ -599,6 +599,10 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
             # Get the list of packages in the repo. Note that if both acclist
             # and rejlist are not provided the full set of packages is downloaded
             pkgs = self.get_pkg_list(os.path.join(dest_dir, 'repodata.json'))
+            if pkgs is None:
+                self.log.error('repodata.json file not found')
+                return None
+
             download_set = set(pkgs)
 
             if acclist and acclist != 'all':
@@ -646,25 +650,31 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
         self._update_repodata(dest_dir)
 
         # Filter content of index.html
-        if '/pkgs' in dest_dir:
+        if '/pkgs' in dest_dir or '/ibmai' in dest_dir:
             filelist = os.listdir(dest_dir)
             filecnt = 0
-            dest = dest_dir + 'index.html'
-            src = dest_dir + 'index-src.html'
+            dest = os.path.join(dest_dir, 'index.html')
+            src = os.path.join(dest_dir, 'index-src.html')
             os.rename(dest, src)
             line = ''
             with open(src, 'r') as s, open(dest, 'w') as d:
+                # copy Table header info over to new index.html
                 while '<tr>' not in line:
                     line = s.readline()
+                    if '<table>' in line:
+                        table_indent = line.find('<table>')
                     d.write(line)
-                d.write(line)
                 row = ''
+                # Copy table rows till end of table found
                 while '</table>' not in row:
                     row, filename = _get_table_row(s)
                     if filename in filelist or 'Filename' in row:
                         d.write(row)
-                        filecnt += 1
-                d.write(row)
+                        if filename in filelist:
+                            filecnt += 1
+                    elif '</table>' in row:
+                        row = '          '[0:table_indent] + '</table>\n'
+                        d.write(row)
                 while True:
                     line = s.readline()
                     if not line:
@@ -673,7 +683,10 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
                     if ts:
                         ts = ts.group(1).replace('+', '\\+')
                         line = re.sub(ts, time.asctime(), line)
-                    line = re.sub(r'Files:\s+\d+', f'Files: {filecnt-2}', line)
+                        dec = 1  # Assume repodata.json always present
+                        dec = dec + 1 if 'repodata2.json' in filelist else dec
+                        dec = dec + 1 if 'repodata.json.bz2' in filelist else dec
+                        line = re.sub(r'Files:\s+\d+', f'Files: {filecnt-dec}', line)
                     d.write(line)
         else:
             # Remove index.html files retrieved from conda-forge so they don't

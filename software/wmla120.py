@@ -243,7 +243,7 @@ class software(object):
     def README(self):
         print(bold('\nWMLA Enterprise software installer module'))
         text = ('\nThis module installs the Watson Machine Learning Accelerated\n'
-                'Enterprise software to a cluster of OpenPOWER nodes.\n\n'
+                'Enterprise software to a cluster of OpenPOWER or x86 nodes.\n\n'
                 'WMLA Enterprise installation involves three steps;\n'
                 '\n  1 - Preparation. Prepares the installer node software server.\n'
                 '       The preparation phase may be run multiple times if needed.\n'
@@ -551,7 +551,7 @@ class software(object):
 
         if ch == 'P':
             # Enable the public repo
-            repo_cuda = PowerupRepo(repo_id, repo_name)
+            repo_cuda = PowerupRepo(repo_id, repo_name, arch=self.arch)
             dot_repo_content = repo_cuda.get_yum_dotrepo_content(url=baseurl, gpgkey=gpgkey)
             repo_cuda.write_yum_dot_repo_file(dot_repo_content)
 
@@ -569,7 +569,7 @@ class software(object):
             # contents of the rpm file are then extracted under /srv/repos/
             # Meta data is created. yum.repo content is generated and added to
             # the software-vars.yml file
-            repo = PowerupRepoFromRpm(repo_id, repo_name)
+            repo = PowerupRepoFromRpm(repo_id, repo_name, arch=self.arch)
 
             if f'{repo_id}_src_rpm_dir' in self.sw_vars:
                 src_path = self.sw_vars[f'{repo_id}_src_rpm_dir']
@@ -596,7 +596,7 @@ class software(object):
             else:
                 alt_url = None
 
-            repo = PowerupYumRepoFromRepo(repo_id, repo_name)
+            repo = PowerupYumRepoFromRepo(repo_id, repo_name, arch=self.arch)
             repo_dir = repo.get_repo_dir()
             url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
                                     filelist=['cuda-10-*-*'])
@@ -632,7 +632,7 @@ class software(object):
         repo_id = 'ibmai'
         repo_name = 'IBM AI Repository'
         baseurl = ('https://public.dhe.ibm.com/ibmdl/export/pub/software/server/'
-                   'ibm-ai/conda/')
+                   f'ibm-ai/conda/linux-{self.ana_platform_basename}/')
         heading1(f'Set up {repo_name}\n')
 
         vars_key = get_name_dir(repo_name)  # format the name
@@ -646,7 +646,7 @@ class software(object):
             self.log.info(f'The {repo_name} exists already'
                           ' in the POWER-Up server\n')
 
-        repo = PowerupAnaRepoFromRepo(repo_id, repo_name)
+        repo = PowerupAnaRepoFromRepo(repo_id, repo_name, arch=self.arch)
 
         ch = repo.get_action(exists)
         if ch in 'Y':
@@ -675,6 +675,9 @@ class software(object):
                     rl = None
 
                 dest_dir = repo.sync_ana(url, acclist=al, rejlist=rl)
+                if dest_dir is None:
+                    print(f'{repo_name} repository not updated')
+                    return False
 
                 dest_dir = dest_dir[4 + dest_dir.find('/srv'):6 +
                                     dest_dir.find(f'{repo_id}')]
@@ -863,7 +866,7 @@ class software(object):
             self.sw_vars['yum_powerup_repo_files'][filename] = content
 
         elif ch == 'D':
-            repo = PowerupRepoFromDir(repo_id, repo_name, proc_family=self.proc_family)
+            repo = PowerupRepoFromDir(repo_id, repo_name, arch=self.arch, proc_family=self.proc_family)
 
             if f'{repo_id}_src_dir' in self.sw_vars:
                 src_dir = self.sw_vars[f'{repo_id}_src_dir']
@@ -885,7 +888,7 @@ class software(object):
             else:
                 alt_url = None
 
-            repo = PowerupYumRepoFromRepo(repo_id, repo_name,
+            repo = PowerupYumRepoFromRepo(repo_id, repo_name, arch=self.arch,
                                           proc_family=self.proc_family)
 
             url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
@@ -959,13 +962,13 @@ class software(object):
             self.log.info('The Anaconda Repository exists already'
                           ' in the POWER-Up server\n')
 
-        repo = PowerupAnaRepoFromRepo(repo_id, repo_name)
+        repo = PowerupAnaRepoFromRepo(repo_id, repo_name, arch=self.arch)
 
         ch = repo.get_action(exists)
         if ch in 'Y':
             # if not exists or ch == 'F':
             url = repo.get_repo_url(baseurl, alt_url, contains=['free', 'linux',
-                                    f'{platform_basename}'], excludes=['noarch', 'main'],
+                                    f'{self.arch}'], excludes=['noarch', 'main'],
                                     filelist=['cython-*'])
             if url:
                 if not url == baseurl:
@@ -973,8 +976,8 @@ class software(object):
 
                 # accept_list and rej_list are mutually exclusive.
                 # accept_list takes priority
-                al = self.pkgs[f'anaconda_free_linux_{platform_basename}']['accept_list']
-                rl = self.pkgs[f'anaconda_free_linux_{platform_basename}']['reject_list']
+                al = self.pkgs[f'anaconda_free_linux_{self.arch}']['accept_list']
+                rl = self.pkgs[f'anaconda_free_linux_{self.arch}']['reject_list']
 
                 dest_dir = repo.sync_ana(url, acclist=al, rejlist=rl)
                 dest_dir = dest_dir[4 + dest_dir.find('/srv'):5 + dest_dir.find('free')]
@@ -1008,19 +1011,19 @@ class software(object):
             self.log.info('The Anaconda Repository exists already'
                           ' in the POWER-Up server\n')
 
-        repo = PowerupAnaRepoFromRepo(repo_id, repo_name)
+        repo = PowerupAnaRepoFromRepo(repo_id, repo_name, arch=self.arch)
 
         ch = repo.get_action(exists)
         if ch in 'Y':
             url = repo.get_repo_url(baseurl, alt_url, contains=['main', 'linux',
-                                    f'{platform_basename}'], excludes=['noarch', 'free'],
+                                    f'{self.arch}'], excludes=['noarch', 'free'],
                                     filelist=['bzip2-*'])
             if url:
                 if not url == baseurl:
                     self.sw_vars[f'{vars_key}-alt-url'] = url
                 # accept_list is used for main, reject_list for noarch
-                al = self.pkgs[f'anaconda_main_linux_{platform_basename}']['accept_list']
-                rl = self.pkgs[f'anaconda_main_linux_{platform_basename}']['reject_list']
+                al = self.pkgs[f'anaconda_main_linux_{self.arch}']['accept_list']
+                rl = self.pkgs[f'anaconda_main_linux_{self.arch}']['reject_list']
 
                 dest_dir = repo.sync_ana(url, acclist=al, rejlist=rl)
                 # dest_dir = repo.sync_ana(url)
@@ -1052,7 +1055,7 @@ class software(object):
             self.log.info('The Python Package Repository exists already'
                           ' in the POWER-Up server')
 
-        repo = PowerupPypiRepoFromRepo(repo_id, repo_name)
+        repo = PowerupPypiRepoFromRepo(repo_id, repo_name, arch=self.arch)
         ch = repo.get_action(exists, exists_prompt_yn=True)
 
         pkg_list = ' '.join(self.pkgs['python_pkgs'])
@@ -1151,7 +1154,7 @@ class software(object):
             else:
                 alt_url = None
 
-            repo = PowerupYumRepoFromRepo(repo_id, repo_name)
+            repo = PowerupYumRepoFromRepo(repo_id, repo_name, arch=self.arch)
 
             url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
                                     filelist=['openblas-*'])
@@ -1166,7 +1169,7 @@ class software(object):
                 repo.create_meta()
 
                 # Setup local access to the new repo copy in /srv/repo/
-                #if platform.machine() == self.arch:
+                # if platform.machine() == self.arch:
                 #    content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
                 #    repo.write_yum_dot_repo_file(content)
                 # Prep setup of POWER-Up client access to the repo copy

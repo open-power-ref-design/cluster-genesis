@@ -323,7 +323,7 @@ python_pkgs:
     - Flask-Script==2.0.5
     - funcsigs==1.0.2
     - functools32==3.2.3.post2
-    - futures==3.2.0
+    - futures==3.1.1
     - gensim==3.6.0
     - hanziconv==0.3.2
     - idna==2.5
