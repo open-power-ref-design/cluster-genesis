@@ -242,7 +242,8 @@ class software(object):
 
     def README(self):
         kc_link = bold('   https://www.ibm.com/support/knowledgecenter/SSFHA8/ \n\n')
-        rtd_link = bold('   https://power-up.readthedocs.io/en/latest/Running-wmla.html\n\n')
+        rtd_link = bold('   https://power-up.readthedocs.io/en/latest/'
+                        'Running-paie.html\n\n')
         print(bold('\nWMLA Enterprise software installer module'))
         text = ('\nThis module installs the Watson Machine Learning Accelerated\n'
                 'Enterprise software to a cluster of OpenPOWER or x86 nodes.\n'
