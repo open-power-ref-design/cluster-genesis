@@ -21,7 +21,7 @@ import os
 import platform
 
 import lib.logger as logger
-from lib.utilities import sub_proc_exec, nginx_modify_conf
+from lib.utilities import sub_proc_exec, nginx_modify_conf, line_in_file
 from repos import PowerupRepo
 
 
@@ -38,10 +38,17 @@ def nginx_setup(root_dir='/srv', repo_id='nginx'):
 
     log = logger.getlogger()
 
-    if not os.path.isfile(os.path.join('/etc/yum.repos.d', repo_id)):
-        baseurl = 'http://nginx.org/packages/mainline/rhel/7/' + \
-                  platform.machine()
-        repo_id = 'nginx'
+    baseurl = 'http://nginx.org/packages/rhel/7/' + platform.machine()
+    repo_file = os.path.join('/etc/yum.repos.d', repo_id)
+
+    if os.path.isfile(repo_file):
+        line_in_file(repo_file, r'^baseurl=.+', f'baseurl={baseurl}')
+        for cmd in ['yum clean all', 'yum makecache']:
+            resp, err, rc = sub_proc_exec(cmd)
+            if rc != 0:
+                log.error(f"A problem occured while running '{cmd}'")
+                log.error(f'Response: {resp}\nError: {err}\nRC: {rc}')
+    else:
         repo_name = 'nginx.org public'
         repo = PowerupRepo(repo_id, repo_name)
         content = repo.get_yum_dotrepo_content(baseurl, gpgcheck=0)
