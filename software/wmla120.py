@@ -453,7 +453,7 @@ class software(object):
         heading1('Set up Nginx')
         exists = self.status_prep(which='Nginx Web Server')
         if not exists:
-            baseurl = 'http://nginx.org/packages/mainline/rhel/7/' + \
+            baseurl = 'http://nginx.org/packages/rhel/7/' + \
                       platform.machine()
             repo_id = 'nginx'
             repo_name = 'nginx.org public'
