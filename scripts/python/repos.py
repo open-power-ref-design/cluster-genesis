@@ -717,7 +717,6 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
             pkg_list (str): list of packages separated by space(s). Packages can
                 include versions. ie Keras==2.0.5
         """
-        _python = 'python2.7' if py_ver == 27 else 'python'
         if not os.path.isdir(self.pypirepo_dir):
             os.mkdir(self.pypirepo_dir)
         pkg_cnt = len(pkg_list.split())
@@ -728,17 +727,18 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
             host = re.search(r'http://([^/]+)', alt_url).group(1)
             cmd = host  # Dummy assign to silence tox
             # wait on 'f' string formatting since 'pkg' is not available yet
-            cmd = ("f'{_python} -m pip download --python-version {py_ver} "
+            cmd = ("f'python -m pip download --python-version {py_ver} "
                    "--platform {self.arch} --no-deps --index-url={alt_url} "
                    "-d {self.pypirepo_dir} {pkg} --trusted-host {host}'")
         else:
-            cmd = ("f'{_python} -m pip download --python-version {py_ver} "
+            cmd = ("f'python -m pip download --python-version {py_ver} "
                    "--platform {self.arch} --no-deps -d {self.pypirepo_dir} {pkg}'")
         for pkg in pkg_list2:
             print(pkg)
             resp, err, rc = sub_proc_exec(eval(cmd), shell=True)
             if rc != 0:
-                if 'functools32' in resp and 'for Python 2.7 only' in resp:
+                err_str = '"python setup.py egg_info" failed with error code 1 in'
+                if 'functools32' in resp or 'weave' in resp and err_str in err:
                     pass
                 else:
                     self.log.error('Error occured while downloading python packages: '
