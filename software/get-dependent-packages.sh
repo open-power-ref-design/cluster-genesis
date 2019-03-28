@@ -31,15 +31,25 @@
 
 set -e
 cd "$(dirname "$0")"
-if [[ -z $1 || -z $2 ]]; then
-    echo 'usage: get-dependent-packages userid host'
+
+if [[ -z $1 || -z $2 || -z $3 ]]; then
+    echo 'usage: get-dependent-packages userid host arch'
+    echo '       userid: username on remote node'
+    echo '       host:   hostname of remote node'
+    echo '       arch:   archtecture of remote node (p8/p9/x86_64)'
     exit
+fi
+
+if [[ "$3" == "p8" || "$3" == "p9" ]]; then
+    pkglistfile='pkg-lists-wmla120.yml'
+elif [[  "$3" == "x86_64" ]]; then
+    pkglistfile='pkg-lists-wmla120_x86_64.yml'
 fi
 
 pkglist=$(python -c \
 "import yaml;\
-pkgs = yaml.load(open('pkg-lists-wmla120.yml'));\
-print(' '.join(pkgs['yum_pkgs']))")
+pkgs = yaml.load(open('$pkglistfile'));\
+print(' '.join(pkgs['yum_pkgs_$3']))")
 
 read -sp 'Enter password for '$1': ' PASSWORD
 echo
@@ -56,12 +66,13 @@ echo
 # Packages are saved to a different directory on this machine
 # so that the packages are still present if you execute this
 # script against the machine it's running on.
+
 # Remove ~/tempdl to remove stray content and cause scp to copy
 # files to it directly without creating puptempdl dir under it.
 rm -rf ~/tempdl
 
 sshpass -e ssh -t $1@$2 'mkdir -p ~/puptempdl && sudo yumdownloader \
-    --archlist=ppc64le --resolve --destdir ~/puptempdl '$pkglist
+    --archlist=`arch` --destdir ~/puptempdl '$pkglist
 
 echo Retrieving packages
 sshpass -e scp -r $1@$2:~/puptempdl/ ~/tempdl

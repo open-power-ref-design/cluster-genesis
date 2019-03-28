@@ -242,7 +242,8 @@ class software(object):
 
     def README(self):
         kc_link = bold('   https://www.ibm.com/support/knowledgecenter/SSFHA8/ \n\n')
-        rtd_link = bold('   https://power-up.readthedocs.io/en/latest/Running-wmla.html\n\n')
+        rtd_link = bold('   https://power-up.readthedocs.io/en/latest/'
+                        'Running-paie.html\n\n')
         print(bold('\nWMLA Enterprise software installer module'))
         text = ('\nThis module installs the Watson Machine Learning Accelerated\n'
                 'Enterprise software to a cluster of OpenPOWER or x86 nodes.\n'
@@ -816,13 +817,16 @@ class software(object):
         ch = 'S'
         if get_yesno(prompt=pr_str, yesno='Y/n'):
             _lscpu = lscpu()
+            installer_proc_model = None
             try:
                 if 'POWER8' in _lscpu['Model name'].upper():
                     installer_proc_model = 'p8'
                 elif 'POWER9' in _lscpu['Model name'].upper():
                     installer_proc_model = 'p9'
+                elif 'x86_64' in _lscpu['Architecture']:
+                    installer_proc_model = 'x86_64'
             except KeyError:
-                installer_proc_model = None
+                pass
 
             if self.arch == 'ppc64le' and not self.proc_family:
                 self.proc_family, item = get_selection('Power 8\nPower 9', 'p8\np9',
