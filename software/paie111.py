@@ -42,6 +42,7 @@ from software_hosts import get_ansible_inventory, validate_software_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, Color, \
     get_selection, get_yesno, rlinput, bold, ansible_pprint, replace_regex
 from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path
+from nginx_setup import nginx_setup
 
 
 class software(object):
@@ -449,65 +450,13 @@ class software(object):
         heading1('Set up Nginx')
         exists = self.status_prep(which='Nginx Web Server')
         if not exists:
-            baseurl = 'http://nginx.org/packages/mainline/rhel/7/' + \
-                      platform.machine()
-            repo_id = 'nginx'
-            repo_name = 'nginx.org public'
-            repo = PowerupRepo(repo_id, repo_name)
-            content = repo.get_yum_dotrepo_content(baseurl, gpgcheck=0)
-            repo.write_yum_dot_repo_file(content)
-            cmd = 'yum makecache'
-            resp, err, rc = sub_proc_exec(cmd)
-            if rc != 0:
-                self.log.error('A problem occured while creating the yum caches')
-                self.log.error(f'Response: {resp}\nError: {err}\nRC: {rc}')
-
-        # Check if nginx installed. Install if necessary.
-        cmd = 'nginx -v'
-        try:
-            resp, err, rc = sub_proc_exec(cmd)
-        except OSError:
-            cmd = 'yum -y install nginx'
-            resp, err, rc = sub_proc_exec(cmd)
-            if rc != 0:
-                self.log.error('Failed installing nginx')
-                self.log.error(resp)
-                sys.exit(1)
-            else:
-                # Fire it up
-                cmd = 'nginx'
-                resp, err, rc = sub_proc_exec(cmd)
-                if rc != 0:
-                    self.log.error('Failed starting nginx')
-                    self.log.error('resp: {}'.format(resp))
-                    self.log.error('err: {}'.format(err))
+            nginx_setup(root_dir='srv', repo_id='nginx')
 
         self.status_prep(which='Nginx Web Server')
         if self.state['Nginx Web Server'] == '-':
             self.log.info('nginx web server is not running')
         else:
             self.log.info(self.state['Nginx Web Server'])
-
-        if os.path.isfile('/etc/nginx/conf.d/default.conf'):
-            try:
-                os.rename('/etc/nginx/conf.d/default.conf',
-                          '/etc/nginx/conf.d/default.conf.bak')
-            except OSError:
-                self.log.warning('Failed renaming /etc/nginx/conf.d/default.conf')
-        with open('/etc/nginx/conf.d/server1.conf', 'w') as f:
-            f.write('server {\n')
-            f.write('    listen       80;\n')
-            f.write('    server_name  powerup;\n\n')
-            f.write('    location / {\n')
-            f.write('        root   /srv;\n')
-            f.write('        autoindex on;\n')
-            f.write('    }\n')
-            f.write('}\n')
-
-        cmd = 'nginx -s reload'
-        _, _, rc = sub_proc_exec(cmd)
-        if rc != 0:
-            self.log.warning('Failed reloading nginx configuration')
 
         # Get PowerAI base
         name = 'PowerAI content'
