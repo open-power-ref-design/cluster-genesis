@@ -5,8 +5,8 @@
     dlipy3_conda: dlipy3_conda_post_install.txt
     dlipy2_pip: dlipy2_pip_post_install.txt
     dlipy2_conda: dlipy2_conda_post_install.txt
-    dliinsights_pip: dlinsights_pip_post_install.txt
-    dliinsights_conda: dlinsights_conda_post_install.txt
+    dlinsights_pip: dlinsights_pip_post_install.txt
+    dlinsights_conda: dlinsights_conda_post_install.txt
 
 - name: Set dependencies directory variable
   set_fact:
