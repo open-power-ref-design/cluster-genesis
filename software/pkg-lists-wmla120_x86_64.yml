@@ -649,6 +649,7 @@ yum_pkgs_x86_64:
 # # # resolution
 - wget
 - ntp
+- nfs-utils
 cuda_drivers:
       - cuda-10-1-10.1.105-1
       - cuda-10.1.105-1
