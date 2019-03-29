@@ -5,12 +5,12 @@
     dlipy3_conda: dlipy3_conda_pre_install.txt
     dlipy2_pip: dlipy2_pip_pre_install.txt
     dlipy2_conda: dlipy2_conda_pre_install.txt
-    dliinsights_pip: dlinsights_pip_pre_install.txt
-    dliinsights_conda: dlinsights_conda_pre_install.txt
+    dlinsights_pip: dlinsights_pip_pre_install.txt
+    dlinsights_conda: dlinsights_conda_pre_install.txt
 
 - name: Set dependencies directory variable
   set_fact:
-    dependencies_dir: "../../logs/dependencies/"
+    dependencies_dir: "{{ hostvars['localhost']['deps_path_local'] }}"
 
 - name: Set installation directory variable
   set_fact:
@@ -38,40 +38,41 @@
 
 - name: Check if dlipy3 pre data exists (PIP)
   stat:
-    path: "~/{{ dlipy3_pip }}"
+    path: "{{ ansible_env.HOME }}/{{dlipy3_pip}}"
   register: dlipy3_pip_result
 
 - name: Activate dlipy3_test environment and gather pre data (PIP)
   shell: "source {{ install_dir }}/bin/activate dlipy3_test && {{ item }}"
   loop:
-    - "conda list --explicit > {{ vars.dlipy3_pip }} "
+    - "conda list --explicit > {{vars.dlipy3_pip}} "
   become: yes
-  when: not dlipy3_pip_result.stat.exists
+  when: dlipy3_pip_result.stat.exists == False
 
 - name: Copy data back to deployer (PIP)
   fetch:
-    src: "~/{{ dlipy3_pip }}"
-    dest: "{{ dependencies_dir }}"
-  when: not dlipy3_pip_result.stat.exists
+    src: "{{ ansible_env.HOME }}/{{dlipy3_pip}}"
+    dest: "{{dependencies_dir}}"
+  when: dlipy3_pip_result.stat.exists == False
 
 - name: Check if dlipy3 pre data exists (Conda)
   stat:
-    path: "~/{{ dlipy3_conda }}"
+    path: "{{ ansible_env.HOME }}/{{dlipy3_conda}}"
   register: dlipy3_conda_result
 
 - name: Activate dlipy3_test environment and gather pre data (Conda)
   shell: "source {{ install_dir }}/bin/activate dlipy3_test && {{ item }}"
   loop:
-    - "conda list --explicit > {{ vars.dlipy3_conda }}"
+    - "conda list --explicit > {{vars.dlipy3_conda}}"
   become: yes
-  when: not dlipy3_conda_result.stat.exists
+  when: dlipy3_conda_result.stat.exists == False
 
 - name: Copy data back to deployer (Conda)
   fetch:
-    src: "~/{{ dlipy3_conda }}"
-    dest: "{{ dependencies_dir }}"
-  when: not dlipy3_conda_result.stat.exists
-                        #dlipy2 env
+    src: "{{ ansible_env.HOME }}/{{dlipy3_conda}}"
+    dest: "{{dependencies_dir}}"
+  when: dlipy3_conda_result.stat.exists == False
+
+                #dlipy2 env
 
 - name: Check if Anaconda dlipy2_test environment already exists
   stat:
@@ -86,39 +87,40 @@
 
 - name: Check if dlipy2 pre data exists (PIP)
   stat:
-    path: "~/{{ dlipy2_pip }}"
+    path: "{{ ansible_env.HOME }}/{{dlipy2_pip}}"
+>>>>>>> 4a16ee2258c6900f005fbf3b751a4a304a739bb3
   register: dlipy2_pip_result
 
 - name: Activate dlipy2_test environment and gather pre data (PIP)
   shell: "source {{ install_dir }}/bin/activate dlipy2_test && {{ item }}"
   loop:
-    - "conda list --explicit > {{ vars.dlipy2_pip }}"
+    - "conda list --explicit > {{vars.dlipy2_pip}}"
   become: yes
-  when: not dlipy2_pip_result.stat.exists
+  when: dlipy2_pip_result.stat.exists == False
 
 - name: Copy data back to deployer (PIP)
   fetch:
-    src: "~/{{ dlipy2_pip }}"
-    dest: "{{ dependencies_dir }}"
-  when: not dlipy2_pip_result.stat.exists
+    src: "{{ ansible_env.HOME }}/{{dlipy2_pip}}"
+    dest: "{{dependencies_dir}}"
+  when: dlipy2_pip_result.stat.exists == False
 
 - name: Check if dlipy2 pre data exists (Conda)
   stat:
-    path: "~/{{ dlipy2_conda }}"
+    path: "{{ ansible_env.HOME }}/{{dlipy2_conda}}"
   register: dlipy2_conda_result
 
 - name: Activate dlipy2_test environment and gather pre data (Conda)
   shell: "source {{ install_dir }}/bin/activate dlipy2_test && {{ item }}"
   loop:
-    - "conda list --explicit > {{ vars.dlipy2_conda }}"
+    - "conda list --explicit > {{vars.dlipy2_conda}}"
   become: yes
-  when: not dlipy2_conda_result.stat.exists
+  when: dlipy2_conda_result.stat.exists == False
 
 - name: Copy data back to deployer (Conda)
   fetch:
-    src: "~/{{ dlipy2_conda }}"
-    dest: "{{ dependencies_dir }}"
-  when: not dlipy2_conda_result.stat.exists
+    src: "{{ ansible_env.HOME }}/{{dlipy2_conda}}"
+    dest: "{{dependencies_dir}}"
+  when: dlipy2_conda_result.stat.exists == False
 
                         #dlinsights env
 
@@ -135,37 +137,37 @@
 
 - name: Check if dlinsights pre data exists (PIP)
   stat:
-    path: "~/{{ dlinsights_pip }}"
+    path: "{{ ansible_env.HOME }}/{{dlinsights_pip}}"
   register: dlinsights_pip_result
 
 - name: Activate dlinsights and gather pre data (PIP)
   shell: "source {{ install_dir }}/bin/activate dlinsights_test && {{ item }}"
   loop:
-    - "conda list --explicit > {{ vars.dlinsights_pip }}"
+    - "conda list --explicit > {{vars.dlinsights_pip}}"
   become: yes
-  when: not dlinsights_pip_result.stat.exists
+  when: dlinsights_pip_result.stat.exists == False
 
 - name: Copy data back to deployer (PIP)
   fetch:
-    src: "~/{{ dlinsights_pip }}"
-    dest: "{{ dependencies_dir }}"
-  when: not dlinsights_pip_result.stat.exists
+    src: "{{ ansible_env.HOME }}/{{dlinsights_pip}}"
+    dest: "{{dependencies_dir}}"
+  when: dlinsights_pip_result.stat.exists == False
 
 - name: Check if dlinsights pre data exists (Conda)
   stat:
-    path: "~/{{ dlinsights_conda }}"
+    path: "{{ ansible_env.HOME }}/{{dlinsights_conda}}"
   register: dlinsights_conda_result
 
 - name: Activate dlinsights and gather pre data (Conda)
   shell: "source {{ install_dir }}/bin/activate dlinsights_test && {{ item }}"
   loop:
-    - "conda list --explicit > {{ vars.dlinsights_conda }}"
+    - "conda list --explicit > {{vars.dlinsights_conda}}"
   become: yes
-  when: not dlinsights_conda_result.stat.exists
+  when: dlinsights_conda_result.stat.exists == False
 
 - name: Copy data back to deployer (Conda)
   fetch:
-    src: "~/{{ dlinsights_conda }}"
-    dest: "{{ dependencies_dir }}"
-  when: not dlinsights_conda_result.stat.exists
+    src: "{{ ansible_env.HOME }}/{{dlinsights_conda}}"
+    dest: "{{dependencies_dir}}"
+  when: dlinsights_conda_result.stat.exists == False
 

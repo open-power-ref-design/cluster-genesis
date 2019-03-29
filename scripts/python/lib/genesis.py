@@ -30,6 +30,7 @@ GEN_SCRIPTS_PYTHON_PATH = os.path.join(GEN_SCRIPTS_PATH, 'python', '')
 GEN_PLAY_PATH = os.path.join(GEN_PATH, 'playbooks', '')
 GEN_PASSIVE_PATH = os.path.join(GEN_PATH, 'passive', '')
 GEN_LOGS_PATH = os.path.join(GEN_PATH, 'logs', '')
+GEN_DEPS_PATH = os.path.join(GEN_LOGS_PATH, 'dependencies', '')
 GEN_SOFTWARE_PATH = os.path.join(GEN_PATH, 'software', '')
 GEN_SAMPLE_CONFIGS_PATH = os.path.join(GEN_PATH, 'sample-configs', '')
 OPSYS = platform.dist()[0]
