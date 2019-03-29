@@ -516,7 +516,7 @@ def get_parsed_args():
     args = parser.parse_args()
 
     # Force print level logging to nolog for osinstall unless set to debug
-    if args.osinstall and args.log_level_print[0] != 'debug':
+    if hasattr(args, 'osinstall') and args.log_level_print[0] != 'debug':
         args.log_level_print = ['nolog']
 
     # Check arguments
