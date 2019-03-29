@@ -69,7 +69,7 @@ elif [[ $ID == "rhel" ]]; then
         vim bridge-utils cpp flex bison unzip cmake fping gcc-c++ patch \
         perl-ExtUtils-MakeMaker perl-Thread-Queue ncurses-devel \
         bash-completion yum-utils createrepo sshpass python-tabulate \
-        openssl-devel tcpdump dnsmasq nmap syslinux-tftpboot xorriso
+        openssl-devel tcpdump dnsmasq nmap syslinux-tftpboot xorriso bzip2
     sudo python36 -m ensurepip --default-pip
 
     if ! type "docker"; then
