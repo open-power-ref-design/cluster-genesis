@@ -545,6 +545,11 @@ yum_pkgs_p8:
     - xorg-x11-xkb-utils-7.7-14.el7.ppc64le
     - yum-utils-1.1.31-50.el7.noarch
     - zlib-devel-1.2.7-18.el7.ppc64le
+# Do not remove the additional packages below. They are included
+# in the pup kickstart and are thus not detected in package dependency
+# resolution
+    - wget
+    - ntp
 yum_pkgs_p9:
     - adwaita-cursor-theme-3.28.0-1.el7.noarch
     - adwaita-icon-theme-3.28.0-1.el7.noarch
@@ -657,6 +662,11 @@ yum_pkgs_p9:
     - xorg-x11-xkb-utils-7.7-14.el7.ppc64le
     - yum-utils-1.1.31-50.el7.noarch
     - zlib-devel-1.2.7-18.el7.ppc64le
+# Do not remove the additional packages below. They are included
+# # in the pup kickstart and are thus not detected in package dependency
+# # resolution
+    - wget
+    - ntp
 cuda_drivers:
     - cuda-10-1-10.1.105-1
     - cuda-10.1.105-1

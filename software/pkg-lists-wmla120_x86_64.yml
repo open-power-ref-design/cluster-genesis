@@ -644,6 +644,11 @@ yum_pkgs_x86_64:
 - libquadmath
 - libquadmath-devel
 - freetype
+# Do not remove the additional packages below. They are included
+# # # in the pup kickstart and are thus not detected in package dependency
+# # # resolution
+- wget
+- ntp
 cuda_drivers:
       - cuda-10-1-10.1.105-1
       - cuda-10.1.105-1
