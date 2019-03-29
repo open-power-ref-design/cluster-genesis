@@ -11,7 +11,7 @@ This abbreviated instruction list is for advanced users already familiar with th
 
 #. Enable EPEL repositories. (https://fedoraproject.org/wiki/EPEL#Quickstart)::
 
-    yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm::
+    yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 
 #. Enable Red Hat common, optional and extras repositories.
 
