@@ -63,7 +63,7 @@ class software(object):
         self.proc_family = proc_family
         if self.arch == 'x86_64' and not proc_family:
             self.proc_family = self.arch
-        self.eng_mode = None
+        self.eng_mode = False
         # self.eng_mode = 'custom-repo'
         # self.eng_mode = 'gather-dependencies'
         yaml.add_constructor(YAMLVault.yaml_tag, YAMLVault.from_yaml)
@@ -1582,10 +1582,12 @@ class software(object):
         install_tasks = yaml.load(open(GEN_SOFTWARE_PATH +
                                        f'{self.my_name}_install_procedure{specific_arch}.yml'))
 
-#        if self.eng_mode == 'gather-dependencies':
-#            pass
-
         for task in install_tasks:
+            if 'engr_mode' in task['tasks']:    #ENGR_MODE
+                if self.eng_mode:
+                    heading1("*ENGINEERING MODE ACTIVE*")
+                else:
+                    continue
             heading1(f"Client Node Action: {task['description']}")
             if task['description'] == "Install Anaconda installer":
                 _interactive_anaconda_license_accept(
@@ -1599,8 +1601,11 @@ class software(object):
             if 'hosts' in task:
                 extra_args = f"--limit \'{task['hosts']},localhost\'"
             self._run_ansible_tasks(task['tasks'], extra_args)
-#            if self.eng_mode == 'gather-dependencies':
-#                pass
+            if 'engr_mode' in task['tasks']:                 #ENGR_MODE
+                if self.eng_mode:
+                     input("\nEngineering Pause Initiated: Press Any Key to Continue.\n")
+                else:
+                    continue
         print('Done')
 
     def _run_ansible_tasks(self, tasks_path, extra_args=''):
