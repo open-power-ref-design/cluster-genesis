@@ -59,4 +59,3 @@
   fetch:
     src: "{{ ansible_env.HOME }}/{{pip_pre}}"
     dest: "{{dependencies_dir}}"
->>>>>>> 4a16ee2258c6900f005fbf3b751a4a304a739bb3
