@@ -472,7 +472,7 @@ class software(object):
         repo_name = 'Cuda Driver Repository'
         baseurl = f'http://developer.download.nvidia.com/compute/cuda/repos/rhel7/{self.arch}'
         gpgkey = f'{baseurl}/7fa2af80.pub'
-        heading1(f'Set up {repo_name} repository')
+        heading1(f'Set up {repo_name}\n')
         # list to str
         pkg_list = ' '.join(self.pkgs['cuda_drivers'])
 
@@ -483,12 +483,12 @@ class software(object):
 
         exists = self.status_prep(which='CUDA Driver Repository')
         if exists:
-            self.log.info(f'The {repo_name} repository exists already'
+            self.log.info(f'The {repo_name} exists already'
                           ' in the POWER-Up server')
-            pr_str = (f'\nDo you want to resync the {repo_name} repository'
+            pr_str = (f'\nDo you want to resync the {repo_name} '
                       ' at this time\n')
         else:
-            pr_str = (f'\nDo you want to create the {repo_name} repository'
+            pr_str = (f'\nDo you want to create the {repo_name} '
                       ' at this time\n')
 
         ch = 'S'
