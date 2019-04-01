@@ -88,7 +88,6 @@
 - name: Check if dlipy2 pre data exists (PIP)
   stat:
     path: "{{ ansible_env.HOME }}/{{dlipy2_pip}}"
->>>>>>> 4a16ee2258c6900f005fbf3b751a4a304a739bb3
   register: dlipy2_pip_result
 
 - name: Activate dlipy2_test environment and gather pre data (PIP)
