@@ -455,7 +455,7 @@ class software(object):
         heading1('Set up Nginx')
         exists = self.status_prep(which='Nginx Web Server')
         if not exists:
-            nginx_setup(root_dir='srv', repo_id='nginx')
+            nginx_setup(root_dir='/srv', repo_id='nginx')
 
         self.status_prep(which='Nginx Web Server')
         if self.state['Nginx Web Server'] == '-':
