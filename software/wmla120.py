@@ -485,10 +485,10 @@ class software(object):
         if exists:
             self.log.info(f'The {repo_name} exists already'
                           ' in the POWER-Up server')
-            pr_str = (f'\nDo you want to resync the {repo_name} '
+            pr_str = (f'\nDo you want to resync the {repo_name}'
                       ' at this time\n')
         else:
-            pr_str = (f'\nDo you want to create the {repo_name} '
+            pr_str = (f'\nDo you want to create the {repo_name}'
                       ' at this time\n')
 
         ch = 'S'
