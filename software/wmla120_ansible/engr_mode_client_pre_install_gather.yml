@@ -37,7 +37,7 @@
   register: yum_pre_result
 
 - name: Create YUM pre data file, if data doesnt exist already on client
-  shell: "yum list installed | sed 1,2d | xargs -n3 | column -t > {{yum_pre}}"
+  shell: "yum list installed | sed 1,2d | xargs -n3 | column -t > {{ yum_pre }}"
   when: not yum_pre_result.stat.exists
 
 - name: Copy YUM data back to deployer
