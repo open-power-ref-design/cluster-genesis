@@ -1397,9 +1397,9 @@ def extract_iso_image(iso_path, dest_dir):
         kernel = os.path.join(name, sub_path, 'vmlinuz')
         initrd = os.path.join(name, sub_path, 'initrd.img')
 
-    if not os.path.isfile(kernel):
+    if not os.path.isfile(os.path.join(dest_dir, kernel)):
         kernel = None
-    if not os.path.isfile(initrd):
+    if not os.path.isfile(os.path.join(dest_dir, initrd)):
         initrd = None
 
     # If kernel or initrd isn't in the above matrix search for them
