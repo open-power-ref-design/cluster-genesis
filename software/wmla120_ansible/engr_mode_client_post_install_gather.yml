@@ -22,7 +22,7 @@
   register: yum_post_result
 
 - name: Create YUM post data file, if data doesnt exist already on client
-  shell: "yum list installed | sed 1,2d | xargs -n3 | column -t > {{yum_post}}"
+  shell: "yum list installed | sed 1,2d | xargs -n3 | column -t > {{ yum_post }}"
   when: not yum_post_result.stat.exists
 
 - name: Copy YUM data back to deployer
