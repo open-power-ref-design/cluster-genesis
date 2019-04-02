@@ -59,7 +59,7 @@
   fetch:
     src: "{{ ansible_env.HOME }}/{{ dlipy3_conda }}"
     dest: "{{ dependencies_dir }}"
-  when: dlipy3_conda_result.stat.exists == False
+  when: not dlipy3_conda_result.stat.exists
 
                         #dlipy2 env
 
@@ -96,7 +96,7 @@
   fetch:
     src: "{{ ansible_env.HOME }}/{{ dlipy2_conda }}"
     dest: "{{ dependencies_dir }}"
-  when: dlipy2_conda_result.stat.exists == False
+  when: not dlipy2_conda_result.stat.exists
 
                         #dlinsights env
 
