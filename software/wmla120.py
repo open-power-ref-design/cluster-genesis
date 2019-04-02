@@ -52,7 +52,7 @@ class software(object):
     initialization activities. The install method implements the actual
     installation.
     """
-    def __init__(self, eval_ver=False, non_int=False, arch='ppc64le', proc_family=''):
+    def __init__(self, eval_ver=False, non_int=False, arch='ppc64le', proc_family='', engr_mode=False):
         self.log = logger.getlogger()
         self.log_lvl = logger.get_log_level_print()
         self.my_name = sys.modules[__name__].__name__
@@ -63,7 +63,7 @@ class software(object):
         self.proc_family = proc_family
         if self.arch == 'x86_64' and not proc_family:
             self.proc_family = self.arch
-        self.eng_mode = None
+        self.eng_mode = engr_mode
         # self.eng_mode = 'custom-repo'
         # self.eng_mode = 'gather-dependencies'
         yaml.add_constructor(YAMLVault.yaml_tag, YAMLVault.from_yaml)

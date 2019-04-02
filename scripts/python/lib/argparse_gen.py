@@ -419,6 +419,12 @@ def get_args(parser_args=False):
                  'epel_repo', 'custom_repo'],
         help='Runs the software phase with specified step')
 
+    parser_software.add_argument(
+        '--engr-mode',
+        default=False,
+        action='store_true',
+        help='Runs engineering mode function')
+
     # 'utils' subcommand arguments
     parser_utils.set_defaults(utils=True)
     parser_utils.add_argument(
