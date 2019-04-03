@@ -393,14 +393,14 @@ def sub_proc_launch(cmd, stdout=PIPE, stderr=PIPE):
     return proc
 
 
-def sub_proc_exec(cmd, stdout=PIPE, stderr=PIPE, shell=False):
+def sub_proc_exec(cmd, stdout=PIPE, stderr=PIPE, shell=False, env=None):
     """Launch a subprocess wait for the process to finish.
     Returns stdout from the process
     This is blocking
     """
     if not shell:
         cmd = cmd.split()
-    proc = Popen(cmd, stdout=stdout, stderr=stderr, shell=shell)
+    proc = Popen(cmd, stdout=stdout, stderr=stderr, shell=shell, env=env)
     stdout, stderr = proc.communicate()
     try:
         stdout = stdout.decode('utf-8')
@@ -413,13 +413,13 @@ def sub_proc_exec(cmd, stdout=PIPE, stderr=PIPE, shell=False):
     return stdout, stderr, proc.returncode
 
 
-def sub_proc_display(cmd, stdout=None, stderr=None, shell=False):
+def sub_proc_display(cmd, stdout=None, stderr=None, shell=False, env=None):
     """Popen subprocess created without PIPES to allow subprocess printing
     to the parent screen. This is a blocking function.
     """
     if not shell:
         cmd = cmd.split()
-    proc = Popen(cmd, stdout=stdout, stderr=stderr, shell=shell)
+    proc = Popen(cmd, stdout=stdout, stderr=stderr, shell=shell, env=env)
     proc.wait()
     rc = proc.returncode
     return rc

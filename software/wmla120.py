@@ -42,8 +42,14 @@ from software_hosts import get_ansible_inventory, validate_software_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, Color, \
     get_selection, get_yesno, rlinput, bold, ansible_pprint, replace_regex, \
     parse_rpm_filenames, lscpu
-from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path
+from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path, get_playbooks_path
 from nginx_setup import nginx_setup
+
+ENVIRONMENT_VARS = {
+    "ANSIBLE_CONFIG": str(get_playbooks_path()) + "/" + "ansible.cfg",  # this probably should be different
+    "DEFAULT_GATHER_TIMEOUT": "10",
+    "ANSIBLE_GATHER_TIMEOUT": "10"
+}
 
 
 class software(object):
@@ -1434,7 +1440,7 @@ class software(object):
         while run:
             log.info(f"Running Ansible playbook 'init_clients.yml' ...")
             print(prompt_msg)
-            resp, err, rc = sub_proc_exec(cmd, shell=True)
+            resp, err, rc = sub_proc_exec(cmd, shell=True, env=ENVIRONMENT_VARS)
             log.debug(f"cmd: {cmd}\nresp: {resp}\nerr: {err}\nrc: {rc}")
             if rc != 0:
                 log.warning("Ansible playbook failed!")
@@ -1504,7 +1510,7 @@ class software(object):
             cmd += f'--extra-vars "@{GEN_SOFTWARE_PATH}{self.sw_vars_file_name}" '
         else:
             cmd += ' --ask-become-pass '
-        resp, err, rc = sub_proc_exec(cmd, shell=True)
+        resp, err, rc = sub_proc_exec(cmd, shell=True, env=ENVIRONMENT_VARS)
         log.debug(f"cmd: {cmd}\nresp: {resp}\nerr: {err}\nrc: {rc}")
         if rc == 0:
             print(bold("Validation passed!\n"))
@@ -1582,9 +1588,6 @@ class software(object):
         install_tasks = yaml.load(open(GEN_SOFTWARE_PATH +
                                        f'{self.my_name}_install_procedure{specific_arch}.yml'))
 
-#        if self.eng_mode == 'gather-dependencies':
-#            pass
-
         for task in install_tasks:
             heading1(f"Client Node Action: {task['description']}")
             if task['description'] == "Install Anaconda installer":
@@ -1639,11 +1642,11 @@ class software(object):
                 self._unlock_vault(validate=False)
 
             if self.log_lvl == 'debug':
-                rc = sub_proc_display(cmd, shell=True)
+                rc = sub_proc_display(cmd, shell=True, env=ENVIRONMENT_VARS)
                 resp = ''
                 err = ''
             else:
-                resp, err, rc = sub_proc_exec(cmd, shell=True)
+                resp, err, rc = sub_proc_exec(cmd, shell=True, env=ENVIRONMENT_VARS)
 
             log.debug(f"cmd: {cmd}\nresp: {resp}\nerr: {err}\nrc: {rc}")
             print("")  # line break
@@ -1686,7 +1689,7 @@ def _interactive_anaconda_license_accept(ansible_inventory, ana_path):
         base_cmd += f'{hostvars["ansible_ssh_common_args"]} '
 
     cmd = base_cmd + f' ls {ip}'
-    resp, err, rc = sub_proc_exec(cmd)
+    resp, err, rc = sub_proc_exec(cmd, env=ENVIRONMENT_VARS)
 
     # If install directory already exists assume license has been accepted
     if rc == 0:
@@ -1697,7 +1700,7 @@ def _interactive_anaconda_license_accept(ansible_inventory, ana_path):
         rlinput(f'Press Enter to run interactively on {hostname}')
         fn = os.path.basename(ana_path)
         cmd = f'{base_cmd} sudo ~/{fn} -p {ip}'
-        rc = sub_proc_display(cmd)
+        rc = sub_proc_display(cmd, env=ENVIRONMENT_VARS)
         if rc == 0:
             print('\nLicense accepted. Acceptance script will be run quietly '
                   'on remaining servers.')
@@ -1730,7 +1733,7 @@ def _interactive_wmla_license_accept(ansible_inventory):
             base_cmd += f'-i {hostvars["ansible_ssh_private_key_file"]} '
 
         cmd = base_cmd + check_cmd
-        resp, err, rc = sub_proc_exec(cmd)
+        resp, err, rc = sub_proc_exec(cmd, env=ENVIRONMENT_VARS)
         if rc == 0:
             print(bold('WMLA Enterprise license already accepted on '
                        f'{hostname}'))
@@ -1740,7 +1743,7 @@ def _interactive_wmla_license_accept(ansible_inventory):
                 print(bold('\nRunning WMLA Enterprise license script on '
                            f'{hostname}'))
                 cmd = base_cmd + accept_cmd
-                rc = sub_proc_display(cmd)
+                rc = sub_proc_display(cmd, env=ENVIRONMENT_VARS)
                 if rc == 0:
                     print(f'\nLicense accepted on {hostname}.')
                     run = False
