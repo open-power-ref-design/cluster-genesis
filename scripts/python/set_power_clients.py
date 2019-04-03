@@ -85,14 +85,18 @@ def set_power_clients(state, config_path=None, clients=None, max_attempts=5,
         clients_set = []
         bmc_dict = {}
         for client in clients_left:
-            for i in range(2):
+            for i in range(3):
                 log.debug(f'Attempting login to BMC: {client}')
                 tmp = _bmc.Bmc(client, *cred_list[client])
                 if tmp.is_connected():
                     bmc_dict[client] = tmp
                     break
                 else:
-                    log.error(f'Failed BMC login attempt {i + 1} BMC: {client}')
+                    log.debug(f'Failed BMC login attempt {i + 1} BMC: {client}')
+                    if i > 0:
+                        log.info(f'BMC login attempt {i + 1} BMC: {client}')
+                    if attempt == max_attempts and i == 2:
+                        log.error(f'Failed BMC login. BMC: {client}')
                     time.sleep(1)
                     del tmp
 
@@ -108,8 +112,11 @@ def set_power_clients(state, config_path=None, clients=None, max_attempts=5,
                     if state == 'on':
                         time.sleep(0.5)
                 else:
-                    log.error(f'Failed attempt {attempt} set power {state} '
-                              f'for node {client}')
+                    log.info(f'Power {state} attempt {attempt} '
+                             f'for node {client}')
+                    if attempt == max_attempts:
+                        log.error(f'Failed attempt {attempt} set power {state} '
+                                  f'for node {client}')
 
         time.sleep(wait + attempt)
 
@@ -124,15 +131,18 @@ def set_power_clients(state, config_path=None, clients=None, max_attempts=5,
                         log.debug(f'Successfully set power {state} for node {client}')
                         clients_set += [client]
                 else:
-                    log.error(f'Failed attempt {attempt} get power {state} '
-                              f'for node {client}')
+                    log.info(f'Attempt {attempt} get power status '
+                             f'for node {client}')
+                    if attempt == max_attempts:
+                        log.error(f'Failed attempt {attempt} get power {state} '
+                                  f'for node {client}')
 
         for client in clients_set:
             clients_left.remove(client)
 
         if attempt == max_attempts and clients_left:
-            log.error('Failed to power {} some clients'.format(state))
-            log.error(clients_left)
+            log.error(f'Failed to power {state} some clients')
+            log.error(f'Clients left: {clients_left}')
 
         del bmc_dict
 
