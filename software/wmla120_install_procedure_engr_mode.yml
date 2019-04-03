@@ -8,7 +8,7 @@
 
 #ENGR_MODE
 - description: ENGINEERING MODE - Gather initial client package data (yum, pip)
-  tasks: engr_mode_client_post_install_gather.yml
+  tasks: engr_mode_client_pre_install_gather.yml
 
 - description: Install additional software packages
   tasks: yum_install_additional_software.yml
