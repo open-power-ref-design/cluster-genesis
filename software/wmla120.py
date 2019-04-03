@@ -1585,7 +1585,7 @@ class software(object):
         for task in install_tasks:
             if 'engr_mode' in task['tasks']:    #ENGR_MODE
                 if self.eng_mode:
-                    heading1("*ENGINEERING MODE ACTIVE*")
+                    heading1("\n*ENGINEERING MODE ACTIVE*\n")
                 else:
                     continue
             heading1(f"Client Node Action: {task['description']}")
@@ -1601,11 +1601,6 @@ class software(object):
             if 'hosts' in task:
                 extra_args = f"--limit \'{task['hosts']},localhost\'"
             self._run_ansible_tasks(task['tasks'], extra_args)
-            if 'engr_mode' in task['tasks']:                 #ENGR_MODE
-                if self.eng_mode:
-                     input("\nEngineering Pause Initiated: Press Any Key to Continue.\n")
-                else:
-                    continue
         print('Done')
 
     def _run_ansible_tasks(self, tasks_path, extra_args=''):
