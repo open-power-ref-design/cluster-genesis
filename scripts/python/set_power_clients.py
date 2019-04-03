@@ -111,12 +111,9 @@ def set_power_clients(state, config_path=None, clients=None, max_attempts=5,
                     # Allow delay between turn on to limit power surge
                     if state == 'on':
                         time.sleep(0.5)
-                else:
-                    log.info(f'Power {state} attempt {attempt} '
-                             f'for node {client}')
-                    if attempt == max_attempts:
-                        log.error(f'Failed attempt {attempt} set power {state} '
-                                  f'for node {client}')
+                elif attempt == max_attempts:
+                    log.error(f'Failed attempt {attempt} set power {state} '
+                              f'for node {client}')
 
         time.sleep(wait + attempt)
 
@@ -130,12 +127,9 @@ def set_power_clients(state, config_path=None, clients=None, max_attempts=5,
                     if status == state:
                         log.debug(f'Successfully set power {state} for node {client}')
                         clients_set += [client]
-                else:
-                    log.info(f'Attempt {attempt} get power status '
-                             f'for node {client}')
-                    if attempt == max_attempts:
-                        log.error(f'Failed attempt {attempt} get power {state} '
-                                  f'for node {client}')
+                elif attempt == max_attempts:
+                    log.error(f'Failed attempt {attempt} get power {state} '
+                              f'for node {client}')
 
         for client in clients_set:
             clients_left.remove(client)
