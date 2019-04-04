@@ -57,22 +57,13 @@ def main():
 
     def file_check(pre_files):
         for f in pre_files:
-            pre_file_path = os.path.join(dep_path, f)
-            my_file = os.path.isfile(pre_file_path)
+            file_path = os.path.join(dep_path, f)
+            my_file = os.path.isfile(file_path)
+            print (file_path)
             if my_file:
                 pass
             else:
-                menu = True
-                while menu:
-                    opt = input(f'INFO - Would you like to recover "{f}" ?\n 1 - Yes \n 2 - No \n')
-                    if opt == '1':
-                        print(f'\nINFO - Located new pre path for "{f}"\n')
-                        menu = False
-                    elif opt == '2':
-                        menu = False
-                        sys.exit()
-                    else:
-                        print('\nPlese select a valid option')
+                input(f'\nINFO - {f} Does not exist\n')
 
     def format_pkg_name(pkg, pkg_type):
         if pkg_type == 'yum':
@@ -232,7 +223,11 @@ def main():
     file_check(pip_pre_files)
     file_check(pip_post_files)
     merge_function(yum_pre_files, yum_post_files, 'yum')
+    file_check(conda_pre_files)
+    file_check(conda_post_files)
     merge_function(conda_pre_files, conda_post_files, 'conda')
+    file_check(pip_pre_files)
+    file_check(pip_post_files)
     merge_function(pip_pre_files, pip_post_files, 'pip')
 
 
