@@ -44,7 +44,7 @@
 - name: Activate dlipy3_test environment and gather pre data (PIP)
   shell: "source {{ install_dir }}/bin/activate dlipy3_test && {{ item }}"
   loop:
-    - "conda list --explicit > {{ vars.dlipy3_pip }} "
+    - "conda list > {{ vars.dlipy3_pip }} "
   become: yes
   when: not dlipy3_pip_result.stat.exists
 
@@ -93,7 +93,7 @@
 - name: Activate dlipy2_test environment and gather pre data (PIP)
   shell: "source {{ install_dir }}/bin/activate dlipy2_test && {{ item }}"
   loop:
-    - "conda list --explicit > {{ vars.dlipy2_pip }}"
+    - "conda list > {{ vars.dlipy2_pip }}"
   become: yes
   when: not dlipy2_pip_result.stat.exists
 
@@ -142,7 +142,7 @@
 - name: Activate dlinsights and gather pre data (PIP)
   shell: "source {{ install_dir }}/bin/activate dlinsights_test && {{ item }}"
   loop:
-    - "conda list --explicit > {{ vars.dlinsights_pip }}"
+    - "conda list > {{ vars.dlinsights_pip }}"
   become: yes
   when: not dlinsights_pip_result.stat.exists
 

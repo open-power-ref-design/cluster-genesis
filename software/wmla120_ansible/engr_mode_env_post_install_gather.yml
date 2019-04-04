@@ -33,7 +33,7 @@
 - name: Activate dlipy3 environment and gather post data (PIP)
   shell: "source {{ install_dir }}/bin/activate dlipy3 && {{ item }}"
   loop:
-    - "conda list --explicit > {{ vars.dlipy3_pip }} "
+    - "conda list > {{ vars.dlipy3_pip }} "
   become: yes
   when: not dlipy3_pip_result.stat.exists
 
@@ -71,7 +71,7 @@
 - name: Activate dlipy2 environment and gather post data (PIP)
   shell: "source {{ install_dir }}/bin/activate dlipy2 && {{ item }}"
   loop:
-    - "conda list --explicit > {{ vars.dlipy2_pip }}"
+    - "conda list > {{ vars.dlipy2_pip }}"
   become: yes
   when: not dlipy2_pip_result.stat.exists
 - name: Copy data back to deployer (PIP)
@@ -108,7 +108,7 @@
 - name: Activate dlinsights and gather post data (PIP)
   shell: "source {{ install_dir }}/bin/activate dlinsights && {{ item }}"
   loop:
-    - "conda list --explicit > {{ vars.dlinsights_pip }}"
+    - "conda list > {{ vars.dlinsights_pip }}"
   become: yes
   when: not dlinsights_pip_result.stat.exists
 
