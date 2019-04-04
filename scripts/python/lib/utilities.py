@@ -1536,7 +1536,7 @@ def parse_rpm_filenames(filename):
                 basename.append(bn)
                 version.append(ver)
     elif isinstance(filename, str):
-        res = re.searc(pattern_basename, filename)
+        res = re.search(pattern_basename, filename)
         if res:
             basename = res.group(1)
         res = re.search(pattern_version, filename)
