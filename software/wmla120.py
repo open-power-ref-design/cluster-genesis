@@ -1583,10 +1583,11 @@ class software(object):
                                        f'{self.my_name}_install_procedure{specific_arch}.yml'))
 
         for task in install_tasks:
-            if 'engr_mode' in task['tasks'] and self.eng_mode:
-                pass
-            else:
-                continue
+            if 'engr_mode' in task['tasks']:                                              
+                if self.eng_mode:                                                         
+                    pass                                                                  
+                else:                                                                     
+                    continue
             heading1(f"Client Node Action: {task['description']}")
             if task['description'] == "Install Anaconda installer":
                 _interactive_anaconda_license_accept(
