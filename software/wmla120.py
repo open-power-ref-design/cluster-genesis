@@ -1583,7 +1583,7 @@ class software(object):
                                        f'{self.my_name}_install_procedure{specific_arch}.yml'))
 
         for task in install_tasks:
-            if 'engr_mode' in task['tasks'] and if self.eng_mode:
+            if 'engr_mode' in task['tasks'] and self.eng_mode:
                 continue
             else:
                 pass
