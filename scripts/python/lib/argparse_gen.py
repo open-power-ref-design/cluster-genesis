@@ -420,6 +420,13 @@ def get_args(parser_args=False):
         help='Runs the software phase with specified step')
 
     parser_software.add_argument(
+        '--proc-family',
+        default=None,
+        nargs='+',
+        choices=['p8', 'p9', 'x86_64'],
+        help='Set the target processor family')
+    
+    parser_software.add_argument(
         '--engr-mode',
         default=False,
         action='store_true',
