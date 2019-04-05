@@ -1584,9 +1584,9 @@ class software(object):
 #            pass
 
         for task in install_tasks:
-        if 'engr_mode' in task['tasks'] and not self.eng_mode:
-            continue
-        heading1(f"Client Node Action: {task['description']}")
+            if 'engr_mode' in task['tasks'] and not self.eng_mode:
+                continue
+            heading1(f"Client Node Action: {task['description']}")
             if task['description'] == "Install Anaconda installer":
                 _interactive_anaconda_license_accept(
                     self.sw_vars['ansible_inventory'],
