@@ -63,9 +63,9 @@
   tasks: entitle_spectrum_conductor_dli.yml
   hosts: master[0]
 
-- description: Provide permission for DLI cluster admin to write audit directory
-  tasks: permit_dli_admin_write_audit.yml
-  hosts: master[0]
+#- description: Provide permission for DLI cluster admin to write audit directory
+#  tasks: permit_dli_admin_write_audit.yml
+#  hosts: master[0]
 
 #ENGR_MODE
 - description: ENGINEERING MODE - Gather post environment package data (conda, pip)
