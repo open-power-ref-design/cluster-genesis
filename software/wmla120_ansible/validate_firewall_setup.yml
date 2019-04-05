@@ -1,0 +1,51 @@
+---
+#If a firewall is enabled, the following default ports must be granted access on all management hosts for IBM Spectrum Conductor Deep Learning Impact: 9243, 9280, 5000, 5001, 27017, and 6379. If you change these ports after installation, make sure to update firewall rules accordingly.
+#
+
+- name: Setting Variables
+  set_fact:
+    clear: True
+    error: False
+
+- name: List all host firewall data
+  shell: "firewall-cmd --list-all"
+  delegate_to: localhost
+  register: host_firewall_status
+  become: yes
+
+- name: Checking firewall_status stdout
+  debug:
+    msg: "{{ host_firewall_status.stdout }}"
+
+- name: Checking firewall_status for http service enabled
+  debug:
+    msg: "{{ host_firewall_status.stdout.find('http') }}"
+
+- name: Print success status of Host firewall
+  command: echo "Firewall Exists"
+  when: host_firewall_status.stdout.find('http') != -1
+
+- name: Else print fail status
+  command: echo "Firewall Exists"
+  when: host_firewall_status.stdout.find('http') == -1
+
+#- name: Enable Ports
+#  firewalld:
+#    port: "{{ item }}/tcp"
+#    permanent: yes
+#    state: "enabled"
+#  with_items:
+#    - '9243'
+#    - '9280'
+#    - '5000'
+#    - '5001'
+#    - '27017'
+#    - '6379'
+#  when: host_firewall_status.stdout.find('http') != -1
+
+- name: enable Port 9243
+  firewalld:
+    port: "/tcp"
+    permanent: yes
+    state: "enabled"
+  when: host_firewall_status.stdout.find('http') != -1

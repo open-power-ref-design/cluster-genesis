@@ -1,0 +1,54 @@
+---
+#Validate that either chronyd is running on all nodes in the cluster and all are configured to a reachable source address or alternatively, all nodes are running ntpd and all are configured to a reachable source
+#address.
+
+
+#- name: Check Status of ntpd service
+#  shell: "service ntpd status"
+#  register: ntpd_status
+#  become: yes
+
+#- name: Debug - Check Status of ntpd service
+#  debug:
+#    msg: ntpd_status
+
+#- name: Check Status of chronyd service
+#  shell: "chronyd"
+#  register: chronyd_status
+#  become: yes
+
+
+- name: check if /var/run/chronyd.pid exists
+  stat:
+    path: "/var/run/chronyd.pid"
+  register: chronyd_result
+
+- name: Debug - Check Status of chronyd service
+  debug:
+    msg: "{{ chronyd_result }}"
+
+- name: Check for ntpd services
+  service_facts:
+    name: ntpd
+  register: service_state
+#  service_name: firewall_status.ansible_facts.services['ntpd.service']['name']
+#    service_source: firewall_status.ansible_facts.services['ntpd.service']['source']
+#    service_state: firewall_status.ansible_facts.services['ntpd.service']['state']
+
+- name: Debug - Setting NTPD Facts
+  debug:
+    msg: "{{ service_state }}"
+#    msg: "{{ service_source }}"
+#    msg: "{{ service_state }}"
+
+#- name: enable ntpd service on all hosts
+#  service:
+#    name: ntpd
+#    enabled: yes
+#    state: started
+#  hosts: all
+
+
+#- name: Restart ntpd on all hosts
+#  command: "sudo service ntpd restart"
+#  hosts: all
