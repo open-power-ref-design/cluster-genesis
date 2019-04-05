@@ -7,7 +7,7 @@
   register: host_ip
 
 - name: Clean conda packages
-  shell: "/opt/anaconda3/bin/conda clean -all"
+  shell: "/opt/anaconda3/bin/conda clean -all -y"
   args:
     warn: no
   become: yes
