@@ -64,8 +64,6 @@ class software(object):
         if self.arch == 'x86_64' and not proc_family:
             self.proc_family = self.arch
         self.eng_mode = engr_mode
-        # self.eng_mode = 'custom-repo'
-        # self.eng_mode = 'gather-dependencies'
         yaml.add_constructor(YAMLVault.yaml_tag, YAMLVault.from_yaml)
         self.arch = arch
         self.ana_platform_basename = '64' if self.arch == "x86_64" else self.arch
@@ -1586,7 +1584,9 @@ class software(object):
 #            pass
 
         for task in install_tasks:
-            heading1(f"Client Node Action: {task['description']}")
+        if 'engr_mode' in task['tasks'] and not self.eng_mode:
+            continue
+        heading1(f"Client Node Action: {task['description']}")
             if task['description'] == "Install Anaconda installer":
                 _interactive_anaconda_license_accept(
                     self.sw_vars['ansible_inventory'],
