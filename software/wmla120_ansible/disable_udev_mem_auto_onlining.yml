@@ -1,6 +1,7 @@
 ---
 - name: Get processor data
-  shell: "cat /proc/cpuinfo | grep cpu | uniq | awk '/POWER[0-9]+/{print $3}'"
+  shell: "cat /proc/cpuinfo | grep cpu | uniq | awk '/POWER[0-9]+/{print $3}' \
+         | sed 's/,$//'"
   register: ansible_result
 
 - name: Enable 40-redhat.rules
