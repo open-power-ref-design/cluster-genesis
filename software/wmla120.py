@@ -67,7 +67,6 @@ class software(object):
         # self.eng_mode = 'custom-repo'
         # self.eng_mode = 'gather-dependencies'
         yaml.add_constructor(YAMLVault.yaml_tag, YAMLVault.from_yaml)
-        self.arch = arch
         self.ana_platform_basename = '64' if self.arch == "x86_64" else self.arch
         self.sw_vars_file_name = 'software-vars'
         self.sw_vars_file_name = self.sw_vars_file_name + '-eval' if self.eval_ver \
@@ -146,6 +145,7 @@ class software(object):
         self.rhel_ver = '7'
         self.sw_vars['rhel_ver'] = self.rhel_ver
         self.sw_vars['arch'] = self.arch
+        self.sw_vars['eval_ver'] = self.eval_ver
         self.root_dir = '/srv/'
         self._load_filelist()
         # If empty, initialize software_vars content and repo info
@@ -349,6 +349,7 @@ class software(object):
                     os.mkdir(abs_temp_dir)
                     # os.mknod(test_file)
                     with open(test_path, 'x') as f:
+                        _ = f  # tox mug
                         pass
                 except:
                     self.log.error('Failed trying to create temporary file '
@@ -1618,7 +1619,7 @@ class software(object):
             elif (task['description'] ==
                     "Check WMLA License acceptance and install to root"):
                 _interactive_wmla_license_accept(
-                    self.sw_vars['ansible_inventory'])
+                    self.sw_vars['ansible_inventory'], self.eval_ver)
             extra_args = ''
             if 'hosts' in task:
                 extra_args = f"--limit \'{task['hosts']},localhost\'"
@@ -1731,7 +1732,7 @@ def _interactive_anaconda_license_accept(ansible_inventory, ana_path):
     return rc
 
 
-def _interactive_wmla_license_accept(ansible_inventory):
+def _interactive_wmla_license_accept(ansible_inventory, eval_ver):
     log = logger.getlogger()
 
     cmd = (f'ansible-inventory --inventory {ansible_inventory} --list')
@@ -1740,7 +1741,10 @@ def _interactive_wmla_license_accept(ansible_inventory):
 
     # accept_cmd = 'IBM_POWERAI_LICENSE_ACCEPT=yes;/opt/anaconda3/bin/accept-ibm-wmla-license.sh '
     accept_cmd = 'sudo env IBM_POWERAI_LICENSE_ACCEPT=yes /opt/anaconda3/bin/accept-ibm-wmla-license.sh '
-    check_cmd = 'ls ~/.powerai/ibm-wmla-license/1.2.0/license/status.dat'
+    if eval_ver:
+        check_cmd = 'ls ~/.powerai/ibm-wmla-license-eval/1.2.0/license/status.dat'
+    else:
+        check_cmd = 'ls ~/.powerai/ibm-wmla-license/1.2.0/license/status.dat'
 
     print(bold('Acceptance of the WMLA Enterprise license is required on '
                'all nodes in the cluster.'))

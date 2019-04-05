@@ -15,9 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
 import os.path
-# import code
 import yaml
 
 import lib.logger as logger
@@ -59,7 +57,7 @@ def main():
         for f in pre_files:
             file_path = os.path.join(dep_path, f)
             my_file = os.path.isfile(file_path)
-            print (file_path)
+            print(file_path)
             if my_file:
                 pass
             else:
