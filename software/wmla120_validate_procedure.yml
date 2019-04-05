@@ -1,0 +1,7 @@
+---
+- description: Validate FQDN setup on cluster nodes
+  tasks: validate_fqdn.yml
+
+#- description:
+#  tasks: .yml
+

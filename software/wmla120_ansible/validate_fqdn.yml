@@ -1,0 +1,9 @@
+---
+- name: Setting Variables
+  set_fact:
+    yum_pre: client_yum_pre_install.txt
+    pip_pre: client_pip_pre_install.txt
+
+- name: Set dependencies directory variable
+  set_fact:
+    dependencies_dir: "{{ hostvars['localhost']['deps_path_local'] }}"
