@@ -1,0 +1,34 @@
+---
+#Validate FQDN on all cluster nodes: hostname -f and getent hosts [ip_address]
+#getent hosts with no ip address on all nodes
+#should list the fqdn for all nodes in the cluster
+
+- name:  Retrieve client hostnames
+  shell: "hostname -f"
+  register: hostname_output
+
+- name: List hostnames
+  debug:
+    msg: "{{ hostname_output.stdout_lines }}"
+
+- name: Run getent hosts from hostnames to gather good hosts
+  command: "getent hosts {{ item }} | grep 192"
+  with_items:
+    - "{{ hostname_output.stdout_lines }}"
+  register: ipaddr_output_good
+#  when: ipaddr_output_good != " "
+
+- name: Run getent hosts from hostnames to gather FQDN hosts
+  command: "getent hosts {{ item }} | grep 192"
+  with_items:
+    - "{{ hostname_output.stdout_lines }}"
+  register: ipaddr_output_fqdn
+#  when: ipaddr_output_fqdn == " "
+
+- name: Check if any FQDN hosts exists
+  fail:
+    msg: "FQDN hosts {{ ipaddr_output_fqdn }} exists"
+  when: ipaddr_output_fqdn != " "
+
+
+

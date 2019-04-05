@@ -1,0 +1,43 @@
+---
+#All nodes are of the same architecture. (valid architectures are p8, p9 or x86)
+#Hardware memory and storage requirements;
+#Requirement Mgmt Host Compute Host
+#RAM 64 GB 32 GB
+#Disk space (Spectrum Cond) 12 GB 12 GB
+#Disk space (Spectrum DLI) 11 GB 11 GB
+#Much of the hardware requirements can probably be checked with Ansible facts.
+
+
+- name: Gather Archeture of cluster
+  setup:
+    gather_subset:
+      - hardware
+      - facter
+  register: cluster_facts
+
+#Example playbook using fail and when together
+- name: Verify Archeture of cluster
+  fail:
+    msg: "The system may not be provisioned."
+      when: cmdb_status != "to-be-staged"
+
+- name: Check Mgmt Host disk space
+  command: "df -h"
+  host: localhost
+  register: mgmt_host_disk_space
+
+- name: Verify Mgmt Host disk space
+  shell: "df -h"
+  host: localhost
+
+- name: Check Mgmt Client disk space
+  command: "df -h"
+  host: hosts
+  register: mgmt_client_disk_space
+
+- name: Verify Mgmt Client disk space
+  shell: "df -h"
+  host: hosts
+
+
+

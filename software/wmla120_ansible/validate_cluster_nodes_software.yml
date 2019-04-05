@@ -1,0 +1,16 @@
+---
+- name: Validate client software
+  shell: "ps -ef | grep {{ item }}"
+  whith_items:
+    - "Spectrum Conductor"
+    - "Deep Learning Impacts"
+  register: {{ item }}_software_state
+  when:  {{ item }}_software_state != 0
+  host: all
+
+- name: Check Status of software state
+  debug:
+    msg: {{ item }}_software_state
+
+
+

@@ -1,0 +1,42 @@
+---
+#Validate that either chronyd is running on all nodes in the cluster and all are configured to a reachable source address or alternatively, all nodes are running ntpd and all are configured to a reachable source
+#address.
+
+
+- name: Check Status of ntpd service
+  shell: "sudo service ntpd status"
+  register: ntpd_status
+  hosts: all
+
+- name: Check Status of chronyd service
+  command: "chronyd"
+  register: ntpd_status
+  host: all
+
+- name: collect facts about system services
+  service_facts:
+  register: services_state
+
+- name: Check ntpd status
+  debug:
+  var: ntpd_status
+
+- name: collect facts about chronyd services
+  debug:
+  var: chronyd
+
+- name: collect facts about system services
+  debug:
+  var:
+
+- name: enable ntpd service on all hosts
+  service:
+    name: ntpd
+    enabled: yes
+    state: started
+  hosts: all
+  when: enable_ntpd
+
+#- name: Restart ntpd on all hosts
+#  command: "sudo service ntpd restart"
+#  hosts: all
