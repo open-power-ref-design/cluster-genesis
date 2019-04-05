@@ -544,6 +544,7 @@ yum_pkgs_x86_64:
 - openssl-libs-1:1.0.2k-16.el7.x86_64
 - pciutils-3.5.1-3.el7.x86_64
 - pcre-devel-8.32-17.el7.x86_64
+- pcsc-lite-libs-1.8.8-7.el7.x86_64
 - python-2.7.5-69.el7_5.x86_64
 - python-devel-2.7.5-69.el7_5.x86_64
 - python-javapackages-3.4.1-11.el7.noarch
