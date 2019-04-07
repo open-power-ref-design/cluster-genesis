@@ -283,6 +283,15 @@ class software(object):
                 'Note: The \'pup\' cli supports tab autocompletion.\n\n')
         print(text)
 
+    def _is_nginx_running(self):
+        cmd = 'nginx -v'
+        try:
+            resp, err, rc = sub_proc_exec(cmd)
+            if 'nginx version:' in err:
+                return True
+        except FileNotFoundError:
+            pass
+
     def status(self, which='all'):
         self.status_prep(which)
 
@@ -345,7 +354,7 @@ class software(object):
                 continue
 
             # Nginx web server status
-            if item == 'Nginx Web Server':
+            if item == 'Nginx Web Server' and self._is_nginx_running():
                 temp_dir = 'nginx-test-dir-123'
                 abs_temp_dir = os.path.join(self.root_dir, temp_dir)
                 test_file = 'test-file.abc'
@@ -483,8 +492,8 @@ class software(object):
     def _setup_nginx_server(self, eval_ver=False, non_int=False):
         # nginx setup
         heading1('Set up Nginx')
-        exists = self.status_prep(which='Nginx Web Server')
-        if not exists:
+
+        if not self._is_nginx_running():
             nginx_setup(root_dir='/srv', repo_id='nginx')
 
         self.status_prep(which='Nginx Web Server')
