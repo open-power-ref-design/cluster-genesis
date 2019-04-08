@@ -31,4 +31,3 @@
   when: ipaddr_output_fqdn != " "
 
 
-
