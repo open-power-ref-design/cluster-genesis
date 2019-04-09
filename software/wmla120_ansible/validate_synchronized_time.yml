@@ -27,6 +27,7 @@
   debug:
     msg: "{{ chronyd_result }}"
 
+- name:
 - name: Check for ntpd services
   service_facts:
     name: ntpd
