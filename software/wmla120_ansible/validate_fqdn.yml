@@ -1,5 +1,4 @@
 ---
-<<<<<<< HEAD
 #Validate FQDN on all cluster nodes: hostname -f and getent hosts [ip_address]
 #getent hosts with no ip address on all nodes should list the fqdn for all nodes in the cluster
 

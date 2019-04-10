@@ -1,16 +1,24 @@
 ---
-- name: Validate client software
-  shell: "ps -ef | grep {{ item }}"
-  whith_items:
-    - "Spectrum Conductor"
-    - "Deep Learning Impacts"
-  register: {{ item }}_software_state
-  when:  {{ item }}_software_state != 0
-  host: all
+- name: Set Variables
+  set_fact:
+    distro: "RedHat"
+    version: "7.6"
 
-- name: Check Status of software state
+- name: Verify OS Information
   debug:
-    msg: {{ item }}_software_state
+    msg: "{{ item }}"
+  with_items:
+    - "{{ ansible_distribution }}"
+    - "{{ ansible_distribution_version }}"
 
+- name: Verify unity of all nodes
+  command: "echo Unity Exists"
+  when:
+    - '{{ ansible_distribution == distro }}'
+    - '{{ ansible_distribution_version == version }}'
+  register: unity_state
 
+- name: DEBUG - Verify unity of all nodes
+  debug:
+    msg: "{{ unity_state.stdout }}"
 

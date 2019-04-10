@@ -29,23 +29,18 @@
   command: echo "Firewall Exists"
   when: host_firewall_status.stdout.find('http') == -1
 
-#- name: Enable Ports
-#  firewalld:
-#    port: "{{ item }}/tcp"
-#    permanent: yes
-#    state: "enabled"
-#  with_items:
-#    - '9243'
-#    - '9280'
-#    - '5000'
-#    - '5001'
-#    - '27017'
-#    - '6379'
-#  when: host_firewall_status.stdout.find('http') != -1
-
-- name: enable Port 9243
+- name: Open Ports for Spectrum Conductor
   firewalld:
-    port: "/tcp"
-    permanent: yes
-    state: "enabled"
+    port: "{{item.port}}"
+    permanent: true
+    state: enabled
+    immediate: true
+  with_items:
+    - {port: '9243/tcp'}
+    - {port: '9080/tcp'}
+    - {port: '5000/tcp'}
+    - {port: '5001/tcp'}
+    - {port: '27017/tcp'}
+    - {port: '6379/tcp'}
   when: host_firewall_status.stdout.find('http') != -1
+  become: yes
