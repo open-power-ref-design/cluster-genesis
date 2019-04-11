@@ -131,7 +131,7 @@ def main():
                 pkg_repo = pkg_type
             version = pkg_items[1].replace('(', '')
             version = version.replace(')', '')
-            pkg_fmt_name = pkg_items[0] + '=' + version
+            pkg_fmt_name = pkg_items[0] + '==' + version
 
         return pkg_fmt_name, pkg_repo
 
@@ -151,7 +151,7 @@ def main():
                 file_name = f'{pkg_type}-{repo}.yml'
                 file_path = os.path.join(dep_dir, file_name)
                 with open(file_path, 'w') as f:
-                    d = {file_name: sorted(list(merged_sets[repo], key=str.lower))}
+                    d = {file_name: sorted(list(merged_sets[repo]), key=str.lower)}
                     yaml.dump(d, f, indent=4, default_flow_style=False)
 
         elif pkg_type == 'pip':
