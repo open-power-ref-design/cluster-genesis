@@ -1,0 +1,16 @@
+---
+- name: Set defaults
+  set_fact:
+    yum_packages: 
+      - repo_name: "None"
+  when: yum_packages is not defined
+
+- name: Install/Remove packages
+  yum:
+    name: "{{ item.name }}"
+    state: "{{ item.state }}"
+    enablerepo: "{{ item.enablerepo | default(omit) }}"
+    disablerepo: "{{ item.disablerepo | default(omit) }}"
+  with_items: "{{ yum_packages }}"
+  when: item.name is defined
+  become: yes

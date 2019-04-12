@@ -1,0 +1,7 @@
+{% if mount_server_points is defined %}
+{%   for item1 in mount_server_points %}
+{%     for item2 in item1['access'] %}
+{{ item1['path'] }}    {{ item2['hostname'] }}({{ item2['opts']|join(',') }})
+{%     endfor %}
+{%   endfor %}
+{% endif %}

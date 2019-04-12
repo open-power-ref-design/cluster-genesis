@@ -1,0 +1,43 @@
+---
+# - name: Gathering data constants
+  # set_fact:
+    # install_mount_dir: ""
+    # nfs_ip_address: ""
+    # external_dir: ""
+    # remove_default: "ip route del default"
+#
+# - name: Gathering data
+  # set_fact:
+    # folder_points:
+      # - path: "{{ install_mount_dir }}"
+        # state: directory
+        # mode : 755
+#
+# - name: show dictionary mount_points
+  # debug:
+    # msg: "{{ folder_points }}"
+
+- name: Create files or folders  
+ # create a directory if it doesn't exist
+  file:
+    path: "{{ item.path | default(omit)}}"
+    mode: "{{ item.mode | default(omit)}}"
+    state: "{{ item.state }}"
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+    recurse: "{{ item.recurse | default(omit) }}"
+    unsafe_writes: "{{ item.unsafe_writes | default(omit) }}"
+    seuser: "{{ item.seuser | default(omit) }}"
+    setype: "{{ item.setype | default(omit) }}"
+    selevel: "{{ item.selevel | default(omit) }}"
+    src: "{{ item.src | default(omit) }}"
+    dest: "{{ item.dest | default(omit) }}"
+    force: "{{ item.force | default(omit) }}"
+    follow: "{{ item.follow | default(omit) }}"
+    access_time: "{{ item.access_time | default(omit) }}"
+    access_time_format: "{{ item.access_time_format | default(omit) }}"
+    modification_time: "{{ item.modification_time | default(omit) }}"
+    modification_time_format: "{{ item.modification_time_format | default(omit) }}"
+  become: yes 
+  with_items: "{{ file_points }}"
+

@@ -1,0 +1,18 @@
+---
+- name: Set defaults for parted
+  set_fact:
+    run_parted: 
+      - opts: "None"
+  when: run_parted is not defined
+
+- name:  Run parted #  Device "{{ item.state }}" parted on "{{ item.device }}"
+  parted:
+    device: "{{ item.device }}"
+    number: "{{ item.number }}"
+    part_end: "{{ item.part_end | default(omit)}}"
+    part_start: "{{ item.part_start | default(omit)}}"
+    part_type: "{{ item.part_type | default(omit)}}"
+    state: "{{ item.state | default(omit)}}"
+    unit: "{{ item.unit | default(omit)}}"
+    flags: "{{ item.unit | default(omit)}}"
+  with_items: "{{ run_parted }}" 

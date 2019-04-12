@@ -1,0 +1,39 @@
+---
+- name: Set defaults
+  set_fact:
+    network_points: 
+      - state: "None"
+  when: network_points is not defined
+
+- name: Remove interface files
+  file:
+    path: "/etc/sysconfig/network-scripts/ifcfg-{{ item.device }}"
+    state: "{{ item.state }}"
+  when: item.device is defined and item.state =="absent" and item.hostname == inventory_hostname
+  with_items: "{{ network_points }}"
+  become: yes
+
+- name: Generate RHEL/CentOS interfaces files
+  template:
+    src: "templates/make_interfaces_rhel.j2"
+    dest: "/etc/sysconfig/network-scripts/ifcfg-{{ item.device }}"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+    backup: no
+  when: item.device is defined and item.state =="present" and item.hostname == inventory_hostname 
+  with_items: "{{ network_points }}"
+  become: yes
+
+- name: Bring up network interfaces
+  shell:  bash -c "ifup {{ item.device }}"
+  when: item.device is defined and item.state =="present" and item.hostname == inventory_hostname
+  with_items: "{{ network_points }}"
+  become: yes
+
+- name: Bring down network interfaces
+  shell:  bash -c "ifdown {{ item.device }}"
+  when: item.device is defined and item.state =="absent" and item.hostname == inventory_hostname
+  with_items: "{{ network_points }}"
+  become: yes
+
