@@ -1,0 +1,6 @@
+---
+ftp_user: "username"
+ftp_pass: "pass"
+ftp3_site: "https://ftp3.linux.ibm.com/dl.php?file=/redhat/ibm-rhsm.sh"
+ftp3_user: "ftp3_user"
+ftp3_pass: "ftp3_pass"
