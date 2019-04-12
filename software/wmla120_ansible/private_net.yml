@@ -1,0 +1,79 @@
+---
+# - name: Gathering data constants
+  # set_fact:
+    # install_mount_dir: ""
+    # interface: ""
+    # nfs_ip_address: ""
+    # gateway_ip_address: ""
+    # srv_ip_sub: ""
+    # interface_addres: ""
+    # external_dir: ""
+
+# - name: Gathering data
+  # set_fact:
+    # network_points:
+      # - device: "{{ interface }}"
+        # prefix:  24
+        # address: "{{ interface_addres }}"
+        # bootproto: "none"
+        # defaultroute: "NO"
+        # state: present
+    # route_points:
+      # - device: "{{ interface }}"
+        # prefix: "24"
+        # next_hop: "{{ srv_ip_sub }}"
+        # state: present
+      # - device: "{{ interface }}"
+        # prefix: "24"
+        # next_hop: "{{ srv_ip_sub }}"
+        # state: absent
+    # mount_points:
+      # - path: "{{ install_mount_dir }}"
+        # src: "{{ nfs_ip_address }}:{{ external_dir }}"
+        # fstype: nfs
+        # opts: vers=3
+        # state: mounted
+    # yum_repos:
+      # - name: rhsm
+        # state: absent
+      # - name: epel
+        # state: absent
+        # name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+
+# - name: Install additional software packages
+  # yum:
+    # name: nfs-utils
+    # state: latest
+  # become: yes
+#
+
+- name: Import Data 
+  include_vars: "env_vars/setup_private_env_vars.yml"
+
+# - name: Ensure hostname set
+  # hostname:
+    # name: "{{ inventory_hostname }}"
+  # register: hostname_set
+#
+# - name: Resolve hostnames in /etc/hosts
+  # include: "resolve_server_hostnames.yml"
+  # become: yes
+
+
+# disable repos
+- name: Remove repos
+  include: "yum_repository.yml"
+  become: yes
+
+# create routes and/or deletes old ones
+- name: Create Routes
+  include: "route.yml"
+  become: yes
+
+- name: Create Interface
+  include: "network_interface.yml"
+  become: yes
+#
+- name: Create Mounts
+  include: "mount.yml"
+  become: yes
