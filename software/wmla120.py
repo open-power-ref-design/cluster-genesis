@@ -285,12 +285,15 @@ class software(object):
 
     def _is_nginx_running(self):
         cmd = 'nginx -v'
+        ret = False
         try:
             resp, err, rc = sub_proc_exec(cmd)
             if 'nginx version:' in err:
-                return True
+                ret = True
         except FileNotFoundError:
             pass
+
+        return ret
 
     def status(self, which='all'):
         self.status_prep(which)
