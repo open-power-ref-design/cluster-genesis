@@ -88,13 +88,17 @@ def set_bootdev_clients(bootdev, persist=False, config_path=None, clients=None,
         clients_set = []
         bmc_dict = {}
         for client in clients_left:
-            for i in range(2):
+            for i in range(3):
                 tmp = _bmc.Bmc(client, *cred_list[client])
                 if tmp.is_connected():
                     bmc_dict[client] = tmp
                     break
                 else:
-                    log.error(f'Failed BMC login attempt {i + 1}, BMC {client}')
+                    log.debug(f'Failed BMC login attempt {i + 1} BMC: {client}')
+                    if i > 0:
+                        log.info(f'BMC login attempt {i + 1} BMC: {client}')
+                    if attempt == max_attempts and i == 2:
+                        log.error(f'Failed BMC login. BMC: {client}')
                     time.sleep(1)
                     del tmp
 
@@ -112,7 +116,7 @@ def set_bootdev_clients(bootdev, persist=False, config_path=None, clients=None,
                     if attempt in [2, 4, 8]:
                         print(f'{client} - Boot source: {status} Required source: '
                               f'{bootdev}')
-                else:
+                elif attempt == max_attempts:
                     log.error(f'Failed attempt {attempt} set boot source {bootdev} '
                               f'for node {client}')
 
@@ -133,7 +137,7 @@ def set_bootdev_clients(bootdev, persist=False, config_path=None, clients=None,
                         log.debug(f'Successfully set boot source to {bootdev} for '
                                   f'node {client}')
                         clients_set += [client]
-                else:
+                elif attempt == max_attempts:
                     log.error(f'Failed attempt {attempt} set host boot source to'
                               f'{bootdev} for node {client}')
 

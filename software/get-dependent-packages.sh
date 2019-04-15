@@ -51,6 +51,56 @@ pkglist=$(python -c \
 pkgs = yaml.load(open('$pkglistfile'));\
 print(' '.join(pkgs['yum_pkgs_$3']))")
 
+if [[ "$3" == "p8" ]]; then
+versionless_pkglist=$(python - << "EOF"
+import yaml
+import re
+pattern_basename = r'([-_+\w.]+)(?=-(\d+[:.]\d+){1,3}).+'
+pkgs = yaml.load(open('pkg-lists-wmla120.yml'))
+pkg_list = pkgs['yum_pkgs_p8']
+pkg_basename = []
+for pkg_name in pkg_list:
+    res = re.search(pattern_basename, pkg_name)
+    if res:
+        bn = res.group(1)
+        pkg_basename.append(bn)
+print(' '.join(pkg_basename))
+EOF
+)
+elif [[ "$3" == "p9" ]]; then
+versionless_pkglist=$(python - << "EOF"
+import yaml
+import re
+pattern_basename = r'([-_+\w.]+)(?=-(\d+[:.]\d+){1,3}).+'
+pkgs = yaml.load(open('pkg-lists-wmla120.yml'))
+pkg_list = pkgs['yum_pkgs_p9']
+pkg_basename = []
+for pkg_name in pkg_list:
+    res = re.search(pattern_basename, pkg_name)
+    if res:
+        bn = res.group(1)
+        pkg_basename.append(bn)
+print(' '.join(pkg_basename))
+EOF
+)
+elif [[ "$3" == "x86_64" ]]; then
+versionless_pkglist=$(python - << "EOF"
+import yaml
+import re
+pattern_basename = r'([-_+\w.]+)(?=-(\d+[:.]\d+){1,3}).+'
+pkgs = yaml.load(open('pkg-lists-wmla120_x86_64.yml'))
+pkg_list = pkgs['yum_pkgs_x86_64']
+pkg_basename = []
+for pkg_name in pkg_list:
+    res = re.search(pattern_basename, pkg_name)
+    if res:
+        bn = res.group(1)
+        pkg_basename.append(bn)
+print(' '.join(pkg_basename))
+EOF
+)
+fi
+
 read -sp 'Enter password for '$1': ' PASSWORD
 echo
 export SSHPASS=$PASSWORD
@@ -73,6 +123,9 @@ rm -rf ~/tempdl
 
 sshpass -e ssh -t $1@$2 'mkdir -p ~/puptempdl && sudo yumdownloader \
     --archlist=`arch` --destdir ~/puptempdl '$pkglist
+
+sshpass -e ssh -t $1@$2 'mkdir -p ~/puptempdl && sudo yumdownloader \
+    --archlist=`arch` --destdir ~/puptempdl '$versionless_pkglist
 
 echo Retrieving packages
 sshpass -e scp -r $1@$2:~/puptempdl/ ~/tempdl

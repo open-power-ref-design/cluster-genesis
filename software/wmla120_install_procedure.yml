@@ -2,6 +2,14 @@
 - description: Update yum cache
   tasks: yum_update_cache.yml
 
+#ENGR_MODE
+- description: ENGINEERING MODE - Clean client yum cache
+  tasks: engr_mode_client_yum_update_cache.yml
+
+#ENGR_MODE
+- description: ENGINEERING MODE - Gather initial client package data (yum, pip)
+  tasks: engr_mode_client_pre_install_gather.yml
+
 - description: Install additional software packages
   tasks: yum_install_additional_software.yml
 
@@ -28,7 +36,15 @@
 
 - description: Check WMLA License acceptance and install to root
   tasks: wmla_license_check_and_install_to_root.yml
- #tasks: wmla_license_check.yml
+#  tasks: wmla_license_check.yml
+
+#ENGR_MODE
+- description: ENGINEERING MODE - Clean client conda cache
+  tasks: engr_mode_client_conda_update_cache.yml
+
+#ENGR_MODE
+- description: ENGINEERING MODE - Gather initial environment package data (conda, pip)
+  tasks: engr_mode_env_pre_install_gather.yml
 
 - description: Configure a system for IBM Spectrum Conductor Deep Learning Impact
   tasks: configure_spectrum_conductor.yml
@@ -51,8 +67,16 @@
 #  tasks: permit_dli_admin_write_audit.yml
 #  hosts: master[0]
 
+#ENGR_MODE
+- description: ENGINEERING MODE - Gather post environment package data (conda, pip)
+  tasks: engr_mode_env_post_install_gather.yml
+
 - description: Add all hosts to cluster
   tasks: add_hosts_to_cluster.yml
 
 - description: PowerAI tuning recommendations
   tasks: powerai_tuning.yml
+
+#ENGR_MODE
+- description: ENGINEERING MODE - Gather post client package data (yum, pip)
+  tasks: engr_mode_client_post_install_gather.yml

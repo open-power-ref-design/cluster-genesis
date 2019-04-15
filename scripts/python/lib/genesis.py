@@ -108,7 +108,7 @@ def load_localhost(filename):
 
 
 def get_dependencies_path():
-    return os.path.join(GEN_PATH, 'logs/dependencies')
+    return os.path.join(GEN_PATH, 'logs', 'dependencies', '')
 
 
 def get_symlink_path(config_path=None):

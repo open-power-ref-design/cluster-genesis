@@ -521,7 +521,7 @@ class ValidateClusterHardware(object):
         # scan ipmi network for nodes with pre-existing ip addresses
         cmd = 'fping -r0 -a -g {} {}'.format(addr_st, addr_end)
         node_list, stderr, rc = sub_proc_exec(cmd)
-        if rc != 0:
+        if rc not in (0, 1):
             self.log.warning(f'Error scanning IPMI network. rc: {rc}')
         self.log.debug('Pre-existing node list: \n{}'.format(node_list))
         node_list = node_list.splitlines()

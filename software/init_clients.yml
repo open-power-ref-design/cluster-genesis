@@ -2,6 +2,7 @@
 - name: Gather localhost facts
   hosts: localhost
   gather_facts: True
+  gather_timeout: 10
   tasks: []
 
 - name: Init clients to access the POWER-Up server

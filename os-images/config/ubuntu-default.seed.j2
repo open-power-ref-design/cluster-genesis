@@ -1,0 +1,109 @@
+# Copyright 2019 IBM Corp.
+#
+# All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Ubuntu Server automated installation
+d-i preseed/early_command string \
+  pxe_ip=$(ip route get {{ http_server }} | head -n 1 | sed 's/.*src //' | sed 's/[[:space:]]*$//'); \
+  wget http://{{ http_server }}/osinstall/pup_report.sh; \
+  /bin/sh pup_report.sh {{ http_server }}; \
+  wget --method=PUT --body-data="$(cat /tmp/pup_report.txt)" http://{{ http_server }}/client_status/${pxe_ip}_started
+d-i debian-installer/locale string en_US
+d-i console-setup/ask_detect boolean false
+d-i keyboard-configuration/layoutcode string us
+d-i netcfg/get_hostname string {{ hostname }}
+d-i netcfg/get_domain string {{ domain }}
+d-i netcfg/wireless_wep string
+d-i netcfg/target_network_config select ifupdown
+d-i apt-setup/use_mirror boolean true
+d-i apt-setup/security_host string {{ http_server }}
+d-i mirror/country string manual
+d-i mirror/http/hostname string {{ http_server }}
+d-i mirror/http/directory string /{{ http_repo_dir }}
+d-i mirror/http/proxy string
+d-i mirror/http/mirror select {{ http_server }}
+
+{% if 'ubuntu-16.04' in http_repo_dir %}
+d-i mirror/codename string xenial
+d-i mirror/suite string xenial
+{% elif 'ubuntu-18.04' in http_repo_dir %}
+d-i mirror/codename string bionic
+d-i mirror/suite string bionic
+{% endif %}
+
+d-i live-installer/net-image string http://{{ http_server }}/{{ http_repo_dir }}/install/filesystem.squashfs
+d-i clock-setup/utc boolean {{ utc }}
+d-i time/zone string {{ timezone }}
+d-i clock-setup/ntp boolean true
+d-i clock-setup/ntp-server string {{ http_server }}
+
+## Partitioning
+d-i partman/early_command string \
+  for disk in /dev/disk/by-path/*; do \
+    if [[ $disk != *"usb"* && $disk != *"part"* && $(readlink -f $disk) == /dev/sd* ]]; then \
+      disk_list="$disk_list $disk"; \
+    fi; \
+  done; \
+  disk=$(echo $disk_list | cut -d' ' -f1); \
+  debconf-set partman-auto/disk "$disk";
+d-i partman-auto/method string regular
+d-i partman-auto/choose_recipe select atomic
+d-i partman-auto/purge_lvm_from_device boolean true
+d-i partman-lvm/device_remove_lvm boolean true
+d-i partman-md/device_remove_md boolean true
+d-i partman-lvm/confirm boolean true
+d-i partman-partitioning/confirm_write_new_label boolean true
+d-i partman/choose_partition select finish
+d-i partman/confirm boolean true
+d-i partman/confirm_nooverwrite boolean true
+d-i partman-auto/confirm boolean true
+
+d-i passwd/user-fullname string {{ default_user }}
+d-i passwd/username string {{ default_user }}
+
+{% if pass_crypted %}
+d-i passwd/user-password-crypted password {{ default_pass }}
+{% else %}
+d-i passwd/user-password password {{ default_pass }}
+d-i passwd/user-password-again password {{ default_pass }}
+{% endif %}
+
+d-i user-setup/allow-password-weak boolean true
+d-i user-setup/encrypt-home boolean false
+tasksel tasksel/first multiselect standard
+
+{% if 'ubuntu-16.04' in http_repo_dir %}
+d-i pkgsel/include string openssh-server vlan bridge-utils vim python ifenslave ntp ntpdate
+{% elif 'ubuntu-18.04' in http_repo_dir %}
+d-i pkgsel/include string openssh-server vlan bridge-utils vim python ifenslave ifupdown
+{% else %}
+d-i pkgsel/include string openssh-server vlan bridge-utils vim python ifenslave
+{% endif %}
+
+d-i pkgsel/update-policy select none
+d-i grub-installer/only_debian boolean false
+d-i grub-installer/with_other_os boolean false
+d-i preseed/late_command string \
+  in-target mkdir /root/.ssh; \
+  in-target /bin/chmod 700 /root/.ssh; \
+  in-target /usr/bin/wget http://{{ http_server }}/osinstall/authorized_keys -O /root/.ssh/authorized_keys; \
+  in-target /bin/chmod 600 /root/.ssh/authorized_keys; \
+{% if 'ubuntu-18.04' in http_repo_dir %}
+  in-target rm /etc/resolv.conf; \
+  in-target ln -s /run/systemd/resolve/resolv.conf /etc/resolv.conf; \
+{% endif %}
+  pxe_ip=$(ip route get {{ http_server }} | head -n 1 | sed 's/.*src //' | sed 's/[[:space:]]*$//'); \
+  wget --method=PUT --body-data="$(cat /tmp/pup_report.txt)" http://{{ http_server }}/client_status/${pxe_ip}_finished
+d-i finish-install/reboot_in_progress note

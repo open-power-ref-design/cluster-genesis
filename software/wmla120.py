@@ -42,8 +42,14 @@ from software_hosts import get_ansible_inventory, validate_software_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, Color, \
     get_selection, get_yesno, rlinput, bold, ansible_pprint, replace_regex, \
     parse_rpm_filenames, lscpu
-from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path
+from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path, get_playbooks_path
 from nginx_setup import nginx_setup
+
+ENVIRONMENT_VARS = {
+    "ANSIBLE_CONFIG": str(get_playbooks_path()) + "/" + "ansible.cfg",  # this probably should be different
+    "DEFAULT_GATHER_TIMEOUT": "10",
+    "ANSIBLE_GATHER_TIMEOUT": "10"
+}
 
 
 class software(object):
@@ -52,7 +58,7 @@ class software(object):
     initialization activities. The install method implements the actual
     installation.
     """
-    def __init__(self, eval_ver=False, non_int=False, arch='ppc64le', proc_family=''):
+    def __init__(self, eval_ver=False, non_int=False, arch='ppc64le', proc_family='', engr_mode=False):
         self.log = logger.getlogger()
         self.log_lvl = logger.get_log_level_print()
         self.my_name = sys.modules[__name__].__name__
@@ -63,9 +69,7 @@ class software(object):
         self.proc_family = proc_family
         if self.arch == 'x86_64' and not proc_family:
             self.proc_family = self.arch
-        self.eng_mode = None
-        # self.eng_mode = 'custom-repo'
-        # self.eng_mode = 'gather-dependencies'
+        self.eng_mode = engr_mode
         yaml.add_constructor(YAMLVault.yaml_tag, YAMLVault.from_yaml)
         self.ana_platform_basename = '64' if self.arch == "x86_64" else self.arch
         self.sw_vars_file_name = 'software-vars'
@@ -277,6 +281,18 @@ class software(object):
                 'Note: The \'pup\' cli supports tab autocompletion.\n\n')
         print(text)
 
+    def _is_nginx_running(self):
+        cmd = 'nginx -v'
+        ret = False
+        try:
+            resp, err, rc = sub_proc_exec(cmd)
+            if 'nginx version:' in err:
+                ret = True
+        except FileNotFoundError:
+            pass
+
+        return ret
+
     def status(self, which='all'):
         self.status_prep(which)
 
@@ -339,7 +355,7 @@ class software(object):
                 continue
 
             # Nginx web server status
-            if item == 'Nginx Web Server':
+            if item == 'Nginx Web Server' and self._is_nginx_running():
                 temp_dir = 'nginx-test-dir-123'
                 abs_temp_dir = os.path.join(self.root_dir, temp_dir)
                 test_file = 'test-file.abc'
@@ -478,8 +494,8 @@ class software(object):
     def _setup_nginx_server(self, eval_ver=False, non_int=False):
         # nginx setup
         heading1('Set up Nginx')
-        exists = self.status_prep(which='Nginx Web Server')
-        if not exists:
+
+        if not self._is_nginx_running():
             nginx_setup(root_dir='/srv', repo_id='nginx')
 
         self.status_prep(which='Nginx Web Server')
@@ -1459,7 +1475,7 @@ class software(object):
         while run:
             log.info(f"Running Ansible playbook 'init_clients.yml' ...")
             print(prompt_msg)
-            resp, err, rc = sub_proc_exec(cmd, shell=True)
+            resp, err, rc = sub_proc_exec(cmd, shell=True, env=ENVIRONMENT_VARS)
             log.debug(f"cmd: {cmd}\nresp: {resp}\nerr: {err}\nrc: {rc}")
             if rc != 0:
                 log.warning("Ansible playbook failed!")
@@ -1529,7 +1545,7 @@ class software(object):
             cmd += f'--extra-vars "@{GEN_SOFTWARE_PATH}{self.sw_vars_file_name}" '
         else:
             cmd += ' --ask-become-pass '
-        resp, err, rc = sub_proc_exec(cmd, shell=True)
+        resp, err, rc = sub_proc_exec(cmd, shell=True, env=ENVIRONMENT_VARS)
         log.debug(f"cmd: {cmd}\nresp: {resp}\nerr: {err}\nrc: {rc}")
         if rc == 0:
             print(bold("Validation passed!\n"))
@@ -1607,10 +1623,9 @@ class software(object):
         install_tasks = yaml.load(open(GEN_SOFTWARE_PATH +
                                        f'{self.my_name}_install_procedure{specific_arch}.yml'))
 
-#        if self.eng_mode == 'gather-dependencies':
-#            pass
-
         for task in install_tasks:
+            if 'engr_mode' in task['tasks'] and not self.eng_mode:
+                continue
             heading1(f"Client Node Action: {task['description']}")
             if task['description'] == "Install Anaconda installer":
                 _interactive_anaconda_license_accept(
@@ -1664,11 +1679,11 @@ class software(object):
                 self._unlock_vault(validate=False)
 
             if self.log_lvl == 'debug':
-                rc = sub_proc_display(cmd, shell=True)
+                rc = sub_proc_display(cmd, shell=True, env=ENVIRONMENT_VARS)
                 resp = ''
                 err = ''
             else:
-                resp, err, rc = sub_proc_exec(cmd, shell=True)
+                resp, err, rc = sub_proc_exec(cmd, shell=True, env=ENVIRONMENT_VARS)
 
             log.debug(f"cmd: {cmd}\nresp: {resp}\nerr: {err}\nrc: {rc}")
             print("")  # line break
@@ -1711,7 +1726,7 @@ def _interactive_anaconda_license_accept(ansible_inventory, ana_path):
         base_cmd += f'{hostvars["ansible_ssh_common_args"]} '
 
     cmd = base_cmd + f' ls {ip}'
-    resp, err, rc = sub_proc_exec(cmd)
+    resp, err, rc = sub_proc_exec(cmd, env=ENVIRONMENT_VARS)
 
     # If install directory already exists assume license has been accepted
     if rc == 0:
@@ -1722,7 +1737,7 @@ def _interactive_anaconda_license_accept(ansible_inventory, ana_path):
         rlinput(f'Press Enter to run interactively on {hostname}')
         fn = os.path.basename(ana_path)
         cmd = f'{base_cmd} sudo ~/{fn} -p {ip}'
-        rc = sub_proc_display(cmd)
+        rc = sub_proc_display(cmd, env=ENVIRONMENT_VARS)
         if rc == 0:
             print('\nLicense accepted. Acceptance script will be run quietly '
                   'on remaining servers.')
@@ -1758,7 +1773,7 @@ def _interactive_wmla_license_accept(ansible_inventory, eval_ver):
             base_cmd += f'-i {hostvars["ansible_ssh_private_key_file"]} '
 
         cmd = base_cmd + check_cmd
-        resp, err, rc = sub_proc_exec(cmd)
+        resp, err, rc = sub_proc_exec(cmd, env=ENVIRONMENT_VARS)
         if rc == 0:
             print(bold('WMLA Enterprise license already accepted on '
                        f'{hostname}'))
@@ -1768,7 +1783,7 @@ def _interactive_wmla_license_accept(ansible_inventory, eval_ver):
                 print(bold('\nRunning WMLA Enterprise license script on '
                            f'{hostname}'))
                 cmd = base_cmd + accept_cmd
-                rc = sub_proc_display(cmd)
+                rc = sub_proc_display(cmd, env=ENVIRONMENT_VARS)
                 if rc == 0:
                     print(f'\nLicense accepted on {hostname}.')
                     run = False

@@ -1,4 +1,9 @@
 ---
+- name: Get processor data
+  shell: "cat /proc/cpuinfo | grep cpu | uniq | awk '/POWER[0-9]+/{print $3}' \
+         | sed 's/,$//'"
+  register: ansible_result
+
 - name: Enable 40-redhat.rules
   copy:
     remote_src: yes
@@ -6,7 +11,7 @@
     src: /lib/udev/rules.d/40-redhat.rules
     dest: /etc/udev/rules.d/
   become: yes
-  loop: "{{ ansible_processor | unique | select('match', 'POWER9') | list }}"
+  when:  ansible_result.stdout == 'POWER9'
 
 - name: Disable udev Memory Auto-Onlining Rule
   replace:
@@ -19,9 +24,7 @@
       - '^(ENV{.state}="online")'
       - '^(PROGRAM="/bin/systemd-detect-virt")'
       - '^(ATTR{state}=="offline")'
-  when: >
-      ansible_processor | unique | select('match', 'POWER9') | list |
-      length > 0
+  when:  ansible_result.stdout == 'POWER9'
   notify: Reboot
 
 - meta: flush_handlers
