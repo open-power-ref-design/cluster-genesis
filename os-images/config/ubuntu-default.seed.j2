@@ -19,7 +19,7 @@ d-i preseed/early_command string \
   pxe_ip=$(ip route get {{ http_server }} | head -n 1 | sed 's/.*src //' | sed 's/[[:space:]]*$//'); \
   wget http://{{ http_server }}/osinstall/pup_report.sh; \
   /bin/sh pup_report.sh {{ http_server }}; \
-  wget --method=PUT --body-data="$(cat /tmp/pup_report.txt)" http://{{ http_server }}/client_status/${pxe_ip}_started
+  wget --method=PUT --body-data="$(cat /tmp/pup_report.txt)" http://{{ http_server }}/client_status/${pxe_ip}_start
 d-i debian-installer/locale string en_US
 d-i console-setup/ask_detect boolean false
 d-i keyboard-configuration/layoutcode string us
@@ -52,8 +52,11 @@ d-i clock-setup/ntp-server string {{ http_server }}
 ## Partitioning
 d-i partman/early_command string \
   for disk in /dev/disk/by-path/*; do \
-    if [[ $disk != *"usb"* && $disk != *"part"* && $(readlink -f $disk) == /dev/sd* ]]; then \
-      disk_list="$disk_list $disk"; \
+    if [ "$disk" != *"usb"* ]; then \
+      case $(readlink -f $disk) in \
+        *part*) break ;; \
+        /dev/sd*) disk_list="$disk_list $disk";; \
+      esac; \
     fi; \
   done; \
   disk=$(echo $disk_list | cut -d' ' -f1); \
@@ -105,5 +108,5 @@ d-i preseed/late_command string \
   in-target ln -s /run/systemd/resolve/resolv.conf /etc/resolv.conf; \
 {% endif %}
   pxe_ip=$(ip route get {{ http_server }} | head -n 1 | sed 's/.*src //' | sed 's/[[:space:]]*$//'); \
-  wget --method=PUT --body-data="$(cat /tmp/pup_report.txt)" http://{{ http_server }}/client_status/${pxe_ip}_finished
+  wget --method=PUT --body-data="$(cat /tmp/pup_report.txt)" http://{{ http_server }}/client_status/${pxe_ip}_finish
 d-i finish-install/reboot_in_progress note

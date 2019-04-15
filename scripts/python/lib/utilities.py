@@ -1329,6 +1329,20 @@ def pxelinux_set_default(server,
         """))
 
 
+def pxelinux_set_local_boot(dir_path=None):
+    """Disable PXE install by setting boot device to 'local'
+
+    Args:
+        dir_path (str, optional): Path to pxelinux directory
+    """
+
+    if dir_path is None:
+        dir_path = '/var/lib/tftpboot/pxelinux.cfg/'
+
+    line_in_file(os.path.join(dir_path, 'default'),
+                 r'^DEFAULT=.+', 'DEFAULT local')
+
+
 def firewall_add_services(services):
     """Add services to be allowed in firewall rules
 

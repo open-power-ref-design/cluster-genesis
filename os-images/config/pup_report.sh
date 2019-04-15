@@ -29,23 +29,25 @@ for file in 'os-release'; do
     done < /etc/$file
 done
 
-ipmitool lan print > /tmp/pup_ipmitool_lan_print.txt
-printf ",\n  \"ipmitool_lan_print\": {" >> /tmp/pup_report.txt
-comma=false
-while read line; do
-    if [ "$line" != "" ]; then
-        json_line=$(echo $line | sed 's/\s*:\s*/\": \"/')
-        if [[ $json_line == '": "'* ]]; then
-            printf "; ${json_line#*\ \"}" >> /tmp/pup_report.txt
-        elif $comma; then
-            printf "\",\n    \"${json_line}" >> /tmp/pup_report.txt
-        else
-            printf "\n    \"${json_line}" >> /tmp/pup_report.txt
+for channel in 1 8; do
+    ipmitool lan print > /tmp/pup_ipmitool_lan_print${channel}.txt
+    printf ",\n  \"ipmitool_lan_print_$channel\": {" >> /tmp/pup_report.txt
+    comma=false
+    while read line; do
+        if [ "$line" != "" ]; then
+            json_line=$(echo $line | sed 's/\s*:\s*/\": \"/')
+            if [[ $json_line == '": "'* ]]; then
+                printf "; ${json_line#*\ \"}" >> /tmp/pup_report.txt
+            elif $comma; then
+                printf "\",\n    \"${json_line}" >> /tmp/pup_report.txt
+            else
+                printf "\n    \"${json_line}" >> /tmp/pup_report.txt
+            fi
         fi
-    fi
-    comma=true
-done < /tmp/pup_ipmitool_lan_print.txt
-printf "\"\n  }" >> /tmp/pup_report.txt
+        comma=true
+    done < /tmp/pup_ipmitool_lan_print${channel}.txt
+    printf "\"\n  }" >> /tmp/pup_report.txt
+done
 
 ipmitool fru print > /tmp/pup_ipmitool_fru_print.txt
 sed -i '$ {/^$/d;}' /tmp/pup_ipmitool_fru_print.txt
