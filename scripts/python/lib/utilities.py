@@ -28,6 +28,7 @@ from netaddr import IPNetwork, IPAddress, IPSet
 from tabulate import tabulate
 from textwrap import dedent
 import hashlib
+from distro import linux_distribution
 
 from lib.config import Config
 import lib.logger as logger
@@ -1202,7 +1203,7 @@ def dnsmasq_config_pxelinux(interface=None,
                             dhcp_range=None,
                             lease_time='1h',
                             default_route=None,
-                            tftp_root='/var/lib/tftpboot',
+                            tftp_root=None,
                             conf_path='/etc/dnsmasq.conf',
                             reload=True):
     """Create dnsmasq configuration to support PXE boots
@@ -1224,6 +1225,12 @@ def dnsmasq_config_pxelinux(interface=None,
              If syntax check rc=0 and reload=True the return code
              from 'systemctl restart dnsmasq.service'
     """
+
+    if tftp_root is None:
+        if 'rhel' in linux_distribution(full_distribution_name=False):
+            tftp_root = '/var/lib/tftpboot'
+        if 'ubuntu' in linux_distribution(full_distribution_name=False):
+            tftp_root = '/tftpboot'
 
     backup_file(conf_path)
 
@@ -1277,7 +1284,7 @@ def pxelinux_set_default(server,
                          initrd,
                          kickstart=None,
                          kopts=None,
-                         dir_path='/var/lib/tftpboot/pxelinux.cfg/'):
+                         dir_path=None):
     """Create default pxelinux profile
 
     This function assumes that the server is hosting the kernel,
@@ -1292,6 +1299,12 @@ def pxelinux_set_default(server,
         kopts (str, optional): Any additional kernel options
         dir_path (str, optional): Path to pxelinux directory
     """
+
+    if dir_path is None:
+        if 'rhel' in linux_distribution(full_distribution_name=False):
+            dir_path = '/var/lib/tftpboot/pxelinux.cfg/'
+        if 'ubuntu' in linux_distribution(full_distribution_name=False):
+            dir_path = '/tftpboot/pxelinux.cfg/'
 
     kopts_base = (f"ksdevice=bootif lang=  kssendmac text")
 
@@ -1337,7 +1350,10 @@ def pxelinux_set_local_boot(dir_path=None):
     """
 
     if dir_path is None:
-        dir_path = '/var/lib/tftpboot/pxelinux.cfg/'
+        if 'rhel' in linux_distribution(full_distribution_name=False):
+            dir_path = '/var/lib/tftpboot/pxelinux.cfg/'
+        if 'ubuntu' in linux_distribution(full_distribution_name=False):
+            dir_path = '/tftpboot/pxelinux.cfg/'
 
     line_in_file(os.path.join(dir_path, 'default'),
                  r'^DEFAULT=.+', 'DEFAULT local')
@@ -1357,32 +1373,40 @@ def firewall_add_services(services):
         services = [services]
 
     fw_err = 0
-    cmd = 'systemctl status firewalld.service'
+    if 'rhel' in linux_distribution(full_distribution_name=False):
+        firewall_service = 'firewalld.service'
+        firewall_enable_cmd = 'firewall-cmd --permanent --add-service='
+        firewall_reload_cmd = 'firewall-cmd --reload'
+    elif 'ubuntu' in linux_distribution(full_distribution_name=False):
+        firewall_service = 'ufw.service'
+        firewall_enable_cmd = 'ufw allow '
+        firewall_reload_cmd = 'true'
+        return 0  # TODO: REMOVE THIS DEBUG ONLY
+    cmd = f'systemctl status {firewall_service}'
     resp, err, rc = sub_proc_exec(cmd)
     if 'Active: active (running)' in resp.splitlines()[2]:
         LOG.debug('Firewall is running')
     else:
-        cmd = 'systemctl enable firewalld.service'
+        cmd = f'systemctl enable {firewall_service}'
         resp, err, rc = sub_proc_exec(cmd)
         if rc != 0:
             fw_err += 1
             LOG.error('Failed to enable firewall service')
 
-        cmd = 'systemctl start firewalld.service'
+        cmd = f'systemctl start {firewall_service}'
         resp, err, rc = sub_proc_exec(cmd)
         if rc != 0:
             fw_err += 10
             LOG.error('Failed to start firewall')
 
     for service in services:
-        cmd = f'firewall-cmd --permanent --add-service={service}'
+        cmd = f'{firewall_enable_cmd}{service}'
         resp, err, rc = sub_proc_exec(cmd)
         if rc != 0:
             fw_err += 100
             LOG.error(f'Failed to enable {service} service on firewall')
 
-    cmd = 'firewall-cmd --reload'
-    resp, err, rc = sub_proc_exec(cmd)
+    resp, err, rc = sub_proc_exec(firewall_reload_cmd)
     if 'success' not in resp:
         fw_err += 1000
         LOG.error('Error attempting to restart firewall')
@@ -1530,7 +1554,11 @@ def breakpoint():
     Note: python>=3.7 includes a built-in 'breakpoint()'
     """
     from pdb import set_trace
-    clear_curses()
+    from _curses import error
+    try:
+        clear_curses()
+    except error:
+        pass
     set_trace()
 
 

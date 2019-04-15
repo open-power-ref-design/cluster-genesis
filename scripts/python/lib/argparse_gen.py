@@ -425,7 +425,7 @@ def get_args(parser_args=False):
         nargs='+',
         choices=['p8', 'p9', 'x86_64'],
         help='Set the target processor family')
-    
+
     parser_software.add_argument(
         '--engr-mode',
         default=False,
