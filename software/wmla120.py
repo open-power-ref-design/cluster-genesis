@@ -350,7 +350,9 @@ class software(object):
             if item == 'Firewall':
                 cmd = 'firewall-cmd --list-all'
                 resp, _, _ = sub_proc_exec(cmd)
-                if re.search(r'services:\s+.+http', resp):
+                if not '(active)' in resp:
+                    self.state[item] = "Firewall is not running"
+                elif re.search(r'services:\s+.+http', resp):
                     self.state[item] = "Running and configured for http"
                 continue
 
@@ -482,11 +484,11 @@ class software(object):
                 self.log.info(self.state['Firewall'])
         else:
             self.log.debug('Firewall is not running')
+            print()
             self.log.info(bold('The firewall is not enabled.\n'))
-            print('The PowerUp software installer utilizes Nginx web server.')
-            print('Nginx will run without the Firewall enabled, but it is \n'
-                  'advisable to utilize a firewall when running a web server.')
-            if not get_yesno('\nContinue with installation? ', default='y'):
+            print('It is advisable to run with the firewall enabled.')
+            if not get_yesno('\nContinue installation with firewall disabled? ',
+                             default='y'):
                 self.log.info('Exiting at user request')
                 sys.exit()
 
