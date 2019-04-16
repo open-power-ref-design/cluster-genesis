@@ -9,28 +9,97 @@
 
 - name: Set Variables
   set_fact:
-    disk_drive: "/"
+    mountname: "/" #root_filesystem
+    cond_dli_size: 33000000 #kilobytes
+    mgmt_ram: 64000 #Megabytes
+    compute_ram: 32000 #Megabytes
+    arch: "lscpu | grep 'Model name' |awk '{print $3}'"
 
-- name: Gather HDD Information
-  command: "df {{ disk_drive }}"
-  register: hdd_info
+#Verify Ram
 
-- name: Verify Mangement Host RAM and HDD Requirements
+#Done
+- name: gather Mangement Host RAM
+  command: " echo {{ hostvars['localhost']['ansible_memory_mb']['real']['total'] }} "
+  register: mgmt_ram_size
+
+#Done
+- name: Gather copute Host RAM
+  command: "echo {{ ansible_memory_mb.real.total }}"
+  register: compute_ram_size
+
+#Done
+- name: Verify RAM Requirements
   assert:
     that:
-      - ansible_memory_mb.real.total >= 4096
-  delegate_to: localhost
+      - "{{ mgmt_ram_size.stdout }} >=  {{ mgmt_ram }}"
+      - "{{ compute_ram_size.stdout }} >=  {{ compute_ram }}"
 
-- name: View Management System Info
+#Done
+- name: Debug - Verify RAM Requirements
   debug:
-    msg: var=ansible_memory_mb
+    msg:
+      - " {{mgmt_ram_size.stdout}} >= {{mgmt_ram}} "
+      - "{{ compute_ram_size.stdout }} >=  {{ compute_ram }}"
+  register: ram_status
+
+#Verify Hdisk space
+
+#Done
+- name: Grab Mgmt host Disk Data
+  command: "echo {{ host_to.size_available }}"
+  vars:
+    host_to: "{{ hostvars['localhost']['ansible_mounts'] | selectattr('mount','equalto',mountname) | list | first }}"
+  register: mgmt_disk
+
+#Done
+- name: Grab compute host Disk Data
+  command: "echo {{ mount.size_available }}"
+  vars:
+    mount: "{{ ansible_mounts | selectattr('mount','equalto',mountname) | list | first }}"
+  register: compute_disk
+
+#Done
+- name: Verify free space is sufficent for Software install
+  assert:
+    that:
+      - "{{ mgmt_disk.stdout }} >= {{ cond_dli_size }}"
+      - "{{ compute_disk.stdout }} >= {{ cond_dli_size }}"
+  register: space_status
+
+#Done
+- name: Debug - Verify free space is sufficent for Software install
   debug:
-    msg: "total RAM is {{ ansible_memory_mb.real.total }}"
+    msg:
+      - "mgmt disk size: {{ mgmt_disk.stdout }}"
+      - "compute disk size: {{ compute_disk.stdout }}"
+      - "{{ space_status }}"
+
+#Verify System Arch
+- name: Check local System Arch
+  shell: "echo POWER8" #"lscpu | grep 'Model name' | awk '{print $3}'"
+#  delegate_to: localhost
+  register: mgmt_arch
+
+#Done
+- name: Check Client Arch
+  command: "/usr/bin/lscpu"
+#  delegate_to: hosts
+  register: client_arch
+
+#Done
+- name: Check if Arch Unity Exists
+  assert:
+    that:
+      - "{{ 'POWER8' in client_arch.stdout }}"
+  register: arch_unity
+
+#Done
+- name: Debug
   debug:
-    msg: var=ansible_mounts
-  debug:
-    msg: "{{ ansible_mounts }}"
-  debug:
-    msg: "{{ hdd_info }}"
-  debug:
-    msg: "{{ ansible_devices }}"
+    msg:
+      - "{{ client_arch.stdout }}"
+      - "{{ mgmt_arch }}"
+
+#- name: blah
+#  debug:
+#    msg: " {{stdout_lines}} "
