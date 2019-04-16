@@ -9,28 +9,80 @@
 
 - name: Set Variables
   set_fact:
-    disk_drive: "/"
+    mountname: "/" #root_filesystem
+    cond_dli_size: 33000000 #kilobytes
+    mgmt_ram: 64000 #Megabytes
+    compute_ram: 32000 #Megabytes
 
-- name: Gather HDD Information
-  command: "df {{ disk_drive }}"
-  register: hdd_info
+#Verify RAM space
+- name: gather Mangement Host RAM
+  command: " echo {{ hostvars['localhost']['ansible_memory_mb']['real']['total'] }} "
+  register: mgmt_ram_size
 
-- name: Verify Mangement Host RAM and HDD Requirements
+- name: Gather copute Host RAM
+  command: "echo {{ ansible_memory_mb.real.total }}"
+  register: compute_ram_size
+
+- name: Verify RAM Requirements
   assert:
     that:
-      - ansible_memory_mb.real.total >= 4096
-  delegate_to: localhost
+      - "{{ mgmt_ram_size.stdout }} >=  {{ mgmt_ram }}"
+      - "{{ compute_ram_size.stdout }} >=  {{ compute_ram }}"
+    fail_msg: "RAM Requirement failed. Verify there is RAM available. (CMD: free -m)"
 
-- name: View Management System Info
+- name: Debug - Verify RAM Requirements
   debug:
-    msg: var=ansible_memory_mb
+    msg:
+      - " {{mgmt_ram_size.stdout}} >= {{mgmt_ram}} "
+      - "{{ compute_ram_size.stdout }} >=  {{ compute_ram }}"
+  register: ram_status
+
+#Verify Hdisk space
+- name: Grab Mgmt host disk data
+  command: "echo {{ host_to.size_available }}"
+  vars:
+    host_to: "{{ hostvars['localhost']['ansible_mounts'] | selectattr('mount','equalto',mountname) | list | first }}"
+  register: mgmt_disk
+
+- name: Grab compute host disk data
+  command: "echo {{ mount.size_available }}"
+  vars:
+    mount: "{{ ansible_mounts | selectattr('mount','equalto',mountname) | list | first }}"
+  register: compute_disk
+
+- name: Verify free space is sufficent for software install
+  assert:
+    that:
+      - "{{ mgmt_disk.stdout }} >= {{ cond_dli_size }}"
+      - "{{ compute_disk.stdout }} >= {{ cond_dli_size }}"
+    fail_msg: "Not enough Disk Space on '{{ mountname }}'"
+  register: space_status
+
+- name: Debug - Verify free space is sufficent for software install
   debug:
-    msg: "total RAM is {{ ansible_memory_mb.real.total }}"
-  debug:
-    msg: var=ansible_mounts
-  debug:
-    msg: "{{ ansible_mounts }}"
-  debug:
-    msg: "{{ hdd_info }}"
-  debug:
-    msg: "{{ ansible_devices }}"
+    msg:
+      - "mgmt disk size: {{ mgmt_disk.stdout }}"
+      - "compute disk size: {{ compute_disk.stdout }}"
+      - "{{ space_status }}"
+
+#Verify System Arch
+- name: Check local system arch
+  shell: "lscpu | grep 'Model name' | awk '{print $3}'" #POWER8, POWER9, Intel[x86_64]
+  register: mgmt_arch
+
+- name: Check client arch
+  command: "/usr/bin/lscpu"
+  register: client_arch
+
+- name: Debug - Does POWER8 Exists in client arch
+  command: echo "POWER8 Exists"
+  when: client_arch.stdout.find('mgmt_arch.stdout') != -1
+  register: sys_arch_status
+
+- name: Check if Arch Unity Exists
+  assert:
+    that:
+      - client_arch.stdout.find('{{mgmt_arch.stdout}}') != -1
+    fail_msg: "Architecture varies between nodes. If aware of hybrid nodes, please continue"
+  register: arch_unity
+

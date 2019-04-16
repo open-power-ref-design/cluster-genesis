@@ -12,13 +12,15 @@
     - "{{ ansible_distribution_version }}"
 
 - name: Verify unity of all nodes
-  command: "echo Unity Exists"
-  when:
-    - '{{ ansible_distribution == distro }}'
-    - '{{ ansible_distribution_version == version }}'
+  assert:
+    that:
+      - '{{ ansible_distribution == distro }}'
+      - '{{ ansible_distribution_version == version }}'
+    fail_msg: "One or More nodes does not match minimal software req:  RedHat 7.6"
   register: unity_state
 
 - name: DEBUG - Verify unity of all nodes
   debug:
-    msg: "{{ unity_state.stdout }}"
+    msg: "{{ unity_state }}"
 
+-
