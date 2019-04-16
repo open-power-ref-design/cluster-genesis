@@ -48,7 +48,7 @@ fi
 
 pkglist=$(python -c \
 "import yaml;\
-pkgs = yaml.load(open('$pkglistfile'));\
+pkgs = yaml.full_load(open('$pkglistfile'));\
 print(' '.join(pkgs['yum_pkgs_$3']))")
 
 if [[ "$3" == "p8" ]]; then
@@ -56,7 +56,7 @@ versionless_pkglist=$(python - << "EOF"
 import yaml
 import re
 pattern_basename = r'([-_+\w.]+)(?=-(\d+[:.]\d+){1,3}).+'
-pkgs = yaml.load(open('pkg-lists-wmla120.yml'))
+pkgs = yaml.full_load(open('pkg-lists-wmla120.yml'))
 pkg_list = pkgs['yum_pkgs_p8']
 pkg_basename = []
 for pkg_name in pkg_list:
@@ -72,7 +72,7 @@ versionless_pkglist=$(python - << "EOF"
 import yaml
 import re
 pattern_basename = r'([-_+\w.]+)(?=-(\d+[:.]\d+){1,3}).+'
-pkgs = yaml.load(open('pkg-lists-wmla120.yml'))
+pkgs = yaml.full_load(open('pkg-lists-wmla120.yml'))
 pkg_list = pkgs['yum_pkgs_p9']
 pkg_basename = []
 for pkg_name in pkg_list:
@@ -88,7 +88,7 @@ versionless_pkglist=$(python - << "EOF"
 import yaml
 import re
 pattern_basename = r'([-_+\w.]+)(?=-(\d+[:.]\d+){1,3}).+'
-pkgs = yaml.load(open('pkg-lists-wmla120_x86_64.yml'))
+pkgs = yaml.full_load(open('pkg-lists-wmla120_x86_64.yml'))
 pkg_list = pkgs['yum_pkgs_x86_64']
 pkg_basename = []
 for pkg_name in pkg_list:

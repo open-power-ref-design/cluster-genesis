@@ -86,19 +86,22 @@ class software(object):
                         'Python Package Repository': 'pypi'}
 
         try:
-            self.pkgs = yaml.load(open(GEN_SOFTWARE_PATH + 'pkg-lists112.yml'))
+            self.pkgs = yaml.full_load(open(GEN_SOFTWARE_PATH +
+                                            'pkg-lists112.yml'))
         except IOError:
             self.log.error('Error opening the pkg lists file (pkg-lists112.yml)')
             sys.exit('Exit due to critical error')
 
         if self.eval_ver:
             try:
-                self.sw_vars = yaml.load(open(GEN_SOFTWARE_PATH + 'software-vars-eval.yml'))
+                self.sw_vars = yaml.full_load(open(GEN_SOFTWARE_PATH +
+                                                   'software-vars-eval.yml'))
             except IOError:
                 # if no eval vars file exist, see if the license var file exists
                 # and start with that
                 try:
-                    self.sw_vars = yaml.load(open(GEN_SOFTWARE_PATH + 'software-vars.yml'))
+                    self.sw_vars = yaml.full_load(open(GEN_SOFTWARE_PATH +
+                                                       'software-vars.yml'))
                 except IOError:
                     self.log.info('Creating software vars yaml file')
                     self.sw_vars = {}
@@ -115,12 +118,14 @@ class software(object):
                     self.sw_vars['prep-timestamp'] = calendar.timegm(time.gmtime())
         else:
             try:
-                self.sw_vars = yaml.load(open(GEN_SOFTWARE_PATH + 'software-vars.yml'))
+                self.sw_vars = yaml.full_load(open(GEN_SOFTWARE_PATH +
+                                                   'software-vars.yml'))
             except IOError:
                 # if no licensed vars file exist, see if the eval var file exists
                 # and start with that
                 try:
-                    self.sw_vars = yaml.load(open(GEN_SOFTWARE_PATH + 'software-vars-eval.yml'))
+                    self.sw_vars = yaml.full_load(
+                        open(GEN_SOFTWARE_PATH + 'software-vars-eval.yml'))
                 except IOError:
                     self.log.info('Creating software vars yaml file')
                     self.sw_vars = {}
@@ -146,14 +151,16 @@ class software(object):
         if self.eval_ver:
             self.eval_prep_timestamp = self.sw_vars['prep-timestamp']
             try:
-                temp = yaml.load(open(GEN_SOFTWARE_PATH + 'software-vars.yml'))
+                temp = yaml.full_load(open(GEN_SOFTWARE_PATH +
+                                           'software-vars.yml'))
                 self.lic_prep_timestamp = temp['prep-timestamp']
             except (IOError, KeyError):
                 self.lic_prep_timestamp = 0
         else:
             self.lic_prep_timestamp = self.sw_vars['prep-timestamp']
             try:
-                temp = yaml.load(open(GEN_SOFTWARE_PATH + 'software-vars-eval.yml'))
+                temp = yaml.full_load(open(GEN_SOFTWARE_PATH +
+                                           'software-vars-eval.yml'))
                 self.eval_prep_timestamp = temp['prep-timestamp']
             except (IOError, KeyError):
                 self.eval_prep_timestamp = 0
@@ -182,7 +189,8 @@ class software(object):
         # regular extression of [0-9]{0,3} Other asterisks are converted to regular
         # expression of .*
         try:
-            file_lists = yaml.load(open(GEN_SOFTWARE_PATH + 'file-lists112.yml'))
+            file_lists = yaml.full_load(open(GEN_SOFTWARE_PATH +
+                                             'file-lists112.yml'))
         except IOError:
             self.log.info('Error while reading installation file lists for PowerAI Enterprise')
             sys.exit('exiting')
@@ -1380,8 +1388,8 @@ class software(object):
         _set_spectrum_conductor_install_env(self.sw_vars['ansible_inventory'],
                                             'dli', ana_ver)
 
-        install_tasks = yaml.load(open(GEN_SOFTWARE_PATH +
-                                       f'{self.my_name}_install_procedure.yml'))
+        install_tasks = yaml.full_load(
+            open(GEN_SOFTWARE_PATH + f'{self.my_name}_install_procedure.yml'))
         for task in install_tasks:
             heading1(f"Client Node Action: {task['description']}")
             if task['description'] == "Install Anaconda installer":
@@ -1579,7 +1587,7 @@ def _set_spectrum_conductor_install_env(ansible_inventory, package, ana_ver=None
     init = True
     while not env_validated:
         try:
-            for key, value in yaml.load(open(envs_path)).items():
+            for key, value in yaml.full_load(open(envs_path)).items():
                 if value is None:
                     break
             else:
