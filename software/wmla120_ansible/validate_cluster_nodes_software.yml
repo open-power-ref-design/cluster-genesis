@@ -22,5 +22,3 @@
 - name: DEBUG - Verify unity of all nodes
   debug:
     msg: "{{ unity_state }}"
-
--

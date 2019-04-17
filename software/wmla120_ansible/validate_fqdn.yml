@@ -1,44 +1,21 @@
 ---
 #Validate FQDN on all cluster nodes: hostname -f and getent hosts [ip_address]
 #getent hosts with no ip address on all nodes should list the fqdn for all nodes in the cluster
-
-- name:  Retrieve client hostnames
-  command: "hostname -f"
-  register: hostname_output
-
-- name: Debug - Retrieve client hostnames
-  debug:
-    msg: "{{ hostname_output.stdout }}"
-
-- name: Debug - Retrieve client hostnames
-  debug:
-    msg: "{{ ansible_fqdn }}"
-
 - name: Use client hostnames/ansible_fqdn to gather IPv4 data for clients
-  shell: " getent hosts {{ ansible_fqdn }} | awk '{ print $1 }' "
+  command: "getent ahostsv4 {{ item }}"
+  loop: "{{ groups['all']|flatten }}"
   register: client_ip
 
 - name: Debug - Use client hostnames/ansible_fqdn to gather IPv4 data
   debug:
-    msg: "{{ client_ip.stdout }}"
-
-- name: Check - IP Address Exists
-  command: "echo {{ ansible_fqdn }} at address {{ client_ip.stdout }}"
-  when:  "'192' in client_ip.stdout"
-  register: ip_status_exists
-
-#use assert to fail with msg.
-
-- name: Debug - IP Address Exists
-  debug:
-    msg: "{{ ip_status_exists.stdout }}"
-
-- name: Check - IP Address Does not Exist
-  command: "echo {{ ansible_fqdn }}"
-  when:  "'' in client_ip.stdout"
-  register: ip_status_not_exist
+    msg: "{{ item.stdout }}"
+  loop: "{{ client_ip.results }}"
 
 - name: Fail if IP Address Does not Exist
   fail:
     msg: "One or more nodes have a conflict Validating FQDN. Please check node settings."
-  when: "ip_status_not_exist == ''"
+  when: not item.stdout.split()[0] | ipv4
+  loop: "{{ client_ip.results }}"
+
+
+
