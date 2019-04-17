@@ -45,12 +45,27 @@
   include_vars: "env_vars/setup_public_env_vars.yml"
 # create routes and/or deletes old ones
 
+- name: Ensure hostname set
+  hostname:
+    name: "{{ inventory_hostname }}"
+  register: hostname_set
+  become: yes
+#
+- name: Resolve hostnames in /etc/hosts
+  include: "resolve_server_hostnames.yml"
+  become: yes
+
 - name: Create Routes
   include: "route.yml"
   become: yes
 #
 - name: Create Interface
   include: "network_interface.yml"
+  become: yes
+
+# create files or directories 
+- name: Create directories 
+  include: "file.yml"
   become: yes
 #
 - name: Create Mounts
