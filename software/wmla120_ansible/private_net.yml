@@ -47,18 +47,18 @@
   # become: yes
 #
 
-- name: Import Data 
+- name: Import Data
   include_vars: "env_vars/setup_private_env_vars.yml"
 
-# - name: Ensure hostname set
-  # hostname:
-    # name: "{{ inventory_hostname }}"
-  # register: hostname_set
+- name: Ensure hostname set
+  hostname:
+    name: "{{ inventory_hostname }}"
+  register: hostname_set
+  become: yes
 #
-# - name: Resolve hostnames in /etc/hosts
-  # include: "resolve_server_hostnames.yml"
-  # become: yes
-
+- name: Resolve hostnames in /etc/hosts
+  include: "resolve_server_hostnames.yml"
+  become: yes
 
 # disable repos
 - name: Remove repos
@@ -72,6 +72,22 @@
 
 - name: Create Interface
   include: "network_interface.yml"
+  become: yes
+
+- name: Validate if yum-config-manager exists
+  shell: "yum-config-manager"
+  ignore_errors: yes
+  register: yum_config_manager_installed
+  become: yes
+
+- name: Disable Unavailable Repos
+  shell: "yum-config-manager --setopt=\\*.skip_if_unavailable=1 --save"
+  when: yum_config_manager_installed.rc == 0
+  become: yes
+
+# create files or directories
+- name: Create directories
+  include: "file.yml"
   become: yes
 #
 - name: Create Mounts
