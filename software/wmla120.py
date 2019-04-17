@@ -70,7 +70,8 @@ class software(object):
         if self.arch == 'x86_64' and not proc_family:
             self.proc_family = self.arch
         self.eng_mode = engr_mode
-        yaml.add_constructor(YAMLVault.yaml_tag, YAMLVault.from_yaml)
+        yaml.FullLoader.add_constructor(YAMLVault.yaml_tag,
+                                        YAMLVault.from_yaml)
         self.ana_platform_basename = '64' if self.arch == "x86_64" else self.arch
         self.sw_vars_file_name = 'software-vars'
         self.sw_vars_file_name = self.sw_vars_file_name + '-eval' if self.eval_ver \
