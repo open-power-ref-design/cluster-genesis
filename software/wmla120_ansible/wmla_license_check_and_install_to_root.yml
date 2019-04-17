@@ -1,16 +1,20 @@
 ---
 - name: Check that the status.dat file exists
   stat:
-    #path: "{{ ansible_env.HOME }}/.powerai/ibm-wmla-license/1.2.0/license/status.dat"
     path: "/root/.powerai/ibm-wmla-license/1.2.0/license/status.dat"
   register: stat_result
   become: yes
+  when: not eval_ver
+
+- name: Check that the status.dat file exists for eval version
+  stat:
+    path: "/root/.powerai/ibm-wmla-license-eval/1.2.0/license/status.dat"
+  register: stat_result
+  become: yes
+  when: eval_ver
 
 - name: Fail if license not accepted
   fail:
     msg: "The WMLA license has not been accepted"
   when: not stat_result.stat.exists
 
-#- name: Copy license files to root
-#  shell: 'cp -r {{ ansible_env.HOME }}/.powerai/ /root/'
-#  become: yes

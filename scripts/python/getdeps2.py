@@ -15,51 +15,91 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import getpass
+import glob
 import sys
-import os.path
-# import code
+import os
 import yaml
 
 import lib.logger as logger
 import lib.genesis as gen
+from lib.utilities import get_selection, sub_proc_exec
 
 
 def main():
     log = logger.getlogger()
     log.debug('log this')
-    dep_path = gen.get_dependencies_path()
+    dep_base_path = gen.get_dependencies_path()
+    dirs = [d for d in os.listdir(dep_base_path) if
+            os.path.isdir(os.path.join(dep_base_path, d))]
+    dirs = [os.path.join(dep_base_path, _dir) for _dir in dirs]
+    ch, dep_dir = get_selection(dirs, prompt='Select a directory to aggregate '
+                                'dependencies from: ')
+
+    dep_files = {}
 
     pip_pre_files = ['client_pip_pre_install.txt',
                      'dlipy3_pip_pre_install.txt',
                      'dlipy2_pip_pre_install.txt',
                      'dlinsights_pip_pre_install.txt',
                      ]
+    dep_files['pip_pre_files'] = pip_pre_files
 
     pip_post_files = ['client_pip_post_install.txt',
                       'dlipy3_pip_post_install.txt',
                       'dlipy2_pip_post_install.txt',
                       'dlinsights_pip_post_install.txt',
                       ]
+    dep_files['pip_post_files'] = pip_post_files
 
     conda_pre_files = ['dlipy3_conda_pre_install.txt',
                        'dlipy2_conda_pre_install.txt',
                        'dlinsights_conda_pre_install.txt',
                        ]
+    dep_files['conda_pre_files'] = conda_pre_files
 
     conda_post_files = ['dlipy3_conda_post_install.txt',
                         'dlipy2_conda_post_install.txt',
                         'dlinsights_conda_post_install.txt',
                         ]
+    dep_files['conda_post_files'] = conda_post_files
 
     yum_pre_files = ['client_yum_pre_install.txt']
+    dep_files['yum_pre_files'] = yum_pre_files
 
     yum_post_files = ['client_yum_post_install.txt']
+    dep_files['yum_post_files'] = yum_post_files
 
-    def file_check(pre_files):
-        for f in pre_files:
-            file_path = os.path.join(dep_path, f)
+    exists = glob.glob(f'{dep_dir}/**/{yum_pre_files[0]}', recursive=True)
+    if exists:
+        dep_dir = os.path.dirname(exists[0])
+    else:
+        log.error('No client yum pre file found')
+        sys.exit()
+
+    # Change file ownership to current user
+    username = getpass.getuser()
+    cmd = f'sudo chown -R {username}:{username} {dep_dir}'
+    sub_proc_exec(cmd, shell=True)
+
+    # Clear comments and other known header content from files
+    for item in dep_files:
+        for _file in dep_files[item]:
+            _file_path = os.path.join(dep_dir, _file)
+            with open(_file_path, 'r') as f:
+                lines = f.read().splitlines()
+            with open(_file_path, 'w') as f:
+                for line in lines:
+                    if line.startswith('#') or line.startswith('@'):
+                        continue
+                    else:
+                        f.write(line + '\n')
+
+    def file_check(file_list):
+        for f in file_list:
+            file_path = os.path.join(dep_dir, f)
             my_file = os.path.isfile(file_path)
-            print (file_path)
+            print(file_path)
             if my_file:
                 pass
             else:
@@ -86,10 +126,12 @@ def main():
 
         elif pkg_type == 'pip':
             pkg_items = pkg.split()
-            pkg_repo = 'pip'
+            pkg_repo = pkg_items[2]
+            if pkg_type in pkg_repo:
+                pkg_repo = pkg_type
             version = pkg_items[1].replace('(', '')
             version = version.replace(')', '')
-            pkg_fmt_name = pkg_items[0] + '=' + version
+            pkg_fmt_name = pkg_items[0] + '==' + version
 
         return pkg_fmt_name, pkg_repo
 
@@ -99,25 +141,25 @@ def main():
                 file_name = repo.replace('/', '')
                 file_name = file_name.replace('@', '')
                 file_name = f'{pkg_type}-{file_name}.yml'
-                file_path = os.path.join(dep_path, file_name)
+                file_path = os.path.join(dep_dir, file_name)
                 with open(file_path, 'w') as f:
-                    d = {file_name: sorted(merged_sets[repo])}
+                    d = {file_name: sorted(merged_sets[repo], key=str.lower)}
                     yaml.dump(d, f, indent=4, default_flow_style=False)
 
         elif pkg_type == 'conda':
             for repo in merged_sets:
                 file_name = f'{pkg_type}-{repo}.yml'
-                file_path = os.path.join(dep_path, file_name)
+                file_path = os.path.join(dep_dir, file_name)
                 with open(file_path, 'w') as f:
-                    d = {file_name: sorted(list(merged_sets[repo]))}
+                    d = {file_name: sorted(list(merged_sets[repo]), key=str.lower)}
                     yaml.dump(d, f, indent=4, default_flow_style=False)
 
         elif pkg_type == 'pip':
             for repo in merged_sets:
                 file_name = f'{pkg_type}.yml'
-                file_path = os.path.join(dep_path, file_name)
+                file_path = os.path.join(dep_dir, file_name)
                 with open(file_path, 'w') as f:
-                    d = {file_name: sorted(merged_sets[repo])}
+                    d = {file_name: sorted(merged_sets[repo], key=str.lower)}
                     yaml.dump(d, f, indent=4, default_flow_style=False)
 
     def get_repo_list(pkgs, pkg_type):
@@ -145,23 +187,31 @@ def main():
         if pkg_type == 'pip':
             for pkg in pkgs:
                 # pkg_items = pkg.split()
-                repo = 'pip'
-                if repo not in repo_list:
-                    repo_list.append(repo)
+                if '<pip>' in pkg:
+                    repo = 'pip'
+                    if repo not in repo_list:
+                        repo_list.append(repo)
 
         return repo_list
 
     def merge_function(pre_files, post_files, pkg_type):
+        """ Merges packages of a given type listed in a collection of files
+        collected 'post' installation and 'pre' installation for various
+        environments.
+        The merged set of 'pre' packages is removed from the merge set of
+        'post' packages to arrive at the list of installed packages across
+        all environments.
+        """
 
         # generate pre paths
         pre_paths = []
         for file in pre_files:
-            pre_paths.append(os.path.join(dep_path, file))
+            pre_paths.append(os.path.join(dep_dir, file))
 
         # Generate post paths
         post_paths = []
         for file in post_files:
-            post_paths.append(os.path.join(dep_path, file))
+            post_paths.append(os.path.join(dep_dir, file))
 
         # Loop through the files
         pkgs = {}  # # {file:{repo:{pre:[], post: []}
@@ -220,8 +270,8 @@ def main():
 
         write_merged_files(merged_sets, pkg_type)
 
-    file_check(pip_pre_files)
-    file_check(pip_post_files)
+    file_check(yum_pre_files)
+    file_check(yum_post_files)
     merge_function(yum_pre_files, yum_post_files, 'yum')
     file_check(conda_pre_files)
     file_check(conda_post_files)

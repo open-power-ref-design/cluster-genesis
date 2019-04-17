@@ -60,7 +60,8 @@ _pup()
             files=`ls "$pup_path"software/*.py | sed -E 's/(.+)\///'`
             COMPREPLY=( $( compgen -W "${files[@]}" -- ${cur} ) )
         else
-            opts="--prep --init-clients --install --status --README --eval --non-interactive"
+            opts="--prep --init-clients --install --status --README --eval \
+                  --non-interactive --engr-mode"
             opts+="$comm_opts"
             COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         fi
