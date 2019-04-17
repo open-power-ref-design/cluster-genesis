@@ -7,3 +7,4 @@
     state: present
   with_items: "{{ groups['all'] }}" 
   register: resolve_hostname
+  become: yes
