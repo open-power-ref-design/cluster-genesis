@@ -1296,7 +1296,11 @@ def pxelinux_set_default(server,
     kopts_base = (f"ksdevice=bootif lang=  kssendmac text")
 
     if kickstart is not None:
-        kopts_base += f"  ks=http://{server}/{kickstart}"
+        if 'ubuntu' in kernel.lower():
+            ks_key = 'url'
+        else:
+            ks_key = 'ks'
+        kopts_base += f"  {ks_key}=http://{server}/{kickstart}"
 
     if kopts is not None:
         kopts = kopts_base + f"  {kopts}"
@@ -1308,13 +1312,19 @@ def pxelinux_set_default(server,
 
     with open(default, 'w') as file_object:
         file_object.write(dedent(f"""\
-            default linux
+            DEFAULT {kernel.split('/')[1]}
 
-            label linux
-              kernel http://{server}/{kernel}
-              initrd http://{server}/{initrd}
-              ipappend 2
-              append  {kopts}
+            LABEL local
+              MENU LABEL (local)
+              MENU DEFAULT
+              LOCALBOOT -1
+
+            LABEL {kernel.split('/')[1]}
+              MENU LABEL PXE Install: {kernel.split('/')[1]}
+              KERNEL http://{server}/{kernel}
+              INITRD http://{server}/{initrd}
+              IPAPPEND 2
+              APPEND  {kopts}
 
         """))
 
@@ -1536,7 +1546,7 @@ def parse_rpm_filenames(filename):
                 basename.append(bn)
                 version.append(ver)
     elif isinstance(filename, str):
-        res = re.searc(pattern_basename, filename)
+        res = re.search(pattern_basename, filename)
         if res:
             basename = res.group(1)
         res = re.search(pattern_version, filename)

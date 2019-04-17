@@ -47,6 +47,10 @@ IPR = IPRoute()
 PROFILE = os.path.join(GEN_PATH, 'profile.yml')
 NODE_LIST = os.path.join(GEN_PATH, 'node_list.yml')
 
+HTTP_ROOT_DIR = '/srv'
+OSINSTALL_HTTP_DIR = 'osinstall'
+CLIENT_STATUS_DIR = '/var/pup_install_status/'
+
 
 def osinstall(profile_path):
     log = logger.getlogger()
@@ -88,8 +92,8 @@ def dnsmasq_configuration(profile_object):
 
 
 def extract_install_image(profile_object):
-    http_root = '/srv'
-    http_osinstall = 'osinstall'
+    http_root = HTTP_ROOT_DIR
+    http_osinstall = OSINSTALL_HTTP_DIR
 
     p = profile_object.get_node_profile_tuple()
 
@@ -103,8 +107,8 @@ def extract_install_image(profile_object):
 
 
 def render_kickstart(profile_object, kickstart_template=None):
-    http_root = '/srv'
-    http_osinstall = 'osinstall'
+    http_root = HTTP_ROOT_DIR
+    http_osinstall = OSINSTALL_HTTP_DIR
 
     p_netw = profile_object.get_network_profile_tuple()
     p_node = profile_object.get_node_profile_tuple()
@@ -116,7 +120,7 @@ def render_kickstart(profile_object, kickstart_template=None):
     if kickstart_template is None:
         if 'ubuntu' in image_name.lower():
             kickstart_template = os.path.join(get_os_images_path(),
-                                              'config/ubuntu-default.seed')
+                                              'config/ubuntu-default.seed.j2')
         elif 'rhel' in image_name.lower():
             kickstart_template = os.path.join(get_os_images_path(),
                                               'config/RHEL-7-default.ks.j2')
@@ -161,20 +165,40 @@ def render_kickstart(profile_object, kickstart_template=None):
     return kickstart
 
 
+def copy_pup_report_scripts():
+    http_root = HTTP_ROOT_DIR
+    http_osinstall = OSINSTALL_HTTP_DIR
+    for filename in os.listdir(os.path.join(get_os_images_path(), 'config')):
+        if filename.endswith('.sh'):
+            u.copy_file(os.path.join(get_os_images_path(), 'config', filename),
+                        os.path.join(http_root, http_osinstall))
+
+
 def pxelinux_configuration(profile_object, kernel, initrd, kickstart):
     log = logger.getlogger()
     http_osinstall = 'osinstall'
-    p = profile_object.get_network_profile_tuple()
-    pxe_network = IPNetwork(p.pxe_subnet_cidr)
+
+    p_netw = profile_object.get_network_profile_tuple()
+    p_node = profile_object.get_node_profile_tuple()
+
+    pxe_network = IPNetwork(p_netw.pxe_subnet_cidr)
     server = ip_route_get_to(str(pxe_network.ip))
     if server not in pxe_network:
         log.error(f'No direct route to PXE subnet! route={server}')
+
+    kopts = None
+    if 'ubuntu' in kernel.lower():
+        kopts = ('netcfg/dhcp_timeout=1024 netcfg/do_not_use_netplan=true '
+                 f'hostname={p_node.hostname} domain=localdomain ')
+        if kickstart is not None:
+            kopts += 'netcfg/choose_interface=auto auto-install/enable=true'
 
     u.pxelinux_set_default(
         server=server,
         kernel=os.path.join(http_osinstall, kernel),
         initrd=os.path.join(http_osinstall, initrd),
-        kickstart=kickstart)
+        kickstart=kickstart,
+        kopts=kopts)
 
 
 def initiate_pxeboot(profile_object, node_list_file):
@@ -649,12 +673,13 @@ class Pup_form(npyscreen.ActionFormV2):
                         else:
                             selected_nodes = []
                             for index in self.fields[item].value:
-                                bmc_ip = self.fields['node_list'].\
-                                    values[index].split(', ')[3]
-                                bmc_mac = self.fields['node_list'].\
-                                    values[index].split(', ')[2]
-                                selected_nodes.append({'bmc_ip': bmc_ip,
-                                                       'bmc_mac': bmc_mac})
+                                data = self.fields['node_list'].\
+                                    values[index].split(', ')
+
+                                selected_nodes.append({'serial': data[0],
+                                                       'model': data[1],
+                                                       'bmc_mac': data[2],
+                                                       'bmc_ip': data[3]})
                             with open(NODE_LIST, 'w') as f:
                                 yaml.dump(selected_nodes, f, indent=4,
                                           default_flow_style=False)
@@ -1025,6 +1050,7 @@ class Pup_form(npyscreen.ActionFormV2):
 
     def configure_services(self):
         notify_title = "Configuring Services"
+        status_dir = CLIENT_STATUS_DIR
 
         msg = "Adding firewall rules... "
         npyscreen.notify(msg, title=notify_title)
@@ -1037,7 +1063,26 @@ class Pup_form(npyscreen.ActionFormV2):
 
         msg += "done\nInstall and configure nginx... "
         npyscreen.notify(msg, title=notify_title)
-        rc = nginx_setup(root_dir='/srv')
+        rc = nginx_setup(root_dir=HTTP_ROOT_DIR)
+        if rc != 0:
+            msg += "ERROR\nFailed to configure nginx!"
+            npyscreen.notify_confirm(msg, title=notify_title, editw=1)
+            self.next_form = None
+            return
+
+        if not os.path.isdir(status_dir):
+            os.mkdir(status_dir)
+            os.chmod(status_dir, 0o777)
+        nginx_location = {f'/client_status/':
+                          [f'alias {status_dir}',
+                           'dav_methods PUT',
+                           'create_full_put_path on',
+                           'dav_access user:rw group:rw all:rw',
+                           'allow all',
+                           'autoindex on']}
+
+        rc = u.nginx_modify_conf('/etc/nginx/conf.d/server1.conf',
+                                 locations=nginx_location)
         if rc != 0:
             msg += "ERROR\nFailed to configure nginx!"
             npyscreen.notify_confirm(msg, title=notify_title, editw=1)
@@ -1067,6 +1112,10 @@ class Pup_form(npyscreen.ActionFormV2):
         npyscreen.notify(msg, title=notify_title)
         kickstart = render_kickstart(self.parentApp.prof)
 
+        msg += "done\nCopying pup report scripts... "
+        npyscreen.notify(msg, title=notify_title)
+        copy_pup_report_scripts()
+
         msg += "done\nGenerate pxelinux configuration... "
         npyscreen.notify(msg, title=notify_title)
         pxelinux_configuration(self.parentApp.prof, kernel, initrd, kickstart)
@@ -1082,6 +1131,11 @@ class Pup_form(npyscreen.ActionFormV2):
         msg += "done\nReset node boot device to disk... "
         npyscreen.notify(msg, title=notify_title)
         reset_bootdev(self.parentApp.prof, NODE_LIST)
+
+        msg += "done\nSet pxelinux default to local boot... "
+        npyscreen.notify(msg, title=notify_title)
+        u.line_in_file('/var/lib/tftpboot/pxelinux.cfg/default',
+                       r'^default=.+', 'default local')
 
         msg += "done\n"
         npyscreen.notify_confirm(msg, title=notify_title, editw=1)
