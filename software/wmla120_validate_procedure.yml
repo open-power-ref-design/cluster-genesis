@@ -8,7 +8,7 @@
 - description: Verify synchronized time setup across cluster
   tasks: validate_synchronized_time.yml
 
-- description: Validate cluster nodes hardware
+- description: Validate cluster nodes Hardware
   tasks: validate_cluster_nodes_hardware.yml
 
 - description: Validate Cluster Nodes Software
