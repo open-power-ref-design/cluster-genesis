@@ -1,4 +1,22 @@
 ---
+##  Create mounts with mount module in a list
+### How to use
+#### Example list to be used with file  
+# route_points:
+#   - device: "{{ interface }}"
+    # prefix: "{{ gateway_ip_address }}/24"
+    # next_hop: "{{ srv_ip_sub }}"
+    # state: present
+#   - device: "{{ interface }}"
+    # prefix: "{{ gateway_ip_address }}/24"
+    # next_hop: "{{ srv_ip_sub }}"
+    # state: absent
+#### In your ansible yaml file call it by:
+# - name: Create  mounts 
+#   include: "mount.yml"
+#   become: yes
+#
+### Input List expects src, path, state, prefix, and fstype  to be defined 
 # - name: Gathering data constants
   # set_fact:
     # install_mount_dir: ""

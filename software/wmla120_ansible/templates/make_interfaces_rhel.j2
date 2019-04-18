@@ -48,7 +48,9 @@ BROADCAST={{ item.broadcast }}
 DOMAIN={{ item.dnsearch }}
 {% endif %}
 {% if item.dnsnameservers is defined %}
-DNS1={{ item.dnsnameservers }}
+{% for i in range(item.dnsnameservers.split(",") | length) %}
+DNS{{ i+1 }}={{ item.dnsnameservers.split(",")[i] }}
+{% endfor %}
 {% endif %}
 {% if item.defaultroute is defined %}
 DEFROUTE={{ item.defaultroute }}

@@ -1,4 +1,19 @@
 ---
+##  Call parted  module in a list
+### How to use
+#### Example list to be used with file  
+# run_parted:
+#   - device: /dev/sdb
+#     number: 1
+#     state: present
+#     flags: "[ lvm ]"
+#### In your ansible yaml file call it by:
+# - name: Create partition from device 
+#   include: "parted.yml"
+#   become: yes
+#
+### Input List expects device, number  to be defined 
+### all the other attributes are not expected  
 - name: Set defaults for parted
   set_fact:
     run_parted: 
@@ -15,4 +30,5 @@
     state: "{{ item.state | default(omit)}}"
     unit: "{{ item.unit | default(omit)}}"
     flags: "{{ item.unit | default(omit)}}"
-  with_items: "{{ run_parted }}" 
+  with_items: "{{ run_parted }}"
+  when: item.device is defined and item.number is defined 

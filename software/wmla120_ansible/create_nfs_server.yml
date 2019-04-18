@@ -1,4 +1,24 @@
 ---
+##  Call Service module in a list
+### How to use
+#### Example list to be used with file  
+    # mount_server_points:
+      # - path: "/your/path"
+        # access:
+          # - hostname: "9.39.89.3/24"
+            # opts:
+              # - 'rw'
+              # - 'sync'
+              # - 'no_subtree_check'
+              # - 'no_root_check'
+#
+#
+#### In your ansible yaml file call it by:
+# - name: Create nfs server in exports 
+#   include: "create_nfs_server.yml"
+#   become: yes
+#
+### Input List expects path, hostname, opts to be defined
 # Example of the data needed to run this yaml
 # - name: Gathering data constants
   # set_fact:
@@ -11,7 +31,6 @@
       # - path: "{{ install_mount_dir }}"
         # access:
           # - hostname: "{{ nfs_ip_address }}"
-            # prefix: "24"
             # opts:
               # - 'rw'
               # - 'sync'

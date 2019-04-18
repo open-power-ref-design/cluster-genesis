@@ -1,4 +1,69 @@
 ---
+##  This ansible task list creates an nfs server 
+## by these steps
+   # Install additional software repositories
+   # Install additional software packages
+   # Create partition on device
+   # Add filesystem to device
+   # Create directory
+   # Mount new directory
+   # Create nfs server
+   # Check if firewall-cmd is installed
+   # Check if firewalld is running
+   # Run firewalld to enable nfs services
+   # Restart nfs server service
+### How to use need to add mount_server_points list
+### also need to have the device created or 
+#### Example list to be used with file  
+# network_points:
+#   - device: "eth39"
+#     prefix:  24
+#     address: "192.244.89.3"
+#     bootproto: "none"
+#     defaultroute: "YES"
+#     gateway: "192.244.65.3"
+#     state: present
+#     dnsnameservers: "9.3.244.200,9.0.128.50"
+#     hostname: "server-1"
+#
+#### Example list to be used with file to create device  
+    # run_parted:
+      # - device: /dev/sdb
+        # number: 1
+        # state: present
+        # flags: "[ lvm ]"
+#### Example list to be used with file to create filesystem on device  
+    # run_filesystem:
+      # - dev:  /dev/sdb1
+        # fstype: ext4
+    
+#### Example list to be used with file to create the nfs server
+#### can create multiple  nfs server. 
+    # mount_server_points:
+      # - path: "{{ install_mount_dir }}"
+        # access:
+          # - hostname: "9.0.0.0/8"
+            # opts:
+              # - 'rw'
+              # - 'sync'
+              # - 'no_root_squash'
+          # - hostname: "192.168.0.0/16"
+            # opts:
+              # - 'rw'
+              # - 'sync'
+              # - 'no_root_squash'
+        # owner: "nfsnobody"
+        # group: "nfsnobody"
+        # mode: "u=rwx,g=rx,o=rx"
+#
+#
+#### In your ansible yaml file call it by:
+# - name: Create nfs server task  
+#   include: "nfs_server.yml"
+#   become: yes
+#
+### Input List expects device, state and hostname to be defined 
+### all the other attributes are not expected  
 - name: Gathering data constants
   set_fact:
     install_mount_dir: ""
