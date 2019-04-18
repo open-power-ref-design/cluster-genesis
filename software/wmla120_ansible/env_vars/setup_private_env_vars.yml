@@ -31,6 +31,29 @@ route_points:
     next_hop: "{{ srv_ip_sub }}"
     state: absent
     hostname: "server-1"
+yum_packages:
+  - name: nfs-utils 
+    state: present 
+file_points:
+  - path: "{{ install_mount_dir }}"
+    owner: nfsnobody
+    group: nfsnobody
+    mode: "u=rwx,g=rx,o=rx"
+    state: directory
+  - path: "{{ install_mount_dir }}/jja"
+    owner: rhel76 
+    group: rhel76
+    mode: "u=rwx,g=rx,o=rx"
+    state: directory
+    recurse: yes
+    force: yes
+  - path: "{{ install_mount_dir }}/dli_result_fs"
+    owner: nfsnobody 
+    group: nfsnobody
+    mode: "u=rwx,g=rx,o=rx"
+    state: directory
+    recurse: yes
+    force: yes
 mount_points:
   - path: "{{ install_mount_dir }}"
     src: "{{ nfs_ip_address }}:{{ external_dir }}"
