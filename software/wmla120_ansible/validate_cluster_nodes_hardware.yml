@@ -11,16 +11,19 @@
   set_fact:
     mountname: "/" #root_filesystem
     cond_dli_size: 33000000 #kilobytes
-    mgmt_ram: 64000 #Megabytes
-    compute_ram: 32000 #Megabytes
+    mgmt_ram: 64  #GB
+    compute_ram: 32  #GB
 
 #Verify RAM space
 - name: gather Mangement Host RAM
-  command: " echo {{ hostvars['localhost']['ansible_memory_mb']['real']['total'] }} "
+#  command: " echo {{ hostvars['localhost']['ansible_memory_mb']['real']['total'] }} "
+  shell: "free -t -g | tail -n 1 | awk '{ print $2}'"
+  delegate_to: localhost
   register: mgmt_ram_size
 
 - name: Gather copute Host RAM
-  command: "echo {{ ansible_memory_mb.real.total }}"
+  shell: "free -t -g | tail -n 1 | awk '{ print $2}'"
+#  command: "echo {{ ansible_memory_mb.real.total }}"
   register: compute_ram_size
 
 - name: Verify RAM Requirements
@@ -28,42 +31,33 @@
     that:
       - "{{ mgmt_ram_size.stdout }} >=  {{ mgmt_ram }}"
       - "{{ compute_ram_size.stdout }} >=  {{ compute_ram }}"
-    fail_msg: "RAM Requirement failed. Verify there is RAM available. (CMD: free -m)"
+    fail_msg: "RAM Requirement failed. Verify there is RAM available. (CMD: free )"
 
 - name: Debug - Verify RAM Requirements
   debug:
     msg:
-      - " {{mgmt_ram_size.stdout}} >= {{mgmt_ram}} "
+      - " {{ mgmt_ram_size.stdout }} >= {{ mgmt_ram }} "
       - "{{ compute_ram_size.stdout }} >=  {{ compute_ram }}"
   register: ram_status
 
 #Verify Hdisk space
-- name: Grab Mgmt host disk data
-  command: "echo {{ host_to.size_available }}"
-  vars:
-    host_to: "{{ hostvars['localhost']['ansible_mounts'] | selectattr('mount','equalto',mountname) | list | first }}"
-  register: mgmt_disk
-
-- name: Grab compute host disk data
-  command: "echo {{ mount.size_available }}"
-  vars:
-    mount: "{{ ansible_mounts | selectattr('mount','equalto',mountname) | list | first }}"
-  register: compute_disk
+- name: Verify disk data
+  shell: "df {{ mountname }} --output='avail' | tail -n 1"
+#  command: "echo {{ host_to.size_available }}"
+#  vars:
+#    host_to: "{{ hostvars['localhost']['ansible_mounts'] | selectattr('mount','equalto',mountname) | list | first }}"
+  register: disk_space
 
 - name: Verify free space is sufficent for software install
   assert:
     that:
-      - "{{ mgmt_disk.stdout }} >= {{ cond_dli_size }}"
-      - "{{ compute_disk.stdout }} >= {{ cond_dli_size }}"
-    fail_msg: "Not enough Disk Space on '{{ mountname }}'"
-  register: space_status
+      - "{{ disk_space.stdout }} >= {{ cond_dli_size }}"
+    fail_msg: "Not enough disk space on '{{ mountname }}' mounted drive."
 
 - name: Debug - Verify free space is sufficent for software install
   debug:
     msg:
-      - "mgmt disk size: {{ mgmt_disk.stdout }}"
-      - "compute disk size: {{ compute_disk.stdout }}"
-      - "{{ space_status }}"
+      - "mgmt disk size: {{ disk_space.stdout }}"
 
 #Verify System Arch
 - name: Check local system arch
@@ -74,15 +68,10 @@
   command: "/usr/bin/lscpu"
   register: client_arch
 
-- name: Debug - Does POWER8 Exists in client arch
-  command: echo "POWER8 Exists"
-  when: client_arch.stdout.find('mgmt_arch.stdout') != -1
-  register: sys_arch_status
-
 - name: Check if Arch Unity Exists
   assert:
     that:
-      - client_arch.stdout.find('{{mgmt_arch.stdout}}') != -1
+      - client_arch.stdout.find('{{ mgmt_arch.stdout }}') != -1
     fail_msg: "Architecture varies between nodes. If aware of hybrid nodes, please continue"
   register: arch_unity
 

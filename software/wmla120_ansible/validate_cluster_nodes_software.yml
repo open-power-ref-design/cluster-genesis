@@ -1,22 +1,14 @@
 ---
-- name: Set Variables
-  set_fact:
-    distro: "RedHat"
-    version: "7.6"
-
-- name: Verify OS Information
-  debug:
-    msg: "{{ item }}"
-  with_items:
-    - "{{ ansible_distribution }}"
-    - "{{ ansible_distribution_version }}"
+- name: Gather system release information
+  command: " cat /etc/system-release-cpe"
+  register: rel_info
 
 - name: Verify unity of all nodes
   assert:
     that:
-      - '{{ ansible_distribution == distro }}'
-      - '{{ ansible_distribution_version == version }}'
-    fail_msg: "One or More nodes does not match minimal software req:  RedHat 7.6"
+      - rel_info.stdout.find('7.6') != -1
+      - rel_info.stdout.find('redhat') != -1
+    fail_msg: "One or more nodes does not meet software requirements (RedHat 7.6)"
   register: unity_state
 
 - name: DEBUG - Verify unity of all nodes
