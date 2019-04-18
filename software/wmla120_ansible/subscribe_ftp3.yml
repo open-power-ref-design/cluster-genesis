@@ -1,4 +1,13 @@
 ---
+# Manage Red hat satellite through ansible
+# to run this task list you have to add these variables
+#
+# ftp_user: "username"
+# ftp_pass: "pass"
+# ftp3_site: "https://ftp3.linux.ibm.com/dl.php?file=/redhat/ibm-rhsm.sh"
+# ftp3_user: "ftp3_user"
+# ftp3_pass: "ftp3_pass"
+# will attempt to subscribe to the ftp3 satellite
 - name: Import Data 
   include_vars: "env_vars/setup_ftp3_env_vars.yml"
 

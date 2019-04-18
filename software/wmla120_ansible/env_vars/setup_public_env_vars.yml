@@ -15,6 +15,7 @@ network_points:
     defaultroute: "YES"
     gateway: "192.168.65.3"
     state: present
+    dnsnameservers: "9.3.1.200,9.0.128.50"
     hostname: "server-1"
 
 route_points:
@@ -90,11 +91,11 @@ yum_repos:
     state: present 
     description: EPEL YUM repo
     baseurl: "https://download.fedoraproject.org/pub/epel/$releasever/$basearch/"
-# run_service:
-  # - name: "nfs-server"
-    # state: "restarted"
-    # enabled: "yes"
-    # become: yes
+run_service:
+  - name: "network"
+    state: "restarted"
+    enabled: "yes"
+    become: yes
 # run_parted:
   # - device: /dev/sdb
     # number: 1
