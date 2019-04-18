@@ -1,16 +1,16 @@
 ---
-#- description: Validate FQDN setup on cluster nodes
-#  tasks: validate_fqdn.yml
+- description: Validate FQDN setup on cluster nodes
+  tasks: validate_fqdn.yml
 
-#- description: Check Firewall setup
-#  tasks: validate_firewall_setup.yml
+- description: Check Firewall setup
+  tasks: validate_firewall_setup.yml
 
 - description: Verify synchronized time setup across cluster
   tasks: validate_synchronized_time.yml
 
-#- description: Validate cluster nodes hardware
-#  tasks: validate_cluster_nodes_hardware.yml
+- description: Validate cluster nodes hardware
+  tasks: validate_cluster_nodes_hardware.yml
 
-#- description: Validate Cluster Nodes Software
-#  tasks: validate_cluster_nodes_software.yml
+- description: Validate Cluster Nodes Software
+  tasks: validate_cluster_nodes_software.yml
 
