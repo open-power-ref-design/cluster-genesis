@@ -101,7 +101,7 @@ def extract_install_image(profile_object):
 
     image_dir = os.path.join(http_root, http_osinstall)
     if not os.path.isdir(image_dir):
-        os.mkdir(image_dir)
+        os.makedirs(image_dir)
         os.chmod(image_dir, 0o755)
     kernel, initrd = u.extract_iso_image(p.iso_image_file, image_dir)
 
@@ -1335,7 +1335,7 @@ class Pup_form(npyscreen.ActionFormV2):
             return
 
         if not os.path.isdir(status_dir):
-            os.mkdir(status_dir)
+            os.makedirs(status_dir)
             os.chmod(status_dir, 0o777)
         nginx_location = {f'/client_status/':
                           [f'alias {status_dir}',
