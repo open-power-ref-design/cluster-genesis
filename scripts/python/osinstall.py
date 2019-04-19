@@ -419,7 +419,7 @@ def get_install_status(node_dict_file, colorized=False):
     return tabulate(table, headers="firstrow")
 
 
-def reset_bootdev(profile_object, node_dict_file):
+def reset_bootdev(profile_object, node_dict_file, bmc_ip='all'):
     log = logger.getlogger()
     p_node = profile_object.get_node_profile_tuple()
     nodes = yaml.load(open(node_dict_file))
@@ -427,14 +427,15 @@ def reset_bootdev(profile_object, node_dict_file):
         ip = node['bmc_ip']
         userid = p_node.bmc_userid
         passwd = p_node.bmc_password
-        bmc = Bmc(ip, userid, passwd)
-        if bmc.is_connected():
-            log.debug(f"Successfully connected to BMC: host={ip} "
-                      f"userid={userid} password={passwd}")
-            bmc.host_boot_source(source='disk')
-        else:
-            log.error(f"Unable to connect to BMC: host={ip} "
-                      f"userid={userid} password={passwd}")
+        if bmc_ip == 'all' or bmc_ip == ip:
+            bmc = Bmc(ip, userid, passwd)
+            if bmc.is_connected():
+                log.debug(f"Successfully connected to BMC: host={ip} "
+                          f"userid={userid} password={passwd}")
+                bmc.host_boot_source(source='disk')
+            else:
+                log.error(f"Unable to connect to BMC: host={ip} "
+                          f"userid={userid} password={passwd}")
 
 
 class Profile():
@@ -1459,6 +1460,8 @@ class Pup_form(npyscreen.ActionFormV2):
                 try:
                     if float(node['finish_time']) > float(node['start_time']):
                         total_nodes_finished += 1
+                        reset_bootdev(self.parentApp.prof, NODE_STATUS,
+                                      node['bmc_ip'])
                 except (KeyError, TypeError):
                     pass
             if 'other' in node_status:
