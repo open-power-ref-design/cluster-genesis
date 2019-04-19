@@ -35,7 +35,7 @@ from tabulate import tabulate
 import lib.logger as logger
 import lib.interfaces as interfaces
 from lib.genesis import get_package_path, get_sample_configs_path, \
-    get_os_images_path
+    get_os_images_path, get_nginx_root_dir
 import lib.utilities as u
 from nginx_setup import nginx_setup
 from ip_route_get_to import ip_route_get_to
@@ -49,7 +49,7 @@ IPR = IPRoute()
 PROFILE = os.path.join(GEN_PATH, 'profile.yml')
 NODE_STATUS = os.path.join(GEN_PATH, 'osinstall_node_status.yml')
 
-HTTP_ROOT_DIR = '/srv/pup'
+HTTP_ROOT_DIR = get_nginx_root_dir()
 OSINSTALL_HTTP_DIR = 'osinstall'
 CLIENT_STATUS_DIR = '/var/pup_install_status/'
 
