@@ -356,7 +356,7 @@ def get_install_status(node_dict_file, colorized=False):
         bold = ''
         endc = ''
 
-    table = [[f'{bold}Serial', 'Model', 'BMC MAC Address', 'BMC IP Address',
+    table = [[f'{bold}Serial', 'BMC MAC Address', 'BMC IP Address',
               'Host IP Address', 'OS Info', f'Install Status{endc}']]
     for bmc_mac, value in nodes['selected'].items():
         color = None
@@ -381,15 +381,16 @@ def get_install_status(node_dict_file, colorized=False):
                                            gmtime(time() - start_time)))
         else:
             install_status = "-"
-        table.append([value['serial'], value['model'], bmc_mac,
-                      value['bmc_ip'], pxe_ip, os_pretty_name, install_status])
+        table.append([value['serial'], bmc_mac, value['bmc_ip'], pxe_ip,
+                      os_pretty_name, install_status])
         if colorized and color is not None:
             table[-1][0] = color + table[-1][0]
             table[-1][-1] = table[-1][-1] + u.Color.endc
     if 'other' in nodes:
         for pxe_ip, value in nodes['other'].items():
             color = None
-            os_pretty_name = _try_dict_key(value, 'report_data', 'PRETTY_NAME')
+            os_pretty_name = _try_dict_key(value, 'report_data', 'ID') + " "
+            os_pretty_name += _try_dict_key(value, 'report_data', 'VERSION_ID')
             if _try_dict_key(value, 'start_time') != '-':
                 if _try_dict_key(value, 'finish_time') != '-':
                     color = u.Color.green
@@ -409,7 +410,7 @@ def get_install_status(node_dict_file, colorized=False):
                                                gmtime(time() - start_time)))
             else:
                 install_status = "-"
-            table.append(['?', '?', '?', '?', pxe_ip, os_pretty_name,
+            table.append(['?', '?', '?', pxe_ip, os_pretty_name,
                           install_status])
             if colorized and color is not None:
                 table[-1][0] = color + table[-1][0]
