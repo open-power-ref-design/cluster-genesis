@@ -755,7 +755,7 @@ class Gen(object):
                                'class named "software"')
                 sys.exit(1)
             else:
-                soft = software_module.software(self.args.eval, self.args.non_interactive, self.args.arch, self.args.proc_family, self.args.engr_mode)
+                soft = software_module.software(self.args.eval, self.args.non_interactive, self.args.arch, self.args.proc_family, self.args.engr_mode, self.args.base_dir)
             try:
                 if (self.args.prep is True or self.args.all is True) and self.args.step is not None:
                     try:

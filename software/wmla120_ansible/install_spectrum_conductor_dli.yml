@@ -1,7 +1,7 @@
 ---
 - name: Get filename from software-vars.yml
   set_fact:
-    file: "{{ content_files['spectrum-dli'].split('/')[-1] }}"
+    file: "{{ content_files['spectrum-dli'].split('/', 3)[-1] }}"
 
 - name: Get route to client
   command: "{{ hostvars['localhost']['python_executable_local'] }} \
@@ -15,7 +15,7 @@
     owner: "{{ ansible_user_id }}"
     group: "{{ ansible_user_id }}"
     mode: 0744
-    url: "http://{{ host_ip.stdout }}/spectrum-dli/{{ file }}"
+    url: "http://{{ host_ip.stdout }}/{{ file }}"
     dest: "{{ ansible_env.HOME }}"
 
 - name: Include configuration environment variables
@@ -44,8 +44,12 @@
       egocomputehost: EGOCOMPUTEHOST=N
   when: inventory_hostname not in groups['master']
 
+- name: Get enterprise license filename from software-vars.yml
+  set_fact:
+    filename: "{{ content_files['spectrum-dli'].split('/')[-1] }}"
+
 - name: Install IBM Spectrum Conductor DLI
-  shell: "{{ egocomputehost }} {{ ansible_env.HOME }}/{{ file }} --quiet"
+  shell: "{{ egocomputehost }} {{ ansible_env.HOME }}/{{ filename }} --quiet"
   environment: "{{ envs }}"
   args:
     executable: /bin/bash
