@@ -1355,8 +1355,8 @@ def pxelinux_set_local_boot(dir_path=None):
         if 'ubuntu' in linux_distribution(full_distribution_name=False):
             dir_path = '/tftpboot/pxelinux.cfg/'
 
-    line_in_file(os.path.join(dir_path, 'default'),
-                 r'^DEFAULT=.+', 'DEFAULT local')
+    replace_regex(os.path.join(dir_path, 'default'),
+                  r'^DEFAULT.*$', 'DEFAULT local')
 
 
 def firewall_add_services(services):
