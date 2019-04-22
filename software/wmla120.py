@@ -92,7 +92,7 @@ class software(object):
         self.base_filename = f'{self.my_name}' if self.arch == 'ppc64le' \
             else f'{self.my_name}_{self.arch}'
 
-        self._load_filelist()
+        #self._load_filelist()
         self.eng_mode = engr_mode
         yaml.add_constructor(YAMLVault.yaml_tag, YAMLVault.from_yaml)
         self.ana_platform_basename = '64' if self.arch == "x86_64" else self.arch
@@ -245,14 +245,44 @@ class software(object):
 
     def status(self, which='all'):
         self._update_software_vars()
-        self.prep_init()
-        self.status_prep(which)
+        if which == 'all':
+            self.status_prep(which = 'Firewall')
+            self.status_prep(which = 'Nginx Web Server')
+            for _item in self.content:
+                self.status_prep(_item)
+        else:
+            self.status_prep(which)
         self.prep_post()
 
-    def status_prep(self, which='all'):
+
+        exists = True
+        if which == 'all':
+            heading1(f'Preparation Summary for {self.repo_shortname}')
+            for item in self.state:
+                status = self.state[item]
+                it = (item + '                              ')[:39]
+                print(f'  {it:<40} : ' + status)
+                exists = exists and self.state[item] != '-'
+
+            gtg = 'Preparation complete. '
+            for item in self.state:
+                if 'not at release level' in self.state[item]:
+                    gtg = 'Some content is not at release level.'
+            for item in self.state.values():
+                if item == '-':
+                    gtg = f'{Color.red}Preparation incomplete{Color.endc}'
+            print(f'\n{bold(gtg)}\n')
+        else:
+            exists = self.state[which] != '-'
+            self.state[which] != '-'
+
+        return exists
+
+    def status_prep(self, which):
         #self.state = {}
 
         def yum_repo_status(item):
+            rc = True
             repo_id = item.repo_id.format(arch=self.arch)
             search_dir = f'{self.root_dir}repos/{repo_id}/**/repodata'
             repodata = glob.glob(search_dir, recursive=True)
@@ -262,9 +292,12 @@ class software(object):
                 self.state[item.desc] = 'Setup'
             else:
                 self.state[item.desc] = '-'
+                rc = False
+
+            return rc
 
         def content_status(item):
-            ver_mis = False
+            rc = True
             item_dir = item.path
             if self.eval_ver and hasattr(item, 'fileglob_eval'):
                 fileglob = item.fileglob_eval.format(arch=self.arch)
@@ -288,9 +321,12 @@ class software(object):
                     self.state[item.name] = ('Present')
             else:
                 self.state[item.name] = '-'
-            return ver_mis
+                rc = False
+
+            return rc
 
         def conda_repo_status(item):
+            rc = True
             repo_id = item.repo_id
             repo_name = item.repo_name
             if 'Main' in repo_name:
@@ -317,89 +353,24 @@ class software(object):
                 self.state[item.desc] = 'Setup'
             else:
                 self.state[item.desc] = '-'
+                rc = False
 
-    def nginx_status():
-        ret = True
-        temp_dir = 'nginx-test-dir-123'
-        abs_temp_dir = os.path.join(self.root_dir_nginx, temp_dir)
-        test_file = 'test-file.abc'
-        test_path = os.path.join(abs_temp_dir, test_file)
-        try:
-            rmtree(abs_temp_dir, ignore_errors=True)
-            os.mkdir(abs_temp_dir)
-            # os.mknod(test_file)
-            with open(test_path, 'x') as f:
-                f.close
-        except:
-            self.log.error('Failed trying to create temporary file '
-                           f'{test_path}. Check access privileges')
-            sys.exit('Exiting. Unable to continue.')
-        else:
-            cmd = f'curl -I http://127.0.0.1/{temp_dir}/{test_file}'
-            resp, _, _ = sub_proc_exec(cmd)
-            if 'HTTP/1.1 200 OK' in resp:
-                self.state[item] = 'Nginx is configured and running'
-            else:
-                print()
-                msg = ('Nginx is unable to access content under '
-                       f'{self.root_dir}.\n This can be due to SElinux '
-                       'configuration, access priveleges or other reasons.\n'
-                       'Please rectify before continuing.')
-                self.log.error(msg)
-                self.state[item] = '-'
-                ret = False
-        finally:
-            rmtree(abs_temp_dir, ignore_errors=True)
-        try:
-            rmtree(abs_temp_dir, ignore_errors=True)
-        except:
-            pass
+            return rc
 
-        return ret
-
-    def firewall_status():
-        cmd = 'firewall-cmd --list-all'
-        resp, _, _ = sub_proc_exec(cmd)
-        if re.search(r'services:\s+.+http', resp):
-            self.state[item] = "Running and configured for http"
-
-        #ver_mis = False
-        for _item in self.content:
-            item = self.content[_item]
-            if item.type == 'file':
-                ret = content_status(item)
-                ver_mis = ver_mis or ret
-                continue
-
-            # yum repos status
-            if item.type == 'yum':
-                yum_repo_status(item)
-                continue
-
-            # Firewall status
-            if item == 'Firewall':
-                cmd = 'firewall-cmd --list-all'
-                resp, _, _ = sub_proc_exec(cmd)
-                if not '(active)' in resp:
-                    self.state[item] = "Firewall is not running"
-                elif re.search(r'services:\s+.+http', resp):
-                    self.state[item] = "Running and configured for http"
-                continue
-
-            if item.type == 'conda':
-                conda_repo_status(item)
-
-            if item.type == 'simple':
+        def pypi_repo_status(which):
+                rc = True
                 if os.path.exists(f'{self.root_dir}repos/{item.repo_id}/simple/') and \
                         len(os.listdir(f'{self.root_dir}repos/{item.repo_id}/simple/')) >= 1:
-                    self.state[item.desc] = 'Setup'
+                    self.state[which] = 'Setup'
                 else:
-                    self.state[item.desc] = '-'
+                    self.state[which] = '-'
+                    rc = False
 
-            # Nginx web server status
-            if item == 'Nginx Web Server' and self._is_nginx_running():
+        def nginx_status(which):
+            rc = True
+            if self._is_nginx_running():
                 temp_dir = 'nginx-test-dir-123'
-                abs_temp_dir = os.path.join(self.root_dir, temp_dir)
+                abs_temp_dir = os.path.join(self.root_dir_nginx, temp_dir)
                 test_file = 'test-file.abc'
                 test_path = os.path.join(abs_temp_dir, test_file)
                 try:
@@ -407,80 +378,99 @@ class software(object):
                     os.mkdir(abs_temp_dir)
                     # os.mknod(test_file)
                     with open(test_path, 'x') as f:
-                        _ = f  # tox mug
-                        pass
+                        f.close
                 except:
                     self.log.error('Failed trying to create temporary file '
                                    f'{test_path}. Check access privileges')
                     sys.exit('Exiting. Unable to continue.')
                 else:
-                    self.state[item.desc] = '-'
-                continue
+                    cmd = f'curl -I http://127.0.0.1/{temp_dir}/{test_file}'
+                    resp, _, _ = sub_proc_exec(cmd)
+                    if 'HTTP/1.1 200 OK' in resp:
+                        self.state[which] = 'Nginx is configured and running'
+                    else:
+                        print()
+                        msg = ('Nginx is unable to access content under '
+                               f'{self.root_dir}.\n This can be due to SElinux '
+                               'configuration, access priveleges or other reasons.\n'
+                               'Please rectify before continuing.')
+                        self.log.error(msg)
+                        self.state[which] = '-'
+                        rc = False
+                finally:
+                    rmtree(abs_temp_dir, ignore_errors=True)
+                try:
+                    rmtree(abs_temp_dir, ignore_errors=True)
+                except:
+                    pass
 
-        # Firewall status
-#        item = 'Firewall'
-#        if item == 'Firewall':
-#            cmd = 'firewall-cmd --list-all'
-#            resp, _, _ = sub_proc_exec(cmd)
-#            if re.search(r'services:\s+.+http', resp):
-#                self.state[item] = "Running and configured for http"
-
-        # Nginx web server status
-        item = 'Nginx Web Server'
-        if item == 'Nginx Web Server':
-            temp_dir = 'nginx-test-dir-123'
-            abs_temp_dir = os.path.join(self.root_dir_nginx, temp_dir)
-            test_file = 'test-file.abc'
-            test_path = os.path.join(abs_temp_dir, test_file)
-            try:
-                rmtree(abs_temp_dir, ignore_errors=True)
-                os.mkdir(abs_temp_dir)
-                # os.mknod(test_file)
-                with open(test_path, 'x') as f:
-                    f.close
-            except:
-                self.log.error('Failed trying to create temporary file '
-                               f'{test_path}. Check access privileges')
-                sys.exit('Exiting. Unable to continue.')
             else:
-                cmd = f'curl -I http://127.0.0.1/{temp_dir}/{test_file}'
-                resp, _, _ = sub_proc_exec(cmd)
-                if 'HTTP/1.1 200 OK' in resp:
-                    self.state[item] = 'Nginx is configured and running'
-                else:
-                    print()
-                    msg = ('Nginx is unable to access content under '
-                           f'{self.root_dir}.\n This can be due to SElinux '
-                           'configuration, access priveleges or other reasons.')
-                    self.log.error(msg)
-                    self.state[item] = '-'
-            finally:
-                rmtree(abs_temp_dir, ignore_errors=True)
-            try:
-                rmtree(abs_temp_dir, ignore_errors=True)
-            except:
-                pass
+                rc = False
 
-        exists = True
-        if which == 'all':
-            heading1(f'Preparation Summary for {self.repo_shortname}')
-            for item in self.state:
-                status = self.state[item]
-                it = (item + '                              ')[:39]
-                print(f'  {it:<40} : ' + status)
-                exists = exists and self.state[item] != '-'
+            return rc
 
-            gtg = 'Preparation complete. '
-            if ver_mis:
-                gtg += 'Some content is not at release level.'
-            for item in self.state.values():
-                if item == '-':
-                    gtg = f'{Color.red}Preparation incomplete{Color.endc}'
-            print(f'\n{bold(gtg)}\n')
+        def firewall_status(which):
+            rc = True
+            cmd = 'firewall-cmd --list-all'
+            resp, err, _ = sub_proc_exec(cmd)
+            if re.search(r'services:\s+.+http', resp):
+                self.state[which] = "Running and configured for http"
+            elif 'FirewallD is not running' in err:
+                self.state[which] = "Not running"
+
+            return rc
+
+        if which in self.content:
+        #ver_mis = False
+        #for _item in self.content:
+            item = self.content[which]
+            if item.type == 'file':
+                rc = content_status(item)
+                #ver_mis = ver_mis or ret
+
+            # yum repos status
+            if item.type == 'yum':
+                rc = yum_repo_status(item)
+
+
+            if item.type == 'conda':
+                rc = conda_repo_status(item)
+
+            if item.type == 'simple':
+                rc = pypi_repo_status(item.desc)
+
+            # Nginx web server status
+        elif which == 'Nginx Web Server':
+            rc = nginx_status(which)
+
+        elif which == 'Firewall':
+            rc = firewall_status(which)
+
         else:
-            exists = self.state[which] != '-'
+            self.log.error(f'Item {which} not a valid item for status.')
+            rc = False
 
-        return exists
+        return rc
+        #exists = True
+#        if which == 'all':
+#            heading1(f'Preparation Summary for {self.repo_shortname}')
+#            for item in self.state:
+#                status = self.state[item]
+#                it = (item + '                              ')[:39]
+#                print(f'  {it:<40} : ' + status)
+#                exists = exists and self.state[item] != '-'
+#
+#            gtg = 'Preparation complete. '
+#            if ver_mis:
+#                gtg += 'Some content is not at release level.'
+#            for item in self.state.values():
+#                if item == '-':
+#                    gtg = f'{Color.red}Preparation incomplete{Color.endc}'
+#            print(f'\n{bold(gtg)}\n')
+#        else:
+#            exists = self.state[which] != '-'
+#
+#        return exists
 
     def _is_firewall_running(self, eval_ver=False, non_int=False):
         cmd = 'systemctl status firewalld.service'
@@ -805,8 +795,6 @@ class software(object):
         # Get Spectrum DLI
         name = 'spectrum_dli'
         heading1(f'Set up {name.title()} \n')
-        # spdli_src = self.globs[name]
-        # entitlement = self.globs[name + ' entitlement']
         item = self.content[name]
         spdli_src = item.fileglob.format(arch=self.arch)
         spdli_dir = item.path
@@ -1415,7 +1403,7 @@ class software(object):
         self.create_custom_repo()
 
         # Display status
-        self.status_prep()
+        self.status()
 
     def prep_post(self, eval_ver=False, non_int=False):
         # write software-vars file.
@@ -1465,26 +1453,26 @@ class software(object):
                            f'(pkg-lists-{self.base_filename}.yml)')
             sys.exit('Exit due to critical error')
 
-    def _load_filelist(self):
-        # When searching for files in other web servers, the fileglobs are converted to
-        # regular expressions. An asterisk (*) after a bracket is converted to a
-        # regular extression of [0-9]{0,3} Other asterisks are converted to regular
-        # expression of .*
-        try:
-            file_lists = yaml.load(open(GEN_SOFTWARE_PATH + f'file-lists-'
-                                   f'{self.base_filename}.yml'))
-        except IOError:
-            self.log.info('Error while reading installation file lists for '
-                          'WMLA Enterprise')
-            sys.exit('exiting')
-            input('\nPress enter to continue')
-        else:
-            if self.eval_ver:
-                self.globs = file_lists['globs_eval']
-                self.files = file_lists['files_eval']
-            else:
-                self.globs = file_lists['globs']
-                self.files = file_lists['files']
+#    def _load_filelist(self):
+#        # When searching for files in other web servers, the fileglobs are converted to
+#        # regular expressions. An asterisk (*) after a bracket is converted to a
+#        # regular extression of [0-9]{0,3} Other asterisks are converted to regular
+#        # expression of .*
+#        try:
+#            file_lists = yaml.load(open(GEN_SOFTWARE_PATH + f'file-lists-'
+#                                   f'{self.base_filename}.yml'))
+#        except IOError:
+#            self.log.info('Error while reading installation file lists for '
+#                          'WMLA Enterprise')
+#            sys.exit('exiting')
+#            input('\nPress enter to continue')
+#        else:
+#            if self.eval_ver:
+#                self.globs = file_lists['globs_eval']
+#                self.files = file_lists['files_eval']
+#            else:
+#                self.globs = file_lists['globs']
+#                self.files = file_lists['files']
 
     def _add_dependent_packages(self, repo_dir, dep_list, also_get_newer=True):
         def yum_download(repo_dir, dep_list):
