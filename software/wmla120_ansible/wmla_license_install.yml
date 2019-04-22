@@ -5,7 +5,7 @@
 
 - name: Get enterprise license filename from software-vars.yml
   set_fact:
-    file: "{{ content_files['wmla-license'].split('/')[-1] }}"
+    file: "{{ content_files['wmla-license'].split('/', 3)[-1] }}"
 
 - name: Get route to client
   command: "{{ hostvars['localhost']['python_executable_local'] }} \
@@ -19,12 +19,16 @@
     owner: "{{ ansible_user_id }}"
     group: "{{ ansible_user_id }}"
     mode: 0744
-    url: "http://{{ host_ip.stdout }}/wmla-license/{{ file }}"
+    url: "http://{{ host_ip.stdout }}/{{ file }}"
     dest: "{{ ansible_env.HOME }}"
+
+- name: Get enterprise license filename from software-vars.yml
+  set_fact:
+    filename: "{{ content_files['wmla-license'].split('/')[-1] }}"
 
 # wmla license acceptance script installs to /opt/anaconda3/bin/
 # # (accept-ibm-wmla-license.sh) Interactive license acceptance across the cluster
 # is orchestrated by the software install python module
 - name: Install wmla license
-  shell: "{{ install_dir }}/bin/conda install --yes --use-local file:/{{ ansible_env.HOME }}/{{ file }}"
+  shell: "{{ install_dir }}/bin/conda install --yes --use-local file:/{{ ansible_env.HOME }}/{{ filename }}"
   become: yes

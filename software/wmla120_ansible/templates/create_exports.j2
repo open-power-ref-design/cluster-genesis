@@ -1,0 +1,25 @@
+# Copyright 2016 IBM Corp.
+#
+# All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+
+{% if mount_server_points is defined %}
+{%   for item1 in mount_server_points %}
+{%     for item2 in item1['access'] %}
+{{ item1['path'] }}    {{ item2['hostname'] }}({{ item2['opts']|join(',') }})
+{%     endfor %}
+{%   endfor %}
+{% endif %}
