@@ -423,8 +423,7 @@ def get_args(parser_args=False):
                  'spectrum_conductor',
                  'dependency_repo', 'conda_content_repo',
                  'conda_free_repo', 'conda_main_repo',
-                 'conda_forge_repo', 'pypi_repo',
-                 'epel_repo', 'custom_repo'],
+                 'pypi_repo', 'epel_repo'],
         help='Runs the software phase with specified step')
 
     parser_software.add_argument(
@@ -439,6 +438,12 @@ def get_args(parser_args=False):
         default=False,
         action='store_true',
         help='Runs engineering mode function')
+
+    parser_software.add_argument(
+        '--run_ansible_task',
+        default=None,
+        nargs='+',
+        help='Runs ansbile task from specified software directory')
 
     # 'utils' subcommand arguments
     parser_utils.set_defaults(utils=True)
