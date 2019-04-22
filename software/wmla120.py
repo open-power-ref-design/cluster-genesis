@@ -79,6 +79,7 @@ class software(object):
         self.yum_powerup_repo_files = []
         self.eval_ver = eval_ver
         self.non_int = non_int
+        self.state = {}  # State of the install (currently jus prep state)
 
         if isinstance(proc_family, list):
             self.proc_family = proc_family[0]
@@ -249,7 +250,7 @@ class software(object):
         self.prep_post()
 
     def status_prep(self, which='all'):
-        self.state = {}
+        #self.state = {}
 
         def yum_repo_status(item):
             repo_id = item.repo_id.format(arch=self.arch)
@@ -317,7 +318,52 @@ class software(object):
             else:
                 self.state[item.desc] = '-'
 
-        ver_mis = False
+    def nginx_status():
+        ret = True
+        temp_dir = 'nginx-test-dir-123'
+        abs_temp_dir = os.path.join(self.root_dir_nginx, temp_dir)
+        test_file = 'test-file.abc'
+        test_path = os.path.join(abs_temp_dir, test_file)
+        try:
+            rmtree(abs_temp_dir, ignore_errors=True)
+            os.mkdir(abs_temp_dir)
+            # os.mknod(test_file)
+            with open(test_path, 'x') as f:
+                f.close
+        except:
+            self.log.error('Failed trying to create temporary file '
+                           f'{test_path}. Check access privileges')
+            sys.exit('Exiting. Unable to continue.')
+        else:
+            cmd = f'curl -I http://127.0.0.1/{temp_dir}/{test_file}'
+            resp, _, _ = sub_proc_exec(cmd)
+            if 'HTTP/1.1 200 OK' in resp:
+                self.state[item] = 'Nginx is configured and running'
+            else:
+                print()
+                msg = ('Nginx is unable to access content under '
+                       f'{self.root_dir}.\n This can be due to SElinux '
+                       'configuration, access priveleges or other reasons.\n'
+                       'Please rectify before continuing.')
+                self.log.error(msg)
+                self.state[item] = '-'
+                ret = False
+        finally:
+            rmtree(abs_temp_dir, ignore_errors=True)
+        try:
+            rmtree(abs_temp_dir, ignore_errors=True)
+        except:
+            pass
+
+        return ret
+
+    def firewall_status():
+        cmd = 'firewall-cmd --list-all'
+        resp, _, _ = sub_proc_exec(cmd)
+        if re.search(r'services:\s+.+http', resp):
+            self.state[item] = "Running and configured for http"
+
+        #ver_mis = False
         for _item in self.content:
             item = self.content[_item]
             if item.type == 'file':
@@ -362,12 +408,12 @@ class software(object):
                 continue
 
         # Firewall status
-        item = 'Firewall'
-        if item == 'Firewall':
-            cmd = 'firewall-cmd --list-all'
-            resp, _, _ = sub_proc_exec(cmd)
-            if re.search(r'services:\s+.+http', resp):
-                self.state[item] = "Running and configured for http"
+#        item = 'Firewall'
+#        if item == 'Firewall':
+#            cmd = 'firewall-cmd --list-all'
+#            resp, _, _ = sub_proc_exec(cmd)
+#            if re.search(r'services:\s+.+http', resp):
+#                self.state[item] = "Running and configured for http"
 
         # Nginx web server status
         item = 'Nginx Web Server'
