@@ -39,20 +39,20 @@
       redis-py==2.10.5 chardet==3.0.4 flask==1.0.2"
     - "{{ install_dir }}/bin/conda install --yes --no-update-dependencies \
       python-gflags==3.1.2 pandas==0.24.1 pyzmq==17.1.2"
-    - "pip install --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
+    - "pip install --index-url http://{{ host_ip.stdout }}{{ pypi_http_path }} \
       easydict==1.9 --trusted-host {{ host_ip.stdout }}"
-    - "pip install --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
+    - "pip install --index-url http://{{ host_ip.stdout }}{{ pypi_http_path }} \
       hanziconv==0.3.2 gensim==3.6.0 --trusted-host {{ host_ip.stdout }}"
-    - "pip install --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
+    - "pip install --index-url http://{{ host_ip.stdout }}{{ pypi_http_path }} \
       ipaddress==1.0.22 configparser==3.5.0 easydict==1.9 glog==0.3.1 --trusted-host \
       {{ host_ip.stdout }}"
-    - "pip install --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
+    - "pip install --index-url http://{{ host_ip.stdout }}{{ pypi_http_path }} \
       asyncio==3.4.3 --trusted-host {{ host_ip.stdout }}"
   become: yes
 
 - name: Install additional packages for large model support
   shell: "source {{ install_dir }}/bin/activate dlipy3 && pip install \
-         --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
+         --index-url http://{{ host_ip.stdout }}{{ pypi_http_path }} \
          hanziconv==0.3.2 gensim==3.6.0 --trusted-host {{ host_ip.stdout }}"
   become: yes
 
@@ -83,18 +83,18 @@
       ipaddress==1.0.22 configparser==3.5.0"
     - "{{ install_dir }}/bin/conda install --yes --no-update-dependencies \
       trollius==2.2"
-    - "pip install --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
+    - "pip install --index-url http://{{ host_ip.stdout }}{{ pypi_http_path }} \
       weave==0.16.0 --trusted-host {{ host_ip.stdout }}"
-    - "pip install --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
+    - "pip install --index-url http://{{ host_ip.stdout }}{{ pypi_http_path }} \
       ipaddress==1.0.22 configparser==3.5.0 easydict==1.9 glog==0.3.1 \
       --trusted-host {{ host_ip.stdout }}"
-    - "pip install --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
+    - "pip install --index-url http://{{ host_ip.stdout }}{{ pypi_http_path }} \
       hanziconv==0.3.2 gensim==3.6.0 --trusted-host {{ host_ip.stdout }}"
   become: yes
 
 - name: Install additional packages for large model support
   shell: "source {{ install_dir }}/bin/activate dlipy2 && pip install \
-         --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
+         --index-url http://{{ host_ip.stdout }}{{ pypi_http_path }} \
          hanziconv==0.3.2 gensim==3.6.0 --trusted-host {{ host_ip.stdout }}"
   become: yes
 
@@ -142,12 +142,12 @@
   shell: "source {{ install_dir }}/bin/activate dlinsights && {{ item }}"
   loop:
     - "pip install --retries 1 --timeout 5 \
-      --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
+      --index-url http://{{ host_ip.stdout }}{{ pypi_http_path }} \
       numpy==1.12.1 --trusted-host {{ host_ip.stdout }}"
     - "{{ install_dir }}/bin/conda install --yes --no-update-dependencies \
       pyopenssl==18.0.0"
     - "pip install --retries 1 --timeout 5 --no-cache-dir \
-      --index-url http://{{ host_ip.stdout }}/repos/pypi/simple \
+      --index-url http://{{ host_ip.stdout }}{{ pypi_http_path }} \
       requests==2.18.0 elasticsearch==5.2.0 Flask==0.12.2 Flask-Cors==3.0.3 \
       Flask-Script==2.0.5 Flask-HTTPAuth==3.2.2 mongoengine==0.11.0 \
       pathlib==1.0.1 python-heatclient==1.2.0 \

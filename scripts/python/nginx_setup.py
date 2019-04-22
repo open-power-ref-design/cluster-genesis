@@ -39,18 +39,21 @@ def nginx_setup(root_dir='/srv', repo_id='nginx'):
     log = logger.getlogger()
 
     baseurl = 'http://nginx.org/packages/rhel/7/' + platform.machine()
-    repo_file = os.path.join('/etc/yum.repos.d', repo_id)
+    repo_file = os.path.join('/etc/yum.repos.d', repo_id + '.repo')
 
     if os.path.isfile(repo_file):
-        line_in_file(repo_file, r'^baseurl=.+', f'baseurl={baseurl}')
-        for cmd in ['yum clean all', 'yum makecache']:
-            resp, err, rc = sub_proc_exec(cmd)
-            if rc != 0:
-                log.error(f"A problem occured while running '{cmd}'")
-                log.error(f'Response: {resp}\nError: {err}\nRC: {rc}')
+        with open(repo_file, 'r') as f:
+            content = f.read()
+        if baseurl not in content:
+            line_in_file(repo_file, r'^baseurl=.+', f'baseurl={baseurl}')
+            for cmd in ['yum clean all', 'yum makecache']:
+                resp, err, rc = sub_proc_exec(cmd)
+                if rc != 0:
+                    log.error(f"A problem occured while running '{cmd}'")
+                    log.error(f'Response: {resp}\nError: {err}\nRC: {rc}')
     else:
         repo_name = 'nginx.org public'
-        repo = PowerupRepo(repo_id, repo_name)
+        repo = PowerupRepo(repo_id, repo_name, root_dir)
         content = repo.get_yum_dotrepo_content(baseurl, gpgcheck=0)
         repo.write_yum_dot_repo_file(content)
         cmd = 'yum makecache'

@@ -47,7 +47,7 @@ IPR = IPRoute()
 PROFILE = os.path.join(GEN_PATH, 'profile.yml')
 NODE_LIST = os.path.join(GEN_PATH, 'node_list.yml')
 
-HTTP_ROOT_DIR = '/srv'
+HTTP_ROOT_DIR = '/srv/pup'
 OSINSTALL_HTTP_DIR = 'osinstall'
 CLIENT_STATUS_DIR = '/var/pup_install_status/'
 
