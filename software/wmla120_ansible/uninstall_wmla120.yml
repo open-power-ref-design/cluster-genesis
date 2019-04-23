@@ -89,15 +89,25 @@
     # msg: "{{ dangling_pkgs }}"
 #
 - name: Remove residual Packages 
-  yum: 
-    name: "{{ dangling_pkgs.stdout_lines | list }}"
-    state: "absent"
+  shell: "yum --setopt=tsflags=noscripts remove -y {{ dangling_pkgs.stdout_lines | join(' ') }}"
   when: dangling_pkgs.rc == 0 and dangling_pkgs.stdout_lines is defined
+  register: residual_pkgs
   become: yes
+
+- name: Check if any left over services of conductor & dli exist
+  shell: "ps -ef | grep -e egoadmin -e spectrum -e conductor -e ascd | grep -v grep"
+  register: dangling_procs_exist
+  ignore_errors: yes
+  become: yes
+
+# - name: Check dangling pkgs status
+  # debug:
+    # msg: "{{ residual_pkgs }}"
 
 - name: Deleting any left over services of conductor & dli
   shell: "ps -ef | grep -e egoadmin -e spectrum -e conductor -e ascd | grep -v grep | awk '{print $2}' | xargs kill -9"
   register: dangling_procs
+  when: dangling_procs_exist.rc == 0
   ignore_errors: yes
   become: yes
 
@@ -113,7 +123,7 @@
   poll: 0
   with_items: "{{ remove_dict }}"
   register: async_results_dir
-  when: dangling_pkgs.rc == 1 # no dangling packages
+  when:  residual_pkgs.skipped is defined or residual_pkgs.rc == 0 # no dangling packages
   become: yes
 #
 - name: Join Jobs for removing directory
@@ -124,7 +134,7 @@
     loop_var: "async_result_item"
   register: async_results_dir
   until: async_results_dir.finished
-  when: dangling_pkgs.rc == 1 # no dangling packages
+  when:  residual_pkgs.skipped is defined or residual_pkgs.rc == 0 # no dangling packages
   retries: 30
   become: yes
   
