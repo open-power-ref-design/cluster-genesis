@@ -1388,7 +1388,7 @@ def firewall_add_services(services):
         firewall_service = 'ufw.service'
         firewall_enable_cmd = 'ufw allow '
         firewall_reload_cmd = 'true'
-        return 0  # TODO: REMOVE THIS DEBUG ONLY
+        return 0  # TODO: Need to add firewall configuration for Ubuntu
     cmd = f'systemctl status {firewall_service}'
     resp, err, rc = sub_proc_exec(cmd)
     if 'Active: active (running)' in resp.splitlines()[2]:
