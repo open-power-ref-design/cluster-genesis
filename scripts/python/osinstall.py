@@ -173,7 +173,8 @@ def copy_pup_report_scripts():
     for filename in os.listdir(os.path.join(get_os_images_path(), 'config')):
         if filename.endswith('.sh'):
             u.copy_file(os.path.join(get_os_images_path(), 'config', filename),
-                        os.path.join(http_root, http_osinstall))
+                        os.path.join(http_root, http_osinstall),
+                        metadata=False)
 
 
 def pxelinux_configuration(profile_object, kernel, initrd, kickstart):

@@ -22,7 +22,7 @@ import datetime
 import subprocess
 import fileinput
 import readline
-from shutil import copy2
+from shutil import copy2, copyfile
 from subprocess import Popen, PIPE
 from netaddr import IPNetwork, IPAddress, IPSet
 from tabulate import tabulate
@@ -374,16 +374,23 @@ def replace_regex(path, regex, replace):
         print(re.sub(regex, replace, line), end='')
 
 
-def copy_file(source, dest):
+def copy_file(source, dest, metadata=True):
     """Copy a file to a given destination
 
     Args:
         source (str): Path of source file
         dest (str): Destination path to copy file to
+        metadata (bool, optional): Attempt to preserve file metadata
     """
     log = logger.getlogger()
-    log.debug('Copy file, source:%s dest:%s' % (source, dest))
-    copy2(source, dest)
+    log.debug(f'Copy file, source:{source} dest:{dest} metadata:{metadata}')
+    if metadata:
+        copy2(source, dest)
+    else:
+        if os.path.isdir(dest):
+            basename = os.path.basename(source)
+            dest = os.path.join(dest, basename)
+        copyfile(source, dest)
 
 
 def sub_proc_launch(cmd, stdout=PIPE, stderr=PIPE):
