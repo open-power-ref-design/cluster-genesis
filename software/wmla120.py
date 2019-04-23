@@ -42,7 +42,7 @@ from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
 from software_hosts import get_ansible_inventory, validate_software_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, Color, \
     get_selection, get_yesno, rlinput, bold, ansible_pprint, replace_regex, \
-    parse_rpm_filenames, lscpu
+    parse_rpm_filenames, parse_conda_filenames, lscpu
 from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path, \
     get_playbooks_path, get_nginx_root_dir
 from nginx_setup import nginx_setup
@@ -244,66 +244,58 @@ class software(object):
         return ret
 
     def status(self, which='all'):
+        from pdb import set_trace
+        rc = True
         self._update_software_vars()
         if which == 'all':
-            self.status_prep(which = 'Firewall')
-            self.status_prep(which = 'Nginx Web Server')
+            rc = rc and self.status_prep(which = 'Firewall')
+            rc = rc and self.status_prep(which = 'Nginx Web Server')
             for _item in self.content:
-                self.status_prep(_item)
+                #from pdb import set_trace
+                #set_trace()
+                _rc = self.status_prep(_item)
+                rc = rc and _rc
         else:
-            self.status_prep(which)
+            rc = self.status_prep(which)
         self.prep_post()
 
-
-        exists = True
         if which == 'all':
             heading1(f'Preparation Summary for {self.repo_shortname}')
             for item in self.state:
                 status = self.state[item]
                 it = (item + '                              ')[:39]
                 print(f'  {it:<40} : ' + status)
-                exists = exists and self.state[item] != '-'
+                #exists = exists and self.state[item] != '-'
 
             gtg = 'Preparation complete. '
             for item in self.state:
                 if 'not at release level' in self.state[item]:
                     gtg = 'Some content is not at release level.'
             for item in self.state.values():
-                if item == '-':
+                if Color.red in item :
                     gtg = f'{Color.red}Preparation incomplete{Color.endc}'
             print(f'\n{bold(gtg)}\n')
         else:
-            exists = self.state[which] != '-'
+            #exists = self.state[which] != '-'
             self.state[which] != '-'
 
-        return exists
+        return rc
 
     def status_prep(self, which):
         #self.state = {}
+        #from pdb import set_trace
+        #set_trace()
 
-        def yum_repo_status(item):
-            rc = True
-            repo_id = item.repo_id.format(arch=self.arch)
-            search_dir = f'{self.root_dir}repos/{repo_id}/**/repodata'
-            repodata = glob.glob(search_dir, recursive=True)
-            sw_vars_data = (f'{repo_id}-powerup.repo' in
-                            self.sw_vars['yum_powerup_repo_files'])
-            if repodata and sw_vars_data:
-                self.state[item.desc] = 'Setup'
-            else:
-                self.state[item.desc] = '-'
-                rc = False
-
-            return rc
-
-        def content_status(item):
+        def content_status(which):
+            item = self.content[which]
             rc = True
             item_dir = item.path
             if self.eval_ver and hasattr(item, 'fileglob_eval'):
                 fileglob = item.fileglob_eval.format(arch=self.arch)
             else:
                 fileglob = item.fileglob.format(arch=self.arch)
-            exists = glob.glob(f'{self.root_dir}{item_dir}/**/{fileglob}', recursive=True)
+            exists = glob.glob(f'{self.root_dir}{item_dir}/**/{fileglob}',
+                               recursive=True)
 
             sw_vars_data = item_dir in self.sw_vars['content_files']
 
@@ -325,22 +317,182 @@ class software(object):
 
             return rc
 
-        def conda_repo_status(item):
+        def yum_repo_status(which):
+            #from pdb import set_trace
+            def get_ver_state(pkg, pkg_in_repo):
+                """Determines whether a package in a yum repo is
+                older, equal to or newer than the pkg called out in the pkg
+                list file.
+                Args:
+                    pkg(dict): Pkg from pkg-list in form returned by
+                    parse_rpm_filenames. ie {basename: {'ep': epoch, 'ver':
+                    version, 'rel': release_lvl}}
+                    pkg_in_repo(dict): Pkg in the yum repo.
+                Returns (int) -1, 0 , 1 = pg in PowerUp repo is older, same,
+                    newer version
+                """
+                state = 0  # same epoch, version and release
+                if pkg['ver'] == pkg_in_repo['ver']:
+                    if  pkg['ep'] == pkg_in_repo['ep']:
+                        if  pkg['rel'] == pkg_in_repo['rel']:
+                            state = 0
+                        elif pkg['rel'] > pkg_in_repo['rel']:
+                            state = -1
+                        else:
+                            state = 1
+                    elif pkg['ep'] > pkg_in_repo['ep']:
+                        state = -1
+                    else:
+                        state = 1
+                elif pkg['ver'] > pkg_in_repo['ver']:
+                    state = -1
+                else:
+                    state = 1
+
+                return state
+
+            def verify_content(repo_id):
+                #from pdb import set_trace
+                #item = self.content[which]
+                this_repo = repo_id
+                rc = True
+                if repo_id == 'dependencies':
+                    this_repo = f'{repo_id}_{self.proc_family}'
+                else:
+                    this_repo = repo_id
+                #from pdb import set_trace
+                #set_trace()
+                pkgs_vers = parse_rpm_filenames(self.pkgs[this_repo], form='dict')
+                pkg_lst_cnt = len(pkgs_vers)
+                repo_path = self.sw_vars[f'{repo_id}_repo_path']
+                filelist = os.listdir(repo_path)
+                filelist = [fi for fi in filelist if fi[-4:] == '.rpm']
+                files_vers = parse_rpm_filenames(filelist, form='dict')
+                pkg_cnt = 0
+                nwr_cnt = 0
+                old_cnt = 0
+                for _file in pkgs_vers:
+                    if _file in files_vers:
+                        pkg_cnt += 1
+                        ver_state = get_ver_state(pkgs_vers[_file], files_vers[_file])
+                        #if ver_state >= 0:
+                        #    pkg_cnt += 1
+                        if ver_state == 1:
+                            nwr_cnt += 1
+                        if ver_state == -1:
+                            # print(pkgs_vers[_file])
+                            # print(files_vers[_file])
+                            old_cnt += 1
+                            rc = False
+                    else:
+                        rc = False
+                return pkg_lst_cnt, pkg_cnt, nwr_cnt, old_cnt  #, newer_cnt
+
+            item = self.content[which]
+            rc = True
+            repo_id = item.repo_id.format(arch=self.arch)
+            search_dir = os.path.join(self.sw_vars[f'{repo_id}_repo_path'],
+                                      'repodata')
+            repodata = glob.glob(search_dir, recursive=True)
+            sw_vars_data = (f'{repo_id}-powerup.repo' in
+                            self.sw_vars['yum_powerup_repo_files'])
+            pkg_lst_cnt, pkg_cnt, nwr_cnt, old_cnt = verify_content(repo_id)
+
+            #set_trace()
+            if pkg_cnt < pkg_lst_cnt:
+                rc = False
+
+            col = Color.white
+            endc = Color.endc
+
+            if repodata and sw_vars_data:
+                if pkg_cnt < pkg_lst_cnt:
+                    col = Color.red
+                elif old_cnt > 0:
+                    col = Color.yellow
+                summ = f'Setup {pkg_cnt}/{pkg_lst_cnt}'
+                status = f'{summ:<7}'
+                if old_cnt > 0:
+                    status += f' - {old_cnt} older'
+                self.state[item.desc] = f'{col}{status}{endc}'
+            else:
+                self.state[item.desc] = f'{col}-{endc}'
+                rc = False
+
+            return rc
+
+        def conda_repo_status(which):
+            from pdb import set_trace
+            #set_trace()
+            def get_ver_state(pkg, pkg_in_repo):
+                """Determines whether a package in a conda repo is
+                older, equal to or newer than the pkg called out in the pkg
+                list file.
+                Args:
+                    pkg(dict): Pkg from pkg-list in form returned by
+                    parse_conda_filenames. ie {basename: {'ver': version,
+                    'bld': build_lvl}}
+                    pkg_in_repo(dict): Pkg in the yum repo.
+                Returns (int) -1, 0 , 1 = pg in PowerUp repo is older, same,
+                    newer version
+                """
+                state = 0  # same version and build
+                if pkg['ver'] == pkg_in_repo['ver']:
+                    if  pkg['bld'] == pkg_in_repo['bld']:
+                        state = 0
+                    elif pkg['bld'] > pkg_in_repo['bld']:
+                        state = -1
+                    else:
+                        state = 1
+                elif pkg['ver'] > pkg_in_repo['ver']:
+                    state = -1
+                else:
+                    state = 1
+
+                return state
+
+            def verify_content(which):
+                rc = True
+                #set_trace()
+                pkgs_vers = parse_conda_filenames(self.pkgs[f'{which}_linux_'
+                                                  f'{self.arch}']['accept_list'])
+                pkg_lst_cnt = 0
+                for item in pkgs_vers:
+                    pkg_lst_cnt += len(pkgs_vers[item]['ver_bld'])
+                repo_path = self.sw_vars[f'{which}_repo_path'] + f'linux-{self.arch}'
+                filelist = os.listdir(repo_path)
+                filelist = [fi for fi in filelist if fi[-8:] == '.tar.bz2']
+                files_vers = parse_conda_filenames(filelist)
+                pkg_cnt = 0
+                nwr_cnt = 0
+                old_cnt = 0
+                for _file in pkgs_vers:
+                    for ver_bld in pkgs_vers[_file]['ver_bld']:
+                        if _file in files_vers and ver_bld in files_vers[_file]['ver_bld']:
+                            pkg_cnt += 1
+                            #ver_state = get_ver_state(pkgs_vers[_file], files_vers[_file])
+                            #if ver_state >= 0:
+                            #    pkg_cnt += 1
+                            #if ver_state == 1:
+                            #    nwr_cnt += 1
+                            #if ver_state == -1:
+                            #    old_cnt += 1
+                            #    rc = False
+                        else:
+                            rc = False
+                return pkg_lst_cnt, pkg_cnt, nwr_cnt, old_cnt  #, newer_cnt
+
+            item = self.content[which]
             rc = True
             repo_id = item.repo_id
             repo_name = item.repo_name
-            if 'Main' in repo_name:
-                name = 'main'
-            elif 'Free' in repo_name:
-                name = 'free'
-            else:
-                name = ''
-            dirglob_lin = os.path.join(f'{self.root_dir}', 'repos', f'{repo_id}',
-                                       '**', f'{name}', f'linux-{self.arch}', '')
+            name = item.name
+            #set_trace()
+            dirglob_lin = os.path.join(self.sw_vars[f'{which}_repo_path'],
+                                       f'linux-{self.arch}', '')
             path_lin = glob.glob(dirglob_lin, recursive=True)
 
-            dirglob_na = os.path.join(f'{self.root_dir}', 'repos', f'{repo_id}',
-                                      '**', f'{name}', 'noarch', '')
+            dirglob_na = self.sw_vars[f'{which}_repo_path']
             path_na = glob.glob(dirglob_na, recursive=True)
 
             in_channel_list = False
@@ -349,8 +501,24 @@ class software(object):
                     in_channel_list = True
                     break
 
+            pkg_lst_cnt, pkg_cnt, nwr_cnt, old_cnt = verify_content(which)
+
+            if pkg_cnt < pkg_lst_cnt:
+                rc = False
+
+            col = Color.white
+            endc = Color.endc
+
             if path_lin and path_na and in_channel_list:
-                self.state[item.desc] = 'Setup'
+                if pkg_cnt < pkg_lst_cnt:
+                    col = Color.red
+                elif old_cnt > 0:
+                    col = Color.yellow
+                summ = f'Setup {pkg_cnt}/{pkg_lst_cnt}'
+                status = f'{summ:<7}'
+                if old_cnt > 0:
+                    status += f' - {old_cnt} older'
+                self.state[item.desc] = f'{col}{status}{endc}'
             else:
                 self.state[item.desc] = '-'
                 rc = False
@@ -358,12 +526,13 @@ class software(object):
             return rc
 
         def pypi_repo_status(which):
+                item = self.content[which]
                 rc = True
                 if os.path.exists(f'{self.root_dir}repos/{item.repo_id}/simple/') and \
                         len(os.listdir(f'{self.root_dir}repos/{item.repo_id}/simple/')) >= 1:
-                    self.state[which] = 'Setup'
+                    self.state[item.desc] = 'Setup'
                 else:
-                    self.state[which] = '-'
+                    self.state[item.desc] = '-'
                     rc = False
 
         def nginx_status(which):
@@ -425,19 +594,18 @@ class software(object):
         #for _item in self.content:
             item = self.content[which]
             if item.type == 'file':
-                rc = content_status(item)
+                rc = content_status(which)
                 #ver_mis = ver_mis or ret
 
             # yum repos status
             if item.type == 'yum':
-                rc = yum_repo_status(item)
-
+                rc = yum_repo_status(which)
 
             if item.type == 'conda':
-                rc = conda_repo_status(item)
+                rc = conda_repo_status(which)
 
             if item.type == 'simple':
-                rc = pypi_repo_status(item.desc)
+                rc = pypi_repo_status(which)  # (item.desc)
 
             # Nginx web server status
         elif which == 'Nginx Web Server':
@@ -451,26 +619,6 @@ class software(object):
             rc = False
 
         return rc
-        #exists = True
-#        if which == 'all':
-#            heading1(f'Preparation Summary for {self.repo_shortname}')
-#            for item in self.state:
-#                status = self.state[item]
-#                it = (item + '                              ')[:39]
-#                print(f'  {it:<40} : ' + status)
-#                exists = exists and self.state[item] != '-'
-#
-#            gtg = 'Preparation complete. '
-#            if ver_mis:
-#                gtg += 'Some content is not at release level.'
-#            for item in self.state.values():
-#                if item == '-':
-#                    gtg = f'{Color.red}Preparation incomplete{Color.endc}'
-#            print(f'\n{bold(gtg)}\n')
-#        else:
-#            exists = self.state[which] != '-'
-#
-#        return exists
 
     def _is_firewall_running(self, eval_ver=False, non_int=False):
         cmd = 'systemctl status firewalld.service'
@@ -542,7 +690,7 @@ class software(object):
         gpgkey = _repo.gpgkey.format(baseurl=baseurl)
         heading1(f'Set up {repo_name}\n')
         # list to str
-        pkg_list = ' '.join(self.pkgs['cuda_drivers'])
+        pkg_list = ' '.join(self.pkgs['repo_id'])
 
         if f'{repo_id}_alt_url' in self.sw_vars:
             alt_url = self.sw_vars[f'{repo_id}_alt_url']
@@ -661,9 +809,9 @@ class software(object):
         #           f'ibm-ai/conda/linux-{self.ana_platform_basename}/')
         heading1(f'Set up {repo_name}\n')
 
-        vars_key = get_name_dir(repo_name)  # format the name
-        if f'{vars_key}-alt-url' in self.sw_vars:
-            alt_url = self.sw_vars[f'{vars_key}-alt-url']
+        #vars_key = get_name_dir(repo_name)  # format the name
+        if f'{name}-alt-url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{name}-alt-url']
         else:
             alt_url = None
 
@@ -687,7 +835,7 @@ class software(object):
                         _url = url[cred_end:]
                     else:
                         _url = url
-                    self.sw_vars[f'{vars_key}-alt-url'] = _url
+                    self.sw_vars[f'{name}-alt-url'] = _url
 
                 # accept_list is used for linux_{self.arch}, reject_list for noarch
                 if 'accept_list' in self.pkgs[f'ibm_ai_conda_linux_{self.arch}']:
@@ -871,11 +1019,11 @@ class software(object):
                                                        'Processor family? ')
 
             if self.proc_family == 'p9':
-                dep_list = ' '.join(self.pkgs['yum_pkgs_p9'])
+                dep_list = ' '.join(self.pkgs[f'{repo_id}_p9'])
             elif self.proc_family == 'p8':
-                dep_list = ' '.join(self.pkgs['yum_pkgs_p8'])
+                dep_list = ' '.join(self.pkgs[f'{repo_id}_p8'])
             elif self.arch == 'x86_64':
-                dep_list = ' '.join(self.pkgs['yum_pkgs_x86_64'])
+                dep_list = ' '.join(self.pkgs[f'{repo_id}_64'])
 
             file_more = GEN_SOFTWARE_PATH + 'dependent-packages.list'
             if os.path.isfile(file_more):
@@ -1007,13 +1155,14 @@ class software(object):
         _repo = self.content[name]
         repo_id = _repo.repo_id
         repo_name = _repo.repo_name
+        repo_desc = _repo.desc
         baseurl = _repo.source.baseurl.format(ana_platform_basename=self.
                                               ana_platform_basename)
-        heading1(f'Set up {repo_name}\n')
+        heading1(f'Set up {repo_desc}\n')
 
-        vars_key = get_name_dir(repo_name)  # format the name
-        if f'{vars_key}-alt-url' in self.sw_vars:
-            alt_url = self.sw_vars[f'{vars_key}-alt-url']
+        # vars_key = get_name_dir(repo_name)  # format the name
+        if f'{name}-alt-url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{name}-alt-url']
         else:
             alt_url = None
 
@@ -1032,7 +1181,7 @@ class software(object):
                                     filelist=['cython-*'])
             if url:
                 if not url == baseurl:
-                    self.sw_vars[f'{vars_key}-alt-url'] = url
+                    self.sw_vars[f'{name}-alt-url'] = url
 
                 # accept_list and rej_list are mutually exclusive.
                 # accept_list takes priority
@@ -1059,14 +1208,15 @@ class software(object):
         _repo = self.content[name]
         repo_id = _repo.repo_id
         repo_name = _repo.repo_name
+        repo_desc = _repo.desc
         baseurl = _repo.source.baseurl.format(ana_platform_basename=self.
                                               ana_platform_basename)
 
-        heading1(f'Set up {repo_name}\n')
+        heading1(f'Set up {repo_desc}\n')
 
-        vars_key = get_name_dir(repo_name)  # format the name
-        if f'{vars_key}-alt-url' in self.sw_vars:
-            alt_url = self.sw_vars[f'{vars_key}-alt-url']
+        #vars_key = get_name_dir(repo_name)  # format the name
+        if f'{name}-alt-url' in self.sw_vars:
+            alt_url = self.sw_vars[f'{name}-alt-url']
         else:
             alt_url = None
 
@@ -1084,7 +1234,7 @@ class software(object):
                                     filelist=['bzip2-*'])
             if url:
                 if not url == baseurl:
-                    self.sw_vars[f'{vars_key}-alt-url'] = url
+                    self.sw_vars[f'{name}-alt-url'] = url
                 # accept_list is used for main, reject_list for noarch
                 al = self.pkgs[f'anaconda_main_linux_{self.arch}']['accept_list']
                 rl = self.pkgs[f'anaconda_main_linux_{self.arch}']['reject_list']
@@ -1148,7 +1298,7 @@ class software(object):
         repo_name = _repo.repo_name.format(arch=self.arch)
         baseurl = ''
         heading1(f'Set up {repo_name} repository')
-        epel_list = ' '.join(self.pkgs['epel_pkgs'])
+        epel_list = ' '.join(self.pkgs[repo_id])
 
         file_more = GEN_SOFTWARE_PATH + 'epel-packages.list'
         if os.path.isfile(file_more):
@@ -1757,6 +1907,9 @@ class software(object):
                 # the corresponding 'noarch' channel automatically.
                 if _dir:
                     channel = f'  - http://{{{{ host_ip.stdout }}}}{_dir}'
+                    _dir = _dir.lstrip('/')
+                    self.sw_vars[f'{_item}_repo_path'] = \
+                        os.path.join(self.root_dir_nginx, _dir, '')
                 else:
                     channel = ''
                 if channel not in self.sw_vars['ana_powerup_repo_channels']:
@@ -1794,6 +1947,7 @@ class software(object):
                                                                    gpgcheck=0,
                                                                    client=True)
                     self.sw_vars['yum_powerup_repo_files'][filename] = dotrepo_content
+                    self.sw_vars[f'{repo_id}_repo_path'] = _dir
                 else:
                     self.sw_vars['yum_powerup_repo_files'][filename] = ''
             elif item.type == 'simple':

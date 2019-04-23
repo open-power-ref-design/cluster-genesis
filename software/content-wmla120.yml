@@ -158,7 +158,8 @@ ibmai:
     dtype: repo
     ftype: select-one
     help: Replica of the IBM AI repository
-    name: IBMAI
+    #name: IBMAI
+    name: ibmai
     type: conda
     repo_id: ibmai  # optional
     repo_name: IBM AI repository  # optional
@@ -170,7 +171,8 @@ anaconda_main:
     dtype: repo
     ftype: select-one
     help: Partial replica of the Anaconda main repository
-    name: Anaconda Main
+    #name: Anaconda Main
+    name: main
     type: conda
     repo_id: anaconda  # optional
     repo_name: Anaconda Main repository  # optional
@@ -182,7 +184,8 @@ anaconda_free:
     dtype: repo
     ftype: select-one
     help: Partial replica of the Anaconda free repository
-    name: Anaconda Free
+    #name: Anaconda Free
+    name: free
     type: conda
     repo_id: anaconda  # optional
     repo_name: Anaconda Free repository  # optional
