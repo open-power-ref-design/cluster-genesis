@@ -28,12 +28,14 @@ import re
 import sys
 from netaddr import IPNetwork
 from jinja2 import Template
-from time import time, sleep
+from time import time, sleep, localtime, gmtime, strftime
+import json
+from tabulate import tabulate
 
 import lib.logger as logger
 import lib.interfaces as interfaces
 from lib.genesis import get_package_path, get_sample_configs_path, \
-    get_os_images_path
+    get_os_images_path, get_nginx_root_dir
 import lib.utilities as u
 from nginx_setup import nginx_setup
 from ip_route_get_to import ip_route_get_to
@@ -45,9 +47,9 @@ GEN_SAMPLE_CONFIGS_PATH = get_sample_configs_path()
 IPR = IPRoute()
 
 PROFILE = os.path.join(GEN_PATH, 'profile.yml')
-NODE_LIST = os.path.join(GEN_PATH, 'node_list.yml')
+NODE_STATUS = os.path.join(GEN_PATH, 'osinstall_node_status.yml')
 
-HTTP_ROOT_DIR = '/srv/pup'
+HTTP_ROOT_DIR = get_nginx_root_dir()
 OSINSTALL_HTTP_DIR = 'osinstall'
 CLIENT_STATUS_DIR = '/var/pup_install_status/'
 
@@ -99,7 +101,7 @@ def extract_install_image(profile_object):
 
     image_dir = os.path.join(http_root, http_osinstall)
     if not os.path.isdir(image_dir):
-        os.mkdir(image_dir)
+        os.makedirs(image_dir)
         os.chmod(image_dir, 0o755)
     kernel, initrd = u.extract_iso_image(p.iso_image_file, image_dir)
 
@@ -171,7 +173,8 @@ def copy_pup_report_scripts():
     for filename in os.listdir(os.path.join(get_os_images_path(), 'config')):
         if filename.endswith('.sh'):
             u.copy_file(os.path.join(get_os_images_path(), 'config', filename),
-                        os.path.join(http_root, http_osinstall))
+                        os.path.join(http_root, http_osinstall),
+                        metadata=False)
 
 
 def pxelinux_configuration(profile_object, kernel, initrd, kickstart):
@@ -201,11 +204,11 @@ def pxelinux_configuration(profile_object, kernel, initrd, kickstart):
         kopts=kopts)
 
 
-def initiate_pxeboot(profile_object, node_list_file):
+def initiate_pxeboot(profile_object, node_dict_file):
     log = logger.getlogger()
     p_node = profile_object.get_node_profile_tuple()
-    node_list = yaml.load(open(node_list_file))
-    for node in node_list:
+    nodes = yaml.load(open(node_dict_file))
+    for node in nodes['selected'].values():
         ip = node['bmc_ip']
         userid = p_node.bmc_userid
         passwd = p_node.bmc_password
@@ -221,22 +224,219 @@ def initiate_pxeboot(profile_object, node_list_file):
                       f"userid={userid} password={passwd}")
 
 
-def reset_bootdev(profile_object, node_list_file):
+def update_install_status(node_dict_file, start_time, write_results=True):
+    """ Update client node installation status
+
+    Args:
+        node_dict_file (str): Selected nodes dictionary file path
+
+        start_time (int): UNIX Epoch time - only status reported _after_
+                          this time will be inspected
+
+        write_results (bool, optional): Write updated node dictionary to
+                                        file (using 'node_dict_file' path)
+
+    Returns:
+        dict: Selected node dictionary with updated 'start_time',
+              'finish_time', and 'report_data' values
+
+    """
+    log = logger.getlogger()
+    status_dir = CLIENT_STATUS_DIR
+    nodes = yaml.load(open(node_dict_file))
+
+    def _associate_pxe_to_bmc(nodes, pxe_ip, report_data=None):
+        for bmc_mac, value in nodes['selected'].items():
+            if 'pxe_ip' in value and value['pxe_ip'] == pxe_ip:
+                return bmc_mac
+
+        if report_data is not None:
+            try:
+                for channel in ['1', '8']:
+                    bmc_mac = (
+                        report_data[f'ipmitool_lan_print_{channel}']
+                                   ['MAC Address'].upper())
+                    if bmc_mac in nodes['selected']:
+                        return bmc_mac
+            except KeyError:
+                log.debug('No ipmitool_lan_print MAC Address in report data')
+            try:
+                for fru in report_data['ipmitool_fru_print']:
+                    if 'Chassis Serial' in fru:
+                        for bmc_mac, value in nodes['selected'].items():
+                            if fru['Chassis Serial'] == value['serial']:
+                                return bmc_mac
+            except KeyError:
+                log.debug('No ipmitool_fru_print in report data')
+
+        log.debug(f'Unable to associate PXE IP \'{pxe_ip}\' with client node')
+        return None
+
+    for filename in os.listdir(status_dir):
+        filepath = os.path.join(status_dir, filename)
+        if start_time is not None and start_time < os.path.getmtime(filepath):
+            pxe_ip = filename.split('_')[0]
+            status = filename.split('_')[1]
+
+            try:
+                with open(filepath) as json_file:
+                    report_data = json.load(json_file)
+            except (json.decoder.JSONDecodeError, UnicodeDecodeError):
+                report_data = None
+
+            bmc_mac = _associate_pxe_to_bmc(nodes, pxe_ip, report_data)
+
+            if bmc_mac in nodes['selected']:
+                nodes['selected'][bmc_mac]['pxe_ip'] = pxe_ip
+                nodes['selected'][bmc_mac][status + '_time'] = (
+                    os.path.getmtime(filepath))
+                try:
+                    if (nodes['selected'][bmc_mac]['start_time'] >=
+                            nodes['selected'][bmc_mac]['finish_time']):
+                        nodes['selected'][bmc_mac]['finish_time'] = None
+                except (KeyError, TypeError):
+                    pass
+                if report_data is not None:
+                    nodes['selected'][bmc_mac]['report_data'] = report_data
+            else:
+                if 'other' not in nodes:
+                    nodes['other'] = {}
+                if pxe_ip not in nodes['other']:
+                    nodes['other'][pxe_ip] = {}
+                nodes['other'][pxe_ip][status + '_time'] = (
+                    os.path.getmtime(filepath))
+                try:
+                    if (nodes['other'][pxe_ip]['start_time'] >=
+                            nodes['other'][pxe_ip]['finish_time']):
+                        nodes['other'][pxe_ip]['finish_time'] = None
+                except (KeyError, TypeError):
+                    pass
+                if (status == 'start' and
+                        'finish_time' in nodes['other'][pxe_ip]):
+                    nodes['other'][pxe_ip]['finish_time'] = None
+                if report_data is not None:
+                    nodes['other'][pxe_ip]['report_data'] = report_data
+                log.debug('Unable to associate client installation report '
+                          f'with a selected node: {filename}')
+    if write_results:
+        with open(NODE_STATUS, 'w') as f:
+            yaml.dump(nodes, f, indent=4, default_flow_style=False)
+
+    return nodes
+
+
+def get_install_status(node_dict_file, colorized=False):
+    """ Get client node installation status table
+
+    Args:
+        node_dict_file (str): Selected nodes dictionary file path
+
+        colorized (bool, optional): Add color escapes to easily differentiate
+                                    status of each line
+
+    Returns:
+        str: Installation status table
+    """
+    nodes = yaml.load(open(node_dict_file))
+
+    def _try_dict_key(dictionary, *keys):
+        value = dictionary
+        try:
+            for key in keys:
+                value = value[key]
+            if value is None:
+                value = '-'
+            return value
+        except KeyError:
+            return '-'
+
+    if colorized:
+        bold = u.Color.bold
+        endc = u.Color.endc
+    else:
+        bold = ''
+        endc = ''
+
+    table = [[f'{bold}Serial', 'BMC MAC Address', 'BMC IP Address',
+              'Host IP Address', 'OS Info', f'Install Status{endc}']]
+    for bmc_mac, value in nodes['selected'].items():
+        color = None
+        pxe_ip = _try_dict_key(value, 'pxe_ip')
+        os_pretty_name = _try_dict_key(value, 'report_data', 'PRETTY_NAME')
+        if _try_dict_key(value, 'start_time') != '-':
+            if _try_dict_key(value, 'finish_time') != '-':
+                color = u.Color.green
+                finish_time = _try_dict_key(value, 'finish_time')
+                start_time = _try_dict_key(value, 'start_time')
+                elapsed_time = strftime("%Mm %Ss", gmtime(finish_time -
+                                                          start_time))
+                install_status = ("Finished: " +
+                                  strftime("%x %X %Z",
+                                           localtime(finish_time)) +
+                                  f" ({elapsed_time})")
+            else:
+                color = u.Color.yellow
+                start_time = _try_dict_key(value, 'start_time')
+                install_status = ("Started: " +
+                                  strftime("%Mm %Ss",
+                                           gmtime(time() - start_time)))
+        else:
+            install_status = "-"
+        table.append([value['serial'], bmc_mac, value['bmc_ip'], pxe_ip,
+                      os_pretty_name, install_status])
+        if colorized and color is not None:
+            table[-1][0] = color + table[-1][0]
+            table[-1][-1] = table[-1][-1] + u.Color.endc
+    if 'other' in nodes:
+        for pxe_ip, value in nodes['other'].items():
+            color = None
+            os_pretty_name = _try_dict_key(value, 'report_data', 'ID') + " "
+            os_pretty_name += _try_dict_key(value, 'report_data', 'VERSION_ID')
+            if _try_dict_key(value, 'start_time') != '-':
+                if _try_dict_key(value, 'finish_time') != '-':
+                    color = u.Color.green
+                    finish_time = _try_dict_key(value, 'finish_time')
+                    start_time = _try_dict_key(value, 'start_time')
+                    elapsed_time = strftime("%Mm %Ss", gmtime(finish_time -
+                                                              start_time))
+                    install_status = ("Finished: " +
+                                      strftime("%x %X %Z",
+                                               localtime(finish_time)) +
+                                      f" ({elapsed_time})")
+                else:
+                    color = u.Color.yellow
+                    start_time = _try_dict_key(value, 'start_time')
+                    install_status = ("Started: " +
+                                      strftime("%Mm %Ss",
+                                               gmtime(time() - start_time)))
+            else:
+                install_status = "-"
+            table.append(['?', '?', '?', pxe_ip, os_pretty_name,
+                          install_status])
+            if colorized and color is not None:
+                table[-1][0] = color + table[-1][0]
+                table[-1][-1] = table[-1][-1] + u.Color.endc
+
+    return tabulate(table, headers="firstrow")
+
+
+def reset_bootdev(profile_object, node_dict_file, bmc_ip='all'):
     log = logger.getlogger()
     p_node = profile_object.get_node_profile_tuple()
-    node_list = yaml.load(open(node_list_file))
-    for node in node_list:
+    nodes = yaml.load(open(node_dict_file))
+    for node in nodes['selected'].values():
         ip = node['bmc_ip']
         userid = p_node.bmc_userid
         passwd = p_node.bmc_password
-        bmc = Bmc(ip, userid, passwd)
-        if bmc.is_connected():
-            log.debug(f"Successfully connected to BMC: host={ip} "
-                      f"userid={userid} password={passwd}")
-            bmc.host_boot_source(source='disk')
-        else:
-            log.error(f"Unable to connect to BMC: host={ip} "
-                      f"userid={userid} password={passwd}")
+        if bmc_ip == 'all' or bmc_ip == ip:
+            bmc = Bmc(ip, userid, passwd)
+            if bmc.is_connected():
+                log.debug(f"Successfully connected to BMC: host={ip} "
+                          f"userid={userid} password={passwd}")
+                bmc.host_boot_source(source='disk')
+            else:
+                log.error(f"Unable to connect to BMC: host={ip} "
+                          f"userid={userid} password={passwd}")
 
 
 class Profile():
@@ -338,6 +538,19 @@ class Profile():
         with open(PROFILE, 'w') as f:
             yaml.dump(self.profile, f, indent=4, default_flow_style=False)
 
+    def get_status_profile(self):
+        """Returns an ordered attribute dictionary with the node profile data.
+        This is generally intended for use by the entry menu, not by
+        application code. deepcopy is used to return a new copy of the relevent
+        profile, not a reference to the original.
+        """
+        return copy.deepcopy(self.profile.status)
+
+    def update_status_profile(self, profile):
+        self.profile.status = profile
+        with open(PROFILE, 'w') as f:
+            yaml.dump(self.profile, f, indent=4, default_flow_style=False)
+
 
 class OSinstall(npyscreen.NPSAppManaged):
     def __init__(self, prof_path, *args, **kwargs):
@@ -347,15 +560,21 @@ class OSinstall(npyscreen.NPSAppManaged):
         self.log = logger.getlogger()
         # create an Interfaces instance
         self.ifcs = interfaces.Interfaces()
-        self.form_flow = (None, 'MAIN', 'NODE', None)
+        self.form_flow = (None, 'MAIN', 'NODE', 'STATUS', None)
 
     def get_form_data(self):
         if self.creating_form == 'MAIN':
             return self.prof.get_network_profile()
         if self.creating_form == 'NODE':
             return self.prof.get_node_profile()
+        if self.creating_form == 'STATUS':
+            return self.prof.get_status_profile()
 
     def onStart(self):
+        self.creating_form = 'STATUS'
+        self.addForm('STATUS', Pup_form, name='Welcome to PowerUP    '
+                     'Press F1 for field help')
+
         self.creating_form = 'MAIN'
         self.addForm('MAIN', Pup_form, name='Welcome to PowerUP    '
                      'Press F1 for field help', lines=24)
@@ -379,6 +598,16 @@ class OSinstall(npyscreen.NPSAppManaged):
                 msg += ["Error. Operating system ISO image file not found: ",
                         f"{prof['iso_image_file']['val']}"]
             return msg
+        elif hasattr(prof, 'nodes_finished'):
+            finished_count = int(prof['nodes_finished']['val']
+                                 .split('/', 1)[0])
+            selected_count = int(prof['nodes_finished']['val']
+                                 .split('/', 1)[1])
+            if finished_count < selected_count:
+                msg += [f"Error. Only {prof['nodes_finished']['val']} ",
+                        "clients reporting as finished."]
+            return msg
+
         # Since the user can skip fields by mouse clicking 'OK'
         # We need additional checking here:
         #  Need to add checks of iso file (check extension)
@@ -498,6 +727,8 @@ class MyButtonPress(npyscreen.MiniButtonPress):
 
 
 class Pup_form(npyscreen.ActionFormV2):
+    install_start_time = None
+    pxeboot_enabled = False
 
     def beforeEditing(self):
         pass
@@ -520,6 +751,10 @@ class Pup_form(npyscreen.ActionFormV2):
         if hasattr(self.form, 'bmc_userid'):
             self.scan_uid = self.form.bmc_userid.val
             self.scan_pw = self.form.bmc_password.val
+        if hasattr(self.form, 'status_table'):
+            self.check_install_status = True
+        else:
+            self.check_install_status = False
 
         for item in self.form:
             fname = self.form[item].desc
@@ -621,6 +856,18 @@ class Pup_form(npyscreen.ActionFormV2):
                                              max_width=self.x - (28 + 2),
                                              relx=28)
 
+            elif ftype == 'tftext':
+                self.fields[item] = self.add(npyscreen.TitleFixedText,
+                                             name=fname,
+                                             value=str(self.form[item]['val']),
+                                             max_width=self.x - (28 + 2),
+                                             relx=relx)
+
+            elif ftype == 'pager':
+                self.fields[item] = self.add(npyscreen.Pager,
+                                             name=fname,
+                                             values=self.form[item]['values'])
+
             # no ftype specified therefore Title text
             else:
                 self.fields[item] = self.add(npyscreen.TitleText,
@@ -631,11 +878,15 @@ class Pup_form(npyscreen.ActionFormV2):
 
             if hasattr(self.form[item], 'ftype') and \
                     ('button' in self.form[item]['ftype'] or
-                     'ftext' in self.form[item]['ftype']):
+                     'ftext' in self.form[item]['ftype'] or
+                     'pager' in self.form[item]['ftype']):
                 pass
             else:
                 self.fields[item].entry_widget.add_handlers({curses.KEY_F1:
                                                              self.h_help})
+
+        if hasattr(self.form, 'status_table'):
+            self.update_status_values()
 
     def on_cancel(self):
         fvl = self.parentApp._FORM_VISIT_LIST
@@ -671,18 +922,27 @@ class Pup_form(npyscreen.ActionFormV2):
                                 self.next_form = None
                                 sys.exit("Ending OSInstall at user request")
                         else:
-                            selected_nodes = []
+                            nodes = {'selected': {}}
                             for index in self.fields[item].value:
                                 data = self.fields['node_list'].\
                                     values[index].split(', ')
 
-                                selected_nodes.append({'serial': data[0],
-                                                       'model': data[1],
-                                                       'bmc_mac': data[2],
-                                                       'bmc_ip': data[3]})
-                            with open(NODE_LIST, 'w') as f:
-                                yaml.dump(selected_nodes, f, indent=4,
+                                # BMC MAC address as "nodes['selected']" key
+                                nodes['selected'][data[2].upper()] = (
+                                    {'serial': data[0].upper(),
+                                     'model': data[1].upper(),
+                                     'bmc_ip': data[3].upper()})
+
+                            with open(NODE_STATUS, 'w') as f:
+                                yaml.dump(nodes, f, indent=4,
                                           default_flow_style=False)
+                    continue
+                    if item == 'pxeboot_status':
+                        if Pup_form.pxeboot_enabled:
+                            msg += [('PXE Install is still enabled!\n'
+                                    'Exit without disabling?')]
+                            res = npyscreen.notify_yes_no(msg, title='Warning',
+                                                          editw=1)
                     continue
                 elif self.form[item]['dtype'] == 'ipv4':
                     # npyscreen.notify_confirm(f"{self.fields[item].value}",
@@ -747,6 +1007,9 @@ class Pup_form(npyscreen.ActionFormV2):
                     elif self.parentApp.NEXT_ACTIVE_FORM == 'NODE':
                         self.parentApp.prof.update_node_profile(self.form)
                         self.initiate_os_installation()
+                        self.next_form = 'STATUS'
+                    elif self.parentApp.NEXT_ACTIVE_FORM == 'STATUS':
+                        self.parentApp.prof.update_status_profile(self.form)
                         self.next_form = None
 
         elif fld_error or val_error:
@@ -865,6 +1128,10 @@ class Pup_form(npyscreen.ActionFormV2):
                 self.fields['scan_for_nodes'].name = 'Stop node scan'
             self.display()
             self.fields['node_list'].values = field_list
+            self.display()
+        elif self.check_install_status:
+            self.keypress_timeout = 10  # set scan loop to 1 sec
+            self.update_status_values()
             self.display()
 
     def while_editing(self, instance):
@@ -1071,7 +1338,7 @@ class Pup_form(npyscreen.ActionFormV2):
             return
 
         if not os.path.isdir(status_dir):
-            os.mkdir(status_dir)
+            os.makedirs(status_dir)
             os.chmod(status_dir, 0o777)
         nginx_location = {f'/client_status/':
                           [f'alias {status_dir}',
@@ -1119,26 +1386,14 @@ class Pup_form(npyscreen.ActionFormV2):
         msg += "done\nGenerate pxelinux configuration... "
         npyscreen.notify(msg, title=notify_title)
         pxelinux_configuration(self.parentApp.prof, kernel, initrd, kickstart)
+        Pup_form.pxeboot_enabled = True
+        Pup_form.install_start_time = time()
 
         msg += "done\nPXE boot nodes... "
         npyscreen.notify(msg, title=notify_title)
-        initiate_pxeboot(self.parentApp.prof, NODE_LIST)
-
-        msg += "done\nWait 5 minutes... "
-        npyscreen.notify(msg, title=notify_title)
-        sleep(300)
-
-        msg += "done\nReset node boot device to disk... "
-        npyscreen.notify(msg, title=notify_title)
-        reset_bootdev(self.parentApp.prof, NODE_LIST)
-
-        msg += "done\nSet pxelinux default to local boot... "
-        npyscreen.notify(msg, title=notify_title)
-        u.line_in_file('/var/lib/tftpboot/pxelinux.cfg/default',
-                       r'^default=.+', 'default local')
+        initiate_pxeboot(self.parentApp.prof, NODE_STATUS)
 
         msg += "done\n"
-        npyscreen.notify_confirm(msg, title=notify_title, editw=1)
 
     def _get_bmcs_sn_pn(self, node_list, uid, pw):
         """ Scan the node list for BMCs. Return the sn and pn of nodes which
@@ -1183,6 +1438,50 @@ class Pup_form(npyscreen.ActionFormV2):
             bmc_inst[node].logout()
 
         return sn_pn_list
+
+    def update_status_values(self):
+        if Pup_form.pxeboot_enabled:
+            self.fields['pxeboot_status'].value = 'Enabled'
+        else:
+            self.fields['pxeboot_status'].value = 'Disabled'
+
+        if Pup_form.install_start_time is not None:
+            self.fields['start_time'].value = (
+                strftime("%x %X %Z", localtime(Pup_form.install_start_time)))
+
+        if os.path.isfile(NODE_STATUS):
+            node_status = update_install_status(NODE_STATUS,
+                                                Pup_form.install_start_time,
+                                                write_results=True)
+
+            total_nodes = len(node_status['selected'])
+            total_nodes_finished = 0
+            other_nodes_finished = 0
+            for bmc_mac, node in node_status['selected'].items():
+                try:
+                    if float(node['finish_time']) > float(node['start_time']):
+                        total_nodes_finished += 1
+                        reset_bootdev(self.parentApp.prof, NODE_STATUS,
+                                      node['bmc_ip'])
+                except (KeyError, TypeError):
+                    pass
+            if 'other' in node_status:
+                for bmc_mac, node in node_status['other'].items():
+                    try:
+                        if (float(node['finish_time']) >
+                                float(node['start_time'])):
+                            total_nodes_finished += 1
+                            other_nodes_finished += 1
+                    except (KeyError, TypeError):
+                        pass
+            self.fields['nodes_finished'].value = (f'{total_nodes_finished} / '
+                                                   f'{total_nodes}')
+            if total_nodes_finished >= total_nodes:
+                reset_bootdev(self.parentApp.prof, NODE_STATUS)
+                u.pxelinux_set_local_boot()
+                Pup_form.pxeboot_enabled = False
+            self.fields['status_table'].values = (
+                get_install_status(NODE_STATUS, colorized=False).splitlines())
 
 
 def validate(profile_tuple):

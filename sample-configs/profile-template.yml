@@ -117,7 +117,7 @@ network:
             enter. Cursor up or down and press enter to select an interface.
         ftype: eth-ifc
 
-######################## Node configuration
+# Node configuration
 node:
     bmc_userid:
         val: ADMIN
@@ -194,3 +194,38 @@ node:
         #help: Press enter to scan the BMC network for nodes
         ftype: button25,-3
         floc: 25,-3
+
+# Node installation status table
+status:
+    pxeboot_status:
+        val: Enabled
+        desc: PXE Boot
+        help: PXE Boot OS Installation Enabled or Disabled
+        ftype: tftext
+
+    start_time:
+        val: null
+        desc: Start Time
+        help: PXE boot installation start time
+        ftype: tftext
+        floc: skipline
+
+    nodes_finished:
+        val:
+        desc: Finished
+        help: Total number of nodes reported OS install finished.
+        ftype: tftext
+        floc: skipline
+
+    node_list_header:
+        val: ''
+        desc: Detailed node installation status
+        help: Detailed node installation status
+        floc: skipline
+
+    status_table:
+        values: []
+        desc: Nodes selected for OS installation
+        help: This field contains the list of nodes selected to install OS.
+        ftype: pager
+        dtype: no-save
