@@ -891,12 +891,13 @@ class ValidateClusterHardware(object):
         for node in ipmi_missing_list_ai:
             print(node)
         t1 = time.time()
-        self._power_all(ipmi_missing_list_ai, 'off')
+        set_power_clients('off', clients=ipmi_missing_list_ai)
 
         while time.time() < t1 + 10:
             time.sleep(0.5)
 
-        self._power_all(ipmi_missing_list_ai, 'on', bootdev='network')
+        set_bootdev_clients('network', clients=ipmi_missing_list_ai)
+        set_power_clients('on', clients=ipmi_missing_list_ai)
 
     def _is_port_in_table(self, table, port):
         for node in table:
