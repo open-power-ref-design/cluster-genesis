@@ -286,6 +286,34 @@ class software(object):
         #from pdb import set_trace
         #set_trace()
 
+
+        def get_ver_state(ver1, ver2):
+        #def get_ver_state(pkg1, pkg2):
+
+            """Returns -1, 0, 1 if ver1 is older, same , newer than ver2
+            """
+            if ver1 == '':
+                return 0
+
+            ver1s = ver1.split('.')
+            ver2s = ver2.split('.')
+
+            if len(ver1s) > len(ver2s):
+                # pad to equal length
+                ver2s = (['0'] * (len(ver1s) - len(ver2s))) + ver2s
+            elif len(ver2s) > len(ver1s):
+                ver1s = (['0'] * (len(ver2s) - len(ver1s))) + ver1s
+            state = 0
+
+            for r in range(len(ver1s)):
+                if ver1s[r] > ver2s[r]:
+                    state = 1
+                    break
+                elif ver2s[r] > ver1s[r]:
+                    state = -1
+                    break
+            return state
+
         def content_status(which):
             item = self.content[which]
             rc = True
@@ -319,7 +347,7 @@ class software(object):
 
         def yum_repo_status(which):
             #from pdb import set_trace
-            def get_ver_state(pkg, pkg_in_repo):
+            def get_pkg_state(pkg, pkg_in_repo):
                 """Determines whether a package in a yum repo is
                 older, equal to or newer than the pkg called out in the pkg
                 list file.
@@ -331,10 +359,11 @@ class software(object):
                 Returns (int) -1, 0 , 1 = pg in PowerUp repo is older, same,
                     newer version
                 """
-                state = 0  # same epoch, version and release
-                if pkg['ver'] == pkg_in_repo['ver']:
-                    if  pkg['ep'] == pkg_in_repo['ep']:
-                        if  pkg['rel'] == pkg_in_repo['rel']:
+                state = get_ver_state(pkg['ver'], pkg_in_repo['ver'])
+                #state = get_ver_state(pkg, pkg_in_repo)
+                if state == 0:
+                    if  pkg['ep'] == pkg_in_repo['ep'] or pkg['ep'] == '':
+                        if  pkg['rel'] == pkg_in_repo['rel'] or pkg['rel'] == '':
                             state = 0
                         elif pkg['rel'] > pkg_in_repo['rel']:
                             state = -1
@@ -344,15 +373,12 @@ class software(object):
                         state = -1
                     else:
                         state = 1
-                elif pkg['ver'] > pkg_in_repo['ver']:
-                    state = -1
-                else:
-                    state = 1
-
+                #if state == -1:
+                #    print(pkg, pkg_in_repo)
                 return state
 
             def verify_content(repo_id):
-                #from pdb import set_trace
+                from pdb import set_trace
                 #item = self.content[which]
                 this_repo = repo_id
                 rc = True
@@ -374,7 +400,7 @@ class software(object):
                 for _file in pkgs_vers:
                     if _file in files_vers:
                         pkg_cnt += 1
-                        ver_state = get_ver_state(pkgs_vers[_file], files_vers[_file])
+                        ver_state = get_pkg_state(pkgs_vers[_file], files_vers[_file])
                         #if ver_state >= 0:
                         #    pkg_cnt += 1
                         if ver_state == 1:
@@ -424,30 +450,39 @@ class software(object):
         def conda_repo_status(which):
             from pdb import set_trace
             #set_trace()
-            def get_ver_state(pkg, pkg_in_repo):
+
+            def get_pkg_state(pkg, pkg_in_repo):
                 """Determines whether a package in a conda repo is
-                older, equal to or newer than the pkg called out in the pkg
+                older, equal to or newer than the pkgs called out in the pkg
                 list file.
                 Args:
-                    pkg(dict): Pkg from pkg-list in form returned by
-                    parse_conda_filenames. ie {basename: {'ver': version,
-                    'bld': build_lvl}}
-                    pkg_in_repo(dict): Pkg in the yum repo.
-                Returns (int) -1, 0 , 1 = pg in PowerUp repo is older, same,
-                    newer version
+                    pkg(tuple): Pkg from pkg-list with (version, build)
+                    pkgs_in_repo(list of tuples): Pkgs from repo filelist.
+                Returns (int) -2, -1, 0 , 1 = pkg in PowerUp repo is no match,
+                    older, same, newer version
                 """
-                state = 0  # same version and build
-                if pkg['ver'] == pkg_in_repo['ver']:
-                    if  pkg['bld'] == pkg_in_repo['bld']:
-                        state = 0
-                    elif pkg['bld'] > pkg_in_repo['bld']:
+                #set_trace()
+                state = -2  # same version and build
+                for ver, bld in pkg_in_repo:
+                    if pkg[0] == ver:
+                        if pkg[1] == bld:
+                            state = 0
+                            break
+                        else:
+                            pkg_py_ver = re.search(r'py\d+', pkg[1])
+                            pkg_in_repo_py_ver = re.search(r'py\d+', bld)
+                            if pkg_py_ver and pkg_in_repo_py_ver:
+                                #set_trace()
+                                if pkg_py_ver.group(0) == pkg_in_repo_py_ver.group(0):
+                                    if pkg[1] > bld:
+                                        state = -1
+                                    else:
+                                        state = 1
+                                    break
+                    elif pkg[0] > ver:
                         state = -1
-                    else:
+                    elif pkg[0] < ver:
                         state = 1
-                elif pkg['ver'] > pkg_in_repo['ver']:
-                    state = -1
-                else:
-                    state = 1
 
                 return state
 
@@ -464,23 +499,29 @@ class software(object):
                 filelist = [fi for fi in filelist if fi[-8:] == '.tar.bz2']
                 files_vers = parse_conda_filenames(filelist)
                 pkg_cnt = 0
-                nwr_cnt = 0
+                new_cnt = 0
                 old_cnt = 0
+                missing = []
                 for _file in pkgs_vers:
-                    for ver_bld in pkgs_vers[_file]['ver_bld']:
-                        if _file in files_vers and ver_bld in files_vers[_file]['ver_bld']:
-                            pkg_cnt += 1
-                            #ver_state = get_ver_state(pkgs_vers[_file], files_vers[_file])
-                            #if ver_state >= 0:
-                            #    pkg_cnt += 1
-                            #if ver_state == 1:
-                            #    nwr_cnt += 1
-                            #if ver_state == -1:
-                            #    old_cnt += 1
-                            #    rc = False
-                        else:
-                            rc = False
-                return pkg_lst_cnt, pkg_cnt, nwr_cnt, old_cnt  #, newer_cnt
+                    if _file in files_vers:
+                        for ver_bld in pkgs_vers[_file]['ver_bld']:
+                            ver_state = get_pkg_state(ver_bld, files_vers[_file]['ver_bld'])
+                            if ver_state == -1:
+                                old_cnt += 1
+                                pkg_cnt += 1
+                            elif ver_state == 0:
+                                pkg_cnt += 1
+                            elif ver_state == 1:
+                                new_cnt +=1
+                                pkg_cnt += 1
+                            else:
+                                missing.append(_file)
+                    else:
+                        missing.append(_file)
+                if missing:
+                    self.log.info(f'Missing {which} files: {missing}')
+
+                return pkg_lst_cnt, pkg_cnt, new_cnt, old_cnt  #, newer_cnt
 
             item = self.content[which]
             rc = True
