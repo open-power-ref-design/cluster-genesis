@@ -334,7 +334,7 @@ class software(object):
             if item == 'Firewall':
                 cmd = 'firewall-cmd --list-all'
                 resp, _, _ = sub_proc_exec(cmd)
-                if not '(active)' in resp:
+                if '(active)' not in resp:
                     self.state[item] = "Firewall is not running"
                 elif re.search(r'services:\s+.+http', resp):
                     self.state[item] = "Running and configured for http"
