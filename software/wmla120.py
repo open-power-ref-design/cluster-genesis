@@ -34,6 +34,7 @@ from getpass import getpass
 import pwd
 import grp
 import click
+from pdb import set_trace
 
 import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
@@ -346,7 +347,8 @@ class software(object):
             return rc
 
         def yum_repo_status(which):
-            #from pdb import set_trace
+            from pdb import set_trace
+            #set_trace()
             def get_pkg_state(pkg, pkg_in_repo):
                 """Determines whether a package in a yum repo is
                 older, equal to or newer than the pkg called out in the pkg
@@ -390,7 +392,10 @@ class software(object):
                 #set_trace()
                 pkgs_vers = parse_rpm_filenames(self.pkgs[this_repo], form='dict')
                 pkg_lst_cnt = len(pkgs_vers)
-                repo_path = self.sw_vars[f'{repo_id}_repo_path']
+                if repo_id == 'dependencies':
+                    repo_path = self.sw_vars[f'{repo_id}_{self.proc_family}_repo_path']
+                else:
+                    repo_path = self.sw_vars[f'{repo_id}_repo_path']
                 filelist = os.listdir(repo_path)
                 filelist = [fi for fi in filelist if fi[-4:] == '.rpm']
                 files_vers = parse_rpm_filenames(filelist, form='dict')
@@ -417,8 +422,16 @@ class software(object):
             item = self.content[which]
             rc = True
             repo_id = item.repo_id.format(arch=self.arch)
-            search_dir = os.path.join(self.sw_vars[f'{repo_id}_repo_path'],
-                                      'repodata')
+            if repo_id == 'dependencies':
+                key = f'{repo_id}_{self.proc_family}_repo_path'
+                if key in self.sw_vars:
+                    search_dir = os.path.join(self.sw_vars[key], 'repodata')
+                else:
+                    self.log.error(f'Repository path does not exist: {key}')
+                    sys.exit()
+            else:
+                search_dir = os.path.join(self.sw_vars[f'{repo_id}_repo_path'],
+                                          'repodata')
             repodata = glob.glob(search_dir, recursive=True)
             sw_vars_data = (f'{repo_id}-powerup.repo' in
                             self.sw_vars['yum_powerup_repo_files'])
@@ -1870,9 +1883,13 @@ class software(object):
         paths = sorted(paths)
         return paths
 
-    def _get_yum_repo_dirs(self, repo_id):
-        _dirglob = os.path.join(f'{self.root_dir}', 'repos', f'{repo_id}',
-                                '**', 'repodata')
+    def _get_yum_repo_dirs(self, repo_id, proc_family):
+        if repo_id == 'dependencies':
+            _dirglob = os.path.join(f'{self.root_dir}', 'repos', f'{repo_id}',
+                                    f'**', f'{proc_family}', 'dependencies', 'repodata')
+        else:
+            _dirglob = os.path.join(f'{self.root_dir}', 'repos', f'{repo_id}',
+                                    '**', 'repodata')
         paths = glob.glob(_dirglob, recursive=True)
         paths = [path.rstrip('repodata') for path in paths]
         return paths
@@ -1900,6 +1917,7 @@ class software(object):
             self.proc_family = 'x86_64'
 
     def _update_software_vars(self):
+        from pdb import set_trace
         self.sw_vars['content_files'] = {}
         self.sw_vars['ana_powerup_repo_channels'] = []
         self.sw_vars['yum_powerup_repo_files'] = {}
@@ -1959,7 +1977,7 @@ class software(object):
             elif item.type == 'yum':
                 repo_id = item.repo_id.format(arch=self.arch)
                 repo_name = item.repo_name.format(arch=self.arch)
-                dirs = self._get_yum_repo_dirs(repo_id)
+                dirs = self._get_yum_repo_dirs(repo_id, self.proc_family)
                 if self.proc_family and repo_name == 'Dependencies':
                     dirs = [d for d in dirs if self.proc_family in d]
 
@@ -1988,7 +2006,10 @@ class software(object):
                                                                    gpgcheck=0,
                                                                    client=True)
                     self.sw_vars['yum_powerup_repo_files'][filename] = dotrepo_content
-                    self.sw_vars[f'{repo_id}_repo_path'] = _dir
+                    if repo_id == 'dependencies':
+                        self.sw_vars[f'{repo_id}_{self.proc_family}_repo_path'] = _dir
+                    else:
+                        self.sw_vars[f'{repo_id}_repo_path'] = _dir
                 else:
                     self.sw_vars['yum_powerup_repo_files'][filename] = ''
             elif item.type == 'simple':
@@ -1999,6 +2020,7 @@ class software(object):
                     self.sw_vars['pypi_http_path'] = path[len(self.root_dir_nginx):]
                 else:
                     self.sw_vars['pypi_repo_path'] = ''
+        self.prep_post()
 
     def _install_ready(self):
         ready = True
