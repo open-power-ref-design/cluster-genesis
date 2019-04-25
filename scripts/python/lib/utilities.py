@@ -1635,7 +1635,7 @@ def parse_rpm_filenames(filename, form='list'):
         release = []
         epoch = []
         for _file in filename:
-            bn, ver, rel = get_parts(_file)
+            bn, ep, ver, rel = get_parts(_file)
             basename.append(bn)
             version.append(ver)
             release.append(rel)

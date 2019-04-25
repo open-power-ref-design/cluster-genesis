@@ -744,7 +744,7 @@ class software(object):
         gpgkey = _repo.gpgkey.format(baseurl=baseurl)
         heading1(f'Set up {repo_name}\n')
         # list to str
-        pkg_list = ' '.join(self.pkgs['repo_id'])
+        pkg_list = ' '.join(self.pkgs[repo_id])
 
         if f'{repo_id}_alt_url' in self.sw_vars:
             alt_url = self.sw_vars[f'{repo_id}_alt_url']
@@ -832,7 +832,10 @@ class software(object):
                 content = repo.get_yum_dotrepo_content(url, gpgcheck=0)
                 repo.write_yum_dot_repo_file(content)
 
-                repo.sync()
+                repo = PowerupRepo(repo_id, repo_name, self.root_dir,
+                                   proc_family=self.proc_family)
+                repo_dir = repo.get_repo_dir()
+                self._add_dependent_packages(repo_dir, pkg_list, also_get_newer=True)
                 repo.create_meta()
 
                 self.log.info('Repository setup complete')
@@ -1148,17 +1151,24 @@ class software(object):
                 repo = PowerupYumRepoFromRepo(repo_id, repo_name, self.root_dir,
                                               arch=self.arch,
                                               proc_family=self.proc_family)
+                repo_dir = repo.get_repo_dir()
+                os.makedirs(repo_dir, exist_ok=True)
 
                 url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
                                         filelist=['bzip2-*'])
                 if url:
                     if not url == baseurl:
                         self.sw_vars[f'{repo_id}_alt_url'] = url
+
                     # Set up access to the repo
                     content = repo.get_yum_dotrepo_content(url, gpgcheck=0)
                     repo.write_yum_dot_repo_file(content)
 
-                    repo.sync()
+                    repo = PowerupRepo(repo_id, repo_name, self.root_dir,
+                                       proc_family=self.proc_family)
+                    repo_dir = repo.get_repo_dir()
+                    self._add_dependent_packages(repo_dir, dep_list, also_get_newer=True)
+                    self._add_dependent_packages(repo_dir, more, also_get_newer=True)
                     repo.create_meta()
 
                     # Setup local access to the new repo copy
@@ -1424,16 +1434,25 @@ class software(object):
 
                 repo = PowerupYumRepoFromRepo(repo_id, repo_name, self.root_dir,
                                               arch=self.arch)
+
+                repo_dir = repo.get_repo_dir()
+                os.makedirs(repo_dir, exist_ok=True)
+
                 url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
                                         filelist=['openblas-*'])
+
                 if url:
                     if not url == baseurl:
                         self.sw_vars[f'{repo_id}_alt_url'] = url
+
                     # Set up access to the repo
                     content = repo.get_yum_dotrepo_content(url, gpgcheck=0)
                     repo.write_yum_dot_repo_file(content)
 
-                    repo.sync()
+                    repo = PowerupRepo(repo_id, repo_name, self.root_dir,
+                                       proc_family=self.proc_family)
+                    repo_dir = repo.get_repo_dir()
+                    self._add_dependent_packages(repo_dir, epel_list, also_get_newer=True)
                     repo.create_meta()
 
                     # Setup local access to the new repo copy in /srv/repo/
@@ -1657,27 +1676,6 @@ class software(object):
                            f'(pkg-lists-{self.base_filename}.yml)')
             sys.exit('Exit due to critical error')
 
-#    def _load_filelist(self):
-#        # When searching for files in other web servers, the fileglobs are converted to
-#        # regular expressions. An asterisk (*) after a bracket is converted to a
-#        # regular extression of [0-9]{0,3} Other asterisks are converted to regular
-#        # expression of .*
-#        try:
-#            file_lists = yaml.load(open(GEN_SOFTWARE_PATH + f'file-lists-'
-#                                   f'{self.base_filename}.yml'))
-#        except IOError:
-#            self.log.info('Error while reading installation file lists for '
-#                          'WMLA Enterprise')
-#            sys.exit('exiting')
-#            input('\nPress enter to continue')
-#        else:
-#            if self.eval_ver:
-#                self.globs = file_lists['globs_eval']
-#                self.files = file_lists['files_eval']
-#            else:
-#                self.globs = file_lists['globs']
-#                self.files = file_lists['files']
-
     def _add_dependent_packages(self, repo_dir, dep_list, also_get_newer=True):
         def yum_download(repo_dir, dep_list):
             cmd = (f'yumdownloader --archlist={self.arch} --destdir '
@@ -1694,9 +1692,9 @@ class software(object):
 
         if also_get_newer:
             dep_list_list = dep_list.split()
-            versionless_dep_list, ver = parse_rpm_filenames(dep_list_list)
-            versionless_dep_list = ' '.join(versionless_dep_list)
-            yum_download(repo_dir, versionless_dep_list)
+            basename_dep_list, ep, ver, rel = parse_rpm_filenames(dep_list_list)
+            basename_dep_list = ' '.join(basename_dep_list)
+            yum_download(repo_dir, basename_dep_list)
 
             # Form new dep_list consisting of packages not already in repo_dir
             in_repo_list = os.listdir(repo_dir)
