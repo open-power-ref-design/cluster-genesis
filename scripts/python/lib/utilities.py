@@ -1521,6 +1521,42 @@ def breakpoint():
     clear_curses()
     set_trace()
 
+def parse_pypi_filenames(filenames, eq_eq_fmt=False):
+    """Returns the basename and version for a pypi package name filelist.
+    Args:
+        eq_eq_fmt(bool): Indicates the list is of the form pkgname==ver
+
+    """
+    from pdb import set_trace
+    #set_trace()
+    if isinstance(filenames, list):
+        _dict = {}
+        for _file in filenames:
+            if eq_eq_fmt:
+                _file += '.whl'  # dummy it up so the reg ex works
+            if _file.endswith('.whl') or _file.endswith('.gz') or \
+                    _file.endswith('.bz2') or _file.endswith('.zip'):
+                fnd = re.search(r'[-=]((\d+\.)+\d+)[-.]', _file)
+                if fnd:
+                    ver = fnd.group(1)
+                    name = _file[:fnd.span()[0]]  # strip trailing eq_eq chars
+                    if not eq_eq_fmt:
+                        bld = _file[fnd.span()[1]:]
+                    else:
+                        name = name.rstrip('>=<')  # .replace('-', '_')
+                        bld = ''
+                else:
+                    ver = ''
+                    bld = ''
+                    name = _file
+                    LOG.error(f'Unable to extract version from {_file}')
+                if name in _dict:
+                    _dict[name]['ver_bld'].append((ver, bld))
+                else:
+                    _dict[name] ={}
+                    _dict[name]['ver_bld'] = [(ver, bld)]
+            else:
+    return _dict
 
 def parse_conda_filenames(filenames):
     """Returns the basename, version and release for a conda package file list.
@@ -1559,16 +1595,8 @@ def parse_conda_filenames(filenames):
             if not name in _dict:
                 _dict[name] = {}
                 _dict[name]['ver_bld'] = []
-                #_dict[name]['bld'] = []
 
             _dict[name]['ver_bld'].append((version, build))
-            #_dict[name]['bld'].append(build)
-#            elif version > _dict[name]['ver']:
-#                _dict[name]['ver'] = version
-#                _dict[name]['bld'] = build
-#            elif version == _dict[name]['ver'] and build > _dict[name]['bld']:
-#                _dict[name]['ver'] = version
-#                _dict[name]['bld'] = build
 
         return _dict
 

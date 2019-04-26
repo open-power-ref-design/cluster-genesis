@@ -43,7 +43,7 @@ from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
 from software_hosts import get_ansible_inventory, validate_software_inventory
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, Color, \
     get_selection, get_yesno, rlinput, bold, ansible_pprint, replace_regex, \
-    parse_rpm_filenames, parse_conda_filenames, lscpu
+    parse_rpm_filenames, parse_conda_filenames, parse_pypi_filenames, lscpu
 from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path, \
     get_playbooks_path, get_nginx_root_dir
 from nginx_setup import nginx_setup
@@ -245,15 +245,12 @@ class software(object):
         return ret
 
     def status(self, which='all'):
-        from pdb import set_trace
         rc = True
         self._update_software_vars()
         if which == 'all':
             rc = rc and self.status_prep(which = 'Firewall')
             rc = rc and self.status_prep(which = 'Nginx Web Server')
             for _item in self.content:
-                #from pdb import set_trace
-                #set_trace()
                 _rc = self.status_prep(_item)
                 rc = rc and _rc
         else:
@@ -266,7 +263,6 @@ class software(object):
                 status = self.state[item]
                 it = (item + '                              ')[:39]
                 print(f'  {it:<40} : ' + status)
-                #exists = exists and self.state[item] != '-'
 
             gtg = 'Preparation complete. '
             for item in self.state:
@@ -277,20 +273,48 @@ class software(object):
                     gtg = f'{Color.red}Preparation incomplete{Color.endc}'
             print(f'\n{bold(gtg)}\n')
         else:
-            #exists = self.state[which] != '-'
             self.state[which] != '-'
 
         return rc
 
     def status_prep(self, which):
-        #self.state = {}
-        #from pdb import set_trace
-        #set_trace()
 
+        def get_conda_pkg_state(pkg, pkg_in_repo):
+            """Determines whether a package in a conda repo is
+            older, equal to or newer than the pkgs called out in the pkg
+            list file.
+            Args:
+                pkg(tuple): Pkg from pkg-list with (version, build)
+                pkg_in_repo(list of tuples): Pkgs from repo filelist.
+            Returns (int) -2, -1, 0 , 1 = pkg in PowerUp repo is no match,
+                older, same, newer version
+            """
+            #set_trace()
+            state = -2  # same version and build
+            for ver, bld in pkg_in_repo:
+                if pkg[0] == ver:
+                    if pkg[1] == bld:
+                        state = 0
+                        break
+                    else:
+                        pkg_py_ver = re.search(r'py\d+', pkg[1])
+                        pkg_in_repo_py_ver = re.search(r'py\d+', bld)
+                        if pkg_py_ver and pkg_in_repo_py_ver:
+                            #set_trace()
+                            if pkg_py_ver.group(0) == pkg_in_repo_py_ver.group(0):
+                                if pkg[1] > bld:
+                                    state = -1
+                                else:
+                                    state = 1
+                                break
+                elif pkg[0] > ver:
+                    state = -1
+                elif pkg[0] < ver:
+                    state = 1
+
+            return state
 
         def get_ver_state(ver1, ver2):
-        #def get_ver_state(pkg1, pkg2):
-
             """Returns -1, 0, 1 if ver1 is older, same , newer than ver2
             """
             if ver1 == '':
@@ -314,6 +338,27 @@ class software(object):
                     state = -1
                     break
             return state
+
+        def get_pypi_pkg_state(pkg, pkg_in_repo):
+            """Determines whether a package in a conda repo is
+            older, equal to or newer than the pkgs called out in the pkg
+            list file.
+            Args:
+                pkg(tuple): Pkg from pkg-list with (version, build)
+                pkg_in_repo(list of tuples): Pkgs from repo filelist.
+            Returns (int) -2, -1, 0 , 1 = pkg in PowerUp repo is no match,
+                older, same, newer version
+            """
+            state = -2  # same version and build
+            for ver, bld in pkg_in_repo:
+                this_state = get_ver_state(pkg[0], ver)
+                if this_state == 0:
+                    state = this_state
+                    break
+                elif this_state > state:
+                    state = this_state
+            return state
+
 
         def content_status(which):
             item = self.content[which]
@@ -347,8 +392,6 @@ class software(object):
             return rc
 
         def yum_repo_status(which):
-            from pdb import set_trace
-            #set_trace()
             def get_pkg_state(pkg, pkg_in_repo):
                 """Determines whether a package in a yum repo is
                 older, equal to or newer than the pkg called out in the pkg
@@ -362,7 +405,6 @@ class software(object):
                     newer version
                 """
                 state = get_ver_state(pkg['ver'], pkg_in_repo['ver'])
-                #state = get_ver_state(pkg, pkg_in_repo)
                 if state == 0:
                     if  pkg['ep'] == pkg_in_repo['ep'] or pkg['ep'] == '':
                         if  pkg['rel'] == pkg_in_repo['rel'] or pkg['rel'] == '':
@@ -375,21 +417,15 @@ class software(object):
                         state = -1
                     else:
                         state = 1
-                #if state == -1:
-                #    print(pkg, pkg_in_repo)
                 return state
 
             def verify_content(repo_id):
-                from pdb import set_trace
-                #item = self.content[which]
                 this_repo = repo_id
                 rc = True
                 if repo_id == 'dependencies':
                     this_repo = f'{repo_id}_{self.proc_family}'
                 else:
                     this_repo = repo_id
-                #from pdb import set_trace
-                #set_trace()
                 pkgs_vers = parse_rpm_filenames(self.pkgs[this_repo], form='dict')
                 pkg_lst_cnt = len(pkgs_vers)
                 if repo_id == 'dependencies':
@@ -406,13 +442,9 @@ class software(object):
                     if _file in files_vers:
                         pkg_cnt += 1
                         ver_state = get_pkg_state(pkgs_vers[_file], files_vers[_file])
-                        #if ver_state >= 0:
-                        #    pkg_cnt += 1
                         if ver_state == 1:
                             nwr_cnt += 1
                         if ver_state == -1:
-                            # print(pkgs_vers[_file])
-                            # print(files_vers[_file])
                             old_cnt += 1
                             rc = False
                     else:
@@ -461,47 +493,9 @@ class software(object):
             return rc
 
         def conda_repo_status(which):
-            from pdb import set_trace
-            #set_trace()
-
-            def get_pkg_state(pkg, pkg_in_repo):
-                """Determines whether a package in a conda repo is
-                older, equal to or newer than the pkgs called out in the pkg
-                list file.
-                Args:
-                    pkg(tuple): Pkg from pkg-list with (version, build)
-                    pkgs_in_repo(list of tuples): Pkgs from repo filelist.
-                Returns (int) -2, -1, 0 , 1 = pkg in PowerUp repo is no match,
-                    older, same, newer version
-                """
-                #set_trace()
-                state = -2  # same version and build
-                for ver, bld in pkg_in_repo:
-                    if pkg[0] == ver:
-                        if pkg[1] == bld:
-                            state = 0
-                            break
-                        else:
-                            pkg_py_ver = re.search(r'py\d+', pkg[1])
-                            pkg_in_repo_py_ver = re.search(r'py\d+', bld)
-                            if pkg_py_ver and pkg_in_repo_py_ver:
-                                #set_trace()
-                                if pkg_py_ver.group(0) == pkg_in_repo_py_ver.group(0):
-                                    if pkg[1] > bld:
-                                        state = -1
-                                    else:
-                                        state = 1
-                                    break
-                    elif pkg[0] > ver:
-                        state = -1
-                    elif pkg[0] < ver:
-                        state = 1
-
-                return state
 
             def verify_content(which):
                 rc = True
-                #set_trace()
                 pkgs_vers = parse_conda_filenames(self.pkgs[f'{which}_linux_'
                                                   f'{self.arch}']['accept_list'])
                 pkg_lst_cnt = 0
@@ -518,7 +512,7 @@ class software(object):
                 for _file in pkgs_vers:
                     if _file in files_vers:
                         for ver_bld in pkgs_vers[_file]['ver_bld']:
-                            ver_state = get_pkg_state(ver_bld, files_vers[_file]['ver_bld'])
+                            ver_state = get_conda_pkg_state(ver_bld, files_vers[_file]['ver_bld'])
                             if ver_state == -1:
                                 old_cnt += 1
                                 pkg_cnt += 1
@@ -541,7 +535,6 @@ class software(object):
             repo_id = item.repo_id
             repo_name = item.repo_name
             name = item.name
-            #set_trace()
             dirglob_lin = os.path.join(self.sw_vars[f'{which}_repo_path'],
                                        f'linux-{self.arch}', '')
             path_lin = glob.glob(dirglob_lin, recursive=True)
@@ -580,14 +573,78 @@ class software(object):
             return rc
 
         def pypi_repo_status(which):
-                item = self.content[which]
-                rc = True
-                if os.path.exists(f'{self.root_dir}repos/{item.repo_id}/simple/') and \
-                        len(os.listdir(f'{self.root_dir}repos/{item.repo_id}/simple/')) >= 1:
-                    self.state[item.desc] = 'Setup'
+
+            def verify_content(which):
+                path = self.sw_vars[f'{which}_repo_path']
+                if os.path.exists(path):
+                    path = path.rsplit('/', 1)[0]
                 else:
-                    self.state[item.desc] = '-'
-                    rc = False
+                    self.log.error(f'Path missing {path}')
+                filenames = os.listdir(path)
+                files_vers = parse_pypi_filenames(filenames)
+                #pkgs_vers = get_pkgs_vers()
+                pkgs_vers = parse_pypi_filenames(self.pkgs[which], eq_eq_fmt=True)
+
+                pkg_lst_cnt = 0
+                for item in pkgs_vers:
+                    pkg_lst_cnt += len(pkgs_vers[item]['ver_bld'])
+
+                pkg_cnt = 0
+                new_cnt = 0
+                old_cnt = 0
+                missing = []
+                for _file in pkgs_vers:
+                    # pypi filenames allow both dashes and underscores in filenames
+                    # and also have cases where dashes in package names are converted
+                    # to underscores in filenames but not consistently.
+                    fyle = ''
+                    if _file in files_vers:
+                        fyle = _file
+                    elif _file.replace('-', '_') in files_vers:
+                        fyle = _file.replace('-', '_')
+                    if fyle:
+                        for ver_bld in pkgs_vers[_file]['ver_bld']:
+                            ver_state = get_pypi_pkg_state(ver_bld, files_vers[fyle]['ver_bld'])
+                            if ver_state == -1:
+                                old_cnt += 1
+                                pkg_cnt += 1
+                            elif ver_state == 0:
+                                pkg_cnt += 1
+                            elif ver_state == 1:
+                                new_cnt +=1
+                                pkg_cnt += 1
+                            else:
+                                missing.append(_file)
+                    else:
+                        missing.append(_file)
+                if missing:
+                    self.log.info(f'Missing {which} files: {missing}')
+
+                return pkg_lst_cnt, pkg_cnt, new_cnt, old_cnt
+
+            #set_trace()
+            item = self.content[which]
+            rc = True
+            path = self.sw_vars[f'{which}_repo_path']
+            pkg_lst_cnt, pkg_cnt, nwr_cnt, old_cnt = verify_content(which)
+
+            if pkg_cnt < pkg_lst_cnt:
+                rc = False
+
+            col = Color.white
+            endc = Color.endc
+
+            if pkg_cnt < pkg_lst_cnt:
+                col = Color.red
+            elif old_cnt > 0:
+                col = Color.yellow
+            summ = f'Setup {pkg_cnt}/{pkg_lst_cnt}'
+            status = f'{summ:<7}'
+            if old_cnt > 0:
+                status += f' - {old_cnt} older'
+            self.state[item.desc] = f'{col}{status}{endc}'
+
+            return rc
 
         def nginx_status(which):
             rc = True
@@ -1915,7 +1972,6 @@ class software(object):
             self.proc_family = 'x86_64'
 
     def _update_software_vars(self):
-        from pdb import set_trace
         self.sw_vars['content_files'] = {}
         self.sw_vars['ana_powerup_repo_channels'] = []
         self.sw_vars['yum_powerup_repo_files'] = {}

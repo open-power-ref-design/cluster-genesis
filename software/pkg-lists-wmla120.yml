@@ -369,8 +369,9 @@ python3_specific_pkgs:
     - docutils>=0.10
     - enum34==1.1.6
     - futures==3.1.1
-    - os_service_types==1.2.0
-python_pkgs:
+#    - os_service_types==1.2.0
+#python_pkgs:
+pypi:
     - alembic==0.8.2
     - appdirs==1.4.3
     - asyncio==3.4.3
