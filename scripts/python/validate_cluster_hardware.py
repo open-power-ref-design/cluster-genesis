@@ -307,7 +307,7 @@ class ValidateClusterHardware(object):
                             self.log.debug(f'Node {node} is powered {r}')
                             bmc_ai[node] = tuple(cred_list[j][:-1])
                             cred_list[j][3] -= 1
-                            left -= left
+                            left -= 1
                             print(f'\r{tot - left} of {tot} nodes communicating via IPMI',
                                   end='')
                             sys.stdout.flush()
