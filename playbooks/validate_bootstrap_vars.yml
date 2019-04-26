@@ -17,6 +17,7 @@
 
 - name: Software bootstrap validation
   hosts: localhost
+  gather_facts: False
   tasks:
     - name: Validate software bootstrap parsing
       debug:
