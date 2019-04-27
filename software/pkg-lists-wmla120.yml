@@ -362,9 +362,10 @@ anaconda_main_noarch:
     - pbr-5.1.3-py_0.tar.bz2
     - partd-0.3.10-py_0.tar.bz2
 
-  reject_list: all
+  reject_list:
 
-python3_specific_pkgs:
+#python3_specific_pkgs:
+pypi_3:
     - deprecation==2.0.5
     - docutils>=0.10
     - enum34==1.1.6

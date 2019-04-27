@@ -1521,30 +1521,26 @@ def breakpoint():
     clear_curses()
     set_trace()
 
-def parse_pypi_filenames(filenames, eq_eq_fmt=False):
+
+def parse_pypi_filenames(filenames):
     """Returns the basename and version for a pypi package name filelist.
     Args:
-        eq_eq_fmt(bool): Indicates the list is of the form pkgname==ver
+        filenames(list): Package filenames of form named-ver-bld.type. Package
+        names can have dashes or underscores. Filenames can also have underscores
+        or dashes which don't alwys match the package names
+    returns:
 
     """
-    from pdb import set_trace
-    #set_trace()
     if isinstance(filenames, list):
         _dict = {}
         for _file in filenames:
-            if eq_eq_fmt:
-                _file += '.whl'  # dummy it up so the reg ex works
             if _file.endswith('.whl') or _file.endswith('.gz') or \
                     _file.endswith('.bz2') or _file.endswith('.zip'):
                 fnd = re.search(r'[-=]((\d+\.)+\d+)[-.]', _file)
                 if fnd:
                     ver = fnd.group(1)
                     name = _file[:fnd.span()[0]]  # strip trailing eq_eq chars
-                    if not eq_eq_fmt:
-                        bld = _file[fnd.span()[1]:]
-                    else:
-                        name = name.rstrip('>=<')  # .replace('-', '_')
-                        bld = ''
+                    bld = _file[fnd.span()[1]:]
                 else:
                     ver = ''
                     bld = ''
@@ -1553,10 +1549,10 @@ def parse_pypi_filenames(filenames, eq_eq_fmt=False):
                 if name in _dict:
                     _dict[name]['ver_bld'].append((ver, bld))
                 else:
-                    _dict[name] ={}
+                    _dict[name] = {}
                     _dict[name]['ver_bld'] = [(ver, bld)]
-            else:
     return _dict
+
 
 def parse_conda_filenames(filenames):
     """Returns the basename, version and release for a conda package file list.
@@ -1574,7 +1570,7 @@ def parse_conda_filenames(filenames):
         """
         filename = filename.strip()
         if not '.tar.bz2' == filename[-8:]:
-            LOG.error(f'Improper conda filename: {_filename}. Missing ".tar.bz2"')
+            LOG.error(f'Improper conda filename: {filename}. Missing ".tar.bz2"')
             name = ''
             version = ''
             build = ''
@@ -1592,7 +1588,7 @@ def parse_conda_filenames(filenames):
         _dict = {}
         for _file in filenames:
             name, version, build = get_parts(_file)
-            if not name in _dict:
+            if name not in _dict:
                 _dict[name] = {}
                 _dict[name]['ver_bld'] = []
 
@@ -1602,6 +1598,7 @@ def parse_conda_filenames(filenames):
 
     elif isinstance(filenames, str):
         return get_parts(filenames)
+
 
 def parse_rpm_filenames(filename, form='list'):
     """ returns the basename, epoch, version and release lvl for an rpm file
@@ -1671,10 +1668,9 @@ def parse_rpm_filenames(filename, form='list'):
         return basename, epoch, version, release
     elif form == 'dict':
         _dict = {}
-        i = 0
         for _file in filename:
             basename, ep, ver, rel = get_parts(_file)
-            if not basename in _dict:
+            if basename not in _dict:
                 _dict[basename] = {}
                 _dict[basename]['ver'] = ver
                 _dict[basename]['rel'] = rel
