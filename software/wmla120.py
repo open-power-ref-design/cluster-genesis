@@ -488,7 +488,7 @@ class software(object):
             if re.search(r'services:\s+.+http', resp):
                 self.state[which] = "Running and configured for http"
             elif 'FirewallD is not running' in err:
-                self.state[which] = "Not running"
+                self.state[which] = Color.yellow + "Not running" + Color.endc
 
             return rc
 
