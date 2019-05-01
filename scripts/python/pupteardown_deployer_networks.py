@@ -21,6 +21,7 @@ import os
 import re
 import platform
 from pyroute2 import IPRoute
+from docker import errors
 
 from lib.config import Config
 from lib.genesis import GEN_PATH
@@ -339,8 +340,11 @@ def _is_ifc_attached_elsewhere(ifc, bridge):
 
 
 def _remove_docker_networks(cfg):
-    container = Container(cfg.config_path)
-    container.create_networks(remove=True)
+    try:
+        container = Container(cfg.config_path)
+        container.create_networks(remove=True)
+    except errors.NotFound:
+        LOG.info('Container not found')
 
 
 if __name__ == '__main__':

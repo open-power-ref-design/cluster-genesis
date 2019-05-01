@@ -32,6 +32,7 @@ GEN_PASSIVE_PATH = os.path.join(GEN_PATH, 'passive', '')
 GEN_LOGS_PATH = os.path.join(GEN_PATH, 'logs', '')
 GEN_SOFTWARE_PATH = os.path.join(GEN_PATH, 'software', '')
 GEN_SAMPLE_CONFIGS_PATH = os.path.join(GEN_PATH, 'sample-configs', '')
+NGINX_ROOT_DIR = '/srv/pup'
 OPSYS = platform.dist()[0]
 DEFAULT_CONTAINER_NAME = PROJECT_NAME
 CONTAINER_PACKAGE_PATH = '/opt/' + PROJECT_NAME
@@ -105,6 +106,10 @@ def load_localhost(filename):
         return yaml.safe_load(open(filename))
     except:
         sys.exit('Could not load file: ' + filename)
+
+
+def get_nginx_root_dir():
+    return NGINX_ROOT_DIR
 
 
 def get_dependencies_path():

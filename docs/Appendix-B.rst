@@ -19,7 +19,7 @@ This abbreviated instruction list is for advanced users already familiar with th
 
     sudo yum install git
 
-    git clone https://github.com/open-power-ref-design-toolkit/power-up -b wmla120-1.0
+    git clone https://github.com/open-power-ref-design-toolkit/power-up -b wmla120-1.0.1
 
     cd power-up
 
@@ -43,9 +43,6 @@ This abbreviated instruction list is for advanced users already familiar with th
     cd /home/user/wmla120bin
     bash ibm-wmla-1.2.0_ppc64le.bin
 
-    for x86
-
-    bash ibm-wmla-1.2.0_x86_64.bin
 
 #. Deactivate Conda::
 

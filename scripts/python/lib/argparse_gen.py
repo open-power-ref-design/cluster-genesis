@@ -408,15 +408,22 @@ def get_args(parser_args=False):
         help='Runs the software phase with specified architecture')
 
     parser_software.add_argument(
+        '--base-dir',
+        default=None,
+        # choices=['ppc64le', 'x86_64'],
+        help='Set the base directory for storing server content. This directory '
+             'will reside under the web server root directory.')
+
+    parser_software.add_argument(
         '--step',
         default=None,
         nargs='+',
         choices=['ibmai_repo', 'cuda_drv_repo',
                  'wmla_license', 'spectrum_dli',
+                 'spectrum_conductor',
                  'dependency_repo', 'conda_content_repo',
                  'conda_free_repo', 'conda_main_repo',
-                 'conda_forge_repo', 'pypi_repo',
-                 'epel_repo', 'custom_repo'],
+                 'pypi_repo', 'epel_repo'],
         help='Runs the software phase with specified step')
 
     parser_software.add_argument(
@@ -425,12 +432,18 @@ def get_args(parser_args=False):
         nargs='+',
         choices=['p8', 'p9', 'x86_64'],
         help='Set the target processor family')
-    
+
     parser_software.add_argument(
         '--engr-mode',
         default=False,
         action='store_true',
         help='Runs engineering mode function')
+
+    parser_software.add_argument(
+        '--run_ansible_task',
+        default=None,
+        nargs='+',
+        help='Runs ansbile task from specified software directory')
 
     # 'utils' subcommand arguments
     parser_utils.set_defaults(utils=True)

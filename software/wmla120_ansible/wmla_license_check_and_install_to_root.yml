@@ -4,17 +4,20 @@
     path: "/root/.powerai/ibm-wmla-license/1.2.0/license/status.dat"
   register: stat_result
   become: yes
-  when: not eval_ver
 
 - name: Check that the status.dat file exists for eval version
   stat:
     path: "/root/.powerai/ibm-wmla-license-eval/1.2.0/license/status.dat"
-  register: stat_result
+  register: stat_result_eval
   become: yes
-  when: eval_ver
 
 - name: Fail if license not accepted
   fail:
     msg: "The WMLA license has not been accepted"
-  when: not stat_result.stat.exists
+  when: (not stat_result.stat.exists) and not eval_ver
+
+- name: Fail if eval license not accepted
+  fail:
+    msg: "The WMLA evaluation license has not been accepted"
+  when: (not stat_result_eval.stat.exists) and eval_ver
 
