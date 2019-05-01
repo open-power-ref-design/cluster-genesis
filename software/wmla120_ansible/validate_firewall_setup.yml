@@ -30,7 +30,7 @@
   when: host_firewall_status.stdout.find('http') != -1
 
 - name: Else print fail status
-  command: echo "Firewall Exists"
+  command: echo "Firewall Does Not Exist"
   when: host_firewall_status.stdout.find('http') == -1
 
 - name: Open Ports for Spectrum Conductor
