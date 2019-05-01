@@ -66,8 +66,8 @@
 ### all the other attributes are not expected  
 - name: Gathering data constants
   set_fact:
-    install_mount_dir: ""
-    interface: ""
+    install_mount_dir: "/nfs/pwrai/"
+    interface: "eth15"
     nfs_ip_address: ""
     gateway_ip_address: ""
     srv_ip_sub: ""
@@ -76,18 +76,18 @@
 #
 - name: Gathering data
   set_fact:
-    network_points:
-      - device: "{{ interface }}"
-        prefix:  24
-        address: "{{ interface_addres }}"
-        bootproto: "none"
-        defaultroute: "NO"
-        state: present
-    route_points:
-      - device: "{{ interface }}"
-        prefix: "{{ gateway_ip_address }}/24"
-        next_hop: "{{ srv_ip_sub }}"
-        state: present
+    # network_points:
+      # - device: "{{ interface }}"
+        # prefix:  24
+        # address: "{{ interface_addres }}"
+        # bootproto: "none"
+        # defaultroute: "NO"
+        # state: present
+    # route_points:
+      # - device: "{{ interface }}"
+        # prefix: "{{ gateway_ip_address }}/24"
+        # next_hop: "{{ srv_ip_sub }}"
+        # state: present
       # - device: "{{ interface }}"
         # prefix: "{{ gateway_ip_address }}/24"
         # next_hop: "{{ srv_ip_sub }}"
@@ -114,13 +114,13 @@
         force: yes
     mount_points:
       - path: "{{ install_mount_dir }}"
-        src: "/dev/sdb1"
+        src: "/dev/sdk1"
         fstype: auto 
         state: mounted
     mount_server_points:
       - path: "{{ install_mount_dir }}"
         access:
-          - hostname: "9.0.0.0/8"
+          - hostname: "9.3.0.0/16"
             opts:
               - 'rw'
               - 'sync'
@@ -153,12 +153,12 @@
         enabled: "yes"
         become: yes
     run_parted:
-      - device: /dev/sdb 
+      - device: /dev/sdk 
         number: 1 
         state: present 
         flags: "[ lvm ]"
     run_filesystem:
-      - dev:  /dev/sdb1
+      - dev:  /dev/sdk1
         fstype: ext4 
     firewall_service:
       - service: nfs 
