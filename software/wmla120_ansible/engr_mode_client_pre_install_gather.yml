@@ -9,18 +9,12 @@
     dependencies_dir: "{{ hostvars['localhost']['deps_path_local'] }}"
 
             #Create Dependencies Directory
-- name: Check that the check if dependencies directory exists
-  stat:
-    path: "{{ dependencies_dir }}"
-  register: dep_result
-  delegate_to: localhost
-
 - name: Create dependencies directory
   file:
     path: "{{ dependencies_dir }}"
     state: directory
-    mode: 0777
-  when: not dep_result.stat.exists
+    mode: u=rwX,g=rwX,o=rwX
+    recurse: yes
   delegate_to: localhost
 
 - name: Get route to client
