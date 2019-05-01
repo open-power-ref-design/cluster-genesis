@@ -16,36 +16,35 @@
 
 #Verify RAM space
 - name: gather Mangement Host RAM
-#  command: " echo {{ hostvars['localhost']['ansible_memory_mb']['real']['total'] }} "
   shell: "free -t -g | tail -n 1 | awk '{ print $2}'"
-  delegate_to: localhost
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['master'] | flatten }}"
   register: mgmt_ram_size
 
 - name: Gather copute Host RAM
   shell: "free -t -g | tail -n 1 | awk '{ print $2}'"
-#  command: "echo {{ ansible_memory_mb.real.total }}"
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['compute'] | flatten }}"
   register: compute_ram_size
+
+- name: DEBUG - mgmt_ram_size
+  debug:
+    msg: "{{ mgmt_ram_size['results'][0]['stdout'] }}"
+
+- name: DEBUG - compute_ram_size
+  debug:
+    msg: "{{ compute_ram_size['results'][0]['stdout'] }}"
 
 - name: Verify RAM Requirements
   assert:
     that:
-      - "{{ mgmt_ram_size.stdout }} >=  {{ mgmt_ram }}"
-      - "{{ compute_ram_size.stdout }} >=  {{ compute_ram }}"
+      - "{{ mgmt_ram_size['results'][0]['stdout'] }} >=  {{ mgmt_ram }}"
+      - "{{ compute_ram_size['results'][0]['stdout'] }} >=  {{ compute_ram }}"
     fail_msg: "RAM Requirement failed. Verify there is RAM available. (CMD: free )"
-
-- name: Debug - Verify RAM Requirements
-  debug:
-    msg:
-      - " {{ mgmt_ram_size.stdout }} >= {{ mgmt_ram }} "
-      - "{{ compute_ram_size.stdout }} >=  {{ compute_ram }}"
-  register: ram_status
 
 #Verify Hdisk space
 - name: Verify disk data
   shell: "df {{ mountname }} --output='avail' | tail -n 1"
-#  command: "echo {{ host_to.size_available }}"
-#  vars:
-#    host_to: "{{ hostvars['localhost']['ansible_mounts'] | selectattr('mount','equalto',mountname) | list | first }}"
   register: disk_space
 
 - name: Verify free space is sufficent for software install
@@ -57,21 +56,32 @@
 - name: Debug - Verify free space is sufficent for software install
   debug:
     msg:
-      - "mgmt disk size: {{ disk_space.stdout }}"
+      - "disk size: {{ disk_space.stdout }}"
 
 #Verify System Arch
 - name: Check local system arch
   shell: "lscpu | grep 'Model name' | awk '{print $3}'" #POWER8, POWER9, Intel[x86_64]
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['master'] | flatten }}"
   register: mgmt_arch
 
 - name: Check client arch
   command: "/usr/bin/lscpu"
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['compute'] | flatten }}"
   register: client_arch
+
+- name: DEBUG - Check mgmt Arch 
+  debug:
+    msg: "{{ mgmt_arch['results'][0]['stdout'] }}"
+
+- name: DEBUG - Check client Arch 
+  debug:
+    msg: "{{ client_arch['results'][0]['stdout'] }}"
 
 - name: Check if Arch Unity Exists
   assert:
     that:
-      - client_arch.stdout.find('{{ mgmt_arch.stdout }}') != -1
+      - client_arch['results'][0]['stdout'].find('{{ mgmt_arch['results'][0]['stdout'] }}') != -1
     fail_msg: "Architecture varies between nodes. If aware of hybrid nodes, please continue"
   register: arch_unity
-
