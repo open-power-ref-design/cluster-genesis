@@ -23,7 +23,7 @@ import json
 import glob
 import os
 import re
-from shutil import copy2, copytree, rmtree, Error
+from shutil import copy, copytree, rmtree, Error
 import time
 
 import lib.logger as logger
@@ -117,7 +117,7 @@ def setup_source_file(name, src_glob, dest_dir, base_dir, url='', alt_url='http:
                 if not os.path.exists(abs_dest_dir):
                     os.mkdir(abs_dest_dir)
                 try:
-                    copy2(src_path, abs_dest_dir)
+                    copy(src_path, abs_dest_dir)
                 except Error as err:
                     log.debug(f'Failed copying {name} source file to {abs_dest_dir}/ '
                               f'directory. \n{err}')
@@ -130,7 +130,7 @@ def setup_source_file(name, src_glob, dest_dir, base_dir, url='', alt_url='http:
                 if src2:
                     try:
                         src2_path = os.path.join(os.path.dirname(src_path), src2)
-                        copy2(src2_path, abs_dest_dir)
+                        copy(src2_path, abs_dest_dir)
                     except Error as err:
                         log.debug(f'Failed copying {name} source file to {abs_dest_dir}/ '
                                   f'directory. \n{err}')
@@ -165,7 +165,7 @@ def powerup_file_from_disk(name, file_glob, base_dir):
         if not os.path.exists(f'{base_dir}{name_src}'):
             os.mkdir(f'{base_dir}{name_src}')
         try:
-            copy2(src_path, f'{base_dir}{name_src}/')
+            copy(src_path, f'{base_dir}{name_src}/')
         except Error as err:
             log.debug(f'Failed copying {name} source file to {base_dir}{name_src}/ '
                       f'directory. \n{err}')
@@ -274,7 +274,7 @@ class PowerupRepo(object):
         dst_dir = f'{self.repo_base_dir}/{dst}'
         if not os.path.exists(dst_dir):
             os.mkdir(dst_dir)
-        copy2(src_path, dst_dir)
+        copy(src_path, dst_dir)
 
     def copytree_to_srv(self, src_dir, dst):
         """Copy a directory recursively to the POWER-Up server base directory.
@@ -424,7 +424,7 @@ class PowerupRepoFromRpm(PowerupRepo):
         dst_dir = f'{self.yumrepo_dir}{self.repo_id}'
         if not os.path.exists(dst_dir):
             os.mkdir(dst_dir)
-        copy2(self.rpm_path, dst_dir)
+        copy(self.rpm_path, dst_dir)
         dest_path = os.path.join(dst_dir, os.path.basename(src_path))
         dest_path = os.path.join(dst_dir, os.path.basename(src_path))
         print(dest_path)
