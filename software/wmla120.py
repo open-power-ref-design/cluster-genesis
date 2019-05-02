@@ -93,7 +93,8 @@ class software(object):
             else f'{self.my_name}_{self.arch}'
 
         self.eng_mode = engr_mode
-        yaml.add_constructor(YAMLVault.yaml_tag, YAMLVault.from_yaml)
+        yaml.FullLoader.add_constructor(YAMLVault.yaml_tag,
+                                        YAMLVault.from_yaml)
         self.ana_platform_basename = '64' if self.arch == "x86_64" else self.arch
 
         self.sw_vars_file_name = 'software-vars.yml'
@@ -1513,8 +1514,8 @@ class software(object):
     def _load_content(self):
         try:
             self.content = yaml.load(open(GEN_SOFTWARE_PATH +
-                                     f'content-{self.my_name}.yml'),
-                                     Loader=AttrDictYAMLLoader)
+                                          f'content-{self.my_name}.yml'),
+                                          Loader=AttrDictYAMLLoader)
         except IOError:
             self.log.error(f'Error opening the content list file '
                            f'(content-{self.base_filename}.yml)')
@@ -1981,6 +1982,7 @@ class software(object):
                                             'dli', ana_ver)
 
         specific_arch = "_" + self.arch if self.arch == 'x86_64' else ""
+
         self.run_ansible_task(GEN_SOFTWARE_PATH + f'{self.my_name}_install_procedure{specific_arch}.yml')
 
     def run_ansible_task(self, yamlfile):

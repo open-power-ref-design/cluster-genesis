@@ -171,6 +171,11 @@ if [ ! -d "logs" ]; then
     fi
 fi
 
+# Create empty ansible.log file to ensure user is owner
+if [ ! -f playbooks/ansible.log ]; then
+    touch playbooks/ansible.log
+fi
+
 # Display any messages
 if [[ $MESSAGES != '' ]]; then
     echo $'\nThe following issues were encountered during installation:'

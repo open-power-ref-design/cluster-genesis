@@ -1,7 +1,8 @@
-ansible==2.7.1
+ansible==2.7.10
 ansible-vault==1.2.0
 click==7.0
 cryptography==2.4.2
+distro==1.4.0
 docker==3.5.1
 filelock==3.0.9
 gitpython==2.1.11
@@ -12,7 +13,7 @@ npyscreen==4.10.5
 orderedattrdict==1.5
 paramiko==2.4.2
 pip2pi==0.7.0
-pyaml==17.12.1
+pyaml==18.11.0
 pyasn1==0.4.4
 pycryptodome==3.7.0
 pyghmi==1.2.14
@@ -20,4 +21,4 @@ pyroute2==0.5.3
 pysnmp==4.4.6
 tabulate==0.8.2
 wget==3.2
-PyYAML==3.13 # do not change this
+PyYAML==5.1

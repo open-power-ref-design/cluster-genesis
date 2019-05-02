@@ -39,7 +39,7 @@ YAML_IN_FILE = abs_path(sys.argv[1])
 YAML_OUT_FILE = abs_path(sys.argv[2])
 
 try:
-    CONTENT = yaml.load(open(YAML_IN_FILE), Loader=AttrDictYAMLLoader)
+    CONTENT = yaml.full_load(open(YAML_IN_FILE), Loader=AttrDictYAMLLoader)
 except:
     print('Could not load file: ' + YAML_IN_FILE)
     sys.exit(1)
