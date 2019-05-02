@@ -1772,6 +1772,7 @@ class software(object):
                     self.sw_vars['pypi_http_path'] = path[len(self.root_dir_nginx):]
                 else:
                     self.sw_vars['pypi_repo_path'] = ''
+        self.prep_post()
 
     def _install_ready(self):
         ready = True

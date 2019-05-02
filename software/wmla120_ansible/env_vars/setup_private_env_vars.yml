@@ -40,9 +40,9 @@ file_points:
     group: nfsnobody
     mode: "u=rwx,g=rx,o=rx"
     state: directory
-  - path: "{{ install_mount_dir }}/jja"
-    owner: rhel76 
-    group: rhel76
+  - path: "{{ install_mount_dir }}/dli_shared_fs"
+    owner: nfsnobody 
+    group: nfsnobody
     mode: "u=rwx,g=rx,o=rx"
     state: directory
     recurse: yes

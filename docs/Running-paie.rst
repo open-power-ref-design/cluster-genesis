@@ -5,18 +5,16 @@ Running the Watson Machine Learning (WML) Accelerator Software Install Module
 
 Overview
 --------
-The WML Accelerator software installation can be automated using the POWER-Up software installer and the WML Accelerator Software Install Module. POWER-Up can run on OpenPOWER or x_86 architecture.
+The WML Accelerator software installation can be automated using the POWER-Up software installer and the WML Accelerator Software Install Module. At current time, the WMLA software installer only supports the licensed version of WMLA running on Power hardware.
 
-The WML Accelerator Software Install Module provides for rapid installation of the WML Accelerator software or WML Accelerator evaluation software to a homogenous cluster of POWER8, POWER9 or x86 servers.
+The WML Accelerator Software Install Module provides for rapid installation of the WML Accelerator software to a homogenous cluster of POWER8 or POWER9 servers.
+
+The POWER-Up software installer does not currently support installation of WML Accelerator onto the node running the POWER-Up software installer.
 
 The install module creates a web based software installation server on one of the cluster nodes or another node with access to the cluster.
 The software server is populated with repositories and files needed for installation of WML Accelerator.
 
 Once the software server is setup, installation scripts orchestrate the software installation to one or more client nodes. Note that the software installer node requires access to several open source repositories during the 'preparation' phase. During the preparation phase, packages which WML Accelerator is dependent on are staged on the POWER-Up installer node. After completion of the preparation phase, the installation requires no further access to the open source repositories and can thus enable installation to servers which do not have internet access.
-
-The POWER-Up software installer does not currently support installation of WML Accelerator onto the node running the POWER-Up software installer.
-If it is necessary to install WML Accelerator onto the node running the POWER-Up software, this can be done manually or can be accomplished by running the POWER-Up software on an additional node in the cluster.
-Hint: A second POWER-Up server can be quickly prepared by replicating the repositories from the first POWER-Up server.
 
 Support
 -------
@@ -49,10 +47,6 @@ POWER-Up Node  Prerequisites;
 
        $ sudo subscription-manager repos --enable=rhel-7-for-power-9-rpms --enable=rhel-7-for-power-9-optional-rpms --enable=–enable=rhel-7-for-power-9-extras-rpms
 
-    # On x86_64::
-
-       $ subscription-manager repos --enable "rhel-*-optional-rpms" --enable "rhel-*-extras-rpms"  --enable "rhel-ha-for-rhel-*-server-rpms"
-
 #. Insure that there is at least 16 GB of available disk space in the partition holding the /srv directory::
 
     $ df -h /srv
@@ -63,13 +57,14 @@ POWER-Up Node  Prerequisites;
    :header: "WML Accelerator Release", "POWER-Up software installer vs", "Notes", "EOL date"
 
    "1.1.2", "software-install-b2.12", "Support for installation of PAIE 1.1.2"
-   "1.2.0", "wmla120-1.0", "Support for installation of WMLA 1.2.0"
+   "1.2.0", "wmla120-1.0.0", "Support for installation of WMLA 1.2.0"
+   "1.2.0", "wmla120-1.0.1", "Support for installation of WMLA 1.2.0"
 
 From your home directory install the POWER-Up software and initialize the environment. For additional information see :ref:`installing`::
 
     $ sudo yum install git
 
-    $ git clone https://github.com/open-power-ref-design-toolkit/power-up -b wmla120-1.0
+    $ git clone https://github.com/open-power-ref-design-toolkit/power-up -b wmla120-1.0.1
 
     $ cd power-up
 
@@ -139,10 +134,6 @@ Extract WMLA. Assuming the WMLA binary is in /home/user/wmla120bin::
 
     cd /home/user/wmla120bin
     bash ibm-wmla-1.2.0_ppc64le.bin
-
-    for x86
-
-    bash ibm-wmla-1.2.0_x86_64.bin
 
 Deactivate Conda.  (The PowerUp installer software will not run until conda is deactivated)::
 
@@ -241,7 +232,7 @@ Uninstalling the POWER-Up Software
 To uninstall the POWER-Up software and remove the software repositories, follow the instructions below;
 #. Identify platform to remove::
 
-    $ PLATFORM="ppc64le" # or could be x86_64
+    $ PLATFORM="ppc64le"
 
 #. Stop and remove the nginx web server::
 
