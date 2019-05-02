@@ -243,7 +243,7 @@ def update_install_status(node_dict_file, start_time, write_results=True):
     """
     log = logger.getlogger()
     status_dir = CLIENT_STATUS_DIR
-    nodes = yaml.load(open(node_dict_file))
+    nodes = yaml.full_load(open(node_dict_file))
 
     def _associate_pxe_to_bmc(nodes, pxe_ip, report_data=None):
         for bmc_mac, value in nodes['selected'].items():
@@ -337,7 +337,7 @@ def get_install_status(node_dict_file, colorized=False):
     Returns:
         str: Installation status table
     """
-    nodes = yaml.load(open(node_dict_file))
+    nodes = yaml.full_load(open(node_dict_file))
 
     def _try_dict_key(dictionary, *keys):
         value = dictionary
@@ -456,8 +456,8 @@ class Profile():
                 self.prof_path = os.path.join(GEN_SAMPLE_CONFIGS_PATH,
                                               'profile-template.yml')
         try:
-            self.profile = yaml.load(open(self.prof_path),
-                                     Loader=AttrDictYAMLLoader)
+            self.profile = yaml.full_load(open(self.prof_path),
+                                          Loader=AttrDictYAMLLoader)
         except IOError:
             self.log.error('Unable to open the profile file: '
                            f'{self.prof_path}')

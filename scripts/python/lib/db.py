@@ -64,7 +64,7 @@ class DatabaseConfig(object):
 
         msg = "Failed to load '{}'".format(yaml_file)
         try:
-            return yaml.load(open(yaml_file), Loader=AttrDictYAMLLoader)
+            return yaml.full_load(open(yaml_file), Loader=AttrDictYAMLLoader)
         except yaml.parser.ParserError as exc:
             self.log.error("Failed to parse JSON '{}' - {}".format(
                 yaml_file, exc))
@@ -146,7 +146,7 @@ class DatabaseInventory(object):
 
         msg = "Failed to load '{}'".format(yaml_file)
         try:
-            return yaml.load(open(yaml_file), Loader=AttrDictYAMLLoader)
+            return yaml.full_load(open(yaml_file), Loader=AttrDictYAMLLoader)
         except yaml.parser.ParserError as exc:
             self.log.error("Failed to parse JSON '{}' - {}".format(
                 yaml_file, exc))
