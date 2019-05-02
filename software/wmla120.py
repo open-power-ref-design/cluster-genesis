@@ -258,7 +258,11 @@ class software(object):
 
         if which == 'all':
             heading1(f'Preparation Summary for {self.repo_shortname}')
-            for item in self.state:
+            for item in self.content:   #self.state:
+                status = self.state[self.content[item].desc]
+                it = (self.content[item].desc + '                              ')[:39]
+                print(f'  {it:<40} : ' + status)
+            for item in ('Firewall', 'Nginx Web Server'):
                 status = self.state[item]
                 it = (item + '                              ')[:39]
                 print(f'  {it:<40} : ' + status)
@@ -317,20 +321,19 @@ class software(object):
                                recursive=True)
 
             sw_vars_data = item_dir in self.sw_vars['content_files']
-
+            key = item.desc
             if exists and sw_vars_data:
-                name = item.name
                 if not item.license_for:
                     if exists[0] in self.sw_vars['content_files'][item_dir]:
-                        self.state[name] = ('Present')
+                        self.state[key] = ('Present')
                     else:
-                        self.state[name] = (Color.yellow +
+                        self.state[key] = (Color.yellow +
                                             'Present but not at release level' +
                                             Color.endc)
                 else:
-                    self.state[item.name] = ('Present')
+                    self.state[key] = ('Present')
             else:
-                self.state[item.name] = '-'
+                self.state[key] = '-'
                 rc = False
 
             return rc
@@ -610,7 +613,7 @@ class software(object):
                       ' at this time\n')
 
         ch = 'S'
-        if get_yesno(prompt=pr_str, yesno='Y/n'):
+        if get_yesno(prompt=pr_str, yesno='y/n', default='y'):
             if platform.machine() == self.arch:
                 ch, item = get_selection('Sync required packages from public repo.\n'
                                          'Create from Nvidia "local" driver RPM.\n'
@@ -798,7 +801,8 @@ class software(object):
             self.log.info('WMLA Enterprise license exists already in the POWER-Up '
                           'server')
 
-        if not exists or get_yesno(f'Copy a new {name.title()} file '):
+        if not exists or get_yesno(f'Copy a new {name.title()} file ',
+                                   yesno='y/n', default='y'):
             src_path, dest_path, state = setup_source_file(name, lic_src, lic_dir,
                                                            self.root_dir, lic_url,
                                                            alt_url=alt_url)
@@ -816,7 +820,7 @@ class software(object):
         spc_src = item.fileglob.format(arch=self.arch)
         spc_dir = item.path
         entitlement = self.content[item.license_file].fileglob
-        exists = self.status_prep(item.name)
+        exists = self.status_prep(name)
         spc_url = ''
 
         if f'{name}_alt_url' in self.sw_vars:
@@ -828,7 +832,8 @@ class software(object):
             self.log.info('Spectrum conductor content exists already in the '
                           'POWER-Up server')
 
-        if not exists or get_yesno(f'Copy a new {name.title()} file '):
+        if not exists or get_yesno(f'Copy a new {name.title()} file ',
+                                   yesno='y/n', default='y'):
             src_path, dest_path, state = setup_source_file(name, spc_src, spc_dir,
                                                            self.root_dir,
                                                            spc_url,
@@ -851,7 +856,7 @@ class software(object):
         spdli_src = item.fileglob.format(arch=self.arch)
         spdli_dir = item.path
         entitlement = self.content[item.license_file].fileglob
-        exists = self.status_prep(item.name)
+        exists = self.status_prep(name)
         spdli_url = ''
 
         if f'{name}_alt_url' in self.sw_vars:
@@ -862,7 +867,8 @@ class software(object):
         if exists:
             self.log.info('Spectrum DLI content exists already in the POWER-Up server')
 
-        if not exists or get_yesno(f'Copy a new {name.title()} file '):
+        if not exists or get_yesno(f'Copy a new {name.title()} file ',
+                                   yesno='y/n', default='y'):
             src_path, dest_path, state = setup_source_file(name, spdli_src, spdli_dir,
                                                            self.root_dir, spdli_url,
                                                            alt_url=alt_url,
@@ -905,7 +911,7 @@ class software(object):
                       ' at this time\n')
 
         ch = 'S'
-        if get_yesno(prompt=pr_str, yesno='Y/n'):
+        if get_yesno(prompt=pr_str, yesno='y/n', default='y'):
             _lscpu = lscpu()
             installer_proc_model = None
             try:
@@ -1050,10 +1056,10 @@ class software(object):
         heading1('Set up Anaconda\n')
 
         if exists:
-            self.log.info(f'The {ana_name} exists already '
+            self.log.info(f'The {ana_name} content exists already '
                           'in the POWER-Up server.')
 
-        if not exists or get_yesno(f'Recopy {ana_name} '):
+        if not exists or get_yesno(f'Recopy {ana_name} ', yesno='y/n', default='y'):
 
             src_path, dest_path, state = setup_source_file(ana_name, ana_src,
                                                            ana_dir, self.root_dir,
@@ -1244,7 +1250,7 @@ class software(object):
                       ' at this time\n')
 
         ch = 'S'
-        if get_yesno(prompt=pr_str, yesno='Y/n'):
+        if get_yesno(prompt=pr_str, yesno='y/n', default='y'):
             ch, item = get_selection(f'Sync required {repo_id} packages from '
                                      'Enabled YUM repo\n'
                                      'Create from package files in a local Directory\n'
@@ -1326,7 +1332,8 @@ class software(object):
         if hasattr(self, 'eng_mode'):
             if self.eng_mode:  # == 'custom-repo':
                 heading1('Create custom repositories')
-                if get_yesno('Would you like to create a custom repository '):
+                if get_yesno('Would you like to create a custom repository ',
+                             yesno='y/n', default='n'):
                     repo_id = input('Enter a repo id (yum short name): ')
                     repo_name = input('Enter a repo name (Descriptive name): ')
 
@@ -1514,8 +1521,8 @@ class software(object):
     def _load_content(self):
         try:
             self.content = yaml.load(open(GEN_SOFTWARE_PATH +
-                                          f'content-{self.my_name}.yml'),
-                                          Loader=AttrDictYAMLLoader)
+                                     f'content-{self.my_name}.yml'),
+                                     Loader=AttrDictYAMLLoader)
         except IOError:
             self.log.error(f'Error opening the content list file '
                            f'(content-{self.base_filename}.yml)')
@@ -1562,6 +1569,7 @@ class software(object):
                                 pass
             return rc
 
+        rc = True
         if also_get_newer:
             dep_list_list = dep_list.split()
             basename_dep_list, ep, ver, rel = parse_rpm_filenames(dep_list_list)
@@ -1918,7 +1926,7 @@ class software(object):
             self.log.warning('The cluster nodes were last configured for installation\n'
                              'from self.sw_vars["init_clients"], but you are requesting\n'
                              'installation from {self.repo_shortname}')
-            if not get_yesno('Okay to continue? '):
+            if not get_yesno('Okay to continue? ', default='n'):
                 ready = False
 
         if self.sw_vars['proc_family'] != self.proc_family:

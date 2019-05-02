@@ -294,20 +294,22 @@ class PowerupRepo(object):
                     self.log.debug(f'Older yum pkg: {_file}')
                     old_cnt += 1
             else:
-                self.log.error(f'Missing yum pkg: {_file}')
+                self.log.debug(f'Missing yum pkg: {_file}')
         return pkg_lst_cnt, pkg_cnt, nwr_cnt, old_cnt
 
     def get_action(self, exists, exists_prompt_yn=False):
         if exists:
-            print(f'\nDo you want to sync the local {self.repo_name}\nrepository'
+            print(f'\nDo you want to sync the local {self.repo_name}\n'
                   ' at this time?\n')
             print('This can take a few minutes.\n')
-            ch = 'Y' if get_yesno(prompt='Sync Repo? ', yesno='Y/n') else 'n'
+            ch = 'Y' if get_yesno(prompt='Sync Repo? ', yesno='y/n',
+                                  default='y') else 'n'
         else:
-            print(f'\nDo you want to create a local {self.repo_name}\n repository'
-                  ' at this time?\n')
-            print('This can take a significant amount of time')
-            ch = 'Y' if get_yesno(prompt='Create Repo? ', yesno='Y/n') else 'n'
+            print(f'\nDo you want to create a local {self.repo_name}\n'
+                  'at this time?\n')
+            print('This can take several minutes.')
+            ch = 'Y' if get_yesno(prompt='Create Repo? ', yesno='y/n',
+                                  default='y') else 'n'
         return ch
 
     def get_repo_url(self, url, alt_url=None, name='', contains=[], excludes=[],
@@ -988,7 +990,7 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
             else:
                 missing.append(_file)
         if missing:
-            self.log.info(f'Missing {self.repo_id} files: {missing}')
+            self.log.debug(f'Missing {self.repo_id} files: {missing}')
 
         return (pkg_lst_cnt, pkg_cnt, new_cnt, old_cnt)
 
