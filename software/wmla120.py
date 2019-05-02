@@ -1404,9 +1404,9 @@ class software(object):
 
     def _load_content(self):
         try:
-            self.content = yaml.full_load(open(GEN_SOFTWARE_PATH +
-                                          f'content-{self.my_name}.yml'),
-                                          Loader=AttrDictYAMLLoader)
+            self.content = yaml.load(open(GEN_SOFTWARE_PATH +
+                                     f'content-{self.my_name}.yml'),
+                                     Loader=AttrDictYAMLLoader)
         except IOError:
             self.log.error(f'Error opening the content list file '
                            f'(content-{self.base_filename}.yml)')
