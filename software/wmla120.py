@@ -105,7 +105,7 @@ class software(object):
         sw_vars_path = os.path.join(GEN_SOFTWARE_PATH, f'{self.sw_vars_file_name}')
         if os.path.isfile(sw_vars_path):
             try:
-                self.sw_vars = yaml.load(open(sw_vars_path))
+                self.sw_vars = yaml.full_load(open(sw_vars_path))
             except IOError:
                 copy2(sw_vars_path, sw_vars_path + '.bak')
                 self.log.error(f'Unable to open {sw_vars_path}. \n'
@@ -598,7 +598,7 @@ class software(object):
             alt_url = None
 
         # exists = self.status_prep(which='CUDA Driver Repository')
-        exists = self.status_prep(which=_repo.desc)
+        exists = self.status_prep(which=name)
         if exists:
             self.log.info(f'The {repo_name} exists already'
                           ' in the POWER-Up server')
@@ -633,8 +633,10 @@ class software(object):
 
             repo = PowerupRepo(repo_id, repo_name, self.root_dir, arch=self.arch)
             repo_dir = repo.get_repo_dir()
-            self._add_dependent_packages(repo_dir, pkg_list, also_get_newer=False)
+            good = self._add_dependent_packages(repo_dir, pkg_list, also_get_newer=False)
             repo.create_meta()
+            if not good:
+                self.log.error(f'An error occurred downloading {_repo.desc}')
 
         elif ch == 'rpm':
             # prompts user for the location of the rpm file to be loaded into
@@ -669,7 +671,7 @@ class software(object):
 
             repo = PowerupYumRepoFromRepo(repo_id, repo_name, self.root_dir, arch=self.arch)
             repo_dir = repo.get_repo_dir()
-            url = repo.get_repo_url(baseurl, alt_url, contains=[repo_id],
+            url = repo.get_repo_url('', alt_url, contains=[repo_id],
                                     filelist=['cuda-10-*-*'])
             if url:
                 if not url == baseurl:
@@ -681,10 +683,12 @@ class software(object):
                 repo = PowerupRepo(repo_id, repo_name, self.root_dir,
                                    proc_family=self.proc_family)
                 repo_dir = repo.get_repo_dir()
-                self._add_dependent_packages(repo_dir, pkg_list, also_get_newer=True)
+                good = self._add_dependent_packages(repo_dir, pkg_list, also_get_newer=True)
+                if not good:
+                    self.log.error(f'An error occurred downloading {_repo.desc}')
                 repo.create_meta()
 
-                self.log.info('Repository setup complete')
+                self.log.info('Repository setup finished')
 
         else:
             print(f'{repo_name} repository not updated')
@@ -696,7 +700,8 @@ class software(object):
                                                          ' '.join(files)).group(0)
             else:
                 self.log.error('No cuda toolkit file found in cuda repository')
-        self.prep_post()
+        if ch in ('P', 'rpm', 'A'):
+            self.prep_post()
 
     def create_ibmai_repo(self, eval_ver=False, non_int=False):
         # Setup IBM AI conda repo
@@ -713,7 +718,7 @@ class software(object):
         else:
             alt_url = None
 
-        exists = self.status_prep(which=_repo.desc)
+        exists = self.status_prep(which=name)
         if exists:
             self.log.info(f'The {repo_name} exists already'
                           ' in the POWER-Up server\n')
@@ -780,7 +785,7 @@ class software(object):
         item = self.content[name]
         lic_src = item.fileglob
         lic_dir = item.path
-        exists = self.status_prep(item.name)
+        exists = self.status_prep(name)
         lic_url = ''
 
         if f'{name}_alt_url' in self.sw_vars:
@@ -888,7 +893,7 @@ class software(object):
 
         heading1(f'Set up {repo_name} repository')
 
-        exists = self.status_prep(which=_repo.desc)
+        exists = self.status_prep(which=name)
         if exists:
             self.log.info(f'The {repo_name} repository exists already'
                           ' in the POWER-Up server')
@@ -949,13 +954,13 @@ class software(object):
                                          'Create from package files in a local Directory\n'
                                          'Sync from an alternate Repository\n'
                                          'Skip',
-                                         'E\nD\nR\nS',
+                                         'E\nD\nA\nS',
                                          'Repository source? ')
             else:
                 ch, item = get_selection('Create from package files in a local Directory\n'
                                          'Sync from an alternate Repository\n'
                                          'Skip',
-                                         'D\nR\nS',
+                                         'D\nA\nS',
                                          'Repository source? ')
 
             if ch == 'E':
@@ -963,9 +968,11 @@ class software(object):
                                    proc_family=self.proc_family)
                 repo_dir = repo.get_repo_dir()
                 os.makedirs(repo_dir, exist_ok=True)
-                self._add_dependent_packages(repo_dir, dep_list, also_get_newer=True)
+                good = self._add_dependent_packages(repo_dir, dep_list, also_get_newer=True)
                 self._add_dependent_packages(repo_dir, more, also_get_newer=True)
                 repo.create_meta()
+                if not good:
+                    self.log.error(f'An error occurred downloading {_repo.desc}')
                 # content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
                 # repo.write_yum_dot_repo_file(content)
 
@@ -984,7 +991,7 @@ class software(object):
                     # content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
                     # repo.write_yum_dot_repo_file(content)
 
-            elif ch == 'R':
+            elif ch == 'A':
                 if f'{repo_id}_alt_url' in self.sw_vars:
                     alt_url = self.sw_vars[f'{repo_id}_alt_url']
                 else:
@@ -1008,10 +1015,12 @@ class software(object):
                     repo = PowerupRepo(repo_id, repo_name, self.root_dir,
                                        proc_family=self.proc_family)
                     repo_dir = repo.get_repo_dir()
-                    self._add_dependent_packages(repo_dir, dep_list, also_get_newer=True)
+                    good = self._add_dependent_packages(repo_dir, dep_list,
+                                                        also_get_newer=True)
                     self._add_dependent_packages(repo_dir, more, also_get_newer=True)
                     repo.create_meta()
-
+                    if not good:
+                        self.log.error(f'An error occurred downloading {_repo.desc}')
                     # Setup local access to the new repo copy
                     # if platform.machine() == self.arch:
                     #    content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
@@ -1021,7 +1030,7 @@ class software(object):
             else:
                 print(f'{repo_name} repository not updated')
 
-            if ch in ('R', 'E', 'D'):
+            if ch in ('A', 'E', 'D'):
                 self.prep_post()
 
     def create_conda_content_repo(self, eval_ver=False, non_int=False):
@@ -1035,7 +1044,7 @@ class software(object):
             alt_url = self.sw_vars[f'{ana_name}_alt_url']
         else:
             alt_url = 'http://<host>/'
-        exists = self.status_prep(which=item.name)
+        exists = self.status_prep(which=ana_name)
 
         heading1('Set up Anaconda\n')
 
@@ -1071,7 +1080,7 @@ class software(object):
         else:
             alt_url = None
 
-        exists = self.status_prep(which=_repo.desc)
+        exists = self.status_prep(which=name)
         if exists:
             self.log.info('The Anaconda Repository exists already'
                           ' in the POWER-Up server\n')
@@ -1124,7 +1133,7 @@ class software(object):
         else:
             alt_url = None
 
-        exists = self.status_prep(which=_repo.desc)
+        exists = self.status_prep(which=name)
         if exists:
             self.log.info('The Anaconda Repository exists already'
                           ' in the POWER-Up server\n')
@@ -1171,7 +1180,7 @@ class software(object):
         else:
             alt_url = None
 
-        exists = self.status_prep(which=_repo.desc)
+        exists = self.status_prep(which=name)
         if exists:
             self.log.info('The Python Package Repository exists already'
                           ' in the POWER-Up server')
@@ -1223,7 +1232,7 @@ class software(object):
         else:
             alt_url = None
 
-        exists = self.status_prep(which=_repo.desc)
+        exists = self.status_prep(which=name)
         if exists:
             self.log.info(f'The {repo_name} repository exists already'
                           ' in the POWER-Up server')
@@ -1240,15 +1249,17 @@ class software(object):
                                      'Create from package files in a local Directory\n'
                                      'Sync from an alternate Repository\n'
                                      'Skip',
-                                     'E\nD\nR\nS',
+                                     'E\nD\nA\nS',
                                      'Repository source? ')
 
             if ch == 'E':
                 repo = PowerupRepo(repo_id, repo_name, self.root_dir)
                 repo_dir = repo.get_repo_dir()
-                self._add_dependent_packages(repo_dir, epel_list, also_get_newer=True)
+                good = self._add_dependent_packages(repo_dir, epel_list, also_get_newer=True)
                 self._add_dependent_packages(repo_dir, more, also_get_newer=True)
                 repo.create_meta()
+                if not good:
+                    self.log.error(f'An error occurred downloading {_repo.desc}')
                 # content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
                 # repo.write_yum_dot_repo_file(content)
 
@@ -1266,7 +1277,7 @@ class software(object):
                     # content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
                     # repo.write_yum_dot_repo_file(content)
 
-            elif ch == 'R':
+            elif ch == 'A':
                 if f'{repo_id}_alt_url' in self.sw_vars:
                     alt_url = self.sw_vars[f'{repo_id}_alt_url']
                 else:
@@ -1292,9 +1303,11 @@ class software(object):
                     repo = PowerupRepo(repo_id, repo_name, self.root_dir,
                                        proc_family=self.proc_family)
                     repo_dir = repo.get_repo_dir()
-                    self._add_dependent_packages(repo_dir, epel_list, also_get_newer=True)
+                    good = self._add_dependent_packages(repo_dir, epel_list,
+                                                        also_get_newer=True)
                     repo.create_meta()
-
+                    if not good:
+                        self.log.error(f'An error occurred downloading {_repo.desc}')
                     # Setup local access to the new repo copy in /srv/repo/
                     # if platform.machine() == self.arch:
                     #    content = repo.get_yum_dotrepo_content(gpgcheck=0, local=True)
@@ -1304,7 +1317,7 @@ class software(object):
             else:
                 print(f'{repo_name} repository not updated')
 
-            if ch in ('R', 'E', 'D'):
+            if ch in ('A', 'E', 'D'):
                 self.prep_post()
 
     def create_custom_repo(self, eval_ver=False, non_int=False):
@@ -1509,32 +1522,50 @@ class software(object):
 
     def _load_pkglist(self):
         try:
-            self.pkgs = yaml.load(open(GEN_SOFTWARE_PATH + f'pkg-lists-'
-                                  f'{self.base_filename}.yml'))
+            self.pkgs = yaml.full_load(open(GEN_SOFTWARE_PATH + f'pkg-lists-'
+                                       f'{self.base_filename}.yml'))
         except IOError:
             self.log.error(f'Error opening the pkg lists file '
                            f'(pkg-lists-{self.base_filename}.yml)')
             sys.exit('Exit due to critical error')
 
     def _add_dependent_packages(self, repo_dir, dep_list, also_get_newer=True):
+        """
+        Returns True if all packages downloaded succesfully and no yum errors
+            occurred.
+        """
         def yum_download(repo_dir, dep_list):
+            rc = True
             cmd = (f'yumdownloader --archlist={self.arch} --destdir '
                    f'{repo_dir} {dep_list}')
-            resp, err, rc = sub_proc_exec(cmd)
-            if rc != 0:
+            resp, err, _rc = sub_proc_exec(cmd)
+            if _rc != 0:
+                rc = False
                 self.log.error('An error occurred while downloading dependent '
-                               f'packages.\n Download command: {cmd}'
-                               f'rc: {rc} err: {err}')
+                               f'packages to:\n {repo_dir}\n'
+                               f'rc: {_rc} err: {err}')
+                self.log.debug(f'Failure, download command: {cmd}')
             resp = resp.splitlines()
             for item in resp:
-                if 'No Match' in item:
+                if 'Not Found' in item or 'HTTP Error 404' in item or 'No Match' in item:
+                    rc = False
                     self.log.error(f'Dependent packages download error. {item}')
+                    for _file in dep_list.split():
+                        if _file in item:
+                            fpath = os.path.join(repo_dir, _file + '.rpm')
+                            try:
+                                if 0 == os.stat(fpath).st_size:
+                                    os.remove(fpath)
+                                    break
+                            except FileNotFoundError:
+                                pass
+            return rc
 
         if also_get_newer:
             dep_list_list = dep_list.split()
             basename_dep_list, ep, ver, rel = parse_rpm_filenames(dep_list_list)
             basename_dep_list = ' '.join(basename_dep_list)
-            yum_download(repo_dir, basename_dep_list)
+            rc = yum_download(repo_dir, basename_dep_list)
 
             # Form new dep_list consisting of packages not already in repo_dir
             in_repo_list = os.listdir(repo_dir)
@@ -1544,19 +1575,22 @@ class software(object):
                     dep_list = dep_list + _file + ' '
 
         if dep_list:
-            yum_download(repo_dir, dep_list)
+            rc = rc and yum_download(repo_dir, dep_list)
 
         cmd = 'yum clean packages expire-cache'
-        resp, err, rc = sub_proc_exec(cmd)
-        if rc != 0:
+        resp, err, _rc = sub_proc_exec(cmd)
+        if _rc != 0:
+            rc = False
             self.log.error('An error occurred while cleaning the yum cache\n'
-                           f'rc: {rc} err: {err}')
+                           f'rc: {_rc} err: {err}')
 
         cmd = 'yum makecache fast'
-        resp, err, rc = sub_proc_exec(cmd)
-        if rc != 0:
+        resp, err, _rc = sub_proc_exec(cmd)
+        if _rc != 0:
+            rc = False
             self.log.error('An error occurred while making the yum cache\n'
-                           f'rc: {rc} err: {err}')
+                           f'rc: {_rc} err: {err}')
+        return rc
 
     def init_clients(self):
         log = logger.getlogger()
@@ -1952,7 +1986,7 @@ class software(object):
     def run_ansible_task(self, yamlfile):
         log = logger.getlogger()
         try:
-            install_tasks = yaml.load(open(yamlfile))
+            install_tasks = yaml.full_load(open(yamlfile))
         except Exception as e:
             log.error("unable to open file: {0}\n error: {1}".format(yamlfile, e))
             raise e
@@ -2173,7 +2207,7 @@ def _set_spectrum_conductor_install_env(ansible_inventory, package, ana_ver=None
     init = True
     while not env_validated:
         try:
-            for key, value in yaml.load(open(envs_path)).items():
+            for key, value in yaml.full_load(open(envs_path)).items():
                 if value is None:
                     break
             else:

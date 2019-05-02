@@ -329,12 +329,17 @@ class PowerupRepo(object):
             sel_txt = 'Public mirror.Alternate web site'
             sel_chcs = 'P.A'
         else:
-            sel_txt = 'Alternate web site'
-            sel_chcs = 'A'
+            sel_txt = ''
+            sel_chcs = ''
+#            sel_txt = 'Alternate web site'
+#            sel_chcs = 'A'
         _url = None
         while _url is None:
-            ch, item = get_selection(sel_txt, sel_chcs,
-                                     'Choice: ', '.', allow_none=True)
+            if sel_txt:
+                ch, item = get_selection(sel_txt, sel_chcs,
+                                         'Choice: ', '.', allow_none=True)
+            else:
+                ch = 'A'
             if ch == 'P':
                 _url = url
                 break
@@ -462,7 +467,7 @@ class PowerupRepo(object):
         if rc != 0:
             self.log.error(f'Repo creation error: rc: {rc} stderr: {err}')
         else:
-            self.log.info(f'Repo {action[0]} process for {self.repo_id} finished'
+            self.log.info(f'Repo {action[0]} metadata for {self.repo_id} finished'
                           ' successfully')
 
 
