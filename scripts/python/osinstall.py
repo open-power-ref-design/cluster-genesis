@@ -457,7 +457,7 @@ class Profile():
                                               'profile-template.yml')
         try:
             self.profile = yaml.load(open(self.prof_path),
-                                          Loader=AttrDictYAMLLoader)
+                                     Loader=AttrDictYAMLLoader)
         except IOError:
             self.log.error('Unable to open the profile file: '
                            f'{self.prof_path}')
