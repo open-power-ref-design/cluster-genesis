@@ -2,7 +2,7 @@
 - description: Validate FQDN setup on cluster nodes
   tasks: validate_fqdn.yml
 
-- description: Check Firewall setup
+- description: Check firewall setup
   tasks: validate_firewall_setup.yml
 
 - description: Verify synchronized time setup across cluster
