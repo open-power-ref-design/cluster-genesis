@@ -478,8 +478,9 @@ class Color:
     endc = '\033[0m'
 
 
-def heading1(text='-', width=79):
-    text1 = f'          {Color.bold}{Color.underline}{text}{Color.endc}'
+def heading1(text='-', width=79, indent=10):
+    ind = ''.join([' ' for i in range(indent)])
+    text1 = f'{ind}{Color.bold}{Color.underline}{text}{Color.endc}'
     print(f'\n{text1: <{width + 8}}')
 
 
@@ -1649,6 +1650,54 @@ def parse_conda_filenames(filenames):
         return get_parts(filenames)
 
 
+def get_rpm_info(filelist, _dir):
+    def get_parts(info):
+        name = ep = ver = rel = ''
+        if 'Name' in info:
+            name = info.split('Name', 1)[-1].lstrip(' :')
+            name = name[:name.index('\n')]
+        else:
+            LOG.error(f'Name not found in rpm package info {info}')
+        if 'Epoch' in info:
+            ep = info.split('Epoch', 1)[-1].lstrip(' :')
+            ep = ep[:ep.index('\n')]
+        if 'Version' in info:
+            ver = info.split('Version', 1)[-1].lstrip(' :')
+            ver = ver[:ver.index('\n')]
+        if 'Release' in info:
+            rel = info.split('Release', 1)[-1].lstrip(' :')
+            rel = rel[:rel.index('\n')]
+
+        return name, ep, ver, rel
+
+    if isinstance(filelist, list):
+        _dict = {}
+        for _file in filelist:
+            path = os.path.join(_dir, _file)
+            cmd = f'rpm -qip {path}'
+            resp, err, rc = sub_proc_exec(cmd)
+            if rc != 0:
+                LOG.error(f'Error querying package {path}')
+            name, ep, ver, rel = get_parts(resp)
+            if name in _dict:
+                if ep > _dict[name]['ep']:
+                    _dict[name]['ver'] = ver
+                    _dict[name]['rel'] = rel
+                    _dict[name]['ep'] = ep
+                elif rel > _dict[name]['rel'] and ver == _dict[name]['ver']:
+                    _dict[name]['rel'] = rel
+                elif ver > _dict[name]['ver']:
+                    _dict[name]['ver'] = ver
+                    _dict[name]['rel'] = rel
+            else:
+                _dict[name] = {}
+                _dict[name]['ep'] = ep
+                _dict[name]['ver'] = ver
+                _dict[name]['rel'] = rel
+
+        return _dict
+
+
 def parse_rpm_filenames(filename, form='list'):
     """ returns the basename, epoch, version and release lvl for an rpm file
         If form is set to 'list', the components are returned as lists.
@@ -1737,10 +1786,11 @@ def parse_rpm_filenames(filename, form='list'):
             # print(i, _file, basename, ver, rel)
         return _dict
     else:
+        epoch = None
         basename = None
         version = None
 
-    return basename, version, release
+    return basename, epoch, version, release
 
 
 def lscpu():

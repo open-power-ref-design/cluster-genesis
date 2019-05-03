@@ -29,7 +29,7 @@ import time
 import lib.logger as logger
 from lib.utilities import sub_proc_display, sub_proc_exec, get_url, \
     get_dir, get_yesno, get_selection, get_file_path, get_src_path, bold, \
-    parse_conda_filenames, parse_rpm_filenames, parse_pypi_filenames
+    parse_conda_filenames, parse_rpm_filenames, parse_pypi_filenames, get_rpm_info
 from lib.exception import UserException
 
 
@@ -280,7 +280,7 @@ class PowerupRepo(object):
         except FileNotFoundError:
             filelist = []
         filelist = [fi for fi in filelist if fi[-4:] == '.rpm']
-        files_vers = parse_rpm_filenames(filelist, form='dict')
+        files_vers = get_rpm_info(filelist, self.yumrepo_dir)
         pkg_cnt = 0
         nwr_cnt = 0
         old_cnt = 0

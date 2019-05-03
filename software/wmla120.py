@@ -98,7 +98,6 @@ class software(object):
         self.ana_platform_basename = '64' if self.arch == "x86_64" else self.arch
 
         self.sw_vars_file_name = 'software-vars.yml'
-        self.log.info(f"Using architecture: {self.arch}")
 
         self._load_content()
         self._load_pkglist()
@@ -257,8 +256,10 @@ class software(object):
         self.prep_post()
 
         if which == 'all':
-            heading1(f'Preparation Summary for {self.repo_shortname}')
-            for item in self.content:   #self.state:
+            heading1(f'Preparation Summary for {self.repo_shortname}', indent=2)
+            print(f'{Color.bold}  Architecture: {self.arch}{Color.endc}')
+            print(f'{Color.bold}  Processor family: {self.proc_family}{Color.endc}\n')
+            for item in self.content:
                 status = self.state[self.content[item].desc]
                 it = (self.content[item].desc + '                              ')[:39]
                 print(f'  {it:<40} : ' + status)
@@ -328,8 +329,8 @@ class software(object):
                         self.state[key] = ('Present')
                     else:
                         self.state[key] = (Color.yellow +
-                                            'Present but not at release level' +
-                                            Color.endc)
+                                           'Present but not at release level' +
+                                           Color.endc)
                 else:
                     self.state[key] = ('Present')
             else:
@@ -1604,8 +1605,12 @@ class software(object):
     def init_clients(self):
         log = logger.getlogger()
 
-        print(bold(f'\nInitializing clients for install from  Repository : '
-              f'{self.repo_shortname}\n'))
+        print(bold(f'\n\n\n  Initializing clients for install from  Repository : '
+              f'{self.repo_shortname}'))
+        print(bold(f'  Architecture: {self.arch}'))
+        print(bold(f'  Processor family: {self.proc_family}'))
+        time.sleep(1.5)
+
         self.sw_vars['init_clients'] = self.repo_shortname
 
         self._update_software_vars()
@@ -1967,7 +1972,9 @@ class software(object):
         if not self._init_clients_check():
             sys.exit('Exiting')
 
-        print(bold(f'\n     Installing from Repository : {self.repo_shortname}\n'))
+        print(bold(f'\n  Installing from Repository : {self.repo_shortname}\n'))
+        print(bold(f'  Architecture: {self.arch}'))
+        print(bold(f'  Processor family: {self.proc_family}'))
 
         if self.sw_vars['ansible_inventory'] is None:
             self.sw_vars['ansible_inventory'] = get_ansible_inventory()
