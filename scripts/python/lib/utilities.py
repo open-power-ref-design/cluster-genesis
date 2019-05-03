@@ -714,14 +714,34 @@ def get_url(url='http://', fileglob='', prompt_name='', repo_chk='',
     return url
 
 
-def get_yesno(prompt='', yesno='y/n', default=''):
-    r = ' '
-    yn = yesno.split('/')
-    while r not in yn:
+def get_yesno(prompt='', yesno='[y]/n', default=''):
+    """Prompts user for a yes or no response.
+    Args:
+        prompt(str): Prompt text.
+        yesno(str): The yes / no part of the user prompt. yesno is
+            appended to prompt. There must be a '/' in yesno. The
+            portion of yesno to the left of the '/' is considered the
+            yes response, the portion to the right of the '/' is
+            considered to be the no response. By enclosing the yes or no
+            part of the yesno in brackets you instruct get_yesno to accept
+            an empty response (nothing or only spaces) as that.
+    """
+    try:
+        def_resp = yesno[1 + yesno.index('['):yesno.index(']')]
+    except ValueError:
+        def_resp = ''
+    yn = yesno.replace('[', '')
+    yn = yn.replace(']', '')
+    yn = yn.split('/')
+    while True:
         r = rlinput(f'{prompt}({yesno})? ', default)
-    if r == yn[0]:
-        return True
-    return False
+        if def_resp and not r.strip():
+            ret = True if def_resp == yn[0] else False
+            return ret
+        elif r == yn[0]:
+            return True
+        elif r == yn[-1]:
+            return False
 
 
 def get_dir(src_dir):

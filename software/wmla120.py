@@ -559,8 +559,7 @@ class software(object):
             print()
             self.log.info(bold('The firewall is not enabled.\n'))
             print('It is advisable to run with the firewall enabled.')
-            if not get_yesno('\nContinue installation with firewall disabled? ',
-                             default='y'):
+            if not get_yesno('\nContinue installation with firewall disabled? '):
                 self.log.info('Exiting at user request')
                 sys.exit()
 
@@ -609,12 +608,14 @@ class software(object):
                           ' in the POWER-Up server')
             pr_str = (f'\nDo you want to resync the {repo_name}'
                       ' at this time\n')
+            yesno = 'y/[n]'
         else:
             pr_str = (f'\nDo you want to create the {repo_name}'
                       ' at this time\n')
+            yesno = '[y]/n'
 
         ch = 'S'
-        if get_yesno(prompt=pr_str, yesno='y/n', default='y'):
+        if get_yesno(prompt=pr_str, yesno=yesno):
             if platform.machine() == self.arch:
                 ch, item = get_selection('Sync required packages from public repo.\n'
                                          'Create from Nvidia "local" driver RPM.\n'
@@ -801,9 +802,11 @@ class software(object):
         if exists:
             self.log.info('WMLA Enterprise license exists already in the POWER-Up '
                           'server')
+            yesno = 'y/[n]'
+        else:
+            yesno = '[y]/n'
 
-        if not exists or get_yesno(f'Copy a new {name.title()} file ',
-                                   yesno='y/n', default='y'):
+        if not exists or get_yesno(f'Copy a new {name.title()} file ', yesno=yesno):
             src_path, dest_path, state = setup_source_file(name, lic_src, lic_dir,
                                                            self.root_dir, lic_url,
                                                            alt_url=alt_url)
@@ -832,9 +835,11 @@ class software(object):
         if exists:
             self.log.info('Spectrum conductor content exists already in the '
                           'POWER-Up server')
+            yesno = 'y/[n]'
+        else:
+            yesno = '[y]/n'
 
-        if not exists or get_yesno(f'Copy a new {name.title()} file ',
-                                   yesno='y/n', default='y'):
+        if not exists or get_yesno(f'Copy a new {name.title()} file ', yesno=yesno):
             src_path, dest_path, state = setup_source_file(name, spc_src, spc_dir,
                                                            self.root_dir,
                                                            spc_url,
@@ -867,9 +872,11 @@ class software(object):
 
         if exists:
             self.log.info('Spectrum DLI content exists already in the POWER-Up server')
+            yesno = 'y/[n]'
+        else:
+            yesno = '[y]/n'
 
-        if not exists or get_yesno(f'Copy a new {name.title()} file ',
-                                   yesno='y/n', default='y'):
+        if not exists or get_yesno(f'Copy a new {name.title()} file ', yesno=yesno):
             src_path, dest_path, state = setup_source_file(name, spdli_src, spdli_dir,
                                                            self.root_dir, spdli_url,
                                                            alt_url=alt_url,
@@ -907,12 +914,14 @@ class software(object):
                           ' in the POWER-Up server')
             pr_str = (f'\nDo you want to resync the {repo_name} repository'
                       ' at this time\n')
+            yesno = 'y/[n]'
         else:
             pr_str = (f'\nDo you want to create the {repo_name} repository'
                       ' at this time\n')
+            yesno = '[y]/n'
 
         ch = 'S'
-        if get_yesno(prompt=pr_str, yesno='y/n', default='y'):
+        if get_yesno(prompt=pr_str, yesno=yesno):
             _lscpu = lscpu()
             installer_proc_model = None
             try:
@@ -1059,8 +1068,11 @@ class software(object):
         if exists:
             self.log.info(f'The {ana_name} content exists already '
                           'in the POWER-Up server.')
+            yesno = 'y/[n]'
+        else:
+            yesno = '[y]/n'
 
-        if not exists or get_yesno(f'Recopy {ana_name} ', yesno='y/n', default='y'):
+        if not exists or get_yesno(f'Recopy {ana_name} ', yesno=yesno):
 
             src_path, dest_path, state = setup_source_file(ana_name, ana_src,
                                                            ana_dir, self.root_dir,
@@ -1246,12 +1258,14 @@ class software(object):
                           ' in the POWER-Up server')
             pr_str = (f'\nDo you want to resync the {repo_name} repository'
                       ' at this time\n')
+            yesno = 'y/[n]'
         else:
             pr_str = (f'\nDo you want to create the {repo_name} repository'
                       ' at this time\n')
+            yesno = '[y]/n'
 
         ch = 'S'
-        if get_yesno(prompt=pr_str, yesno='y/n', default='y'):
+        if get_yesno(prompt=pr_str, yesno=yesno):
             ch, item = get_selection(f'Sync required {repo_id} packages from '
                                      'Enabled YUM repo\n'
                                      'Create from package files in a local Directory\n'
@@ -1334,7 +1348,7 @@ class software(object):
             if self.eng_mode:  # == 'custom-repo':
                 heading1('Create custom repositories')
                 if get_yesno('Would you like to create a custom repository ',
-                             yesno='y/n', default='n'):
+                             yesno='y/[n]'):
                     repo_id = input('Enter a repo id (yum short name): ')
                     repo_name = input('Enter a repo name (Descriptive name): ')
 
@@ -1931,7 +1945,7 @@ class software(object):
             self.log.warning('The cluster nodes were last configured for installation\n'
                              'from self.sw_vars["init_clients"], but you are requesting\n'
                              'installation from {self.repo_shortname}')
-            if not get_yesno('Okay to continue? ', default='n'):
+            if not get_yesno('Okay to continue? ', yesno='y/[n]'):
                 ready = False
 
         if self.sw_vars['proc_family'] != self.proc_family:
@@ -2238,7 +2252,7 @@ def _set_spectrum_conductor_install_env(ansible_inventory, package, ana_ver=None
             input(f'Press enter to edit {package} configuration file')
             click.edit(filename=envs_path)
         elif init and get_yesno(f'Edit Spectrum Conductor {package} '
-                                'configuration? '):
+                                'configuration? ', yesno='[y]/n'):
             click.edit(filename=envs_path)
         init = False
 

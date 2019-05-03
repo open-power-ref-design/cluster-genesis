@@ -302,14 +302,12 @@ class PowerupRepo(object):
             print(f'\nDo you want to sync the local {self.repo_name}\n'
                   ' at this time?\n')
             print('This can take a few minutes.\n')
-            ch = 'Y' if get_yesno(prompt='Sync Repo? ', yesno='y/n',
-                                  default='y') else 'n'
+            ch = 'Y' if get_yesno(prompt='Sync Repo? ', yesno='y/[n]') else 'n'
         else:
             print(f'\nDo you want to create a local {self.repo_name}\n'
                   'at this time?\n')
             print('This can take several minutes.')
-            ch = 'Y' if get_yesno(prompt='Create Repo? ', yesno='y/n',
-                                  default='y') else 'n'
+            ch = 'Y' if get_yesno(prompt='Create Repo? ') else 'n'
         return ch
 
     def get_repo_url(self, url, alt_url=None, name='', contains=[], excludes=[],
