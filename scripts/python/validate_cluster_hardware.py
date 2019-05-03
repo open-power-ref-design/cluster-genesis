@@ -686,17 +686,21 @@ class ValidateClusterHardware(object):
             pos = item.find('6382 5363')
             if pos >= 0:
                 bootp = item[pos:]
-                bootp = bootp[:2 + re.search(' ff|ff ', bootp, re.DOTALL).start()]
-                # look for pxe request info.  0x37 = 55 (parameter list request)
-                # 0x43 = 67 (boot filename request)
-                # 0xd1 = 209 (pxeconfig file request)
-                if ('37 ' in bootp or ' 37' in bootp):
-                    if (' d1' in bootp or 'd1 ' in bootp) or \
-                            ('43 ' in bootp or ' 43' in bootp):
-                        self.log.debug('bootp param request field: {}'.format(bootp))
-                        mac = _mac_regex.search(item).group()
-                        if mac not in mac_list:
-                            mac_list.append(mac)
+                match = re.search(' ff|ff ', bootp, re.DOTALL)
+                if match is not None:
+                    bootp = bootp[:2 + match.start()]
+                    # look for pxe request info.
+                    # 0x37 = 55 (parameter list request)
+                    # 0x43 = 67 (boot filename request)
+                    # 0xd1 = 209 (pxeconfig file request)
+                    if ('37 ' in bootp or ' 37' in bootp):
+                        if (' d1' in bootp or 'd1 ' in bootp) or \
+                                ('43 ' in bootp or ' 43' in bootp):
+                            self.log.debug('bootp param request field: '
+                                           f'{bootp}')
+                            mac = _mac_regex.search(item).group()
+                            if mac not in mac_list:
+                                mac_list.append(mac)
         return mac_list
 
     def validate_pxe(self, bootdev='default', persist=True):
@@ -891,12 +895,13 @@ class ValidateClusterHardware(object):
         for node in ipmi_missing_list_ai:
             print(node)
         t1 = time.time()
-        self._power_all(ipmi_missing_list_ai, 'off')
+        set_power_clients('off', clients=ipmi_missing_list_ai)
 
         while time.time() < t1 + 10:
             time.sleep(0.5)
 
-        self._power_all(ipmi_missing_list_ai, 'on', bootdev='network')
+        set_bootdev_clients('network', clients=ipmi_missing_list_ai)
+        set_power_clients('on', clients=ipmi_missing_list_ai)
 
     def _is_port_in_table(self, table, port):
         for node in table:

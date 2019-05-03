@@ -62,7 +62,7 @@ def ipmi_fru2dict(fru_str):
                 line = split[0] + ': "' + split[1] + '"'
                 yaml_data.append(line)
     yaml_data = '\n'.join(yaml_data)
-    return yaml.load(yaml_data)
+    return yaml.full_load(yaml_data)
 
 
 def _get_system_sn_pn(ipmi_fru_str):

@@ -29,7 +29,7 @@
       - name: "dli"
         dir: "/opt/ibm/spectrumcomputing/uninstall/deeplearningimpactuninstall-1.2.2.0.sh"
         command: "sudo rm -rf /opt/ibm/"
-        service: "{{ source_profile }} &&  {{ shutdown_services }}"
+        service: "{{ source_profile }} && {{ login_user }} && {{ shutdown_services }} || true "
         uninstall: "echo Y | bash /opt/ibm/spectrumcomputing/uninstall/deeplearningimpactuninstall*.sh"
       - name: "powerai_license"
         dir: "/root/.powerai"
@@ -64,6 +64,8 @@
 - name: Stop All Spectrum Computing Services and Shutdown
   shell: "{{ item.item.service }}"
   become: yes
+  args:
+    executable: /bin/bash
   when: item.stat.exists 
     and item.item.name == "spectrum_computing" 
     and egosh_output.rc == 0 
@@ -95,7 +97,7 @@
   become: yes
 
 - name: Check if any left over services of conductor & dli exist
-  shell: "ps -ef | grep -e egoadmin -e spectrum -e conductor -e ascd | grep -v grep"
+  shell: "ps -ef | grep -e spectrum -e conductor -e ascd | grep -v grep"
   register: dangling_procs_exist
   ignore_errors: yes
   become: yes
@@ -105,7 +107,7 @@
     # msg: "{{ residual_pkgs }}"
 
 - name: Deleting any left over services of conductor & dli
-  shell: "ps -ef | grep -e egoadmin -e spectrum -e conductor -e ascd | grep -v grep | awk '{print $2}' | xargs kill -9"
+  shell: "ps -ef | grep -e spectrum -e conductor -e ascd | grep -v grep | awk '{print $2}' | xargs kill -9"
   register: dangling_procs
   when: dangling_procs_exist.rc == 0
   ignore_errors: yes

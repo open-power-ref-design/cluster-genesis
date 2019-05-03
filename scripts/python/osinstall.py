@@ -207,7 +207,7 @@ def pxelinux_configuration(profile_object, kernel, initrd, kickstart):
 def initiate_pxeboot(profile_object, node_dict_file):
     log = logger.getlogger()
     p_node = profile_object.get_node_profile_tuple()
-    nodes = yaml.load(open(node_dict_file))
+    nodes = yaml.full_load(open(node_dict_file))
     for node in nodes['selected'].values():
         ip = node['bmc_ip']
         userid = p_node.bmc_userid
@@ -243,7 +243,7 @@ def update_install_status(node_dict_file, start_time, write_results=True):
     """
     log = logger.getlogger()
     status_dir = CLIENT_STATUS_DIR
-    nodes = yaml.load(open(node_dict_file))
+    nodes = yaml.full_load(open(node_dict_file))
 
     def _associate_pxe_to_bmc(nodes, pxe_ip, report_data=None):
         for bmc_mac, value in nodes['selected'].items():
@@ -337,7 +337,7 @@ def get_install_status(node_dict_file, colorized=False):
     Returns:
         str: Installation status table
     """
-    nodes = yaml.load(open(node_dict_file))
+    nodes = yaml.full_load(open(node_dict_file))
 
     def _try_dict_key(dictionary, *keys):
         value = dictionary
@@ -423,7 +423,7 @@ def get_install_status(node_dict_file, colorized=False):
 def reset_bootdev(profile_object, node_dict_file, bmc_ip='all'):
     log = logger.getlogger()
     p_node = profile_object.get_node_profile_tuple()
-    nodes = yaml.load(open(node_dict_file))
+    nodes = yaml.full_load(open(node_dict_file))
     for node in nodes['selected'].values():
         ip = node['bmc_ip']
         userid = p_node.bmc_userid

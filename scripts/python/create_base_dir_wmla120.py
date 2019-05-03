@@ -64,7 +64,12 @@ def create_base_dir(base_dir):
             print(f'Found dir: {path}')
             if action == 'move':
                 try:
-                    move(path, f'{base_dir}/wmla120-{arch}/')
+                    _dir = f'{base_dir}/wmla120-{arch}/'
+                    move(path, _dir)
+                    cmd = f'sudo chcon -Rv --type=httpd_sys_content_t {_dir}'
+                    _, err, rc = sub_proc_exec(cmd)
+                    if rc != 0:
+                        log.error(f'chtype of directory {_dir} failed {err}')
                 except shutil_Error as exc:
                     print(exc)
             elif action == 'copy':
