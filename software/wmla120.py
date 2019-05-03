@@ -638,7 +638,7 @@ class software(object):
 
             repo = PowerupRepo(repo_id, repo_name, self.root_dir, arch=self.arch)
             repo_dir = repo.get_repo_dir()
-            good = self._add_dependent_packages(repo_dir, pkg_list, also_get_newer=False)
+            good = self._add_dependent_packages(repo_dir, pkg_list, also_get_newer=True)
             repo.create_meta()
             if not good:
                 self.log.error(f'An error occurred downloading {_repo.desc}')
@@ -1435,7 +1435,8 @@ class software(object):
         # Basic check of the state of yum repos
         print()
         self.sw_vars['prep-timestamp'] = calendar.timegm(time.gmtime())
-        self.log.info('Performing basic check of yum repositories')
+        self.log.info('Performing basic check of yum repositories\n'
+                      'and clean up of yum caches')
         cmd = 'yum repolist --noplugins'
         resp, err, rc = sub_proc_exec(cmd)
         yum_err = re.search(r'\[Errno\s+\d+\]', err)
@@ -1447,13 +1448,23 @@ class software(object):
         if rc or yum_err:
             self.log.error('There is a problem with yum or one or more of the yum '
                            'repositories. \n')
-            self.log.info('Cleaning yum caches')
-            cmd = 'yum clean all'
-            resp, err, rc = sub_proc_exec(cmd)
-            if rc != 0:
-                self.log.error('An error occurred while cleaning the yum repositories\n'
-                               'POWER-Up is unable to continue.')
-                sys.exit('Exiting')
+            sys.exit('Unable to continue. Exiting')
+        # Clean package data. Insures new packages are attempted when
+        # downloading without specifying version
+        cmd = 'yum clean packages --noplugins'
+        resp, err, rc = sub_proc_exec(cmd)
+        if rc != 0:
+            self.log.error('An error occurred while cleaning the yum repositories\n'
+                           'Unable to continue.')
+            sys.exit('Exiting')
+
+        cmd = 'yum clean all --noplugins'
+        resp, err, rc = sub_proc_exec(cmd)
+        if rc != 0:
+            self.log.error('An error occurred while cleaning the yum repositories\n'
+                           'Unable to continue.')
+            sys.exit('Exiting')
+
         self._setup_firewall()
         self._setup_nginx_server()
 
@@ -1545,7 +1556,7 @@ class software(object):
         """
         def yum_download(repo_dir, dep_list):
             rc = True
-            cmd = (f'yumdownloader --archlist={self.arch} --destdir '
+            cmd = (f'yumdownloader --noplugins --archlist={self.arch} --destdir '
                    f'{repo_dir} {dep_list}')
             resp, err, _rc = sub_proc_exec(cmd)
             if _rc != 0:
