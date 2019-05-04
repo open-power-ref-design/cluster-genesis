@@ -1521,14 +1521,15 @@ class software(object):
             cmd += '--ask-become-pass '
             prompt_msg = "\nClient password required for privilege escalation"
         # Verfication Loop
-        specific_arch = "_" + self.arch if self.arch == 'x86_64' else ""
-        validate_tasks = yaml.full_load(open(GEN_SOFTWARE_PATH + f'{self.my_name}'
-                                        f'_validate_procedure{specific_arch}.yml'))
-        for task in validate_tasks:
-            heading1(f"Validation Action: {task['description']}")
-            extra_args = ''
-            self._run_ansible_tasks(task['tasks'], extra_args)
-        print('Verfication Completed')
+        if get_yesno('Run configuration verification checks on cluster nodes '):
+            specific_arch = "_" + self.arch if self.arch == 'x86_64' else ""
+            validate_tasks = yaml.full_load(open(GEN_SOFTWARE_PATH + f'{self.my_name}'
+                                            f'_validate_procedure{specific_arch}.yml'))
+            for task in validate_tasks:
+                heading1(f"Validation Action: {task['description']}")
+                extra_args = ''
+                self._run_ansible_tasks(task['tasks'], extra_args)
+            print('Verfication Completed')
         # Validate end
         run = True
         while run:
