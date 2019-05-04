@@ -39,7 +39,7 @@
   loop: "{{ groups['compute'] | flatten }}"
   register: compute_ram_size
   
-  - name: DEBUG - compute_ram_size
+- name: DEBUG - compute_ram_size
   debug:
     msg: "{{ compute_ram_size['results'][0]['stdout'] }}"
   when: groups['compute'] is defined and (groups['compute'] | length > 0)
@@ -74,13 +74,13 @@
   loop: "{{ groups['master'] | flatten }}"
   register: mgmt_arch
 
-- name: Check client nodes arch
+- name: Check compute nodes arch
   command: "/usr/bin/lscpu"
   delegate_to: "{{ item }}"
   loop: "{{ groups['compute'] | flatten }}"
   register: client_arch
   
-  - name: DEBUG - Check master nodes Arch
+- name: DEBUG - Check master nodes Arch
   debug:
     msg: "{{ mgmt_arch['results'][0]['stdout'] }}"
 
@@ -90,7 +90,7 @@
       - mgmt_arch['results'][0]['stdout'] == mgmt_arch['results'][1]['stdout']
   when: (groups['master'] | length > 1)
 
-- name: DEBUG - Check client Arch
+- name: DEBUG - Check compute nodes Arch
   debug:
     msg: "{{ client_arch['results'][0]['stdout'] }}"
   when: groups['compute'] is defined and (groups['compute'] | length > 0)
