@@ -1517,7 +1517,8 @@ class software(object):
             prompt_msg = "\nClient password required for privilege escalation"
 #Verfication Loop
         specific_arch = "_" + self.arch if self.arch == 'x86_64' else ""
-        validate_tasks = yaml.load(open(GEN_SOFTWARE_PATH + f'{self.my_name}_validate_procedure{specific_arch}.yml'))
+        validate_tasks = yaml.full_load(open(GEN_SOFTWARE_PATH + f'{self.my_name}'
+                                        f'_validate_procedure{specific_arch}.yml'))
         for task in validate_tasks:
             heading1(f"Validation Action: {task['description']}")
             extra_args = ''
