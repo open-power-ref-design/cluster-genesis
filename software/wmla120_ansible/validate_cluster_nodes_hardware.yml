@@ -15,32 +15,41 @@
     compute_ram: 32  #GB
 
 #Verify RAM space
-- name: gather Mangement Host RAM
+- name: gather master nodes Host RAM
   shell: "free -t -g | tail -n 1 | awk '{ print $2}'"
   delegate_to: "{{ item }}"
   loop: "{{ groups['master'] | flatten }}"
   register: mgmt_ram_size
 
-- name: Gather copute Host RAM
+- name: DEBUG - master nodes Host RAM
+  debug:
+    msg: "{{ mgmt_ram_size['results'][0]['stdout'] }}"
+  when: (groups['master'] | length > 0)
+
+- name: Verify master nodes RAM Requirements
+  assert:
+    that:
+      - "{{ mgmt_ram_size['results'][0]['stdout'] }} >=  {{ mgmt_ram }}"
+    fail_msg: "RAM Requirement failed. Verify there is RAM available. (CMD: free )"
+  when: (groups['master'] | length > 0)
+
+- name: Gather compute Host RAM
   shell: "free -t -g | tail -n 1 | awk '{ print $2}'"
   delegate_to: "{{ item }}"
   loop: "{{ groups['compute'] | flatten }}"
   register: compute_ram_size
-
-- name: DEBUG - mgmt_ram_size
-  debug:
-    msg: "{{ mgmt_ram_size['results'][0]['stdout'] }}"
-
-- name: DEBUG - compute_ram_size
+  
+  - name: DEBUG - compute_ram_size
   debug:
     msg: "{{ compute_ram_size['results'][0]['stdout'] }}"
+  when: groups['compute'] is defined and (groups['compute'] | length > 0)
 
-- name: Verify RAM Requirements
+- name: Verify compute RAM Requirements
   assert:
     that:
-      - "{{ mgmt_ram_size['results'][0]['stdout'] }} >=  {{ mgmt_ram }}"
       - "{{ compute_ram_size['results'][0]['stdout'] }} >=  {{ compute_ram }}"
     fail_msg: "RAM Requirement failed. Verify there is RAM available. (CMD: free )"
+  when: groups['compute'] is defined and (groups['compute'] | length > 0)
 
 #Verify Hdisk space
 - name: Verify disk data
@@ -59,25 +68,32 @@
       - "disk size: {{ disk_space.stdout }}"
 
 #Verify System Arch
-- name: Check local system arch
+- name: Check master nodes arch
   shell: "lscpu | grep 'Model name' | awk '{print $3}'" #POWER8, POWER9, Intel[x86_64]
   delegate_to: "{{ item }}"
   loop: "{{ groups['master'] | flatten }}"
   register: mgmt_arch
 
-- name: Check client arch
+- name: Check client nodes arch
   command: "/usr/bin/lscpu"
   delegate_to: "{{ item }}"
   loop: "{{ groups['compute'] | flatten }}"
   register: client_arch
-
-- name: DEBUG - Check mgmt Arch 
+  
+  - name: DEBUG - Check master nodes Arch
   debug:
     msg: "{{ mgmt_arch['results'][0]['stdout'] }}"
 
-- name: DEBUG - Check client Arch 
+- name: Check Arch unity across first two masters if two exist
+  assert:
+    that:
+      - mgmt_arch['results'][0]['stdout'] == mgmt_arch['results'][1]['stdout']
+  when: (groups['master'] | length > 1)
+
+- name: DEBUG - Check client Arch
   debug:
     msg: "{{ client_arch['results'][0]['stdout'] }}"
+  when: groups['compute'] is defined and (groups['compute'] | length > 0)
 
 - name: Check if Arch Unity Exists
   assert:
@@ -85,3 +101,4 @@
       - client_arch['results'][0]['stdout'].find('{{ mgmt_arch['results'][0]['stdout'] }}') != -1
     fail_msg: "Architecture varies between nodes. If aware of hybrid nodes, please continue"
   register: arch_unity
+  when: groups['compute'] is defined and (groups['compute'] | length > 0)
