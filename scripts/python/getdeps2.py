@@ -105,30 +105,50 @@ def main():
             else:
                 input(f'\nINFO - {f} Does not exist\n')
 
+    def get_pkg_repo(pkg, pkg_type):
+        if pkg_type == 'yum':
+            pkg_items = pkg.split()
+            repo = pkg_items[2]
+            if repo.endswith('-powerup'):
+                repo = repo[:-8]
+
+        elif pkg_type == 'pip':
+            pkg_items = pkg.split()
+            repo = pkg_items[2]
+            if pkg_type in repo:
+                repo = 'pypi'
+
+        elif pkg_type == 'conda':
+            pkg_dir = pkg.rpartition('/')[0]
+            if 'ibm-ai' in pkg or 'ibmai' in pkg:
+                if 'linux-ppc64le' in pkg:
+                    repo = 'ibmai_linux_ppc64le'
+                elif 'noarch' in pkg:
+                    repo = 'ibmai_noarch'
+                else:
+                    repo = 'ibmai_unresolved_reponame'
+            elif 'repo.anaconda' in pkg:
+                repo = '-'.join(pkg_dir.rsplit('/', 2)[-2:])
+                repo = 'anaconda_' + repo.replace('-', '_')
+            else:
+                pkg_dir = pkg.rpartition('/')[0]
+                repo = '_'.join(pkg_dir.rsplit('/', 2)[-2:])
+        return repo
+
     def format_pkg_name(pkg, pkg_type):
         if pkg_type == 'yum':
             pkg_items = pkg.split()
-            pkg_repo = pkg.split()[2]
+            pkg_repo = get_pkg_repo(pkg, pkg_type)
             pkg_fmt_name = (pkg_items[0].rsplit('.', 1)[0] + '-' +
                             pkg_items[1] + '.' + pkg_items[0].rsplit('.', 1)[1])
 
         elif pkg_type == 'conda':
             pkg_fmt_name = pkg.rpartition('/')[-1]
-            if '/linux-ppc64le' in pkg:
-                pkg_repo = pkg[:pkg.find('/linux-ppc64le')]
-            elif '/linux-64' in pkg:
-                pkg_repo = pkg[:pkg.find('/linux-64')]
-            elif '/noarch' in pkg:
-                pkg_repo = pkg[:pkg.find('/noarch')]
-            elif 'file://' in pkg:
-                pkg_repo = '/file'
-            pkg_repo = pkg_repo.rpartition('/')[-1]
+            pkg_repo = get_pkg_repo(pkg, pkg_type)
 
         elif pkg_type == 'pip':
             pkg_items = pkg.split()
-            pkg_repo = pkg_items[2]
-            if pkg_type in pkg_repo:
-                pkg_repo = pkg_type
+            pkg_repo = get_pkg_repo(pkg, pkg_type)
             version = pkg_items[1].replace('(', '')
             version = version.replace(')', '')
             pkg_fmt_name = pkg_items[0] + '==' + version
@@ -140,7 +160,7 @@ def main():
             for repo in merged_sets:
                 file_name = repo.replace('/', '')
                 file_name = file_name.replace('@', '')
-                file_name = f'{pkg_type}-{file_name}.yml'
+                file_name = f'{file_name}.yml'
                 file_path = os.path.join(dep_dir, file_name)
                 with open(file_path, 'w') as f:
                     d = {file_name: sorted(merged_sets[repo], key=str.lower)}
@@ -148,7 +168,7 @@ def main():
 
         elif pkg_type == 'conda':
             for repo in merged_sets:
-                file_name = f'{pkg_type}-{repo}.yml'
+                file_name = f'{repo}.yml'
                 file_path = os.path.join(dep_dir, file_name)
                 with open(file_path, 'w') as f:
                     d = {file_name: sorted(list(merged_sets[repo]), key=str.lower)}
@@ -156,7 +176,7 @@ def main():
 
         elif pkg_type == 'pip':
             for repo in merged_sets:
-                file_name = f'{pkg_type}.yml'
+                file_name = 'pypi.yml'
                 file_path = os.path.join(dep_dir, file_name)
                 with open(file_path, 'w') as f:
                     d = {file_name: sorted(merged_sets[repo], key=str.lower)}
@@ -166,29 +186,21 @@ def main():
         repo_list = []
         if pkg_type == 'yum':
             for pkg in pkgs:
-                pkg_items = pkg.split()
-                repo = pkg_items[2]
+                repo = get_pkg_repo(pkg, pkg_type)
                 if repo not in repo_list:
                     repo_list.append(repo)
 
         if pkg_type == 'conda':
             for pkg in pkgs:
-                if '/linux-ppc64le' in pkg:
-                    repo = pkg[:pkg.find('/linux-ppc64le')]
-                elif '/linux-64' in pkg:
-                    repo = pkg[:pkg.find('/linux-64')]
-                else:
-                    repo = pkg[:pkg.find('/noarch')]
-                repo = repo.rpartition('/')[-1]
+                repo = get_pkg_repo(pkg, pkg_type)
 
                 if repo not in repo_list:
                     repo_list.append(repo)
 
         if pkg_type == 'pip':
             for pkg in pkgs:
-                # pkg_items = pkg.split()
                 if '<pip>' in pkg:
-                    repo = 'pip'
+                    repo = get_pkg_repo(pkg, pkg_type)
                     if repo not in repo_list:
                         repo_list.append(repo)
 

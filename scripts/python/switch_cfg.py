@@ -71,14 +71,14 @@ def main(_class, host):
     log = logger.getlogger()
     cfg_file_path = GEN_PATH + 'scripts/python/switch-cfg-{}.yml'
     try:
-        cfg = yaml.load(open(cfg_file_path.format(_class)))
+        cfg = yaml.full_load(open(cfg_file_path.format(_class)))
     except:
         print('Could not load file: ' + cfg_file_path.format(_class))
         print('Copying from template file')
         try:
             copyfile(GEN_PATH + 'scripts/python/switch-cfg-template.yml',
                      cfg_file_path.format(_class))
-            cfg = yaml.load(open(cfg_file_path.format(_class)))
+            cfg = yaml.full_load(open(cfg_file_path.format(_class)))
         except:
             print('Could not load file: ' + cfg_file_path.format(_class))
             sys.exit(1)

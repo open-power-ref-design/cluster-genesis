@@ -3,10 +3,76 @@
 # will also download everything.
 # ie: ibm-ai-conda: all
 #
-ibm_ai_conda_linux_ppc64le:
-    accept_list: all
-    reject_list:
-ibm_ai_conda_noarch:
+ibmai_linux_ppc64le:
+  accept_list:
+    - arrow-cpp-0.11.0-py27_431.0b0b1a6.tar.bz2
+    - arrow-cpp-0.11.0-py36_431.0b0b1a6.tar.bz2
+    - bazel-0.20.0-439.cc38dec.tar.bz2
+    - caffe-1.0-py27_4977.96fe923.tar.bz2
+    - caffe-1.0-py36_4977.96fe923.tar.bz2
+    - cudatoolkit-10.1.105-446.8cc2201.tar.bz2
+    - cudatoolkit-dev-10.1.105-446.8cc2201.tar.bz2
+    - cudf-0.2.0-cuda10.1_py36_440.c58823b.tar.bz2
+    - cudnn-7.5.0+10.1-421.cdd5ce1.tar.bz2
+    - cuml-0.2.0-cuda10.1_py36_431.9faf989.tar.bz2
+    - ddl-1.3.0-py27_1096.fa6ae76.tar.bz2
+    - ddl-1.3.0-py36_1096.fa6ae76.tar.bz2
+    - ddl-tensorflow-1.3.0-py27_834.172af80.tar.bz2
+    - ddl-tensorflow-1.3.0-py36_834.172af80.tar.bz2
+    - faiss-1.4.0-450.e4cf3db.tar.bz2
+    - gflags-2.2.2-1460.f9a47c5.tar.bz2
+    - glog-0.3.5-1451.e617cd2.tar.bz2
+    - libevent-2.1.8-404.ec83f89.tar.bz2
+    - libgdf-0.2.0-cuda10.1_421.5841fc6.tar.bz2
+    - libgdf_cffi-0.2.0-cuda10.1_410.913eadd.tar.bz2
+    - libopencv-3.4.2-558.3febbe4.tar.bz2
+    - libprotobuf-3.6.1-410.7e4f035.tar.bz2
+    - magma-2.4.0-1420.1139208.tar.bz2
+    - nccl-2.4.2-415.7272b20.tar.bz2
+    - numactl-2.0.12-412.bf124a7.tar.bz2
+    - onnx-1.3.0-py27_451.7b7bc4f.tar.bz2
+    - onnx-1.3.0-py36_451.7b7bc4f.tar.bz2
+    - opencv-3.4.2-py27_558.3febbe4.tar.bz2
+    - opencv-3.4.2-py36_558.3febbe4.tar.bz2
+    - pai4sk-1.3.0-py27_803.61824a8.tar.bz2
+    - pai4sk-1.3.0-py36_803.61824a8.tar.bz2
+    - parquet-cpp-1.5.1-413.eeb6cef.tar.bz2
+    - pciutils-3.6.2-410.6a151b2.tar.bz2
+    - powerai-1.6.0-424.9f195f4.tar.bz2
+    - powerai-license-1.6.0-536.10b2576.tar.bz2
+    - powerai-release-1.6.0-409.08f60d2.tar.bz2
+    - protobuf-3.6.1-py27_419.4d8660b.tar.bz2
+    - protobuf-3.6.1-py36_419.4d8660b.tar.bz2
+    - pyarrow-0.11.0-py27_428.0b7ef7d.tar.bz2
+    - pyarrow-0.11.0-py36_428.0b7ef7d.tar.bz2
+    - py-opencv-3.4.2-py27_558.3febbe4.tar.bz2
+    - py-opencv-3.4.2-py36_558.3febbe4.tar.bz2
+    - pytorch-1.0.1-py27_15800.3c9ac3a.tar.bz2
+    - pytorch-1.0.1-py36_15800.3c9ac3a.tar.bz2
+    - snapml-spark-1.2.0-py27_749.90cf7ee.tar.bz2
+    - snapml-spark-1.2.0-py36_749.90cf7ee.tar.bz2
+    - spectrum-mpi-10.02-458.46b70a7.tar.bz2
+    - tensorboard-1.13.0-py27_a795148_2943.1249525.tar.bz2
+    - tensorboard-1.13.0-py36_a795148_2943.1249525.tar.bz2
+    - tensorflow-1.13.1-gpu_py27_604.1249525.tar.bz2
+    - tensorflow-1.13.1-gpu_py36_604.1249525.tar.bz2
+    - tensorflow-base-1.13.1-gpu_py27_6612da8_46468.1249525.tar.bz2
+    - tensorflow-base-1.13.1-gpu_py36_6612da8_46468.1249525.tar.bz2
+    - tensorflow-estimator-1.13.0-py27_340703e_763.1249525.tar.bz2
+    - tensorflow-estimator-1.13.0-py36_340703e_763.1249525.tar.bz2
+    - tensorflow-gpu-1.13.1-604.1249525.tar.bz2
+    - tensorflow-large-model-support-2.0.0-py27_727.6c775e9.tar.bz2
+    - tensorflow-large-model-support-2.0.0-py36_727.6c775e9.tar.bz2
+    - tensorflow-probability-0.6.0-py27_2650d40_1435.1249525.tar.bz2
+    - tensorflow-probability-0.6.0-py36_2650d40_1435.1249525.tar.bz2
+    - tf_cnn_benchmarks-1.12-py27_1022.a863147.tar.bz2
+    - tf_cnn_benchmarks-1.12-py36_1022.a863147.tar.bz2
+    - _tflow_select-2.1.0-gpu_604.1249525.tar.bz2
+    - thrift-cpp-0.11.0-417.251e1ef.tar.bz2
+    - toposort-1.5-py27_409.04c40a6.tar.bz2
+    - toposort-1.5-py36_409.04c40a6.tar.bz2
+  reject_list:
+ibmai_noarch:
     accept_list: all
     reject_list:
 #conda_forge_noarch_pkgs:
@@ -296,15 +362,17 @@ anaconda_main_noarch:
     - pbr-5.1.3-py_0.tar.bz2
     - partd-0.3.10-py_0.tar.bz2
 
-  reject_list: all
+  reject_list:
 
-python3_specific_pkgs:
+#python3_specific_pkgs:
+pypi_3:
     - deprecation==2.0.5
     - docutils>=0.10
     - enum34==1.1.6
     - futures==3.1.1
-    - os_service_types==1.2.0
-python_pkgs:
+#    - os_service_types==1.2.0
+#python_pkgs:
+pypi:
     - alembic==0.8.2
     - appdirs==1.4.3
     - asyncio==3.4.3
@@ -398,7 +466,7 @@ python_pkgs:
 
 # Note that one of the EPEL packages (libaec, libaec-devel) was at
 # different levels on p8 and p9
-epel_pkgs:
+epel-ppc64le:
     - dkms-2.6.1-1.el7.noarch
     - gflags-2.1.1-6.el7.ppc64le
     - gflags-devel-2.1.1-6.el7.ppc64le
@@ -428,7 +496,8 @@ epel_pkgs:
     - openblas-threads64-0.3.3-2.el7.ppc64le
     - openblas-threads64_-0.3.3-2.el7.ppc64le
     - opencl-filesystem-1.0-5.el7.noarch
-yum_pkgs_p8:
+#dependent_packages_p8:
+dependencies_p8:
     - adwaita-cursor-theme-3.28.0-1.el7.noarch
     - adwaita-icon-theme-3.28.0-1.el7.noarch
     - at-spi2-atk-2.26.2-1.el7.ppc64le
@@ -552,7 +621,8 @@ yum_pkgs_p8:
     - wget
     - ntp
     - nfs-utils
-yum_pkgs_p9:
+#dependent_packages_p9:
+dependencies_p9:
     - adwaita-cursor-theme-3.28.0-1.el7.noarch
     - adwaita-icon-theme-3.28.0-1.el7.noarch
     - at-spi2-atk-2.26.2-1.el7.ppc64le
@@ -671,83 +741,83 @@ yum_pkgs_p9:
     - wget
     - ntp
     - nfs-utils
-cuda_drivers:
-    - cuda-10-1-10.1.105-1
-    - cuda-10.1.105-1
-    - cuda-command-line-tools-10-1-10.1.105-1
-    - cuda-compat-10-1-418.39-1
-    - cuda-compiler-10-1-10.1.105-1
-    - cuda-core-10-1-10.1.105-1
-    - cuda-cudart-10-1-10.1.105-1
-    - cuda-cudart-dev-10-1-10.1.105-1
-    - cuda-cufft-10-1-10.1.105-1
-    - cuda-cufft-dev-10-1-10.1.105-1
-    - cuda-cuobjdump-10-1-10.1.105-1
-    - cuda-cupti-10-1-10.1.105-1
-    - cuda-curand-10-1-10.1.105-1
-    - cuda-curand-dev-10-1-10.1.105-1
-    - cuda-cusolver-10-1-10.1.105-1
-    - cuda-cusolver-dev-10-1-10.1.105-1
-    - cuda-cusparse-10-1-10.1.105-1
-    - cuda-cusparse-dev-10-1-10.1.105-1
-    - cuda-demo-suite-10-1-10.1.105-1
-    - cuda-documentation-10-1-10.1.105-1
-    - cuda-driver-dev-10-1-10.1.105-1
-    - cuda-drivers-418.39-1
-    - cuda-gdb-10-1-10.1.105-1
-    - cuda-gdb-src-10-1-10.1.105-1
-    - cuda-gpu-library-advisor-10-1-10.1.105-1
-    - cuda-libraries-10-1-10.1.105-1
-    - cuda-libraries-dev-10-1-10.1.105-1
-    - cuda-license-10-1-10.1.105-1
-    - cuda-memcheck-10-1-10.1.105-1
-    - cuda-minimal-build-10-1-10.1.105-1
-    - cuda-misc-headers-10-1-10.1.105-1
-    - cuda-npp-10-1-10.1.105-1
-    - cuda-npp-dev-10-1-10.1.105-1
-    - cuda-nsight-10-1-10.1.105-1
-    - cuda-nsight-compute-10-1-10.1.105-1
-    - cuda-nsight-systems-10-1-10.1.105-1
-    - cuda-nvcc-10-1-10.1.105-1
-    - cuda-nvdisasm-10-1-10.1.105-1
-    - cuda-nvgraph-10-1-10.1.105-1
-    - cuda-nvgraph-dev-10-1-10.1.105-1
-    - cuda-nvjpeg-10-1-10.1.105-1
-    - cuda-nvjpeg-dev-10-1-10.1.105-1
-    - cuda-nvml-dev-10-1-10.1.105-1
-    - cuda-nvprof-10-1-10.1.105-1
-    - cuda-nvprune-10-1-10.1.105-1
-    - cuda-nvrtc-10-1-10.1.105-1
-    - cuda-nvrtc-dev-10-1-10.1.105-1
-    - cuda-nvtx-10-1-10.1.105-1
-    - cuda-nvvp-10-1-10.1.105-1
-    - cuda-runtime-10-1-10.1.105-1
-    - cuda-samples-10-1-10.1.105-1
-    - cuda-sanitizer-api-10-1-10.1.105-1
-    - cuda-toolkit-10-1-10.1.105-1
-    - cuda-tools-10-1-10.1.105-1
-    - cuda-visual-tools-10-1-10.1.105-1
-    - dkms-nvidia-418.39-1.el7
-    - libcublas10-10.1.0.105-1
-    - libcublas-devel-10.1.0.105-1
-    - libglvnd-1.0.1-0.8.git5baa1e5.el7
-    - libglvnd-core-devel-1.0.1-0.8.git5baa1e5.el7
-    - libglvnd-debuginfo-1.0.1-0.6.git5baa1e5.el7
-    - libglvnd-devel-1.0.1-0.8.git5baa1e5.el7
-    - libglvnd-egl-1.0.1-0.8.git5baa1e5.el7
-    - libglvnd-gles-1.0.1-0.8.git5baa1e5.el7
-    - libglvnd-glx-1.0.1-0.8.git5baa1e5.el7
-    - libglvnd-opengl-1.0.1-0.8.git5baa1e5.el7
-    - nvidia-driver-418.39-4.el7
-    - nvidia-driver-cuda-418.39-4.el7
-    - nvidia-driver-cuda-libs-418.39-4.el7
-    - nvidia-driver-devel-418.39-4.el7
-    - nvidia-driver-libs-418.39-4.el7
-    - nvidia-driver-NvFBCOpenGL-418.39-4.el7
-    - nvidia-driver-NVML-418.39-4.el7
-    - nvidia-libXNVCtrl-418.39-1.el7
-    - nvidia-libXNVCtrl-devel-418.39-1.el7
-    - nvidia-modprobe-418.39-1.el7
-    - nvidia-persistenced-418.39-1.el7
-    - nvidia-settings-418.39-1.el7
-    - nvidia-xconfig-418.39-1.el7
+cuda:
+    - cuda-10-1-10.1.105-1.ppc64le
+    - cuda-10.1.105-1.ppc64le
+    - cuda-command-line-tools-10-1-10.1.105-1.ppc64le
+    - cuda-compat-10-1-418.39-1.ppc64le
+    - cuda-compiler-10-1-10.1.105-1.ppc64le
+    - cuda-core-10-1-10.1.105-1.ppc64le
+    - cuda-cudart-10-1-10.1.105-1.ppc64le
+    - cuda-cudart-dev-10-1-10.1.105-1.ppc64le
+    - cuda-cufft-10-1-10.1.105-1.ppc64le
+    - cuda-cufft-dev-10-1-10.1.105-1.ppc64le
+    - cuda-cuobjdump-10-1-10.1.105-1.ppc64le
+    - cuda-cupti-10-1-10.1.105-1.ppc64le
+    - cuda-curand-10-1-10.1.105-1.ppc64le
+    - cuda-curand-dev-10-1-10.1.105-1.ppc64le
+    - cuda-cusolver-10-1-10.1.105-1.ppc64le
+    - cuda-cusolver-dev-10-1-10.1.105-1.ppc64le
+    - cuda-cusparse-10-1-10.1.105-1.ppc64le
+    - cuda-cusparse-dev-10-1-10.1.105-1.ppc64le
+    - cuda-demo-suite-10-1-10.1.105-1.ppc64le
+    - cuda-documentation-10-1-10.1.105-1.ppc64le
+    - cuda-driver-dev-10-1-10.1.105-1.ppc64le
+    - cuda-drivers-418.39-1.ppc64le
+    - cuda-gdb-10-1-10.1.105-1.ppc64le
+    - cuda-gdb-src-10-1-10.1.105-1.ppc64le
+    - cuda-gpu-library-advisor-10-1-10.1.105-1.ppc64le
+    - cuda-libraries-10-1-10.1.105-1.ppc64le
+    - cuda-libraries-dev-10-1-10.1.105-1.ppc64le
+    - cuda-license-10-1-10.1.105-1.ppc64le
+    - cuda-memcheck-10-1-10.1.105-1.ppc64le
+    - cuda-minimal-build-10-1-10.1.105-1.ppc64le
+    - cuda-misc-headers-10-1-10.1.105-1.ppc64le
+    - cuda-npp-10-1-10.1.105-1.ppc64le
+    - cuda-npp-dev-10-1-10.1.105-1.ppc64le
+    - cuda-nsight-10-1-10.1.105-1.ppc64le
+    - cuda-nsight-compute-10-1-10.1.105-1.ppc64le
+    - cuda-nsight-systems-10-1-10.1.105-1.ppc64le
+    - cuda-nvcc-10-1-10.1.105-1.ppc64le
+    - cuda-nvdisasm-10-1-10.1.105-1.ppc64le
+    - cuda-nvgraph-10-1-10.1.105-1.ppc64le
+    - cuda-nvgraph-dev-10-1-10.1.105-1.ppc64le
+    - cuda-nvjpeg-10-1-10.1.105-1.ppc64le
+    - cuda-nvjpeg-dev-10-1-10.1.105-1.ppc64le
+    - cuda-nvml-dev-10-1-10.1.105-1.ppc64le
+    - cuda-nvprof-10-1-10.1.105-1.ppc64le
+    - cuda-nvprune-10-1-10.1.105-1.ppc64le
+    - cuda-nvrtc-10-1-10.1.105-1.ppc64le
+    - cuda-nvrtc-dev-10-1-10.1.105-1.ppc64le
+    - cuda-nvtx-10-1-10.1.105-1.ppc64le
+    - cuda-nvvp-10-1-10.1.105-1.ppc64le
+    - cuda-runtime-10-1-10.1.105-1.ppc64le
+    - cuda-samples-10-1-10.1.105-1.ppc64le
+    - cuda-sanitizer-api-10-1-10.1.105-1.ppc64le
+    - cuda-toolkit-10-1-10.1.105-1.ppc64le
+    - cuda-tools-10-1-10.1.105-1.ppc64le
+    - cuda-visual-tools-10-1-10.1.105-1.ppc64le
+    - dkms-nvidia-418.39-1.el7.ppc64le
+    - libcublas10-10.1.0.105-1.ppc64le
+    - libcublas-devel-10.1.0.105-1.ppc64le
+    - libglvnd-1.0.1-0.8.git5baa1e5.el7.ppc64le
+    - libglvnd-core-devel-1.0.1-0.8.git5baa1e5.el7.ppc64le
+    - libglvnd-debuginfo-1.0.1-0.6.git5baa1e5.el7.ppc64le
+    - libglvnd-devel-1.0.1-0.8.git5baa1e5.el7.ppc64le
+    - libglvnd-egl-1.0.1-0.8.git5baa1e5.el7.ppc64le
+    - libglvnd-gles-1.0.1-0.8.git5baa1e5.el7.ppc64le
+    - libglvnd-glx-1.0.1-0.8.git5baa1e5.el7.ppc64le
+    - libglvnd-opengl-1.0.1-0.8.git5baa1e5.el7.ppc64le
+    - nvidia-driver-418.39-4.el7.ppc64le
+    - nvidia-driver-cuda-418.39-4.el7.ppc64le
+    - nvidia-driver-cuda-libs-418.39-4.el7.ppc64le
+    - nvidia-driver-devel-418.39-4.el7.ppc64le
+    - nvidia-driver-libs-418.39-4.el7.ppc64le
+    - nvidia-driver-NvFBCOpenGL-418.39-4.el7.ppc64le
+    - nvidia-driver-NVML-418.39-4.el7.ppc64le
+    - nvidia-libXNVCtrl-418.39-1.el7.ppc64le
+    - nvidia-libXNVCtrl-devel-418.39-1.el7.ppc64le
+    - nvidia-modprobe-418.39-1.el7.ppc64le
+    - nvidia-persistenced-418.39-1.el7.ppc64le
+    - nvidia-settings-418.39-1.el7.ppc64le
+    - nvidia-xconfig-418.39-1.el7.ppc64le

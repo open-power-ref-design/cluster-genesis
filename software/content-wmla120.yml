@@ -1,7 +1,7 @@
 # Values with {arch} should be formatted with self.arch at run time.
 # ie content['anaconda'].filename.format(arch=self.arch)
 anaconda:
-    desc: Anaconda installer file.
+    desc: Anaconda install file
     dtype: file-.sh
     filename: Anaconda3-2018.12-Linux-{arch}.sh
     fileglob: Anaconda3-20[1-2][8-9].[1-9][2-9]*-Linux-{arch}.sh
@@ -93,7 +93,7 @@ spectrum_dli_entitlement:
     source:  # Include key but leave empty if content license_source is same
 
 wmla_license:
-    desc: WMLA license installation file
+    desc: WMLA license install file
     dtype: file-.tar.bz2
     filename: ibm-wmla-license-1.2.0-542.47a6e40.tar.bz2
     fileglob: ibm-wmla-license-1.2.[0-9]*-*.tar.bz2
@@ -158,7 +158,8 @@ ibmai:
     dtype: repo
     ftype: select-one
     help: Replica of the IBM AI repository
-    name: IBMAI
+    #name: IBMAI
+    name: ibmai
     type: conda
     repo_id: ibmai  # optional
     repo_name: IBM AI repository  # optional
@@ -170,7 +171,8 @@ anaconda_main:
     dtype: repo
     ftype: select-one
     help: Partial replica of the Anaconda main repository
-    name: Anaconda Main
+    #name: Anaconda Main
+    name: main
     type: conda
     repo_id: anaconda  # optional
     repo_name: Anaconda Main repository  # optional
@@ -182,7 +184,8 @@ anaconda_free:
     dtype: repo
     ftype: select-one
     help: Partial replica of the Anaconda free repository
-    name: Anaconda Free
+    #name: Anaconda Free
+    name: free
     type: conda
     repo_id: anaconda  # optional
     repo_name: Anaconda Free repository  # optional

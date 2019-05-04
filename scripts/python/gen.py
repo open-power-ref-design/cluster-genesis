@@ -799,10 +799,9 @@ class Gen(object):
                         for task in self.args.run_ansible_task:
                             task_file = soft.get_software_path(os.path.basename(task))
                             if not os.path.isfile(task_file):
-                                print('\nUnable to find: ' + task_file )
+                                print('\nUnable to find: ' + task_file)
                             else:
-                                run_it_file = run_it_file + '''\n- description: Running file {0}\n  tasks: {1}\n'''.format(soft.get_software_path(os.path.basename(task_file)),
-                                                                                os.path.basename(task_file))
+                                run_it_file = run_it_file + '''\n- description: Running file {0}\n  tasks: {1}\n'''.format(soft.get_software_path(os.path.basename(task_file)), os.path.basename(task_file))
                         if hasattr(soft, run_this) and run_it_file != "":
                             func = getattr(soft, run_this)
                             fileobj = tempfile.NamedTemporaryFile()

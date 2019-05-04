@@ -23,12 +23,13 @@ import json
 import glob
 import os
 import re
-from shutil import copy2, copytree, rmtree, Error
+from shutil import copy, copytree, rmtree, Error
 import time
 
 import lib.logger as logger
 from lib.utilities import sub_proc_display, sub_proc_exec, get_url, \
-    get_dir, get_yesno, get_selection, get_file_path, get_src_path, bold
+    get_dir, get_yesno, get_selection, get_file_path, get_src_path, bold, \
+    parse_conda_filenames, parse_rpm_filenames, parse_pypi_filenames, get_rpm_info
 from lib.exception import UserException
 
 
@@ -117,7 +118,7 @@ def setup_source_file(name, src_glob, dest_dir, base_dir, url='', alt_url='http:
                 if not os.path.exists(abs_dest_dir):
                     os.mkdir(abs_dest_dir)
                 try:
-                    copy2(src_path, abs_dest_dir)
+                    copy(src_path, abs_dest_dir)
                 except Error as err:
                     log.debug(f'Failed copying {name} source file to {abs_dest_dir}/ '
                               f'directory. \n{err}')
@@ -130,7 +131,7 @@ def setup_source_file(name, src_glob, dest_dir, base_dir, url='', alt_url='http:
                 if src2:
                     try:
                         src2_path = os.path.join(os.path.dirname(src_path), src2)
-                        copy2(src2_path, abs_dest_dir)
+                        copy(src2_path, abs_dest_dir)
                     except Error as err:
                         log.debug(f'Failed copying {name} source file to {abs_dest_dir}/ '
                                   f'directory. \n{err}')
@@ -165,7 +166,7 @@ def powerup_file_from_disk(name, file_glob, base_dir):
         if not os.path.exists(f'{base_dir}{name_src}'):
             os.mkdir(f'{base_dir}{name_src}')
         try:
-            copy2(src_path, f'{base_dir}{name_src}/')
+            copy(src_path, f'{base_dir}{name_src}/')
         except Error as err:
             log.debug(f'Failed copying {name} source file to {base_dir}{name_src}/ '
                       f'directory. \n{err}')
@@ -178,7 +179,7 @@ def powerup_file_from_disk(name, file_glob, base_dir):
 
 
 class PowerupRepo(object):
-    """Base class for creating a yum repository for access by POWER-Up software
+    """Base class for creating a repository for access by POWER-Up software
      clients.
     Args:
         repo_id (str): ID for the repo. For yum repos, this is the yum repo id.
@@ -204,8 +205,6 @@ class PowerupRepo(object):
         else:
             self.yumrepo_dir = (f'{self.repo_base_dir}repos/{self.repo_id}/rhel'
                                 f'{self.rhel_ver}/{self.repo_id}')
-        self.anarepo_dir = f'{self.repo_base_dir}repos/{self.repo_id}'
-        self.pypirepo_dir = f'{self.repo_base_dir}repos/{self.repo_id}'
         self.log = logger.getlogger()
 
     def get_repo_dir(self):
@@ -214,17 +213,103 @@ class PowerupRepo(object):
     def get_repo_base_dir(self):
         return self.repo_base_dir
 
+    def get_ver_state(self, ver_in_repo, ver_in_pkg_lst):
+        """Compares two version of the form n.m.o.p.... Versions are first
+        padded to the same length, then compared on a field bases.
+           Returns -1, 0, 1 if ver_in_repo is older, same , newer than
+           ver_in_pkg_lst.
+        """
+        if ver_in_pkg_lst == '':
+            return 0
+
+        ver_in_repo_s = ver_in_repo.split('.')
+        ver_in_pkg_lst_s = ver_in_pkg_lst.split('.')
+
+        if len(ver_in_repo_s) > len(ver_in_pkg_lst_s):
+            # pad to equal length (equal number of fields)
+            ver_in_pkg_lst_s = ((['0'] * (len(ver_in_repo_s) -
+                                len(ver_in_pkg_lst_s))) + ver_in_pkg_lst_s)
+        elif len(ver_in_pkg_lst_s) > len(ver_in_repo_s):
+            ver_in_repo_s = ((['0'] * (len(ver_in_pkg_lst_s) -
+                             len(ver_in_repo_s))) + ver_in_repo_s)
+        state = 0
+        # pad each field to at least 5 characters
+        for r in range(len(ver_in_repo_s)):
+            if (('     ' + ver_in_repo_s[r])[-5:] >
+                    ('     ' + ver_in_pkg_lst_s[r])[-5:]):
+                state = 1
+                break
+            elif (('     ' + ver_in_pkg_lst_s[r])[-5:] >
+                  ('     ' + ver_in_repo_s[r])[-5:]):
+                state = -1
+                break
+        return state
+
+    def get_pkg_state(self, pkg_in_repo, pkg):
+        """Determines whether a package in a yum repo is
+        older, equal to or newer than the pkg called out in the pkg
+        list file.
+        Args:
+            pkg(dict): Pkg from pkg-list in form returned by
+                parse_rpm_filenames. ie {basename: {'ep': epoch, 'ver':
+                version, 'rel': release_lvl}}
+            pkg_in_repo(dict): Pkg in the yum repo.
+        Returns (int) -1, 0 , 1 = pg in PowerUp repo is older, same,
+            newer version
+        """
+        state = self.get_ver_state(pkg_in_repo['ver'], pkg['ver'])
+        if state == 0:
+            if pkg['ep'] == pkg_in_repo['ep'] or pkg['ep'] == '':
+                if pkg['rel'] == pkg_in_repo['rel'] or pkg['rel'] == '':
+                    state = 0
+                elif pkg['rel'] > pkg_in_repo['rel']:
+                    state = -1
+                else:
+                    state = 1
+            elif pkg['ep'] > pkg_in_repo['ep']:
+                state = -1
+            else:
+                state = 1
+        return state
+
+    def verify_pkgs(self, pkglist):
+        pkgs_vers = parse_rpm_filenames(pkglist, form='dict')
+        pkg_lst_cnt = len(pkgs_vers)
+        try:
+            filelist = os.listdir(self.yumrepo_dir)
+        except FileNotFoundError:
+            filelist = []
+        filelist = [fi for fi in filelist if fi[-4:] == '.rpm']
+        files_vers = get_rpm_info(filelist, self.yumrepo_dir)
+        pkg_cnt = 0
+        nwr_cnt = 0
+        old_cnt = 0
+        for _file in pkgs_vers:
+            if _file in files_vers:
+                pkg_cnt += 1
+                ver_state = self.get_pkg_state(files_vers[_file], pkgs_vers[_file])
+                if ver_state == 1:
+                    nwr_cnt += 1
+                if ver_state == -1:
+                    self.log.debug(f'Older yum pkg: {_file}')
+                    old_cnt += 1
+            else:
+                self.log.debug(f'Missing yum pkg: {_file}')
+        return pkg_lst_cnt, pkg_cnt, nwr_cnt, old_cnt
+
     def get_action(self, exists, exists_prompt_yn=False):
         if exists:
-            print(f'\nDo you want to sync the local {self.repo_name}\nrepository'
+            print(f'\nDo you want to sync the local {self.repo_name}\n'
                   ' at this time?\n')
             print('This can take a few minutes.\n')
-            ch = 'Y' if get_yesno(prompt='Sync Repo? ', yesno='Y/n') else 'n'
+            ch = 'Y' if get_yesno(prompt='Sync Repo? ', yesno='y/n',
+                                  default='y') else 'n'
         else:
-            print(f'\nDo you want to create a local {self.repo_name}\n repository'
-                  ' at this time?\n')
-            print('This can take a significant amount of time')
-            ch = 'Y' if get_yesno(prompt='Create Repo? ', yesno='Y/n') else 'n'
+            print(f'\nDo you want to create a local {self.repo_name}\n'
+                  'at this time?\n')
+            print('This can take several minutes.')
+            ch = 'Y' if get_yesno(prompt='Create Repo? ', yesno='y/n',
+                                  default='y') else 'n'
         return ch
 
     def get_repo_url(self, url, alt_url=None, name='', contains=[], excludes=[],
@@ -246,12 +331,17 @@ class PowerupRepo(object):
             sel_txt = 'Public mirror.Alternate web site'
             sel_chcs = 'P.A'
         else:
-            sel_txt = 'Alternate web site'
-            sel_chcs = 'A'
+            sel_txt = ''
+            sel_chcs = ''
+#            sel_txt = 'Alternate web site'
+#            sel_chcs = 'A'
         _url = None
         while _url is None:
-            ch, item = get_selection(sel_txt, sel_chcs,
-                                     'Choice: ', '.', allow_none=True)
+            if sel_txt:
+                ch, item = get_selection(sel_txt, sel_chcs,
+                                         'Choice: ', '.', allow_none=True)
+            else:
+                ch = 'A'
             if ch == 'P':
                 _url = url
                 break
@@ -274,7 +364,7 @@ class PowerupRepo(object):
         dst_dir = f'{self.repo_base_dir}/{dst}'
         if not os.path.exists(dst_dir):
             os.mkdir(dst_dir)
-        copy2(src_path, dst_dir)
+        copy(src_path, dst_dir)
 
     def copytree_to_srv(self, src_dir, dst):
         """Copy a directory recursively to the POWER-Up server base directory.
@@ -379,7 +469,7 @@ class PowerupRepo(object):
         if rc != 0:
             self.log.error(f'Repo creation error: rc: {rc} stderr: {err}')
         else:
-            self.log.info(f'Repo {action[0]} process for {self.repo_id} finished'
+            self.log.info(f'Repo {action[0]} metadata for {self.repo_id} finished'
                           ' successfully')
 
 
@@ -424,7 +514,7 @@ class PowerupRepoFromRpm(PowerupRepo):
         dst_dir = f'{self.yumrepo_dir}{self.repo_id}'
         if not os.path.exists(dst_dir):
             os.mkdir(dst_dir)
-        copy2(self.rpm_path, dst_dir)
+        copy(self.rpm_path, dst_dir)
         dest_path = os.path.join(dst_dir, os.path.basename(src_path))
         dest_path = os.path.join(dst_dir, os.path.basename(src_path))
         print(dest_path)
@@ -498,6 +588,92 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
         super(PowerupAnaRepoFromRepo, self).__init__(repo_id, repo_name,
                                                      repo_base_dir, arch, rhel_ver)
         self.repo_type = 'ana'
+        self.anarepo_dir = f'{self.repo_base_dir}repos/{self.repo_id}'
+        if self.repo_id == 'anaconda':
+            self.anarepo_dir = os.path.join(self.anarepo_dir, 'pkgs', f'{self.repo_name}')
+
+    def get_repo_dir(self):
+        return self.anarepo_dir
+
+    def _get_conda_pkg_state(self, pkg, pkg_in_repo):
+        """Determines whether a package in a conda repo is
+        older, equal to or newer than the pkgs called out in the pkg
+        list file.
+        Args:
+            pkg(tuple): Pkg from pkg-list with (version, build)
+            pkg_in_repo(list of tuples): Pkgs from repo filelist.
+        Returns (int) -2, -1, 0 , 1 = pkg in PowerUp repo is no match,
+            older, same, newer version
+        """
+        state = -2  # same version and build
+        for ver, bld in pkg_in_repo:
+            if pkg[0] == ver:
+                if pkg[1] == bld:
+                    state = 0
+                    break
+                else:
+                    pkg_py_ver = re.search(r'py\d+', pkg[1])
+                    pkg_in_repo_py_ver = re.search(r'py\d+', bld)
+                    if pkg_py_ver and pkg_in_repo_py_ver:
+                        if pkg_py_ver.group(0) == pkg_in_repo_py_ver.group(0):
+                            if pkg[1] > bld:
+                                state = -1
+                            else:
+                                state = 1
+                            break
+            elif pkg[0] > ver:
+                state = -1
+            elif pkg[0] < ver:
+                state = 1
+
+        return state
+
+    def verify_pkgs(self, pkglist, noarch=False):
+        if pkglist == 'all' or pkglist is None or not pkglist:
+            # With no pkg list to assess, return all 0's(get_pkg_list can be used
+            # for 'all')
+            return 0, 0, 0, 0
+        pkgs_vers = parse_conda_filenames(pkglist)
+
+        pkg_lst_cnt = 0
+        for item in pkgs_vers:
+            pkg_lst_cnt += len(pkgs_vers[item]['ver_bld'])
+        if noarch:
+            repo_dir = os.path.join(self.anarepo_dir, 'noarch')
+        else:
+            repo_dir = os.path.join(self.anarepo_dir, f'linux-{self.arch}')
+
+        filelist = os.listdir(repo_dir)
+        filelist = [fi for fi in filelist if fi[-8:] == '.tar.bz2']
+        files_vers = parse_conda_filenames(filelist)
+        pkg_cnt = 0
+        new_cnt = 0
+        old_cnt = 0
+        missing = []
+        for _file in pkgs_vers:
+            if _file in files_vers:
+                for ver_bld in pkgs_vers[_file]['ver_bld']:
+                    ver_state = self._get_conda_pkg_state(ver_bld, files_vers[_file]
+                                                          ['ver_bld'])
+                    if ver_state == -1:
+                        self.log.debug(f'Older conda pkg: {_file}')
+                        old_cnt += 1
+                        pkg_cnt += 1
+                    elif ver_state == 0:
+                        pkg_cnt += 1
+                    elif ver_state == 1:
+                        new_cnt += 1
+                        pkg_cnt += 1
+                    else:
+                        self.log.debug(f'Missing conda pkg: {_file}')
+                        missing.append(_file)
+            else:
+                self.log.debug(f'Missing conda pkg: {_file}')
+                missing.append(_file)
+        if missing:
+            self.log.info(f'Missing {self.repo_id} files: {missing}')
+
+        return (pkg_lst_cnt, pkg_cnt, new_cnt, old_cnt)
 
     def get_pkg_list(self, path):
         """ Looks for the repodata.json file. If present, it is loaded and the
@@ -556,7 +732,7 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
 
         return status
 
-    def sync_ana(self, url, rejlist=None, acclist=None):
+    def sync_ana(self, url, rejlist=None, acclist=None, noarch=False):
         """Syncs an Anaconda repository using wget or rsync.
         To download the entire repository, leave the accept list (acclist) and rejlist
         empty. Alternately, set the acclist to all or the rejlist to all to accept or
@@ -585,12 +761,10 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
             return row, filename
 
         if 'http:' in url or 'https:' in url:
-            if '/pkgs/' in url:
-                dest_dir = self.anarepo_dir + url[url.find('/pkgs/'):]
-            elif '/conda-forge' in url:
-                dest_dir = self.anarepo_dir + url[url.find('/conda-forge'):]
-            elif self.repo_id == 'ibmai':
-                dest_dir = os.path.join(self.anarepo_dir, url.rsplit('/', 2)[1])
+            if noarch:
+                dest_dir = os.path.join(self.anarepo_dir, 'noarch')
+            else:
+                dest_dir = os.path.join(self.anarepo_dir, f'linux-{self.arch}')
             self.log.info(f'Syncing {self.repo_name}')
             self.log.info('This can take several minutes\n')
             # Get the repodata.json files and html index files
@@ -643,12 +817,11 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
 
         elif 'file:///' in url:
             src_dir = url[7:]
-            if '/pkgs/' in url:
-                dest_dir = self.anarepo_dir + url[url.find('/pkgs/'):]
-            elif self.anarepo_dir in url:
-                dest_dir = url[url.find(self.anarepo_dir):]
+            if noarch:
+                dest_dir = os.path.join(self.anarepo_dir, 'noarch')
             else:
-                dest_dir = self.anarepo_dir + url
+                dest_dir = os.path.join(self.anarepo_dir, f'linux-{self.arch}')
+
             if not os.path.isdir(dest_dir):
                 os.makedirs(dest_dir)
             cmd = f'rsync -uaPv {src_dir} {dest_dir}'
@@ -722,6 +895,104 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
         super(PowerupPypiRepoFromRepo, self).__init__(repo_id, repo_name,
                                                       repo_base_dir, arch, rhel_ver)
         self.repo_type = 'pypi'
+        self.pypirepo_dir = f'{self.repo_base_dir}repos/{self.repo_id}'
+
+    def get_repo_dir(self):
+        return self.pypirepo_dir
+
+    def parse_pypi_pkg_list(self, pkg_list):
+        """ Given a pkg list with items formatted as name[>=<]=version
+        returns a list of tuples of (name, ver)
+        Args:
+            pkg_list(list) pkg==ver or pkg<=ver or pkg>=ver). Versions
+            with alpha characters in the last place are truncated. eg
+            3.2.3post2 is truncated to 3.2.3
+        returns (list) of tuples of form (name, ver)
+        """
+        _pkg__list = []
+        for item in pkg_list:
+            ver = re.search(r'\d+(\.\d+)+', item)
+            if ver:
+                ver = ver.group(0)
+            else:
+                ver = ''
+                self.log.error(f'Unable to resolve version in pkg list item {item}')
+            name = re.search(r'(.+)[>=<]{2}', item)
+            if name:
+                name = name.group(1)
+                _pkg__list.append((name, ver))
+            else:
+                self.log.error(f'Unable to resolve name in pkg list item {item}')
+
+        return _pkg__list
+
+    def get_pypi_pkg_state(self, pkg_in_repo, pkg):
+        """Determines whether a package in a pypi simple repo is
+        older, equal to or newer than the pkgs called out in the pkg
+        list file.
+        Args:
+            pkg(tuple): Pkg from pkg-list with (version, build)
+            pkg_in_repo(list of tuples): Pkgs from repo filelist.
+        Returns (int) -2, -1, 0 , 1 = pkg in PowerUp repo is no match,
+            older, same, newer version
+        """
+        state = -2  # same version and build
+        ver_pkg_lst, _ = pkg
+        for ver_repo, bld in pkg_in_repo:
+            this_state = self.get_ver_state(ver_repo, ver_pkg_lst)
+            if this_state == 0:
+                state = this_state
+                break
+            elif this_state > state:
+                state = this_state
+        return state
+
+    def verify_pkgs(self, pkglist):
+        try:
+            filenames = os.listdir(self.pypirepo_dir)
+        except FileNotFoundError:
+            filenames = []
+        files_vers = parse_pypi_filenames(filenames)
+        pkgs_vers = self.parse_pypi_pkg_list(pkglist)
+
+        pkg_lst_cnt = len(pkgs_vers)
+
+        pkg_cnt = 0
+        new_cnt = 0
+        old_cnt = 0
+        missing = []
+        for pkg in pkgs_vers:
+            _file = pkg[0]
+            # pypi filenames allow both dashes and underscores in filenames
+            # and also have cases with dashes in package names but
+            # underscores in filenames.
+            fyle = ''
+            if _file in files_vers:
+                fyle = _file
+            elif _file.replace('-', '_') in files_vers:
+                fyle = _file.replace('-', '_')
+            if fyle:
+                ver_state = -2
+                ver_state = self.get_pypi_pkg_state(files_vers[fyle]['ver_bld'],
+                                                    (pkg[1], ''))
+
+                if ver_state == -1:
+                    self.log.debug(f'Older pypi file {pkg}')
+                    old_cnt += 1
+                    pkg_cnt += 1
+                elif ver_state == 0:
+                    pkg_cnt += 1
+                elif ver_state == 1:
+                    new_cnt += 1
+                    pkg_cnt += 1
+                else:
+                    missing.append(_file)
+            else:
+                missing.append(_file)
+        if missing:
+            self.log.debug(f'Missing {self.repo_id} files: {missing}')
+
+        return (pkg_lst_cnt, pkg_cnt, new_cnt, old_cnt)
 
     def sync(self, pkg_list, alt_url=None, py_ver=27):
         """

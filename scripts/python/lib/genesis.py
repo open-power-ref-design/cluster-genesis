@@ -318,7 +318,8 @@ def get_os_image_urls_yaml_path():
 
 def get_os_image_urls():
     os_image_urls_yaml_path = get_os_image_urls_yaml_path()
-    os_image_urls = yaml.load(open(os_image_urls_yaml_path))['os_image_urls']
+    os_image_urls = (
+        yaml.full_load(open(os_image_urls_yaml_path))['os_image_urls'])
     return os_image_urls
 
 

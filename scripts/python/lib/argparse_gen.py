@@ -428,7 +428,7 @@ def get_args(parser_args=False):
 
     parser_software.add_argument(
         '--proc-family',
-        default=None,
+        default='p8',
         nargs='+',
         choices=['p8', 'p9', 'x86_64'],
         help='Set the target processor family')

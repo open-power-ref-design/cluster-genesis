@@ -457,11 +457,13 @@ class Color:
     black = '\033[90m'
     red = '\033[91m'
     green = '\033[92m'
-    yellow = '\033[93m'
+    yellow = '\033[33m'
+    brt_yellow = '\033[93m'
     blue = '\033[94m'
     purple = '\033[95m'
     cyan = '\033[96m'
-    white = '\033[97m'
+    white = '\033[37m'
+    brt_white = '\033[97m'
     bold = '\033[1m'
     underline = '\033[4m'
     sol = '\033[1G'
@@ -476,8 +478,9 @@ class Color:
     endc = '\033[0m'
 
 
-def heading1(text='-', width=79):
-    text1 = f'          {Color.bold}{Color.underline}{text}{Color.endc}'
+def heading1(text='-', width=79, indent=10):
+    ind = ''.join([' ' for i in range(indent)])
+    text1 = f'{ind}{Color.bold}{Color.underline}{text}{Color.endc}'
     print(f'\n{text1: <{width + 8}}')
 
 
@@ -1569,42 +1572,225 @@ def breakpoint():
     set_trace()
 
 
-def parse_rpm_filenames(filename):
-    """ returns the basename and the version for an rpm file
-        If filename is a list, a list of basenames and a list of
-        versions is returned.
-        If filename is a string, the basename and version are
-        returned as strings.
+def parse_pypi_filenames(filenames):
+    """Returns the basename and version for a pypi package name filelist.
+    Args:
+        filenames(list): Package filenames of form named-ver-bld.type. Package
+        names can have dashes or underscores. Filenames can also have underscores
+        or dashes which don't alwys match the package names
+    returns:
+
+    """
+    if isinstance(filenames, list):
+        _dict = {}
+        for _file in filenames:
+            if _file.endswith('.whl') or _file.endswith('.gz') or \
+                    _file.endswith('.bz2') or _file.endswith('.zip'):
+                fnd = re.search(r'[-=]((\d+\.)+\d+)[-.]', _file)
+                if fnd:
+                    ver = fnd.group(1)
+                    name = _file[:fnd.span()[0]]  # strip trailing eq_eq chars
+                    bld = _file[fnd.span()[1]:]
+                else:
+                    ver = ''
+                    bld = ''
+                    name = _file
+                    LOG.error(f'Unable to extract version from {_file}')
+                if name in _dict:
+                    _dict[name]['ver_bld'].append((ver, bld))
+                else:
+                    _dict[name] = {}
+                    _dict[name]['ver_bld'] = [(ver, bld)]
+    return _dict
+
+
+def parse_conda_filenames(filenames):
+    """Returns the basename, version and release for a conda package file list.
+    list elements must be of form <name>-<version>-<build>.tar.bz2. Dashes must
+    appear on both sides of the version and may appear in the name , but nowhere
+    else.
+    Args:
+        filenames(list): list of filenames.
+    Returns:
+        dictionary of form: {basename: {'ver': version, 'rel': release lvl}}
+    """
+    def get_parts(filename):
+        """Returns the basename, version and release for a conda package file.
+        of the form basename-ver-release.tar.bz2.
+        """
+        filename = filename.strip()
+        if not '.tar.bz2' == filename[-8:]:
+            LOG.error(f'Improper conda filename: {filename}. Missing ".tar.bz2"')
+            name = ''
+            version = ''
+            build = ''
+        else:
+            filename = filename[:-8]
+            _split = filename.rsplit('-', 1)
+            build = _split[-1]
+            _split = _split[0].rsplit('-', 1)
+            version = _split[-1]
+            name = _split[0]
+
+        return name, version, build
+
+    if isinstance(filenames, list):
+        _dict = {}
+        for _file in filenames:
+            name, version, build = get_parts(_file)
+            if name not in _dict:
+                _dict[name] = {}
+                _dict[name]['ver_bld'] = []
+
+            _dict[name]['ver_bld'].append((version, build))
+
+        return _dict
+
+    elif isinstance(filenames, str):
+        return get_parts(filenames)
+
+
+def get_rpm_info(filelist, _dir):
+    def get_parts(info):
+        name = ep = ver = rel = ''
+        if 'Name' in info:
+            name = info.split('Name', 1)[-1].lstrip(' :')
+            name = name[:name.index('\n')]
+        else:
+            LOG.error(f'Name not found in rpm package info {info}')
+        if 'Epoch' in info:
+            ep = info.split('Epoch', 1)[-1].lstrip(' :')
+            ep = ep[:ep.index('\n')]
+        if 'Version' in info:
+            ver = info.split('Version', 1)[-1].lstrip(' :')
+            ver = ver[:ver.index('\n')]
+        if 'Release' in info:
+            rel = info.split('Release', 1)[-1].lstrip(' :')
+            rel = rel[:rel.index('\n')]
+
+        return name, ep, ver, rel
+
+    if isinstance(filelist, list):
+        _dict = {}
+        for _file in filelist:
+            path = os.path.join(_dir, _file)
+            cmd = f'rpm -qip {path}'
+            resp, err, rc = sub_proc_exec(cmd)
+            if rc != 0:
+                LOG.error(f'Error querying package {path}')
+            name, ep, ver, rel = get_parts(resp)
+            if name in _dict:
+                if ep > _dict[name]['ep']:
+                    _dict[name]['ver'] = ver
+                    _dict[name]['rel'] = rel
+                    _dict[name]['ep'] = ep
+                elif rel > _dict[name]['rel'] and ver == _dict[name]['ver']:
+                    _dict[name]['rel'] = rel
+                elif ver > _dict[name]['ver']:
+                    _dict[name]['ver'] = ver
+                    _dict[name]['rel'] = rel
+            else:
+                _dict[name] = {}
+                _dict[name]['ep'] = ep
+                _dict[name]['ver'] = ver
+                _dict[name]['rel'] = rel
+
+        return _dict
+
+
+def parse_rpm_filenames(filename, form='list'):
+    """ returns the basename, epoch, version and release lvl for an rpm file
+        If form is set to 'list', the components are returned as lists.
+        If filename is a string, the components are returned as strings.
+        if form is set to 'dict', a dictionary is returned. The keys are the
+            basenames, the values are a dictionary with keys: ep, ver, rel.
+            {basename: {'ep': epoch, 'ver': version, 'rel': release}} where
+            epoch, version and release are strings.
     Args:
         filename (str or list)
+        form
     Returns basename and version
     """
-    pattern_basename = r'([-_+\w.]+)(?=-(\d+[:.]\d+){1,3}).+'
-    pattern_version = r'(?<=[-:])(\d+[.])+\d(?=-)'
-    if isinstance(filename, list):
+    def get_parts(_filename):
+        """ Return a basename, epoch, version and release from a filename of
+        form: basename-epoch:version-release.type.rpm
+        The trailing .rpm is optional.  If only a basename is present,
+        the epoch, version and release are returned as empty strings.
+        The parsing algorithm assumes that the filenames reasonably follow
+        the rpm naming convention: dashes are only allowed in the basename,
+        not in the epoch, version or release, and dashes separate the version
+        from the release level and the basename from the epoch:version where
+        epoch is optional. If epoch is present it is separated from the release
+        by a ':'. The algorithm parses right to left.
+        """
+        _filename = _filename.rstrip('.rpm')
+        _file_nt = _filename.rsplit('.', 1)[0]  # drop the type (ie ppc64le)
+        if _filename != _file_nt:
+            tmp = _file_nt.rsplit('-', 1)
+            if len(tmp) > 1:
+                rel = tmp[-1]
+            else:
+                rel = ''
+            _file_nr = tmp[0]
+            tmp = _file_nr.rsplit('-', 1)
+            if len(tmp) > 1:
+                ver = tmp[1].split(':')[-1]
+                if ':' in tmp[-1]:
+                    ep = tmp[1].split(':')[0]
+                else:
+                    ep = ''
+            else:
+                ep = ''
+                ver = ''
+            basename = tmp[0]
+        else:  # basename only
+            basename = _file
+            ver = ''
+            rel = ''
+            ep = ''
+        return basename, ep, ver, rel
+
+    if isinstance(filename, str):
+        return get_parts(filename)
+    elif form == 'list':
         basename = []
         version = []
+        release = []
+        epoch = []
         for _file in filename:
-            res = re.search(pattern_basename, _file)
-            if res:
-                bn = res.group(1)
-            res = re.search(pattern_version, _file)
-            if res:
-                ver = res.group(0)
-            if bn and ver:
-                basename.append(bn)
-                version.append(ver)
-    elif isinstance(filename, str):
-        res = re.search(pattern_basename, filename)
-        if res:
-            basename = res.group(1)
-        res = re.search(pattern_version, filename)
-        if res:
-            version = res.group(0)
+            bn, ep, ver, rel = get_parts(_file)
+            basename.append(bn)
+            version.append(ver)
+            release.append(rel)
+            epoch.append(ep)
+        return basename, epoch, version, release
+    elif form == 'dict':
+        _dict = {}
+        for _file in filename:
+            basename, ep, ver, rel = get_parts(_file)
+            if basename not in _dict:
+                _dict[basename] = {}
+                _dict[basename]['ver'] = ver
+                _dict[basename]['rel'] = rel
+                _dict[basename]['ep'] = ep
+            else:  # if already in dict, replace if newer
+                if ep > _dict[basename]['ep']:
+                    _dict[basename]['ver'] = ver
+                    _dict[basename]['rel'] = rel
+                    _dict[basename]['ep'] = ep
+                elif rel > _dict[basename]['rel'] and ver == _dict[basename]['ver']:
+                    _dict[basename]['rel'] = rel
+                elif ver > _dict[basename]['ver']:
+                    _dict[basename]['ver'] = ver
+                    _dict[basename]['rel'] = rel
+            # print(i, _file, basename, ver, rel)
+        return _dict
     else:
-        basename = version = None
+        epoch = None
+        basename = None
+        version = None
 
-    return basename, version
+    return basename, epoch, version, release
 
 
 def lscpu():
