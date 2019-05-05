@@ -638,7 +638,8 @@ class software(object):
 
             repo = PowerupRepo(repo_id, repo_name, self.root_dir, arch=self.arch)
             repo_dir = repo.get_repo_dir()
-            good = self._add_dependent_packages(repo_dir, pkg_list, also_get_newer=True)
+            good = self._add_dependent_packages(repo_id, repo_dir, pkg_list,
+                                                also_get_newest=True)
             repo.create_meta()
             if not good:
                 self.log.error(f'An error occurred downloading {_repo.desc}')
@@ -688,7 +689,8 @@ class software(object):
                 repo = PowerupRepo(repo_id, repo_name, self.root_dir,
                                    proc_family=self.proc_family)
                 repo_dir = repo.get_repo_dir()
-                good = self._add_dependent_packages(repo_dir, pkg_list, also_get_newer=True)
+                good = self._add_dependent_packages(repo_id, repo_dir, pkg_list,
+                                                    also_get_newest=True)
                 if not good:
                     self.log.error(f'An error occurred downloading {_repo.desc}')
                 repo.create_meta()
@@ -976,8 +978,10 @@ class software(object):
                                    proc_family=self.proc_family)
                 repo_dir = repo.get_repo_dir()
                 os.makedirs(repo_dir, exist_ok=True)
-                good = self._add_dependent_packages(repo_dir, dep_list, also_get_newer=True)
-                self._add_dependent_packages(repo_dir, more, also_get_newer=True)
+                good = self._add_dependent_packages(repo_id, repo_dir, dep_list,
+                                                    also_get_newest=True)
+                self._add_dependent_packages(repo_id, repo_dir, more,
+                                             also_get_newest=True)
                 repo.create_meta()
                 if not good:
                     self.log.error(f'An error occurred downloading {_repo.desc}')
@@ -1023,9 +1027,10 @@ class software(object):
                     repo = PowerupRepo(repo_id, repo_name, self.root_dir,
                                        proc_family=self.proc_family)
                     repo_dir = repo.get_repo_dir()
-                    good = self._add_dependent_packages(repo_dir, dep_list,
-                                                        also_get_newer=True)
-                    self._add_dependent_packages(repo_dir, more, also_get_newer=True)
+                    good = self._add_dependent_packages(repo_id, repo_dir, dep_list,
+                                                        also_get_newest=True)
+                    self._add_dependent_packages(repo_id, repo_dir, more,
+                                                 also_get_newest=True)
                     repo.create_meta()
                     if not good:
                         self.log.error(f'An error occurred downloading {_repo.desc}')
@@ -1263,8 +1268,10 @@ class software(object):
             if ch == 'E':
                 repo = PowerupRepo(repo_id, repo_name, self.root_dir)
                 repo_dir = repo.get_repo_dir()
-                good = self._add_dependent_packages(repo_dir, epel_list, also_get_newer=True)
-                self._add_dependent_packages(repo_dir, more, also_get_newer=True)
+                good = self._add_dependent_packages(repo_id, repo_dir, epel_list,
+                                                    also_get_newest=True)
+                self._add_dependent_packages(repo_id, repo_dir, more,
+                                             also_get_newest=True)
                 repo.create_meta()
                 if not good:
                     self.log.error(f'An error occurred downloading {_repo.desc}')
@@ -1311,8 +1318,8 @@ class software(object):
                     repo = PowerupRepo(repo_id, repo_name, self.root_dir,
                                        proc_family=self.proc_family)
                     repo_dir = repo.get_repo_dir()
-                    good = self._add_dependent_packages(repo_dir, epel_list,
-                                                        also_get_newer=True)
+                    good = self._add_dependent_packages(repo_id, repo_dir, epel_list,
+                                                        also_get_newest=True)
                     repo.create_meta()
                     if not good:
                         self.log.error(f'An error occurred downloading {_repo.desc}')
@@ -1435,8 +1442,7 @@ class software(object):
         # Basic check of the state of yum repos
         print()
         self.sw_vars['prep-timestamp'] = calendar.timegm(time.gmtime())
-        self.log.info('Performing basic check of yum repositories\n'
-                      'and clean up of yum caches')
+        self.log.info('Performing basic check of yum repositories')
         cmd = 'yum repolist --noplugins'
         resp, err, rc = sub_proc_exec(cmd)
         yum_err = re.search(r'\[Errno\s+\d+\]', err)
@@ -1449,21 +1455,6 @@ class software(object):
             self.log.error('There is a problem with yum or one or more of the yum '
                            'repositories. \n')
             sys.exit('Unable to continue. Exiting')
-        # Clean package data. Insures new packages are attempted when
-        # downloading without specifying version
-        cmd = 'yum clean packages --noplugins'
-        resp, err, rc = sub_proc_exec(cmd)
-        if rc != 0:
-            self.log.error('An error occurred while cleaning the yum repositories\n'
-                           'Unable to continue.')
-            sys.exit('Exiting')
-
-        cmd = 'yum clean all --noplugins'
-        resp, err, rc = sub_proc_exec(cmd)
-        if rc != 0:
-            self.log.error('An error occurred while cleaning the yum repositories\n'
-                           'Unable to continue.')
-            sys.exit('Exiting')
 
         self._setup_firewall()
         self._setup_nginx_server()
@@ -1549,7 +1540,8 @@ class software(object):
                            f'(pkg-lists-{self.base_filename}.yml)')
             sys.exit('Exit due to critical error')
 
-    def _add_dependent_packages(self, repo_dir, dep_list, also_get_newer=True):
+    def _add_dependent_packages(self, repo_id, repo_dir, dep_list,
+                                also_get_newest=True):
         """
         Returns True if all packages downloaded succesfully and no yum errors
             occurred.
@@ -1561,15 +1553,15 @@ class software(object):
             resp, err, _rc = sub_proc_exec(cmd)
             if _rc != 0:
                 rc = False
-                self.log.error('An error occurred while downloading dependent '
-                               f'packages to:\n {repo_dir}\n'
-                               f'rc: {_rc} err: {err}')
+                self.log.warning('A problem occurred while downloading dependent '
+                                 f'packages to:\n {repo_dir}\n'
+                                 f'rc: {_rc} err: {err}')
                 self.log.debug(f'Failure, download command: {cmd}')
             resp = resp.splitlines()
             for item in resp:
                 if 'Not Found' in item or 'HTTP Error 404' in item or 'No Match' in item:
                     rc = False
-                    self.log.error(f'Dependent packages download error. {item}')
+                    self.log.warning(f'A problem occurred while downloading. {item}')
                     for _file in dep_list.split():
                         if _file in item:
                             fpath = os.path.join(repo_dir, _file + '.rpm')
@@ -1582,7 +1574,18 @@ class software(object):
             return rc
 
         rc = True
-        if also_get_newer:
+        if also_get_newest:
+            # Clean yum data. Insures new packages are attempted when
+            # downloading without specifying version
+            if os.path.isfile(f'/etc/yum.repos.d/{repo_id}.repo'):
+                cmd = f'yum clean all --noplugins --disablerepo=* --enablerepo={repo_id}'
+            else:
+                cmd = 'yum clean all --noplugins'
+            resp, err, rc = sub_proc_exec(cmd)
+            if rc != 0:
+                self.log.error('An error occurred while cleaning the yum '
+                               f'repositories. Command: {cmd}')
+
             dep_list_list = dep_list.split()
             basename_dep_list, ep, ver, rel = parse_rpm_filenames(dep_list_list)
             basename_dep_list = ' '.join(basename_dep_list)
