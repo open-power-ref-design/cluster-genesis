@@ -12,8 +12,8 @@
 
 - name: Download installer binary
   get_url:
-    owner: "{{ ansible_user_id }}"
-    group: "{{ ansible_user_id }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
     mode: 0744
     url: "http://{{ host_ip.stdout }}/{{ file }}"
     dest: "{{ ansible_env.HOME }}"

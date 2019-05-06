@@ -33,7 +33,7 @@ import socket
 from subprocess import CalledProcessError
 import sys
 from getpass import getpass
-from socket import gethostname, getfqdn
+from socket import getfqdn
 
 from inventory import generate_dynamic_inventory
 from lib.exception import UserException
@@ -41,7 +41,7 @@ import lib.logger as logger
 from lib.genesis import get_python_path, CFG_FILE, \
     get_dynamic_inventory_path, get_playbooks_path, get_ansible_path
 from lib.utilities import bash_cmd, sub_proc_exec, heading1, get_selection, \
-    bold, get_yesno, remove_line, append_line, rlinput
+    bold, get_yesno, remove_line, append_line, rlinput, line_in_file
 
 
 def _get_dynamic_inventory():
@@ -390,7 +390,8 @@ def _validate_ansible_ping(software_hosts_file_path, hosts_list):
                 user_name, user_home_dir = get_user_and_home()
                 if user_home_dir != str(Path.home()):
                     known_hosts_files.append(os.path.join(user_home_dir,
-                                                          ".ssh", "known_hosts"))
+                                                          ".ssh",
+                                                          "known_hosts"))
                 for host in hosts_list:
                     print(f'Collecting new host key(s) for {host}')
                     cmd = (f'ssh-keyscan -H {host}')
@@ -419,8 +420,8 @@ def _validate_ansible_ping(software_hosts_file_path, hosts_list):
                                               hosts_list)
         elif 'Permission denied' in msg:
             msg = ('The PowerUp software installer attempted to log into the '
-                   'the client node(s) but was unsuccessful. SSH key access may '
-                   'need to be configured.\n')
+                   'the client node(s) but was unsuccessful. SSH key access '
+                   'may need to be configured.\n')
             print(msg)
             if get_yesno('OK to configure Client Nodes for SSH Key Access? '):
                 configure_ssh_keys(software_hosts_file_path)
@@ -461,25 +462,32 @@ def _validate_master_node_count(software_hosts_file_path, min_count,
         return True
 
 
-def _validate_installer_is_not_client(host_list):
-    """Validate the installer node is not listed as a client
+def _set_pup_reboot(software_hosts_file_path, hosts_list):
+    """Set 'pup_reboot' variable for all hosts. If the installer is
+    included as a host (for self-install) it should set 'pup_reboot=False'.
+    A global 'pup_reboot=True' is set for other hosts. Users could manually
+    set 'pup_reboot=False' on any host to prevent automatic reboots.
 
     Args:
-        host_list (list): List of hostnames
+        software_hosts_file_path (str): Path to software inventory file
+        host_list (list): List of hostnames or IP addresses
 
-    Returns:
-        bool: True validation passes
-
-    Raises:
-        UserException: If installer is listed as client
     """
-    hostname = gethostname()
-    fqdn = getfqdn()
+    log = logger.getlogger()
 
-    if hostname in host_list or fqdn in host_list:
-        raise UserException('Installer can not be a target for install')
-    else:
-        return True
+    log.debug("Adding global software_hosts var 'pup_reboot=True'")
+    add_software_hosts_global_var(software_hosts_file_path,
+                                  "pup_reboot=True",
+                                  clear_ssh_key=False)
+
+    installer_fqdn = getfqdn()
+
+    if installer_fqdn in hosts_list:
+        log.debug(f"Self-install detected - '{installer_fqdn}' in software "
+                  "hosts. Setting host var 'pup_reboot=False'")
+        line_in_file(software_hosts_file_path,
+                     f'^{installer_fqdn}.*',
+                     installer_fqdn + " pup_reboot=False")
 
 
 def _validate_client_hostnames(software_hosts_file_path, hosts_list):
@@ -600,7 +608,8 @@ def configure_ssh_keys(software_hosts_file_path):
                                   f'ansible_ssh_private_key_file={ssh_key}')
 
 
-def add_software_hosts_global_var(software_hosts_file_path, entry):
+def add_software_hosts_global_var(software_hosts_file_path, entry,
+                                  clear_ssh_key=True):
     """Copy an SSH public key into software hosts authorized_keys files
 
     Add entry to software_hosts '[all:vars]' section. Any existing
@@ -609,9 +618,14 @@ def add_software_hosts_global_var(software_hosts_file_path, entry):
 
     Args:
         software_hosts_file_path (str): Path to software inventory file
-        entry (str) : Entry to write in software_hosts '[all:vars]'
+        entry (str): Entry to write in software_hosts '[all:vars]'
+        clear_ssh_key (bool, optional): Clear all existing
+                                        'ansible_ssh_private_key_file'
+                                        group vars
     """
-    remove_line(software_hosts_file_path, '^ansible_ssh_private_key_file=.*')
+    if clear_ssh_key:
+        remove_line(software_hosts_file_path,
+                    '^ansible_ssh_private_key_file=.*')
 
     append_line(software_hosts_file_path, '[all:vars]')
 
@@ -824,6 +838,25 @@ def get_ansible_hostvars(software_hosts_file_path):
     return hostvars
 
 
+def get_host_list_no_reboot(software_hosts_file_path):
+    """Get list of hosts with 'ansible_reboot=False'
+
+    Args:
+        software_hosts_file_path (str): Path to software inventory file
+
+    Returns:
+        list: List of hosts with 'ansible_reboot=False'
+    """
+    host_list = []
+    hostvars = get_ansible_hostvars(software_hosts_file_path)
+
+    for host, vars_dict in hostvars.items():
+        if 'pup_reboot' in vars_dict and not vars_dict['pup_reboot']:
+            host_list.append(host)
+
+    return host_list
+
+
 def get_user_and_home():
     """Get user name and home directory path
 
@@ -863,9 +896,6 @@ def validate_software_inventory(software_hosts_file_path):
         # Validate file syntax and host count
         hosts_list = _validate_inventory_count(software_hosts_file_path, 1)
 
-        # Validate installer is not in inventory
-        _validate_installer_is_not_client(hosts_list)
-
         # Validate hostname resolution and network connectivity
         _validate_host_list_network(hosts_list)
 
@@ -880,6 +910,9 @@ def validate_software_inventory(software_hosts_file_path):
 
         # Validate hostnames listed in inventory match client hostnames
         _validate_client_hostnames(software_hosts_file_path, hosts_list)
+
+        # Set pup reboot controls
+        _set_pup_reboot(software_hosts_file_path, hosts_list)
 
     except UserException as exc:
         print("Inventory validation error: {}".format(exc))

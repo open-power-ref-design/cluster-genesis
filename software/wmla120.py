@@ -39,7 +39,8 @@ import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
     PowerupAnaRepoFromRepo, PowerupRepoFromRpm, setup_source_file, \
     PowerupPypiRepoFromRepo, get_name_dir
-from software_hosts import get_ansible_inventory, validate_software_inventory
+from software_hosts import get_ansible_inventory, \
+    validate_software_inventory, get_host_list_no_reboot
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, Color, \
     get_selection, get_yesno, rlinput, bold, ansible_pprint, replace_regex, \
     lscpu, parse_rpm_filenames
@@ -2058,6 +2059,29 @@ class software(object):
         for task in install_tasks:
             if 'engr_mode' in task['tasks'] and not self.eng_mode:
                 continue
+            if task['description'] == "PowerAI tuning recommendations":
+                no_reboot_hosts = (
+                    get_host_list_no_reboot(self.sw_vars['ansible_inventory']))
+                if len(no_reboot_hosts) > 0:
+                    print(bold("\nInstallation cannot complete until all "
+                               "clients have been rebooted."))
+                    print(bold("\nThe following client nodes have not been "
+                               "automatically rebooted: "))
+                    for host in no_reboot_hosts:
+                        print(f"    {host}")
+                    print(bold("\nPlease manually reboot these hosts and then "
+                               "run the following command from the "
+                               "installer:"))
+                    tasks_path = f'{self.my_name}_ansible/' + task['tasks']
+                    cmd = (f'{get_ansible_playbook_path()} -i '
+                           f'{self.sw_vars["ansible_inventory"]} '
+                           f'{GEN_SOFTWARE_PATH}'
+                           f'{self.my_name}_ansible/run.yml '
+                           f'--extra-vars '
+                           f'"task_file={GEN_SOFTWARE_PATH}{tasks_path}" '
+                           f'--ask-become-pass\n')
+                    print(f"    {cmd}")
+                    break
             heading1(f"Client Node Action: {task['description']}")
             if task['description'] == "Install Anaconda installer":
                 _interactive_anaconda_license_accept(
