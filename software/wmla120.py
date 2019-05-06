@@ -203,7 +203,7 @@ class software(object):
                         'Running-paie.html\n\n')
         print(bold('\nWMLA Enterprise software installer module'))
         text = ('\nThis module installs the Watson Machine Learning Accelerated\n'
-                'Enterprise software to a cluster of OpenPOWER or x86 nodes.\n'
+                'Enterprise software to a cluster of OpenPOWER nodes.\n'
                 'Before beginning installation, be sure that the pre-requisite\n'
                 'setup steps have been performed. For guidance, see:\n\n'
                 '' + kc_link +
