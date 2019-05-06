@@ -70,7 +70,7 @@ class software(object):
             appended to the root_dir_nginx directory.
     """
     def __init__(self, eval_ver=False, non_int=False, arch='ppc64le',
-                 proc_family=None, engr_mode=False, base_dir=None):
+                 proc_family=None, engr_mode=False, base_dir=None, v_status=''):
         self.log = logger.getlogger()
         self.log_lvl = logger.get_log_level_print()
         self.my_name = sys.modules[__name__].__name__
@@ -80,6 +80,7 @@ class software(object):
         self.eval_ver = eval_ver
         self.non_int = non_int
         self.state = {}  # State of the install (currently jus prep state)
+        self.v_status = v_status
 
         if isinstance(proc_family, list):
             self.proc_family = proc_family[0]
@@ -1618,13 +1619,13 @@ class software(object):
 
     def init_clients(self):
         log = logger.getlogger()
-        
+
         print(bold(f'\n\n\n  Initializing clients for install from  Repository : '
               f'{self.repo_shortname}'))
         print(bold(f'  Architecture: {self.arch}'))
         print(bold(f'  Processor family: {self.proc_family}'))
         time.sleep(1.5)
-        
+
         self.sw_vars['init_clients'] = self.repo_shortname
 
         self._update_software_vars()
@@ -1659,11 +1660,19 @@ class software(object):
             specific_arch = "_" + self.arch if self.arch == 'x86_64' else ""
             validate_tasks = yaml.full_load(open(GEN_SOFTWARE_PATH + f'{self.my_name}'
                                             f'_validate_procedure{specific_arch}.yml'))
+            validation_status = {}
             for task in validate_tasks:
                 heading1(f"Validation Action: {task['description']}")
+                key = f"{task['description']}"
                 extra_args = ''
                 self._run_ansible_tasks(task['tasks'], extra_args)
-            print('Verfication Completed')
+                if key not in validation_status:
+                    validation_status[key] = f'{self.v_status}'
+            print("\n   *** Validation Status ***\n")
+            for key,val in validation_status.items():
+                print(f'{key} = {val}')
+
+            print('\nVerfication Completed\n')
         # Validate end
         run = True
         while run:
@@ -2111,11 +2120,13 @@ class software(object):
                 if choice == "1":
                     pass
                 elif choice == "2":
+                    self.v_status = "Not Completed"
                     run = False
                 elif choice == "3":
                     log.debug('User chooses to exit.')
                     sys.exit('Exiting')
             else:
+                self.v_status = "Completed"
                 log.info("Ansible tasks ran successfully")
                 run = False
         return rc
