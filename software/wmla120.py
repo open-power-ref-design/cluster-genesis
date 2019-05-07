@@ -70,7 +70,7 @@ class software(object):
             appended to the root_dir_nginx directory.
     """
     def __init__(self, eval_ver=False, non_int=False, arch='ppc64le',
-                 proc_family=None, engr_mode=False, base_dir=None, v_status=''):
+                 proc_family=None, engr_mode=False, base_dir=None):
         self.log = logger.getlogger()
         self.log_lvl = logger.get_log_level_print()
         self.my_name = sys.modules[__name__].__name__
@@ -80,7 +80,7 @@ class software(object):
         self.eval_ver = eval_ver
         self.non_int = non_int
         self.state = {}  # State of the install (currently jus prep state)
-        self.v_status = v_status
+        self.v_status = ""
 
         if isinstance(proc_family, list):
             self.proc_family = proc_family[0]
