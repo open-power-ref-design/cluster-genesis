@@ -15,7 +15,7 @@ pipeline {
                 sh "bash $JENKINS_DIR/setup_workspace.sh" 
             } 
         } 
-        stage('Run Tox') { 
+        stage('Run Tests') { 
             steps { 
                 echo 'Testing ...' 
                 sh "$JENKINS_DIR/run_test.sh" 
