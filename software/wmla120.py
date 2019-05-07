@@ -1672,7 +1672,7 @@ class software(object):
 
         ana_ver = re.search(r'(anaconda\d)-\d', self.sw_vars['content_files']
                             ['anaconda'], re.IGNORECASE).group(1).lower()
-       _set_spectrum_conductor_install_env(self.sw_vars['ansible_inventory'],
+        _set_spectrum_conductor_install_env(self.sw_vars['ansible_inventory'],
                                             'spark')
         _set_spectrum_conductor_install_env(self.sw_vars['ansible_inventory'],
                                             'dli', ana_ver)
