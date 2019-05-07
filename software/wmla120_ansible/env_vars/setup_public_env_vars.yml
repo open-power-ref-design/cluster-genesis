@@ -22,7 +22,7 @@ route_points:
   - device: "{{ interface }}"
     prefix: "{{ gateway_ip_address }}/24"
     next_hop: "{{ srv_ip_sub }}"
-    state: absent 
+    state: absent
     hostname: "server-1"
   - device: "{{ interface }}"
     prefix: "9.188.189.2/24"
@@ -32,7 +32,7 @@ route_points:
   - device: "{{ interface }}"
     prefix: "default"
     next_hop: "{{ srv_ip_sub }}"
-    state: present 
+    state: present
     hostname: "server-1"
 
 file_points:
@@ -60,7 +60,7 @@ mount_points:
     src: "{{ host_nfs_ip_address }}:{{ external_dir }}"
     fstype: nfs
     opts: vers=3
-    state: mounted 
+    state: mounted
 # mount_server_points:
   # - path: "{{ install_mount_dir }}"
     # access:
@@ -78,17 +78,17 @@ mount_points:
     # group: "nfsnobody"
     # mode: "u=rwx,g=rx,o=rx"
 yum_packages:
-  - name: nfs-utils 
-    state: present 
+  - name: nfs-utils
+    state: present
   - name: libnfsidmap
     state: present
-  - name: parted 
+  - name: parted
     state: present
 yum_repos:
   - name: rhsm
-    state: present 
+    state: present
   - name: epel
-    state: present 
+    state: present
     description: EPEL YUM repo
     baseurl: "https://download.fedoraproject.org/pub/epel/$releasever/$basearch/"
 run_service:
@@ -103,17 +103,17 @@ run_service:
     # flags: "[ lvm ]"
 run_filesystem:
   - dev:  /dev/sdb1
-    fstype: ext4 
+    fstype: ext4
 firewall_service:
-  - service: nfs 
-    permanent: yes  
-    state: enabled  
-  - service:  mountd 
-    permanent: yes  
-    state: enabled  
-  - service: rpc-bind 
-    permanent: yes  
-    state: enabled  
-  - port: "2049/tcp" 
-    permanent: yes  
-    state: enabled  
+  - service: nfs
+    permanent: yes
+    state: enabled
+  - service:  mountd
+    permanent: yes
+    state: enabled
+  - service: rpc-bind
+    permanent: yes
+    state: enabled
+  - port: "2049/tcp"
+    permanent: yes
+    state: enabled

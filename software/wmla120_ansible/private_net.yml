@@ -1,5 +1,5 @@
 ---
-# This task list attempts to setup a private network interface 
+# This task list attempts to setup a private network interface
 ## in all its clients it does this by doing these steps
 # - name: Gathering data constants
   # set_fact:
@@ -29,7 +29,7 @@
         # prefix: "24"
         # next_hop: "{{ srv_ip_sub }}"
         # state: absent
-   # Create Interface 
+   # Create Interface
     # network_points:
       # - device: "{{ interface }}"
         # prefix:  24
@@ -37,7 +37,7 @@
         # bootproto: "none"
         # defaultroute: "NO"
         # dnsnameservers: "9.8.39.8,9.89.39.40"
-        # state: present 
+        # state: present
     # Validate if yum-config-manager exists
     # Disable Unavailable Repos
    # create files or directories

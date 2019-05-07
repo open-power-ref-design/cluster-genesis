@@ -38,7 +38,7 @@
   delegate_to: "{{ item }}"
   loop: "{{ groups['compute'] | flatten }}"
   register: compute_ram_size
-  
+
 - name: DEBUG - compute_ram_size
   debug:
     msg: "{{ compute_ram_size['results'][0]['stdout'] }}"
@@ -79,7 +79,7 @@
   delegate_to: "{{ item }}"
   loop: "{{ groups['compute'] | flatten }}"
   register: client_arch
-  
+
 - name: DEBUG - Check master nodes Arch
   debug:
     msg: "{{ mgmt_arch['results'][0]['stdout'] }}"
