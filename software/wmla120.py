@@ -2041,9 +2041,6 @@ class software(object):
 
         self._unlock_vault()
 
-        ana_ver = re.search(r'(anaconda\d)-\d', self.sw_vars['content_files']
-                            ['anaconda'], re.IGNORECASE).group(1).lower()
-
         specific_arch = "_" + self.arch if self.arch == 'x86_64' else ""
 
         self.run_ansible_task(GEN_SOFTWARE_PATH + f'{self.my_name}_install_procedure{specific_arch}.yml')
