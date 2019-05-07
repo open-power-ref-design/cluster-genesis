@@ -2,14 +2,14 @@
 #If a firewall is enabled, the following default ports must be granted access on all management hosts for IBM Spectrum Conductor Deep Learning Impact: 9243, 9280, 5000, 5001, 27017, and 6379. If you change these ports after installation, make sure to update firewall rules accordingly.
 #
 
-- name: Setting Variables
-  set_fact:
-    port_9243: '9243/tcp'
-    port_9080: '9080/tcp'
-    port_5000: '5000/tcp'
-    port_5001: '5001/tcp'
-    port_27017: '27017/tcp'
-    port_6379: '6379/tcp'
+- name: Include vars of envs_spectrum_conductor_dli_template.yml into the 'ports' variable
+  include_vars:
+    file: envs_spectrum_conductor_dli_template.yml
+    name: ports
+
+- name: DEBUG - List imported Variables
+  debug:
+    msg: "{{ ports }}"
 
 - name: List all host firewall data
   shell: "firewall-cmd --list-all"
@@ -30,22 +30,22 @@
   when: host_firewall_status.stdout.find('http') != -1
 
 - name: Else print fail status
-  command: echo "Firewall Does Not Exist"
+  command: echo "WARNING - Firewall Not Enabled"
   when: host_firewall_status.stdout.find('http') == -1
 
-- name: Open Ports for Spectrum Conductor
+- name: Open Ports for Spectrum Conductor - If firewall is enabled
   firewalld:
     port: "{{ item }}"
     permanent: true
     state: enabled
     immediate: true
   with_items:
-     - "{{ port_9243 }}"
-     - "{{ port_9080 }}"
-     - "{{ port_5000 }}"
-     - "{{ port_5001 }}"
-     - "{{ port_27017 }}"
-     - "{{ port_6379 }}"
+     - "{{ ports.DLI_DLPD_REST_PORT }}/tcp"
+     - "{{ ports.DLI_DLPD_REST_PORT_SSL_NOT_ENABLED }}/tcp"
+     - "{{ ports.DLI_INSIGHTS_MONITOR_PORT }}/tcp"
+     - "{{ ports.DLI_INSIGHTS_OPTIMIZER_PORT }}/tcp"
+     - "{{ ports.DLI_MONGODB_PORT }}/tcp"
+     - "{{ ports.DLI_REDIS_PORT }}/tcp"
   when: host_firewall_status.stdout.find('http') != -1
   become: yes
   register: port_status
@@ -53,10 +53,3 @@
 - name: Debug - Open Ports for Spectrum Conductor
   debug:
     msg: "{{ port_status }}"
-
-- name: Verify Open Ports
-  assert:
-    that:
-      - "port_status.msg == 'All items completed'"
-    fail_msg: "One or more ports failed to configure. Please check firewall settings"
-
