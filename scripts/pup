@@ -126,4 +126,8 @@ if [[ "$1" == "post-deploy" ]] && ([[ "$2" == "-a" ]] || [[ "$2" == "--all" ]] |
     exit
 fi
 
-gen.py $@
+if [ $# -gt 0 ];then
+  gen.py $@
+else
+  gen.py --help
+fi
