@@ -1475,6 +1475,8 @@ class software(object):
 
     def prep(self, eval_ver=False, non_int=False):
 
+        self._update_software_vars()
+
         self.prep_init()
 
         self.create_ibmai_repo()
