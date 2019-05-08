@@ -11,11 +11,11 @@
   debug:
     msg: "{{ ports }}"
     
-- name: Check status of firewall	
-  shell: "firewall-cmd --state"	
-  register: host_firewall_status	  	
-  become: yes
+- name: Check status of firewall
+  shell: "firewall-cmd --state"
+  register: host_firewall_status
   ignore_errors: yes
+  become: yes
 
 - name: List all host firewall data
   shell: "firewall-cmd --list-services"
@@ -45,10 +45,11 @@
   command: "firewall-cmd --list-ports"
   when: host_firewall_status.stderr != 'not running'
   register: current_port_status
+  become: yes
   
 - name: DEBUG - Check enabled ports status 
   debug:
-    msg: "{{ current_port_status }}"
+    msg: "{{ current_port_status.stdout }}"
 
 #- name: Open Ports for Spectrum Conductor - If firewall is enabled
 #  firewalld:
