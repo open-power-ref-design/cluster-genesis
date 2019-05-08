@@ -430,7 +430,7 @@ class software(object):
             pkg_list = self.pkgs[which] + self.pkgs[f'{which}_3']
             rc = True
             repo = PowerupPypiRepoFromRepo(repo_id, repo_name, self.root_dir, arch=self.arch)
-            pkg_cnt, pkg_lst_cnt, new_cnt, old_cnt = repo.verify_pkgs(pkg_list)
+            pkg_lst_cnt, pkg_cnt, new_cnt, old_cnt = repo.verify_pkgs(pkg_list)
             if pkg_cnt < pkg_lst_cnt:
                 rc = False
 
