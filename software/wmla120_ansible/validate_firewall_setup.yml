@@ -12,13 +12,13 @@
     msg: "{{ ports }}"
     
 - name: Check status of firewall
-  shell: "firewall-cmd --state"
+  command: "firewall-cmd --state"
   register: host_firewall_status
   ignore_errors: yes
   become: yes
 
 - name: List all host firewall data
-  shell: "firewall-cmd --list-services"
+  command: "firewall-cmd --list-services"
   when: host_firewall_status.stderr != 'not running'
   register: host_firewall_data
   become: yes
