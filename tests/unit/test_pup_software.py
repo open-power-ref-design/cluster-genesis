@@ -55,14 +55,14 @@ class TestScript(unittest.TestCase):
         except ImportError as exc:
             print(exc)
             sys.exit(1)
-        except EOFError as e:
+        except EOFError:
             pass
         for arch in self.arches:
             try:
-              soft = software_module.software(False, False, arch)
-              assert soft.arch == arch
-            except EOFError as e:
-              pass
+                soft = software_module.software(False, False, arch)
+                assert soft.arch == arch
+            except EOFError:
+                pass
 
     def test_cmd_line_prep_software(self):
         if YOURPASSWORD != "someveryimportantpassword":

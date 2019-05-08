@@ -1685,7 +1685,7 @@ class software(object):
                 if key not in validation_status:
                     validation_status[key] = f'{self.v_status}'
             print("\n   *** Validation Status ***\n")
-            for key,val in validation_status.items():
+            for key, val in validation_status.items():
                 print(f'{key} = {val}')
 
             print('\nVerfication Completed\n')

@@ -22,7 +22,7 @@ from tests.unit import (TOP_DIR, SCRIPT_DIR)
 import lib.logger as logger
 import tarfile as t
 import os
-from archive.bundle import bundle_this, bundle_extract, archive_this, unarchive_this
+from archive.bundle import bundle_extract, archive_this, unarchive_this
 import tempfile
 
 COMPRESS_FORMAT = "gz"
@@ -75,24 +75,23 @@ class TestScript(unittest.TestCase):
                 os.unlink(fileobj.name)
 
         fileobj = tempfile.NamedTemporaryFile(delete=False)
-        with tempfile.TemporaryDirectory() as tmpdirnameone:
-            try:
-                fileobj = archive_this(SCRIPT_DIR, fileObj=fileobj,
-                                     exclude=exclude, compress=True)
-                LOG.info("Archived " + fileobj.name)
-                with tempfile.TemporaryDirectory() as tmpdirname:
-                    try:
-                        LOG.info("Unarchiving " + fileobj.name)
-                        bundle_extract(str(fileobj.name), tmpdirname)
-                    except Exception as e:
-                        LOG.error("Uncaught exception as e {0}".format(e))
-                        raise e
-            except Exception as e:
-                LOG.error("Uncaught exception: {0}".format(e))
-                raise e
-            finally:
-                if fileobj is not None:
-                    fileobj.close()
-                    os.unlink(fileobj.name)
+        try:
+            fileobj = archive_this(SCRIPT_DIR, fileObj=fileobj,
+                                   exclude=exclude, compress=True)
+            LOG.info("Archived " + fileobj.name)
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                try:
+                    LOG.info("Unarchiving " + fileobj.name)
+                    bundle_extract(str(fileobj.name), tmpdirname)
+                except Exception as e:
+                    LOG.error("Uncaught exception as e {0}".format(e))
+                    raise e
+        except Exception as e:
+            LOG.error("Uncaught exception: {0}".format(e))
+            raise e
+        finally:
+            if fileobj is not None:
+                fileobj.close()
+                os.unlink(fileobj.name)
 
         #  Bad path
