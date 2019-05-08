@@ -55,11 +55,13 @@ class TestScript(unittest.TestCase):
             LOG.info(fileobj.name)
             fileobj = archive_this(SCRIPT_DIR, fileObj=fileobj,
                                    exclude=exclude, compress=True)
+            LOG.info("Archived " + fileobj.name)
             with tempfile.TemporaryDirectory() as tmpdirname:
                 #  make sure exclude files does not exist
                 with t.open(fileobj.name, "r:gz") as tar:
                     assert tar.name not in exclude
                 try:
+                    LOG.info("Unarchiving " + fileobj.name)
                     unarchive_this(fileobj.name, tmpdirname)
                 except Exception as e:
                     LOG.error("Uncaught exception as e {0}".format(e))
@@ -72,13 +74,15 @@ class TestScript(unittest.TestCase):
                 fileobj.close()
                 os.unlink(fileobj.name)
 
+        fileobj = tempfile.NamedTemporaryFile(delete=False)
         with tempfile.TemporaryDirectory() as tmpdirnameone:
             try:
-                fileobj = bundle_this(SCRIPT_DIR, tmpdirnameone)
-                LOG.info(fileobj.name)
-                print(fileobj.name)
+                fileobj = archive_this(SCRIPT_DIR, fileObj=fileobj,
+                                     exclude=exclude, compress=True)
+                LOG.info("Archived " + fileobj.name)
                 with tempfile.TemporaryDirectory() as tmpdirname:
                     try:
+                        LOG.info("Unarchiving " + fileobj.name)
                         bundle_extract(str(fileobj.name), tmpdirname)
                     except Exception as e:
                         LOG.error("Uncaught exception as e {0}".format(e))
