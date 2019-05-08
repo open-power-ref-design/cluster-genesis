@@ -431,7 +431,7 @@ class software(object):
             pkg_list = self.pkgs[which] + self.pkgs[f'{which}_3']
             rc = True
             repo = PowerupPypiRepoFromRepo(repo_id, repo_name, self.root_dir, arch=self.arch)
-            pkg_cnt, pkg_lst_cnt, new_cnt, old_cnt = repo.verify_pkgs(pkg_list)
+            pkg_lst_cnt, pkg_cnt, new_cnt, old_cnt = repo.verify_pkgs(pkg_list)
             if pkg_cnt < pkg_lst_cnt:
                 rc = False
 
@@ -1475,6 +1475,8 @@ class software(object):
         self._setup_nginx_server()
 
     def prep(self, eval_ver=False, non_int=False):
+
+        self._update_software_vars()
 
         self.prep_init()
 
