@@ -40,6 +40,9 @@ import lib.utilities as u
 from nginx_setup import nginx_setup
 from ip_route_get_to import ip_route_get_to
 from lib.bmc import Bmc
+from set_bootdev_clients import set_bootdev_clients
+from set_power_clients import set_power_clients
+from lib.genesis import get_power_wait
 
 GEN_PATH = get_package_path()
 GEN_SAMPLE_CONFIGS_PATH = get_sample_configs_path()
@@ -52,6 +55,8 @@ NODE_STATUS = os.path.join(GEN_PATH, 'osinstall_node_status.yml')
 HTTP_ROOT_DIR = get_nginx_root_dir()
 OSINSTALL_HTTP_DIR = 'osinstall'
 CLIENT_STATUS_DIR = '/var/pup_install_status/'
+
+POWER_WAIT = get_power_wait()
 
 
 def osinstall(profile_path):
@@ -204,24 +209,22 @@ def pxelinux_configuration(profile_object, kernel, initrd, kickstart):
         kopts=kopts)
 
 
-def initiate_pxeboot(profile_object, node_dict_file):
-    log = logger.getlogger()
+def get_selected_clients(profile_object, node_dict_file):
     p_node = profile_object.get_node_profile_tuple()
     nodes = yaml.full_load(open(node_dict_file))
+    clients = {}
     for node in nodes['selected'].values():
-        ip = node['bmc_ip']
-        userid = p_node.bmc_userid
-        passwd = p_node.bmc_password
-        bmc = Bmc(ip, userid, passwd)
-        if bmc.is_connected():
-            log.debug(f"Successfully connected to BMC: host={ip} "
-                      f"userid={userid} password={passwd}")
-            bmc.chassis_power('off')
-            bmc.host_boot_source(source='network')
-            bmc.chassis_power('on')
-        else:
-            log.error(f"Unable to connect to BMC: host={ip} "
-                      f"userid={userid} password={passwd}")
+        clients[node['bmc_ip']] = (p_node.bmc_userid,
+                                   p_node.bmc_password,
+                                   'ipmi')  # TODO: Query type
+    return clients
+
+
+def initiate_pxeboot(profile_object, node_dict_file):
+    clients = get_selected_clients(profile_object, node_dict_file)
+    set_power_clients('off', clients=clients, wait=POWER_WAIT)
+    set_bootdev_clients('network', persist=False, clients=clients)
+    set_power_clients('on', clients=clients, wait=POWER_WAIT)
 
 
 def update_install_status(node_dict_file, start_time, write_results=True):
@@ -421,22 +424,8 @@ def get_install_status(node_dict_file, colorized=False):
 
 
 def reset_bootdev(profile_object, node_dict_file, bmc_ip='all'):
-    log = logger.getlogger()
-    p_node = profile_object.get_node_profile_tuple()
-    nodes = yaml.full_load(open(node_dict_file))
-    for node in nodes['selected'].values():
-        ip = node['bmc_ip']
-        userid = p_node.bmc_userid
-        passwd = p_node.bmc_password
-        if bmc_ip == 'all' or bmc_ip == ip:
-            bmc = Bmc(ip, userid, passwd)
-            if bmc.is_connected():
-                log.debug(f"Successfully connected to BMC: host={ip} "
-                          f"userid={userid} password={passwd}")
-                bmc.host_boot_source(source='disk')
-            else:
-                log.error(f"Unable to connect to BMC: host={ip} "
-                          f"userid={userid} password={passwd}")
+    clients = get_selected_clients(profile_object, node_dict_file)
+    set_bootdev_clients('disk', persist=False, clients=clients)
 
 
 class Profile():
