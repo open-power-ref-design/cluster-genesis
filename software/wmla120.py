@@ -72,6 +72,7 @@ class software(object):
     def __init__(self, eval_ver=False, non_int=False, arch='ppc64le',
                  proc_family=None, engr_mode=False, base_dir=None):
         self.log = logger.getlogger()
+        self.running = ''
         self.log_lvl = logger.get_log_level_print()
         self.my_name = sys.modules[__name__].__name__
         self.rhel_ver = '7'
@@ -1475,6 +1476,7 @@ class software(object):
         self._setup_nginx_server()
 
     def prep(self, eval_ver=False, non_int=False):
+        self.running = 'prep'
 
         self._update_software_vars()
 
@@ -1634,6 +1636,7 @@ class software(object):
         return rc
 
     def init_clients(self):
+        self.running = 'init-clients'
         log = logger.getlogger()
 
         print(bold(f'\n\n\n  Initializing clients for install from  Repository : '
@@ -1671,7 +1674,7 @@ class software(object):
         elif self.sw_vars['ansible_become_pass'] is None:
             cmd += '--ask-become-pass '
             prompt_msg = "\nClient password required for privilege escalation"
-        # Verification Loop
+        # Verfication Loop
         if get_yesno('Run configuration verification checks on cluster nodes '):
             specific_arch = "_" + self.arch if self.arch == 'x86_64' else ""
             validate_tasks = yaml.full_load(open(GEN_SOFTWARE_PATH + f'{self.my_name}'
@@ -1685,10 +1688,10 @@ class software(object):
                 if key not in validation_status:
                     validation_status[key] = f'{self.v_status}'
             print("\n   *** Validation Status ***\n")
-            for key,val in validation_status.items():
+            for key, val in validation_status.items():
                 print(f'{key} = {val}')
 
-            print('\nVerification Completed\n')
+            print('\nVerfication Completed\n')
         # Validate end
         run = True
         while run:
@@ -1874,7 +1877,8 @@ class software(object):
                 elif len(paths) == 1:
                     path = paths[0]
                 else:
-                    self.log.error(f'No {_glob} found in software server.')
+                    if self.running != 'prep':
+                        self.log.error(f'No {_glob} found in software server.')
                     path = ''
                 self.sw_vars['content_files'][_item.replace('_', '-')] = path
             elif item.type == 'conda':
@@ -1890,7 +1894,8 @@ class software(object):
                     print(msg)
                     ch, _dir = get_selection(dirs)
                 else:
-                    self.log.error(f'No {repo_name} found in software server.')
+                    if self.running != 'prep':
+                        self.log.error(f'No {repo_name} found in software server.')
                     _dir = ''
                 _dir = _dir[len(self.root_dir_nginx):]
                 # form .condarc channel entry. Note that conda adds
@@ -1923,7 +1928,8 @@ class software(object):
                     print(msg)
                     ch, _dir = get_selection(dirs)
                 else:
-                    self.log.error(f'No {repo_id} repo found in software server.')
+                    if self.running != 'prep':
+                        self.log.error(f'No {repo_id} repo found in software server.')
                     _dir = ''
                 _dir = _dir.rstrip('/')
 
@@ -2006,6 +2012,7 @@ class software(object):
         return ready
 
     def install(self):
+        self.running = 'install'
         self._update_software_vars()
         if not self._install_ready():
             msg = ('\nNot all content is present in the software server. Re-run\n'
