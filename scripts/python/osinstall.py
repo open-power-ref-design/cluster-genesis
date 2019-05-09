@@ -209,14 +209,15 @@ def pxelinux_configuration(profile_object, kernel, initrd, kickstart):
         kopts=kopts)
 
 
-def get_selected_clients(profile_object, node_dict_file):
+def get_selected_clients(profile_object, node_dict_file, bmc_ip='all'):
     p_node = profile_object.get_node_profile_tuple()
     nodes = yaml.full_load(open(node_dict_file))
     clients = {}
     for node in nodes['selected'].values():
-        clients[node['bmc_ip']] = (p_node.bmc_userid,
-                                   p_node.bmc_password,
-                                   'ipmi')  # TODO: Query type
+        if bmc_ip == 'all' or bmc_ip == node['bmc_ip']:
+            clients[node['bmc_ip']] = (p_node.bmc_userid,
+                                       p_node.bmc_password,
+                                       'ipmi')  # TODO: Query type
     return clients
 
 
@@ -424,7 +425,9 @@ def get_install_status(node_dict_file, colorized=False):
 
 
 def reset_bootdev(profile_object, node_dict_file, bmc_ip='all'):
-    clients = get_selected_clients(profile_object, node_dict_file)
+    clients = get_selected_clients(profile_object,
+                                   node_dict_file,
+                                   bmc_ip=bmc_ip)
     set_bootdev_clients('disk', persist=False, clients=clients)
 
 
