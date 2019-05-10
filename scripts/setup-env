@@ -18,10 +18,10 @@ PROJECT_ROOT=$(git rev-parse --show-toplevel)
 
 # pup auto completion
 source $PROJECT_ROOT/scripts/pup-ac
-sudo cp $PROJECT_ROOT/scripts/pup-ac /etc/bash_completion.d
+#sudo cp $PROJECT_ROOT/scripts/pup-ac /etc/bash_completion.d # this script will be run without sudo ... therefore it must not have sudo access
 
 source $PROJECT_ROOT/scripts/teardown-ac
-sudo cp $PROJECT_ROOT/scripts/teardown-ac /etc/bash_completion.d
+#sudo cp $PROJECT_ROOT/scripts/teardown-ac /etc/bash_completion.d # ditto
 
 # add pup scripts to python venv activate PATH
 PUP_SCRIPTS=$PROJECT_ROOT/scripts
