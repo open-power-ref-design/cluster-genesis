@@ -111,7 +111,7 @@
 - name: Update DLI_RESULT_FS mode '733'
   file:
     path: "{{ DLI_SHARED_FS }}"
-    mode: "733"
+    mode: 733
   when: verify_ownership.group == CLUSTERADMIN
 
 - name: Update DLI_RESULT_FS mode 'o+t'
