@@ -37,20 +37,40 @@
   command: echo "Firewall Exists and http enabled"
   when: host_firewall_status.stdout.find('http') != -1
 
-- name: DEBUG - Print fail status if firewall not enbaled
+- name: Print fail status if firewall not enbaled
   command: echo "WARNING - Firewall Not Enabled"
   when: host_firewall_status.stderr == 'not running'
 
-- name: Check ports status
+- name: List ports status
   command: "firewall-cmd --list-ports"
   when: host_firewall_status.stderr != 'not running'
-  register: current_port_status
+  register: current_available_ports
   become: yes
   
-- name: DEBUG - Check enabled ports status 
+- name: DEBUG - list ports status 
+  debug:
+    msg: "{{ current_available_ports.stdout }}"
+
+- name: Check all port numbers are accessible from hosts
+  wait_for:
+    port: "{{ item }}"
+    state: started         # Port should be open
+    delay: 0               # No wait before first check (sec)
+    timeout: 3             # Stop checking after timeout (sec)
+  ignore_errors: yes
+  with_items:
+     - "{{ ports.DLI_DLPD_REST_PORT }}"
+     - "{{ ports.DLI_DLPD_REST_PORT_SSL_NOT_ENABLED }}"
+     - "{{ ports.DLI_INSIGHTS_MONITOR_PORT }}"
+     - "{{ ports.DLI_INSIGHTS_OPTIMIZER_PORT }}"
+     - "{{ ports.DLI_MONGODB_PORT }}"
+     - "{{ ports.DLI_REDIS_PORT }}"
+  register: current_port_status      
+
+- name: DEBUG - Report port status information
   debug:
     msg: "{{ current_port_status.stdout }}"
-
+    
 #- name: Open Ports for Spectrum Conductor - If firewall is enabled
 #  firewalld:
 #    port: "{{ item }}"
@@ -64,7 +84,7 @@
 #     - "{{ ports.DLI_INSIGHTS_OPTIMIZER_PORT }}/tcp"
 #     - "{{ ports.DLI_MONGODB_PORT }}/tcp"
 #     - "{{ ports.DLI_REDIS_PORT }}/tcp"
-#  when: host_firewall_status.stdout.find('http') != -1
+#  when: current_port_status.stdout.find('failed') != -1
 #  become: yes
 #  register: new_port_stat
 #
