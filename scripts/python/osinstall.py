@@ -217,7 +217,7 @@ def get_selected_clients(profile_object, node_dict_file, bmc_ip='all'):
         if bmc_ip == 'all' or bmc_ip == node['bmc_ip']:
             clients[node['bmc_ip']] = (p_node.bmc_userid,
                                        p_node.bmc_password,
-                                       'ipmi')  # TODO: Query type
+                                       node[bmc_type])
     return clients
 
 
