@@ -877,9 +877,6 @@ class Pup_form(npyscreen.ActionFormV2):
                 self.fields[item].entry_widget.add_handlers({curses.KEY_F1:
                                                              self.h_help})
 
-        if hasattr(self.form, 'status_table'):
-            self.update_status_values()
-
     def on_cancel(self):
         fvl = self.parentApp._FORM_VISIT_LIST
         res = npyscreen.notify_yes_no('Quit without saving?',
