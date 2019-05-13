@@ -8,24 +8,13 @@
 #                 previous field)
 # floc: x,y Causes the field to be placed at relx,rely
 # The 'ftype' item determines the type of field used. Default is text.
-# ftype: file, text, ftext  (file search field, text input field, fixed text)
+# ftype: file, text, ftext  field type. (file search field, text input field,
+#       fixed text) Default is text
 # dtype:    determines the type of data checking applied to the field
 #           valid dtypes are intm-n, int-or-none, ipv4, ipv4mask
 
 # Network configuration
 network:
-    bmc_vlan_number:
-        val:
-        desc: BMC VLAN number
-        help: The BMC VLAN is the VLAN number of the vlan in which the BMC ports
-            reside. Power-Up can create a tagged VLAN interface on a physical
-            Ethernet interface of this installer node. If using VLANs it is the
-            user's responsibility to insure that a port virtual id (pvid) exists
-            already on the switch ports to which the BMC ports are connected and
-            that the switch port to which the installer node is connected is in
-            trunk mode with the BMC VLAN allowed.
-        dtype: int-or-none2-4094
-
     bmc_subnet_prefix:
         val: 255.255.255.0 24
         desc: BMC subnet prefix
@@ -57,7 +46,21 @@ network:
             not exist, a list of 'UP' physical interfaces is presented when you press
             enter. Cursor up or down and press enter to select an interface.
         ftype: eth-ifc
+        lnkd_flds:
+           ifc: bmc_vlan_number
 
+    bmc_vlan_number:
+        val:
+        desc: BMC VLAN number
+        help: The BMC VLAN is the VLAN number of the vlan in which the BMC ports
+            reside. Power-Up can create a tagged VLAN interface on a physical
+            Ethernet interface of this installer node. If using VLANs it is the
+            user's responsibility to insure that a port virtual id (pvid) exists
+            already on the switch ports to which the BMC ports are connected and
+            that the switch port to which the installer node is connected is in
+            trunk mode with the BMC VLAN allowed.
+        dtype: int-or-none2-4094
+        hidden: True
 
     bmc_address_mode:
         val: dhcp
@@ -70,19 +73,22 @@ network:
             the subnet specified in 'BMC subnet'
         ftype: select-one
 
-    pxe_vlan_number:
-        val:
-        desc: PXE VLAN number
-        help:
-            The PXE VLAN is the VLAN number of the vlan in which the PXE ports
-            reside. Power-Up can create a tagged VLAN interface on a physical
-            Ethernet interface of this installer node. If using VLANs it is the
-            user's responsibility to insure that a port virtual id (pvid) exists
-            already on the switch ports to which the BMC ports are connected and
-            that the switch port to which the installer node is connected is in
-            trunk mode with the PXE VLAN allowed.
-        dtype: int-or-none2-4094
-        floc: skipline
+#    pxe_vlan_number:
+#        val:
+#        desc: PXE VLAN number
+#        help:
+#            The PXE VLAN is the VLAN number of the vlan in which the PXE ports
+#            reside. Power-Up can create a tagged VLAN interface on a physical
+#            Ethernet interface of this installer node. If using VLANs it is the
+#            user's responsibility to insure that a port virtual id (pvid) exists
+#            already on the switch ports to which the BMC ports are connected and
+#            that the switch port to which the installer node is connected is in
+#            trunk mode with the PXE VLAN allowed.
+#        dtype: int-or-none2-4094
+#        floc: skipline
+#        hidden: True
+#        lnkd_flds:
+#            ifc: bmc_ethernet_ifc
 
     pxe_subnet_prefix:
         val: 255.255.255.0 24
@@ -90,6 +96,7 @@ network:
         help: Prefix for the PXE subnet. Valid values are integers between 1 and 32.
               The subnet mask is autgenerated from the prefix.
         dtype: ipv4mask
+        floc: skipline
         lnkd_flds:
             subnet: pxe_subnet
             ifc: pxe_ethernet_ifc
@@ -116,6 +123,22 @@ network:
             not exist, a list of 'UP' physical interfaces is presented when you press
             enter. Cursor up or down and press enter to select an interface.
         ftype: eth-ifc
+        lnkd_flds:
+           ifc: pxe_vlan_number
+
+    pxe_vlan_number:
+        val:
+        desc: PXE VLAN number
+        help:
+            The PXE VLAN is the VLAN number of the vlan in which the PXE ports
+            reside. Power-Up can create a tagged VLAN interface on a physical
+            Ethernet interface of this installer node. If using VLANs it is the
+            user's responsibility to insure that a port virtual id (pvid) exists
+            already on the switch ports to which the BMC ports are connected and
+            that the switch port to which the installer node is connected is in
+            trunk mode with the PXE VLAN allowed.
+        dtype: int-or-none2-4094
+        hidden: True
 
 # Node configuration
 node:

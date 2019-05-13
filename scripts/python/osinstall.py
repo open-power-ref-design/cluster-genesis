@@ -891,6 +891,11 @@ class Pup_form(npyscreen.ActionFormV2):
             else:
                 dtype = 'text'
 
+            if hasattr(self.form[item], 'hidden'):
+                hidden = self.form[item]['hidden']
+            else:
+                hidden = False
+
             if ftype == 'file':
                 if not self.form[item]['val']:
                     self.form[item]['val'] = os.path.join(GEN_PATH,
@@ -912,6 +917,7 @@ class Pup_form(npyscreen.ActionFormV2):
                 # Get the existing value to the top of the list
                 if eth in eth_lst:
                     eth_lst.remove(eth)
+
                 eth_lst = [eth] + eth_lst if eth else eth_lst
                 idx = 0 if eth else None
                 self.fields[item] = self.add(npyscreen.TitleCombo,
@@ -986,6 +992,7 @@ class Pup_form(npyscreen.ActionFormV2):
                 self.fields[item] = self.add(npyscreen.TitleText,
                                              name=fname,
                                              value=str(self.form[item]['val']),
+                                             hidden=hidden,
                                              begin_entry_at=20, width=40,
                                              relx=relx)
 
@@ -1273,6 +1280,10 @@ class Pup_form(npyscreen.ActionFormV2):
                 field_dtype = self.form[field]['dtype']
             else:
                 field_dtype = None
+            if field and hasattr(self.form[field], 'ftype'):
+                field_ftype = self.form[field]['ftype']
+            else:
+                field_ftype = None
 
         if self.prev_field and field_dtype != 'no-save':
             if hasattr(self.form[self.prev_field], 'dtype'):
@@ -1289,6 +1300,14 @@ class Pup_form(npyscreen.ActionFormV2):
                 prev_fld_lnkd_flds = None
 
             prev_fld_val = self.fields[self.prev_field].value
+            u.breakpoint()
+            if prev_fld_ftype == 'eth-ifc':
+                if prev_fld_lnkd_flds:
+                    # get the ifc from the linked field
+                    field = prev_fld_lnkd_flds.ifc
+                    self.fields[field].hidden = False
+
+
             if prev_fld_dtype == 'ipv4':
                 if not u.is_ipaddr(prev_fld_val):
                     npyscreen.notify_confirm(('Invalid Field value: '
