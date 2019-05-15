@@ -26,6 +26,21 @@ import lib.bmc as _bmc
 
 def set_bootdev_clients(bootdev, persist=False, config_path=None, clients=None,
                         max_attempts=5):
+    """Set boot device for multiple clients. If a list of ip addresses
+    are given they are assumed to be PXE addresses. Corresponding BMC addresses
+    are looked up in inventory file corresponding to the config file given in
+    the config_path. Similarly if no client list is given, all BMCs enumerated in
+    the inventory file corresponding to the config file specified in config_path
+    will be acted on.  If clients is a dictionary, then the credentials are
+    taken from the dictionary values.
+
+    Args:
+        state (str) : 'on' or 'off'
+        config_path (str): path to a config file
+        clients (dict or list of str): list of IP addresses or
+        dict of ip addresses with values of credentials as tuple
+        ie {'192.168.1.2': ('user', 'password', 'bmc_type')}
+    """
     log = logger.getlogger()
     if config_path:
         inv = Inventory(cfg_file=config_path)
@@ -83,8 +98,8 @@ def set_bootdev_clients(bootdev, persist=False, config_path=None, clients=None,
     while clients_left and attempt < max_attempts:
         attempt += 1
         if attempt > 1:
-            print('Retrying set bootdev. Attempt {} of {}'.format(attempt, max_attempts))
-            print('Clients remaining: {}'.format(clients_left))
+            log.info('Retrying set bootdev. Attempt {} of {}'.format(attempt, max_attempts))
+            log.info('Clients remaining: {}'.format(clients_left))
         clients_set = []
         bmc_dict = {}
         for client in clients_left:
@@ -114,8 +129,8 @@ def set_bootdev_clients(bootdev, persist=False, config_path=None, clients=None,
 
                 if status:
                     if attempt in [2, 4, 8]:
-                        print(f'{client} - Boot source: {status} Required source: '
-                              f'{bootdev}')
+                        log.info(f'{client} - Boot source: {status} Required source: '
+                                 f'{bootdev}')
                 elif attempt == max_attempts:
                     log.error(f'Failed attempt {attempt} set boot source {bootdev} '
                               f'for node {client}')
@@ -132,7 +147,7 @@ def set_bootdev_clients(bootdev, persist=False, config_path=None, clients=None,
 
                 if status:
                     if attempt in [2, 4, 8]:
-                        print(f'{client} - Boot source: {bootdev}')
+                        log.info(f'{client} - Boot source: {bootdev}')
                     if status == bootdev:
                         log.debug(f'Successfully set boot source to {bootdev} for '
                                   f'node {client}')

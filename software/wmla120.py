@@ -1688,6 +1688,7 @@ class software(object):
             for key,val in validation_status.items():
                 print(f'{key} = {val}')
 
+
             print('\nVerification Completed\n')
         # Validate end
         run = True

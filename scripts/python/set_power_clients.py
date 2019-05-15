@@ -25,7 +25,7 @@ import lib.bmc as _bmc
 
 
 def set_power_clients(state, config_path=None, clients=None, max_attempts=5,
-                      wait=6):
+                      wait=10):
     """Set power on or off for multiple clients. If a list of ip addresses
     are given or no clients given then the credentials are looked up in an
     inventory file. If clients is a dictionary, then the credentials are
@@ -79,13 +79,14 @@ def set_power_clients(state, config_path=None, clients=None, max_attempts=5,
     while clients_left and attempt < max_attempts:
         attempt += 1
         if attempt > 1:
-            print('Retrying set power {}. Attempt {} of {}'
-                  .format(state, attempt, max_attempts))
-            print('Clients remaining: {}'.format(clients_left))
+            log.info('Retrying set power {}. Attempt {} of {}'
+                     .format(state, attempt, max_attempts))
+            log.info('Clients remaining: {}'.format(clients_left))
         clients_set = []
         bmc_dict = {}
         for client in clients_left:
             for i in range(3):
+                # Login
                 log.debug(f'Attempting login to BMC: {client}')
                 tmp = _bmc.Bmc(client, *cred_list[client])
                 if tmp.is_connected():
@@ -101,13 +102,15 @@ def set_power_clients(state, config_path=None, clients=None, max_attempts=5,
                     del tmp
 
         for client in clients_left:
+            # Set Power on / off
             if client in bmc_dict:
                 log.debug(f'Setting power state to {state}. '
                           f'Device: {client}')
                 status = bmc_dict[client].chassis_power(state, wait)
                 if status:
+                    log.debug(f'{client} - Power status: {status}')
                     if attempt in [2, 4, 8]:
-                        print(f'{client} - Power status: {status}')
+                        log.info(f'{client} - Power status: {status}')
                     # Allow delay between turn on to limit power surge
                     if state == 'on':
                         time.sleep(0.5)
@@ -118,12 +121,14 @@ def set_power_clients(state, config_path=None, clients=None, max_attempts=5,
         time.sleep(wait + attempt)
 
         for client in clients_left:
+            # check power status
             if client in bmc_dict:
+                log.debug(f'Checking power state for {client}. Expecting state: {state}')
                 status = bmc_dict[client].chassis_power('status')
                 if status:
                     if attempt in [2, 4, 8]:
-                        print(f'{client} - Power status: {status}, '
-                              f'required state: {state}')
+                        log.info(f'{client} - Power status: {status}, '
+                                 f'required state: {state}')
                     if status == state:
                         log.debug(f'Successfully set power {state} for node {client}')
                         clients_set += [client]
@@ -145,7 +150,7 @@ def set_power_clients(state, config_path=None, clients=None, max_attempts=5,
                      len(cred_list)))
 
     if state == 'off':
-        print('Pausing 60 sec for client power off')
+        log.info('Pausing 60 sec for client power off')
         time.sleep(60)
 
     if clients_left:

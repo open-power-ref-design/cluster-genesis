@@ -103,19 +103,19 @@ class Bmc(object):
         elif self.bmc_type == 'ipmi':
             return ipmi.logout(self.host, self.user, self.pw, self.bmc)
 
-    def chassis_power(self, op, timeout=5):
+    def chassis_power(self, op, timeout=10):
         if self.bmc_type == 'openbmc':
             return open_bmc.chassisPower(self.host, op, self.bmc)
         if self.bmc_type == 'ipmi':
             return ipmi.chassisPower(self.host, op, self.bmc)
 
-    def host_boot_source(self, source='', timeout=5):
+    def host_boot_source(self, source='', timeout=10):
         if self.bmc_type == 'openbmc':
             return open_bmc.hostBootSource(self.host, source, self.bmc)
         elif self.bmc_type == 'ipmi':
             return ipmi.hostBootSource(self.host, source, self.bmc)
 
-    def host_boot_mode(self, mode='', timeout=5):
+    def host_boot_mode(self, mode='', timeout=10):
         if self.bmc_type == 'openbmc':
             return open_bmc.hostBootMode(self.host, mode, self.bmc)
         elif self.bmc_type == 'ipmi':
