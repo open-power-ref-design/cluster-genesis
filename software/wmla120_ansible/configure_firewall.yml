@@ -1,0 +1,51 @@
+---
+#Configure Firewall for out-of-box install
+#
+
+- name: Include vars of envs_spectrum_conductor_dli.yml into the 'ports' variable
+  include_vars:
+    file: envs_spectrum_conductor_dli.yml
+    name: ports
+
+- name: DEBUG - List imported variables
+  debug:
+    msg: "{{ ports }}"
+
+- name: Check all port numbers are accessible from hosts
+  wait_for:
+    port: "{{ item }}"
+    state: started         # Port should be open
+    delay: 0               # No wait before first check (sec)
+    timeout: 3             # Stop checking after timeout (sec)
+  with_items:
+     - "{{ ports.DLI_DLPD_REST_PORT }}"
+     - "{{ ports.DLI_DLPD_REST_PORT_SSL_NOT_ENABLED }}"
+     - "{{ ports.DLI_INSIGHTS_MONITOR_PORT }}"
+     - "{{ ports.DLI_INSIGHTS_OPTIMIZER_PORT }}"
+     - "{{ ports.DLI_MONGODB_PORT }}"
+     - "{{ ports.DLI_REDIS_PORT }}"
+  register: current_port_status      
+
+- name: DEBUG - Report port status information
+  debug:
+    msg: "{{ current_port_status }}"
+
+- name: Open Ports for Spectrum Conductor 
+  firewalld:
+    port: "{{ item }}"
+    permanent: true
+    state: enabled
+    immediate: true
+  with_items:
+     - "{{ ports.DLI_DLPD_REST_PORT }}/tcp"
+     - "{{ ports.DLI_DLPD_REST_PORT_SSL_NOT_ENABLED }}/tcp"
+     - "{{ ports.DLI_INSIGHTS_MONITOR_PORT }}/tcp"
+     - "{{ ports.DLI_INSIGHTS_OPTIMIZER_PORT }}/tcp"
+     - "{{ ports.DLI_MONGODB_PORT }}/tcp"
+     - "{{ ports.DLI_REDIS_PORT }}/tcp"
+  become: yes
+  register: new_port_stat
+
+- name: Debug - Open Ports for Spectrum Conductor
+  debug:
+    msg: "{{ new_port_stat }}"
