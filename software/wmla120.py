@@ -431,7 +431,7 @@ class software(object):
             pkg_list = self.pkgs[which] + self.pkgs[f'{which}_3']
             rc = True
             repo = PowerupPypiRepoFromRepo(repo_id, repo_name, self.root_dir, arch=self.arch)
-            pkg_cnt, pkg_lst_cnt, new_cnt, old_cnt = repo.verify_pkgs(pkg_list)
+            pkg_lst_cnt, pkg_cnt, new_cnt, old_cnt = repo.verify_pkgs(pkg_list)
             if pkg_cnt < pkg_lst_cnt:
                 rc = False
 
@@ -1476,6 +1476,8 @@ class software(object):
 
     def prep(self, eval_ver=False, non_int=False):
 
+        self._update_software_vars()
+
         self.prep_init()
 
         self.create_ibmai_repo()
@@ -1676,7 +1678,8 @@ class software(object):
                                             'spark')
         _set_spectrum_conductor_install_env(self.sw_vars['ansible_inventory'],
                                             'dli', ana_ver)
-        # Verfication Loop
+
+        # Verification Loop
         if get_yesno('Run configuration verification checks on cluster nodes '):
             specific_arch = "_" + self.arch if self.arch == 'x86_64' else ""
             validate_tasks = yaml.full_load(open(GEN_SOFTWARE_PATH + f'{self.my_name}'
@@ -1693,7 +1696,8 @@ class software(object):
             for key,val in validation_status.items():
                 print(f'{key} = {val}')
 
-            print('\nVerfication Completed\n')
+
+            print('\nVerification Completed\n')
         # Validate end
         run = True
         while run:

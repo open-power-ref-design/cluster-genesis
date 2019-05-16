@@ -160,7 +160,7 @@ node:
         dtype: no-save
 
     node_list_header:
-        val: SERIAL NUMBER    PART NUMBER        MAC ADDRESS     IP ADDRESS
+        val: "  SERIAL NUMBER   PART NUMBER        MAC ADDRESS        IP ADDRESS    BMC TYPE"
         desc: node list header
         floc: skipline
         ftype: ftext
