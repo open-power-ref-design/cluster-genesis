@@ -40,6 +40,9 @@ import lib.utilities as u
 from nginx_setup import nginx_setup
 from ip_route_get_to import ip_route_get_to
 from lib.bmc import Bmc
+from set_bootdev_clients import set_bootdev_clients
+from set_power_clients import set_power_clients
+from lib.genesis import get_power_wait
 
 GEN_PATH = get_package_path()
 GEN_SAMPLE_CONFIGS_PATH = get_sample_configs_path()
@@ -52,6 +55,8 @@ NODE_STATUS = os.path.join(GEN_PATH, 'osinstall_node_status.yml')
 HTTP_ROOT_DIR = get_nginx_root_dir()
 OSINSTALL_HTTP_DIR = 'osinstall'
 CLIENT_STATUS_DIR = '/var/pup_install_status/'
+
+POWER_WAIT = get_power_wait()
 
 
 def osinstall(profile_path):
@@ -225,24 +230,23 @@ def pxelinux_configuration(profile_object, kernel, initrd, kickstart):
         kopts=kopts)
 
 
-def initiate_pxeboot(profile_object, node_dict_file):
-    log = logger.getlogger()
+def get_selected_clients(profile_object, node_dict_file, bmc_ip='all'):
     p_node = profile_object.get_node_profile_tuple()
     nodes = yaml.full_load(open(node_dict_file))
+    clients = {}
     for node in nodes['selected'].values():
-        ip = node['bmc_ip']
-        userid = p_node.bmc_userid
-        passwd = p_node.bmc_password
-        bmc = Bmc(ip, userid, passwd)
-        if bmc.is_connected():
-            log.debug(f"Successfully connected to BMC: host={ip} "
-                      f"userid={userid} password={passwd}")
-            bmc.chassis_power('off')
-            bmc.host_boot_source(source='network')
-            bmc.chassis_power('on')
-        else:
-            log.error(f"Unable to connect to BMC: host={ip} "
-                      f"userid={userid} password={passwd}")
+        if bmc_ip == 'all' or bmc_ip == node['bmc_ip']:
+            clients[node['bmc_ip']] = (p_node.bmc_userid,
+                                       p_node.bmc_password,
+                                       node['bmc_type'])
+    return clients
+
+
+def initiate_pxeboot(profile_object, node_dict_file):
+    clients = get_selected_clients(profile_object, node_dict_file)
+    set_power_clients('off', clients=clients, wait=POWER_WAIT)
+    set_bootdev_clients('network', persist=False, clients=clients)
+    set_power_clients('on', clients=clients, wait=POWER_WAIT)
 
 
 def update_install_status(node_dict_file, start_time, write_results=True):
@@ -442,22 +446,10 @@ def get_install_status(node_dict_file, colorized=False):
 
 
 def reset_bootdev(profile_object, node_dict_file, bmc_ip='all'):
-    log = logger.getlogger()
-    p_node = profile_object.get_node_profile_tuple()
-    nodes = yaml.full_load(open(node_dict_file))
-    for node in nodes['selected'].values():
-        ip = node['bmc_ip']
-        userid = p_node.bmc_userid
-        passwd = p_node.bmc_password
-        if bmc_ip == 'all' or bmc_ip == ip:
-            bmc = Bmc(ip, userid, passwd)
-            if bmc.is_connected():
-                log.debug(f"Successfully connected to BMC: host={ip} "
-                          f"userid={userid} password={passwd}")
-                bmc.host_boot_source(source='disk')
-            else:
-                log.error(f"Unable to connect to BMC: host={ip} "
-                          f"userid={userid} password={passwd}")
+    clients = get_selected_clients(profile_object,
+                                   node_dict_file,
+                                   bmc_ip=bmc_ip)
+    set_bootdev_clients('disk', persist=False, clients=clients)
 
 
 class Profile():
@@ -861,6 +853,10 @@ class Pup_form(npyscreen.ActionFormV2):
         self.fields = {}  # dictionary for holding field instances
         self.next_form = self.parentApp.NEXT_ACTIVE_FORM
         self.talking_nodes = {}  # Nodes we can talk to using ipmi or openBMC
+        node_status_path = os.path.join(GEN_PATH, 'osinstall_node_status.yml')
+        if os.path.isfile(node_status_path):
+            os.remove(node_status_path)
+
         if hasattr(self.form, 'bmc_userid'):
             self.scan_uid = self.form.bmc_userid.val
             self.scan_pw = self.form.bmc_password.val
@@ -1005,9 +1001,6 @@ class Pup_form(npyscreen.ActionFormV2):
                 self.fields[item].entry_widget.add_handlers({curses.KEY_F1:
                                                              self.h_help})
 
-        if hasattr(self.form, 'status_table'):
-            self.update_status_values()
-
     def on_cancel(self):
         fvl = self.parentApp._FORM_VISIT_LIST
         res = npyscreen.notify_yes_no('Quit without saving?',
@@ -1044,13 +1037,14 @@ class Pup_form(npyscreen.ActionFormV2):
                             nodes = {'selected': {}}
                             for index in self.fields[item].value:
                                 data = self.fields['node_list'].\
-                                    values[index].split(', ')
+                                    values[index].split()
 
                                 # BMC MAC address as "nodes['selected']" key
                                 nodes['selected'][data[2].upper()] = (
                                     {'serial': data[0].upper(),
                                      'model': data[1].upper(),
-                                     'bmc_ip': data[3].upper()})
+                                     'bmc_ip': data[3].upper(),
+                                     'bmc_type': data[4]})
 
                             with open(NODE_STATUS, 'w') as f:
                                 yaml.dump(nodes, f, indent=4,
@@ -1208,7 +1202,6 @@ class Pup_form(npyscreen.ActionFormV2):
         if self.scan:  # Initiated by button press
             scan_uid = self.fields['bmc_userid'].value
             scan_pw = self.fields['bmc_password'].value
-
             if scan_uid != self.scan_uid or scan_pw != self.scan_pw:
                 self.talking_nodes = {}
                 self.fields['node_list'].values = [None]
@@ -1223,27 +1216,46 @@ class Pup_form(npyscreen.ActionFormV2):
 
             msg = ['Attempting to communicate with BMCs']
             npyscreen.notify(msg)
-
+            # basic icmp 'ping' scan. returns (ip, mac)
             nodes = u.scan_subnet(p.bmc_subnet_cidr)
-            node_dict = {node[0]: node[1] for node in nodes}
+            device_dict = {node[0]: node[1] for node in nodes}
 
             self.fields['devices_found'].value = str(len(nodes))
 
             ips = [node[0] for node in nodes]
 
-            nodes = u.scan_subnet_for_port_open(ips, 623)
-            ips = [node[0] for node in nodes]
-            self.fields['bmcs_found'].value = str(len(nodes))
+            nodes = []
+            node_dict = {}
+            # Access BMCs for serial number and part number
+            for port in ('2200', '623'):
+                # get list of tuples of (ip, mac)
+                _nodes = u.scan_subnet_for_port_open(ips, port)
+                if _nodes:
+                    nodes += _nodes
+                    _ips = [item[0] for item in _nodes]
+                    node_dict.update(self._get_bmcs_sn_pn(_ips, scan_uid, scan_pw, port))
+                if len(_nodes) == len(ips):
+                    break
 
-            node_list = self._get_bmcs_sn_pn(ips, scan_uid, scan_pw)
+            if nodes:
+                self.fields['bmcs_found'].value = str(len(nodes))
+            # Replace any spaces in serial and part number with dashes
+            # so that the individual data fields can be later retrieved with a split()
+            for _node in node_dict:
+                node = list(node_dict[_node])
+                node[0] = node[0].replace(' ', '-')
+                node[1] = node[1].replace(' ', '-')
+                node_dict[_node] = node
+
             self.display()
-            if node_list:
-                for node in node_list:
+            if node_dict:
+                for node in node_dict:
                     if node not in self.talking_nodes:
-                        self.talking_nodes[node] = (node_list[node] +
-                                                    (node_dict[node], node))
-            field_list = [', '.join(self.talking_nodes[node])
-                          for node in self.talking_nodes]
+                        self.talking_nodes[node] = (f'{node_dict[node][0]:>16}' +
+                                                    f'{node_dict[node][1]:^18}' +
+                                                    f'{device_dict[node]:^19} {node:^17}' +
+                                                    f'{node_dict[node][2]:^9}')
+            field_list = [self.talking_nodes[node] for node in self.talking_nodes]
             field_list = [None] if field_list == [] else field_list
             bmcs_found_cnt = self.fields['bmcs_found'].value
 
@@ -1484,44 +1496,56 @@ class Pup_form(npyscreen.ActionFormV2):
 
         msg += "done\n"
 
-    def _get_bmcs_sn_pn(self, node_list, uid, pw):
+    def _get_bmcs_sn_pn(self, node_list, uid, pw, bmc_type):
         """ Scan the node list for BMCs. Return the sn and pn of nodes which
         responded
 
         Args:
-            node_list: Tuple or list of node ipv4 addresses
+            node_list(tup or list): Node ipv4 addresses
+            bmc_type(str): BMC type, can be 'open' or '2200' for openBMC or
+                       '623' or 'ipmi' for ipmi based BMCs
         returns:
-            List of tuples containing ip, sn, pn
+            Dictionary. Keys are ip address. Values are tuple containing
+                sn, pn, bmc_type
         """
         # create dict to hold Bmc class instances
         bmc_inst = {}
         # list for responding BMCs
         sn_pn_list = {}
+        if bmc_type in ('2200', 'openbmc'):
+            for ip in node_list:
+                this_bmc = Bmc(ip, uid, pw, 'openbmc')
+                if this_bmc.is_connected():
+                    bmc_inst[ip] = this_bmc
+            for ip in bmc_inst:
+                sn_pn = bmc_inst[ip].get_system_sn_pn() + ('openbmc',)
+                sn_pn_list[ip] = sn_pn
 
-        for ip in node_list:
-            this_bmc = Bmc(ip, uid, pw, 'ipmi')
-            if this_bmc.is_connected():
-                bmc_inst[ip] = this_bmc
+        elif bmc_type in ('623', 'ipmi'):
+            for ip in node_list:
+                this_bmc = Bmc(ip, uid, pw, 'ipmi')
+                if this_bmc.is_connected():
+                    bmc_inst[ip] = this_bmc
 
-        # Create dict to hold inventory gathering sub process instances
-        sub_proc_instance = {}
-        # Start a sub process instance to gather inventory for each node.
-        for node in bmc_inst:
-            sub_proc_instance[node] = bmc_inst[node].\
-                get_system_inventory_in_background()
-        # poll for inventory gathering completion
-        st_time = time()
-        timeout = 15  # seconds
+            # Create dict to hold inventory gathering sub process instances
+            sub_proc_instance = {}
+            # Start a sub process instance to gather inventory for each node.
+            for node in bmc_inst:
+                sub_proc_instance[node] = bmc_inst[node].\
+                    get_system_inventory_in_background()
+            # poll for inventory gathering completion
+            st_time = time()
+            timeout = 15  # seconds
 
-        while time() < st_time + timeout and len(sn_pn_list) < len(bmc_inst):
-            for node in sub_proc_instance:
-                if sub_proc_instance[node].poll() is not None:
-                    if (sub_proc_instance[node].poll() == 0 and
-                            node not in sn_pn_list):
-                        inv, stderr = sub_proc_instance[node].communicate()
-                        inv = inv.decode('utf-8')
-                        sn_pn_list[node] = bmc_inst[node].\
-                            extract_system_sn_pn(inv)
+            while time() < st_time + timeout and len(sn_pn_list) < len(bmc_inst):
+                for node in sub_proc_instance:
+                    if sub_proc_instance[node].poll() is not None:
+                        if (sub_proc_instance[node].poll() == 0 and
+                                node not in sn_pn_list):
+                            inv, stderr = sub_proc_instance[node].communicate()
+                            inv = inv.decode('utf-8')
+                            sn_pn_list[node] = bmc_inst[node].\
+                                extract_system_sn_pn(inv) + ('ipmi',)
 
         for node in bmc_inst:
             bmc_inst[node].logout()

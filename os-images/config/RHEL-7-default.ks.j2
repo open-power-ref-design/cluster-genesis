@@ -37,7 +37,7 @@ ntp
 #!/bin/bash
 wget http://{{ http_server }}/osinstall/pup_report.sh
 /bin/bash pup_report.sh {{ http_server }}
-pxe_ip=$(ip route get {{ http_server }} | head -n 1 | sed 's/.*src //' | sed 's/[[:space:]]*$//')
+pxe_ip=$(ip route get {{ http_server }} | head -n 1 | sed 's/.*src[[:space:]]*//' | sed 's/[[:space:]].*$//')
 curl -X PUT -d "$(cat /tmp/pup_report.txt)" http://{{ http_server }}/client_status/${pxe_ip}_start
 
 for disk in /dev/disk/by-path/*; do
@@ -57,7 +57,7 @@ echo "autopart --nohome --nolvm" >> /tmp/select-first-disk
 
 %post
 #!/bin/bash
-pxe_ip=$(ip route get {{ http_server }} | head -n 1 | sed 's/.*src //' | sed 's/[[:space:]]*$//')
+pxe_ip=$(ip route get {{ http_server }} | head -n 1 | sed 's/.*src[[:space:]]*//' | sed 's/[[:space:]].*$//')
 curl -X PUT -d "$(cat /tmp/pup_report.txt)" http://{{ http_server }}/client_status/${pxe_ip}_finish
 
 # Add yum sources
