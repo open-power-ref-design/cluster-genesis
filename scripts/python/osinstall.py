@@ -785,6 +785,85 @@ class OSinstall(npyscreen.NPSAppManaged):
             msg += "Error\nFailed to configure dnsmasq!"
         return msg
 
+    def mask_ipv4_field(self, subnet_prefix_field, field, fields, form):
+        """ Updates a field specified by ifc_field so that it contains a valid
+        subnet for the subnet specified in subnet_field.
+        Args:
+            subnet_prefix_field(str): A form field corresponding to the subnet mask.
+            field(str): The field to mask. (the current field getting smart updated)
+            fields(dict): Dictionary holding the pup_form field instances
+            form(dict): Dictionary holding the form definition (profile.yml)
+        """
+        prefix = int(fields[subnet_prefix_field].value.split()[-1])
+        msg = ''
+        net_addr = u.get_network_addr(fields[field].value, prefix)
+        if net_addr != fields[field].value:
+            msg = (f'IP addr {fields[field].value} masked by '
+                   f'{subnet_prefix_field} to: {net_addr}')
+            fields[field].value = net_addr
+        return msg
+
+    def get_ifc_from_route(self, subnet_field, subnet_prefix_field, field, fields, form):
+        """Updates an eth-ifc field with the appropriate Ethernet Ifc if an interface
+        exists which has the specified route.
+        """
+        cidr = (fields[subnet_field].value + '/' +
+                fields[subnet_prefix_field].value.split()[-1])
+        if fields[field].value:
+            current_ifc = fields[field].values[fields[field].value]
+        else:
+            current_ifc = ''
+        ifc_with_route = self.ifcs.get_interface_for_route(cidr)
+        if ifc_with_route and not current_ifc == ifc_with_route:
+            ifc = ifc_with_route
+            idx = 0
+            fields[field].values = [ifc]
+            fields[field].value = idx
+        else:
+            phys_ifcs = self.ifcs.get_up_interfaces_names(_type='phys')
+            if current_ifc in phys_ifcs:
+                pass
+            else:
+                idx = None
+                ifc = phys_ifcs
+                fields[field].values = ifc
+                fields[field].value = idx
+
+    def hide_if_phys_ifc(self, ifc_field, subnet_field, subnet_prefix_field,
+                         field, fields, form):
+        """ Hides a field specified by field, unless the interface specified
+        in the ifc field value is a physical interface and the subnet
+        specified in subnet does not have an existing route out of the box.
+        Args:
+            ifc_field(str): A form field corresponding to an ethernet interface.
+            subnet_field(str): A form field corresponding to an ethernet interface subnet.
+            subnet_prefix_field(str): A form field corresponding to the subnet mask.
+            field(str): The field to hide. (the current field getting smart updated)
+            fields(dict): Dictionary holding the pup_form field instances
+            form(dict): Dictionary holding the form definition (profile.yml)
+        """
+        if fields[ifc_field].value is not None:
+            ifc = fields[ifc_field].values[fields[ifc_field].value]
+        else:
+            ifc = ''
+
+        if fields[subnet_field].value is not None:
+            subnet = fields[subnet_field].value
+        else:
+            subnet = ''
+
+        subnet_prefix = fields[subnet_prefix_field].value.split()[-1]
+        subnet_cidr = subnet + '/' + subnet_prefix
+
+        phys_eth_lst = self.ifcs.get_up_interfaces_names(_type='phys')
+        routes = self.ifcs.get_interfaces_routes()
+
+        if ifc in phys_eth_lst and subnet_cidr not in routes[ifc]:
+            fields[field].hidden = False
+        else:
+            fields[field].hidden = True
+            fields[field].value = ''
+
     def on_ok_fns(self, fn_to_run, form_data, active_form):
         if active_form == 'MAIN':
             if fn_to_run == 'is_valid_profile':
@@ -1284,18 +1363,12 @@ class Pup_form(npyscreen.ActionFormV2):
             if instance.name == self.form[item].desc:
                 field = item
                 break
-        # npyscreen.notify_confirm(
-        #         f'field: {field} prev field: {self.prev_field}', editw=1)
         # On instantiation, self.prev_field is empty
         if self.prev_field:
             if field and hasattr(self.form[field], 'dtype'):
                 field_dtype = self.form[field]['dtype']
             else:
                 field_dtype = None
-            if field and hasattr(self.form[field], 'ftype'):
-                field_ftype = self.form[field]['ftype']
-            else:
-                field_ftype = None
 
         if self.prev_field and field_dtype != 'no-save':
             if hasattr(self.form[self.prev_field], 'dtype'):
@@ -1306,56 +1379,14 @@ class Pup_form(npyscreen.ActionFormV2):
                 prev_fld_ftype = self.form[self.prev_field]['ftype']
             else:
                 prev_fld_ftype = 'text'
-            if hasattr(self.form[self.prev_field], 'lnkd_flds'):
-                prev_fld_lnkd_flds = self.form[self.prev_field]['lnkd_flds']
-            else:
-                prev_fld_lnkd_flds = None
 
             prev_fld_val = self.fields[self.prev_field].value
-            u.breakpoint()
-            if prev_fld_ftype == 'eth-ifc':
-                if prev_fld_lnkd_flds:
-                    # get the ifc from the linked field
-                    field = prev_fld_lnkd_flds.ifc
-                    self.fields[field].hidden = False
-
 
             if prev_fld_dtype == 'ipv4':
                 if not u.is_ipaddr(prev_fld_val):
                     npyscreen.notify_confirm(('Invalid Field value: '
                                               f'{prev_fld_val}'),
                                              title=self.prev_field, editw=1)
-                else:
-                    if prev_fld_lnkd_flds:
-                        prefix = int(self.fields[prev_fld_lnkd_flds.prefix].
-                                     value.split()[-1])
-
-                        net_addr = u.get_network_addr(prev_fld_val, prefix)
-                        if net_addr != prev_fld_val:
-                            npyscreen.notify_confirm(('IP addr modified to: '
-                                                      f'{net_addr}'),
-                                                     title=self.prev_field,
-                                                     editw=1)
-                            self.fields[self.prev_field].value = net_addr
-                            self.display()
-
-                        cidr = (prev_fld_val + '/' +
-                                self.fields[prev_fld_lnkd_flds.prefix].
-                                value.split()[-1])
-                        ifc = self.parentApp.ifcs.get_interface_for_route(cidr)
-                        # npyscreen.notify_confirm(f'ifc: {ifc}', editw=1)
-                    if not ifc:
-                        ifc = self.parentApp.ifcs.\
-                            get_up_interfaces_names(_type='phys')
-                    else:
-                        ifc = [ifc]
-                    if ifc:
-                        self.fields[self.form[
-                            self.prev_field]['lnkd_flds']['ifc']].values = ifc
-                        idx = 0 if len(ifc) == 1 else None
-                        self.fields[self.form[
-                            self.prev_field]['lnkd_flds']['ifc']].value = idx
-                        self.display()
 
             elif prev_fld_dtype == 'ipv4mask':
                 mask, prefix = self.get_mask_and_prefix(prev_fld_val)
@@ -1370,27 +1401,6 @@ class Pup_form(npyscreen.ActionFormV2):
                 else:
                     prefix = u.get_prefix(mask)
                 self.fields[self.prev_field].value = f'{mask} {prefix}'
-                self.display()
-
-                if prev_fld_lnkd_flds:
-                    # get the ip address from the linked field
-                    cidr = (self.fields[prev_fld_lnkd_flds.subnet].value +
-                            '/' +
-                            self.fields[self.prev_field].value.split()[-1])
-                    # npyscreen.notify_confirm(f'cidr: {cidr}', editw=1)
-                    ifc = self.parentApp.ifcs.get_interface_for_route(cidr)
-                    if not ifc:
-                        ifc = self.parentApp.ifcs.get_up_interfaces_names(
-                            _type='phys')
-                    else:
-                        ifc = [ifc]
-                    if ifc:
-                        self.fields[self.form[
-                            self.prev_field]['lnkd_flds']['ifc']].values = ifc
-                        idx = 0 if len(ifc) == 1 else None
-                        self.fields[self.form[
-                            self.prev_field]['lnkd_flds']['ifc']].value = idx
-                        self.display()
 
             elif 'int-or-none' in prev_fld_dtype:
                 rng = self.form[self.prev_field]['dtype'].\
@@ -1446,8 +1456,19 @@ class Pup_form(npyscreen.ActionFormV2):
             elif 'eth-ifc' in prev_fld_ftype:
                 pass
 
+        for fld_name, fld_data in self.form.items():
+            if hasattr(fld_data, 'smart_update'):
+                for fn in fld_data.smart_update:
+                    args_list = fld_data.smart_update[fn]
+                    func_to_call = getattr(self.parentApp, fn)
+                    msg = func_to_call(*args_list, fld_name, self.fields, self.form)
+                    if msg:
+                        npyscreen.notify_confirm(msg, title=fld_name, editw=1)
+                    self.display()
+
         if field:
             self.prev_field = field
+            self.display()
         else:
             self.prev_field = ''
         if instance.name not in ['OK', 'Cancel', 'CANCEL',
