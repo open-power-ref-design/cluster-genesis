@@ -4,6 +4,15 @@
     yum_pre: client_yum_pre_install.txt
     pip_pre: client_pip_pre_install.txt
 
+- name: Gathering Facts
+  setup:
+    gather_subset:
+      -  all
+
+- name: Printing the environment Variable in Ansible
+  debug:
+    msg: "{{ ansible_env }}"
+
 - name: Set dependencies directory variable
   set_fact:
     dependencies_dir: "{{ hostvars['localhost']['deps_path_local'] }}"
