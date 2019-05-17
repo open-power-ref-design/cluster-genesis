@@ -82,41 +82,43 @@
   set_fact:
     CLUSTERADMIN: "egoadmin"
     ADMINGROUP: "egoadmin"
-    DLI_SHARED_FS: "/dli_shared_fs"
+#    DLI_SHARED_FS: "/dli_shared_fs"
 
 - name: Export Environment Variables
   shell: "export CLUSTERADMIN={{ CLUSTERADMIN }}; \
   export ADMINGROUP={{ ADMINGROUP }}; \
-  export DLI_SHARED_FS={{ DLI_SHARED_FS }}; \
+  export DLI_SHARED_FS={{ envs.DLI_SHARED_FS }}; \
   echo $CLUSTERADMIN $ADMINGROUP $DLI_SHARED_FS"
+  when: envs.DLI_SHARED_FS != '/'
 
 - name: Creates Directory if not exists and Update ownership of DLI_SHARED_FS to CLUSTERADMIN
   file:
-    path:  "{{ DLI_SHARED_FS }}"     #or use {{ envs.DLI_SHARED_FS }} ???
+    path:  "{{ envs.DLI_SHARED_FS }}"     #or use {{ DLI_SHARED_FS }} ???
     owner: "{{ CLUSTERADMIN }}"
     state: directory
     recurse: yes
   register: verify_ownership
+  when: envs.DLI_SHARED_FS != '/'
 
 - name: Verify DLI_SHARED_FS is owned by CLUSTERADMIN and remove all other access
   file:
-    path: "{{ DLI_SHARED_FS }}"
+    path: "{{ envs.DLI_SHARED_FS }}"
     mode: 755
-  when: verify_ownership.group == CLUSTERADMIN
+  when: verify_ownership.group == CLUSTERADMIN and envs.DLI_SHARED_FS != '/'
 
 - name: Set the correct ownership for DLI_RESULT_FS
   shell: "chown $egoadmin:$egoadmin $DLI_RESULT_FS"
-  when: verify_ownership.group == CLUSTERADMIN
+  when: verify_ownership.group == CLUSTERADMIN and envs.DLI_SHARED_FS != '/'
 
 - name: Update DLI_RESULT_FS mode '733'
   file:
-    path: "{{ DLI_SHARED_FS }}"
+    path: "{{ envs.DLI_SHARED_FS }}"
     mode: 733
-  when: verify_ownership.group == CLUSTERADMIN
+  when: verify_ownership.group == CLUSTERADMIN and envs.DLI_SHARED_FS != '/'
 
 - name: Update DLI_RESULT_FS mode 'o+t'
   file:
-    path: "{{ DLI_SHARED_FS }}"
+    path: "{{ envs.DLI_SHARED_FS }}"
     mode: "o+t"
-  when: verify_ownership.group == CLUSTERADMIN
+  when: verify_ownership.group == CLUSTERADMIN and envs.DLI_SHARED_FS != '/'
 
