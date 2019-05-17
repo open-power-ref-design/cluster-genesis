@@ -3,8 +3,6 @@
 
 - name: Set local variables #used for testing
   set_fact:
-#    dli_shared_dir: '/home/rhel76/dli_shared' #Remove
-    test_dir: '/nfs/pwrai'  #Remove
     fs_size_requirement: '2000000' #in Kilobytes
 
 - name: Include configuration environment variables
