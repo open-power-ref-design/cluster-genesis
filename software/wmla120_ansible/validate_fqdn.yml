@@ -4,18 +4,53 @@
 - name: Use client hostnames/ansible_fqdn to gather IPv4 data for clients
   command: "getent ahostsv4 {{ item }}"
   loop: "{{ groups['all']|flatten }}"
-  register: client_ip
+  register: client_data
 
 - name: Debug - Use client hostnames/ansible_fqdn to gather IPv4 data
   debug:
     msg: "{{ item.stdout }}"
-  loop: "{{ client_ip.results }}"
+  loop: "{{ client_data.results }}"
 
 - name: Fail if IP Address Does not Exist
   fail:
     msg: "One or more nodes have a conflict Validating FQDN. Please check node settings."
   when: not item.stdout.split()[0] | ipv4
-  loop: "{{ client_ip.results }}"
+  loop: "{{ client_data.results }}"
 
+- name:  check listed hostnames for client nodes
+  command: " hostname -f"
+  register: gathered_hostnames
 
+- name: DEBUG - check listed hostnames for client nodes
+  debug: 
+    msg: "{{ gathered_hostnames.stdout }}"
+
+- name: Gather IP's of FQDN's
+  shell: "getent ahostsv4 {{ gathered_hostnames.stdout }} | awk '{ print $1}' | head -n 1"
+  register: hostname_ip
+
+- name: DEBUG - Gather IP's of FQDN's
+  debug:
+    msg: "{{ hostname_ip.stdout }}" 
+
+- name: Gather IP's of FQDN's 
+  shell: "getent hosts {{ hostname_ip.stdout }} | awk '{print $3}'"
+  delegate_to: localhost
+  register: ip_compare_host
+
+- name: DEBUG - Gather IP's of FQDN's
+  debug:
+    msg: "{{ ip_compare_host.stdout }}"
+
+- name: Debug - Check if hostname is associated with IP 
+  debug:
+    msg: 
+      - "{{ gathered_hostnames.stdout != 'localhost' }}"
+      - "{{ ip_compare_host.stdout == gathered_hostnames.stdout }}"
+
+- name: Check if hostname is associated with IP
+  assert:
+    that:
+      -  gathered_hostnames.stdout != 'localhost'
+      -  ip_compare_host.stdout == gathered_hostnames.stdout
 
