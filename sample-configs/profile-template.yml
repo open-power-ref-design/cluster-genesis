@@ -197,11 +197,18 @@ node:
 
 # Node installation status table
 status:
+    installation_image:
+        val: null
+        desc: OS Image
+        help: OS Installation Image File
+        ftype: tftext
+
     pxeboot_status:
         val: Enabled
         desc: PXE Boot
         help: PXE Boot OS Installation Enabled or Disabled
         ftype: tftext
+        floc: skipline
 
     start_time:
         val: null
