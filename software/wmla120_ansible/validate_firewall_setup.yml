@@ -16,6 +16,7 @@
   register: host_firewall_status
   ignore_errors: yes
   become: yes
+  
 #Check For Firewall Status
 - name: List all host firewall data
   command: "firewall-cmd --list-services"
@@ -32,6 +33,7 @@
   debug:
     msg: "WARNING - Firewall Not Enabled"
   when: host_firewall_status.stderr == 'not running'  
+  
 # List Enabled Ports 
 - name: List ports status
   command: "firewall-cmd --list-ports"
@@ -39,29 +41,18 @@
   register: current_available_ports
   become: yes
   
-- name: DEBUG - list ports status 
+- name: DEBUG - List ports status 
   debug:
     msg: "{{ current_available_ports.stdout }}"
-  when: host_firewall_status.stderr != 'not running'
-
-- name: Check all port numbers are accessible from hosts
-  wait_for:
-    port: "{{ item }}"
-    state: started         # Port should be open
-    delay: 0               # No wait before first check (sec)
-    timeout: 3             # Stop checking after timeout (sec)
-  when: host_firewall_status.stdout == 'running'
-  with_items:
-     - "{{ ports.DLI_DLPD_REST_PORT }}"
-     - "{{ ports.DLI_DLPD_REST_PORT_SSL_NOT_ENABLED }}"
-     - "{{ ports.DLI_INSIGHTS_MONITOR_PORT }}"
-     - "{{ ports.DLI_INSIGHTS_OPTIMIZER_PORT }}"
-     - "{{ ports.DLI_MONGODB_PORT }}"
-     - "{{ ports.DLI_REDIS_PORT }}"
-  register: current_port_status      
-
-- name: DEBUG - Report port status information
-  debug:
-    msg: "{{ current_port_status }}"
-  when: host_firewall_status.stdout == 'running'
-    
+  when: host_firewall_status.stderr != 'not running' 
+  
+name: Check all ports are enabled in the firewall
+fail:
+msg: "Not all ports are enabled in the firewall"
+loop: [ "{{ ports.DLI_DLPD_REST_PORT }}/tcp",
+"{{ ports.DLI_DLPD_REST_PORT_SSL_NOT_ENABLED }}/tcp",
+"{{ ports.DLI_INSIGHTS_MONITOR_PORT }}/tcp",
+"{{ ports.DLI_INSIGHTS_OPTIMIZER_PORT }}/tcp",
+"{{ ports.DLI_MONGODB_PORT }}/tcp",
+"{{ ports.DLI_REDIS_PORT }}/tcp" ]
+when: item not in current_available_ports.stdout
