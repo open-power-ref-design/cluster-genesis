@@ -12,11 +12,10 @@
 
 - name: Download installer binary
   get_url:
-    owner: "{{ ansible_ssh_user }}"
-    group: "{{ ansible_ssh_user }}"
     mode: 0744
     url: "http://{{ host_ip.stdout }}/{{ file }}"
     dest: "$HOME"
+  become: yes
 
 - name: Include configuration environment variables
   include_vars:
