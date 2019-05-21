@@ -55,4 +55,4 @@
   "{{ ports.DLI_INSIGHTS_OPTIMIZER_PORT }}/tcp",
   "{{ ports.DLI_MONGODB_PORT }}/tcp",
   "{{ ports.DLI_REDIS_PORT }}/tcp" ]
-  when: item not in current_available_ports.stdout
+  when: host_firewall_status.stdout == 'running' and item not in current_available_ports.stdout
