@@ -23,6 +23,24 @@ version: 1.0
 
 # Network configuration
 network:
+    bmc_vlan_number:
+        val: ''
+        desc: BMC VLAN number
+        help: The BMC VLAN is the VLAN number of the vlan in which the BMC ports
+            reside. Power-Up can create a tagged VLAN interface on a physical
+            Ethernet interface of this installer node. If using VLANs it is the
+            user's responsibility to insure that a port virtual id (pvid) exists
+            already on the switch ports to which the BMC ports are connected and
+            that the switch port to which the installer node is connected is in
+            trunk mode with the BMC VLAN allowed.
+        dtype: int-or-none2-4094
+        hidden: True
+        smart_update:
+            hide_if_phys_ifc:
+                - bmc_ethernet_ifc
+                - bmc_subnet
+                - bmc_subnet_prefix
+
     bmc_subnet_prefix:
         val: 255.255.255.0 24
         desc: BMC subnet prefix
@@ -56,24 +74,6 @@ network:
                 - bmc_subnet
                 - bmc_subnet_prefix
 
-    bmc_vlan_number:
-        val: ''
-        desc: BMC VLAN number
-        help: The BMC VLAN is the VLAN number of the vlan in which the BMC ports
-            reside. Power-Up can create a tagged VLAN interface on a physical
-            Ethernet interface of this installer node. If using VLANs it is the
-            user's responsibility to insure that a port virtual id (pvid) exists
-            already on the switch ports to which the BMC ports are connected and
-            that the switch port to which the installer node is connected is in
-            trunk mode with the BMC VLAN allowed.
-        dtype: int-or-none2-4094
-        hidden: True
-        smart_update:
-            hide_if_phys_ifc:
-                - bmc_ethernet_ifc
-                - bmc_subnet
-                - bmc_subnet_prefix
-
     bmc_address_mode:
         val: dhcp
         values:
@@ -85,13 +85,32 @@ network:
             the subnet specified in 'BMC subnet'
         ftype: select-one
 
+    pxe_vlan_number:
+        val: ''
+        desc: PXE VLAN number
+        help:
+            The PXE VLAN is the VLAN number of the vlan in which the PXE ports
+            reside. Power-Up can create a tagged VLAN interface on a physical
+            Ethernet interface of this installer node. If using VLANs it is the
+            user's responsibility to insure that a port virtual id (pvid) exists
+            already on the switch ports to which the BMC ports are connected and
+            that the switch port to which the installer node is connected is in
+            trunk mode with the PXE VLAN allowed.
+        dtype: int-or-none2-4094
+        hidden: True
+        floc: skipline
+        smart_update:
+            hide_if_phys_ifc:
+                - pxe_ethernet_ifc
+                - pxe_subnet
+                - pxe_subnet_prefix
+
     pxe_subnet_prefix:
         val: 255.255.255.0 24
         desc: PXE subnet prefix
         help: Prefix for the PXE subnet. Valid values are integers between 1 and 32.
               The subnet mask is autgenerated from the prefix.
         dtype: ipv4mask
-        floc: skipline
 
     pxe_subnet:
         val: 192.168.2.0
@@ -117,25 +136,6 @@ network:
         ftype: eth-ifc
         smart_update:
             get_ifc_from_route:
-                - pxe_subnet
-                - pxe_subnet_prefix
-
-    pxe_vlan_number:
-        val: ''
-        desc: PXE VLAN number
-        help:
-            The PXE VLAN is the VLAN number of the vlan in which the PXE ports
-            reside. Power-Up can create a tagged VLAN interface on a physical
-            Ethernet interface of this installer node. If using VLANs it is the
-            user's responsibility to insure that a port virtual id (pvid) exists
-            already on the switch ports to which the BMC ports are connected and
-            that the switch port to which the installer node is connected is in
-            trunk mode with the PXE VLAN allowed.
-        dtype: int-or-none2-4094
-        hidden: True
-        smart_update:
-            hide_if_phys_ifc:
-                - pxe_ethernet_ifc
                 - pxe_subnet
                 - pxe_subnet_prefix
 

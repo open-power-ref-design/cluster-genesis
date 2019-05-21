@@ -454,10 +454,31 @@ def reset_bootdev(profile_object, node_dict_file, bmc_ip='all'):
 
 class Profile():
     def __init__(self, prof_path='profile-template.yml'):
+        profile_template_path = os.path.join(GEN_SAMPLE_CONFIGS_PATH,
+                                             'profile-template.yml')
+        def _update_profile():
+            """Converts a pre version 1.0 (version-less) profile.yml file into
+            a version 1.0 profile.
+            """
+            try:
+                profile_template = yaml.load(open(profile_template_path),
+                                             Loader=AttrDictYAMLLoader)
+            except IOError:
+                self.log.error('Unable to open the profile file: '
+                               f'{self.prof_path}')
+                sys.exit(f'Unable to open the profile file: {self.prof_path}\n'
+                         'Unable to continue with OS install')
+            for fld, fld_data in self.profile.network.items():
+                if hasattr(fld_data, 'lnkd_flds'):
+                    del(self.profile.network[fld].lnkd_flds)
+
+            for fld, fld_data in profile_template.network.items():
+                if hasattr(fld_data, 'smart_update'):
+                    self.profile.network[fld]['smart_update'] = fld_data.smart_update
+
         self.log = logger.getlogger()
         if prof_path == 'profile-template.yml':
-            self.prof_path = os.path.join(GEN_SAMPLE_CONFIGS_PATH,
-                                          'profile-template.yml')
+            self.prof_path = profile_template_path
         else:
             if not os.path.dirname(prof_path):
                 self.prof_path = os.path.join(GEN_PATH, prof_path)
@@ -466,8 +487,7 @@ class Profile():
             if not os.path.isfile(self.prof_path):
                 self.log.info('No profile file found.  Using template.')
                 sleep(1)
-                self.prof_path = os.path.join(GEN_SAMPLE_CONFIGS_PATH,
-                                              'profile-template.yml')
+                self.prof_path = profile_template_path
         try:
             self.profile = yaml.load(open(self.prof_path),
                                      Loader=AttrDictYAMLLoader)
@@ -476,6 +496,9 @@ class Profile():
                            f'{self.prof_path}')
             sys.exit(f'Unable to open the profile file: {self.prof_path}\n'
                      'Unable to continue with OS install')
+        else:
+            if 'version' not in self.profile:
+                _update_profile()
 
     def get_profile(self):
         """Returns an ordered attribute dictionary with the profile data.
@@ -814,7 +837,7 @@ class OSinstall(npyscreen.NPSAppManaged):
         else:
             current_ifc = ''
         ifc_with_route = self.ifcs.get_interface_for_route(cidr)
-        if ifc_with_route and not current_ifc == ifc_with_route:
+        if ifc_with_route:
             ifc = ifc_with_route
             idx = 0
             fields[field].values = [ifc]
