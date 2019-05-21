@@ -46,13 +46,13 @@
     msg: "{{ current_available_ports.stdout }}"
   when: host_firewall_status.stderr != 'not running' 
   
-name: Check all ports are enabled in the firewall
-fail:
-msg: "Not all ports are enabled in the firewall"
-loop: [ "{{ ports.DLI_DLPD_REST_PORT }}/tcp",
-"{{ ports.DLI_DLPD_REST_PORT_SSL_NOT_ENABLED }}/tcp",
-"{{ ports.DLI_INSIGHTS_MONITOR_PORT }}/tcp",
-"{{ ports.DLI_INSIGHTS_OPTIMIZER_PORT }}/tcp",
-"{{ ports.DLI_MONGODB_PORT }}/tcp",
-"{{ ports.DLI_REDIS_PORT }}/tcp" ]
-when: item not in current_available_ports.stdout
+- name: Check all ports are enabled in the firewall
+  fail:
+    msg: "Not all ports are enabled in the firewall"
+  loop: [ "{{ ports.DLI_DLPD_REST_PORT }}/tcp",
+  "{{ ports.DLI_DLPD_REST_PORT_SSL_NOT_ENABLED }}/tcp",
+  "{{ ports.DLI_INSIGHTS_MONITOR_PORT }}/tcp",
+  "{{ ports.DLI_INSIGHTS_OPTIMIZER_PORT }}/tcp",
+  "{{ ports.DLI_MONGODB_PORT }}/tcp",
+  "{{ ports.DLI_REDIS_PORT }}/tcp" ]
+  when: item not in current_available_ports.stdout
