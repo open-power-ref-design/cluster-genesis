@@ -40,6 +40,9 @@ import lib.utilities as u
 from nginx_setup import nginx_setup
 from ip_route_get_to import ip_route_get_to
 from lib.bmc import Bmc
+from set_bootdev_clients import set_bootdev_clients
+from set_power_clients import set_power_clients
+from lib.genesis import get_power_wait
 
 GEN_PATH = get_package_path()
 GEN_SAMPLE_CONFIGS_PATH = get_sample_configs_path()
@@ -53,26 +56,49 @@ HTTP_ROOT_DIR = get_nginx_root_dir()
 OSINSTALL_HTTP_DIR = 'osinstall'
 CLIENT_STATUS_DIR = '/var/pup_install_status/'
 
+POWER_WAIT = get_power_wait()
+
 
 def osinstall(profile_path):
     log = logger.getlogger()
     log.debug('osinstall')
 
-    osi = OSinstall(profile_path)
+#    on_ok_fns_list = ('is_valid_profile', 'config_interfaces',
+#                      'check_for_existing_dhcp', 'add_firewall_rules',
+#                      'install_and_configure_nginx', 'configure_dnsmasq')
+
+    on_ok_fns_list = {}
+    on_ok_fns_list['MAIN'] = \
+        {'is_valid_profile': 'Validating network profile',
+         'config_interfaces': 'Configuring network interfaces',
+         'check_for_existing_dhcp': 'Checking for existing DHCP servers...',
+         'add_firewall_rules': 'Adding firewall rules',
+         'install_and_configure_nginx': 'Installing and configuring Nginx...',
+         'configure_dnsmasq': 'Configuring dsnmasq for DHCP'}
+
+    osi = OSinstall(profile_path, on_ok_fns_list=on_ok_fns_list)
     osi.run()
 
 
-def dnsmasq_configuration(profile_object):
-    p = profile_object.get_network_profile_tuple()
+def dnsmasq_configuration(form_data):
+    bmc_ethernet_ifc = form_data.bmc_ethernet_ifc.val
+    bmc_subnet_cidr = form_data.bmc_subnet.val + '/' + \
+        form_data.bmc_subnet_prefix.val.split()[-1]
+    bmc_address_mode = form_data.bmc_address_mode.val
+
+    pxe_ethernet_ifc = form_data.pxe_ethernet_ifc.val
+    pxe_subnet_cidr = form_data.pxe_subnet.val + '/' + \
+        form_data.pxe_subnet_prefix.val.split()[-1]
+
     dhcp_start = 21
     dhcp_lease_time = '5m'
-    if (p.bmc_address_mode == 'static' or
-            p.bmc_ethernet_ifc == p.pxe_ethernet_ifc):
-        interfaces = p.pxe_ethernet_ifc
+    if (bmc_address_mode == 'static' or
+            bmc_ethernet_ifc == pxe_ethernet_ifc):
+        interfaces = pxe_ethernet_ifc
     else:
-        interfaces = (p.bmc_ethernet_ifc + ',' + p.pxe_ethernet_ifc)
+        interfaces = (bmc_ethernet_ifc + ',' + pxe_ethernet_ifc)
 
-    pxe_network = IPNetwork(p.pxe_subnet_cidr)
+    pxe_network = IPNetwork(pxe_subnet_cidr)
     dhcp_pxe_ip_range = (str(pxe_network.network + dhcp_start) + ',' +
                          str(pxe_network.network + pxe_network.size - 1))
 
@@ -83,8 +109,8 @@ def dnsmasq_configuration(profile_object):
     if rc != 0:
         return rc
 
-    if p.bmc_address_mode == 'dhcp':
-        bmc_network = IPNetwork(p.bmc_subnet_cidr)
+    if bmc_address_mode == 'dhcp':
+        bmc_network = IPNetwork(bmc_subnet_cidr)
         dhcp_bmc_ip_range = (str(bmc_network.network + dhcp_start) + ',' +
                              str(bmc_network.network + bmc_network.size - 1))
         rc = u.dnsmasq_add_dhcp_range(dhcp_range=dhcp_bmc_ip_range,
@@ -204,24 +230,23 @@ def pxelinux_configuration(profile_object, kernel, initrd, kickstart):
         kopts=kopts)
 
 
-def initiate_pxeboot(profile_object, node_dict_file):
-    log = logger.getlogger()
+def get_selected_clients(profile_object, node_dict_file, bmc_ip='all'):
     p_node = profile_object.get_node_profile_tuple()
     nodes = yaml.full_load(open(node_dict_file))
+    clients = {}
     for node in nodes['selected'].values():
-        ip = node['bmc_ip']
-        userid = p_node.bmc_userid
-        passwd = p_node.bmc_password
-        bmc = Bmc(ip, userid, passwd)
-        if bmc.is_connected():
-            log.debug(f"Successfully connected to BMC: host={ip} "
-                      f"userid={userid} password={passwd}")
-            bmc.chassis_power('off')
-            bmc.host_boot_source(source='network')
-            bmc.chassis_power('on')
-        else:
-            log.error(f"Unable to connect to BMC: host={ip} "
-                      f"userid={userid} password={passwd}")
+        if bmc_ip == 'all' or bmc_ip == node['bmc_ip']:
+            clients[node['bmc_ip']] = (p_node.bmc_userid,
+                                       p_node.bmc_password,
+                                       node['bmc_type'])
+    return clients
+
+
+def initiate_pxeboot(profile_object, node_dict_file):
+    clients = get_selected_clients(profile_object, node_dict_file)
+    set_power_clients('off', clients=clients, wait=POWER_WAIT)
+    set_bootdev_clients('network', persist=False, clients=clients)
+    set_power_clients('on', clients=clients, wait=POWER_WAIT)
 
 
 def update_install_status(node_dict_file, start_time, write_results=True):
@@ -421,22 +446,10 @@ def get_install_status(node_dict_file, colorized=False):
 
 
 def reset_bootdev(profile_object, node_dict_file, bmc_ip='all'):
-    log = logger.getlogger()
-    p_node = profile_object.get_node_profile_tuple()
-    nodes = yaml.full_load(open(node_dict_file))
-    for node in nodes['selected'].values():
-        ip = node['bmc_ip']
-        userid = p_node.bmc_userid
-        passwd = p_node.bmc_password
-        if bmc_ip == 'all' or bmc_ip == ip:
-            bmc = Bmc(ip, userid, passwd)
-            if bmc.is_connected():
-                log.debug(f"Successfully connected to BMC: host={ip} "
-                          f"userid={userid} password={passwd}")
-                bmc.host_boot_source(source='disk')
-            else:
-                log.error(f"Unable to connect to BMC: host={ip} "
-                          f"userid={userid} password={passwd}")
+    clients = get_selected_clients(profile_object,
+                                   node_dict_file,
+                                   bmc_ip=bmc_ip)
+    set_bootdev_clients('disk', persist=False, clients=clients)
 
 
 class Profile():
@@ -553,9 +566,10 @@ class Profile():
 
 
 class OSinstall(npyscreen.NPSAppManaged):
-    def __init__(self, prof_path, *args, **kwargs):
+    def __init__(self, prof_path, on_ok_fns_list, *args, **kwargs):
         super(OSinstall, self).__init__(*args, **kwargs)
         self.prof_path = prof_path
+        self.on_ok_fns_list = on_ok_fns_list
         self.prof = Profile(self.prof_path)
         self.log = logger.getlogger()
         # create an Interfaces instance
@@ -620,90 +634,181 @@ class OSinstall(npyscreen.NPSAppManaged):
         pxe_ethernet_ifc = prof['pxe_ethernet_ifc']['val']
         bmc_ethernet_ifc = prof['bmc_ethernet_ifc']['val']
 
+        bmc_vlan = prof['bmc_vlan_number'].val
+        pxe_vlan = prof['pxe_vlan_number'].val
+
+        conflict_ifc = self.ifcs.is_vlan_used_elsewhere(bmc_vlan, bmc_ethernet_ifc)
+        if conflict_ifc and conflict_ifc != (prof['bmc_ethernet_ifc'].val + '.' +
+                                             prof['bmc_vlan_number'].val):
+            msg += [f'- Error - the chosen BMC vlan ({bmc_vlan}) is already in '
+                    f'use on another interface. ({conflict_ifc})']
+
+        conflict_ifc = self.ifcs.is_vlan_used_elsewhere(pxe_vlan, pxe_ethernet_ifc)
+        if conflict_ifc and conflict_ifc != (prof['pxe_ethernet_ifc'].val + '.' +
+                                             prof['pxe_vlan_number'].val):
+            msg += [f'- Error - the chosen PXE vlan ({pxe_vlan}) is already in '
+                    f'use on another interface. ({conflict_ifc})']
+
         ifc = self.ifcs.is_route_overlapping(pxe_cidr, pxe_ethernet_ifc)
         if ifc:
-            msg += ['- Warning, the subnet specified on the PXE interface',
+            msg += ['- Error - the subnet specified on the PXE interface',
                     f'  overlaps a subnet on interface {ifc}']
 
         ifc = self.ifcs.is_route_overlapping(bmc_cidr, bmc_ethernet_ifc)
         if ifc:
-            msg += ['- Warning, the subnet specified on the BMC interface',
+            msg += ['- Error - the subnet specified on the BMC interface',
                     f'  overlaps a subnet on interface {ifc}']
 
         if u.is_overlapping_addr(bmc_cidr, pxe_cidr):
-            msg += ['- Warning, BMC and PXE subnets are overlapping.']
+            msg += ['- Warning - BMC and PXE subnets are overlapping.']
 
         if bmc_subnet_prefix != pxe_subnet_prefix:
-            msg += ['- Warning, BMC and PXE subnets are different sizes']
+            msg += ['- Warning - BMC and PXE subnets are different sizes']
 
-        if prof.bmc_address_mode.val == "dhcp" and prof.bmc_ethernet_ifc.val:
-            dhcp = u.get_dhcp_servers(prof.bmc_ethernet_ifc.val)
-            if dhcp:
+        return msg
+
+    def config_interfaces(self, form_data):
+        msg = []
+        bmc_ifc = form_data.bmc_ethernet_ifc.val
+        bmc_vlan = form_data.bmc_vlan_number.val
+        bmc_cidr = form_data.bmc_subnet.val + '/' + \
+            form_data.bmc_subnet_prefix.val.split()[-1]
+
+        pxe_ifc = form_data.pxe_ethernet_ifc.val
+        pxe_vlan = form_data.pxe_vlan_number.val
+        pxe_cidr = form_data.pxe_subnet.val + '/' + \
+            form_data.pxe_subnet_prefix.val.split()[-1]
+
+        up_ifcs = self.ifcs.get_up_interfaces_names()
+        phys_up_ifcs = self.ifcs.get_up_interfaces_names(_type='phys')
+
+        if bmc_ifc in phys_up_ifcs:
+            if bmc_vlan:
+                in_use_ifc = self.ifcs.is_vlan_used_elsewhere(bmc_vlan, bmc_ifc)
+                if not in_use_ifc or in_use_ifc == bmc_ifc + '.' + bmc_vlan:
+                    self.ifcs.create_tagged_ifc(bmc_ifc, bmc_vlan)
+                    bmc_ifc = bmc_ifc + '.' + bmc_vlan
+            else:
+                pass  # non tagged
+
+        else:
+            if bmc_ifc not in up_ifcs:
+                msg += ['BMC interface is not up']
+
+        if pxe_ifc in phys_up_ifcs:
+            if pxe_vlan:
+                in_use_ifc = self.ifcs.is_vlan_used_elsewhere(pxe_vlan, pxe_ifc)
+                if not in_use_ifc or in_use_ifc == pxe_ifc + '.' + pxe_vlan:
+                    self.ifcs.create_tagged_ifc(pxe_ifc, pxe_vlan)
+                    pxe_ifc = pxe_ifc + '.' + pxe_vlan
+            else:
+                pass  # non tagged
+
+        else:
+            if pxe_ifc not in up_ifcs:
+                msg += ['PXE interface is not up']
+
+        if not self.ifcs.find_unused_addr_and_add_to_ifc(bmc_ifc, bmc_cidr):
+            self.log.error(f'Failed to add an addr to {bmc_ifc}')
+            msg += f'Failed to add an addr to {bmc_ifc}'
+        else:
+            # Update form data with new vlan interface
+            form_data.bmc_ethernet_ifc.val = bmc_ifc
+
+        if not self.ifcs.find_unused_addr_and_add_to_ifc(pxe_ifc, pxe_cidr):
+            self.log.error(f'Failed to add an addr to {pxe_ifc}')
+            msg += f'Failed to add an addr to {pxe_ifc}'
+        else:
+            # Update form data with new vlan interface
+            form_data.pxe_ethernet_ifc.val = pxe_ifc
+
+        return msg
+
+    def check_for_existing_dhcp(self, form_data):
+        msg = []
+        bmc_addrs = self.ifcs.get_interface_addresses(form_data.bmc_ethernet_ifc.val)
+        pxe_addrs = self.ifcs.get_interface_addresses(form_data.pxe_ethernet_ifc.val)
+        if (form_data.bmc_address_mode.val == 'dhcp' and
+                form_data.bmc_ethernet_ifc.val):
+            dhcp = u.get_dhcp_servers(form_data.bmc_ethernet_ifc.val)
+            if dhcp and dhcp["Server Identifier"] not in bmc_addrs:
                 msg += ['- Warning a DHCP server exists already on',
                         '  the interface specified for BMC access. ',
                         f'  Offered address: {dhcp["IP Offered"]}',
                         f'  From server:     {dhcp["Server Identifier"]}']
 
-        if prof.pxe_ethernet_ifc.val:
-            dhcp = u.get_dhcp_servers(prof.pxe_ethernet_ifc.val)
-            if dhcp:
-                msg += ['- Warning a DHCP server exists already on',
-                        '  the interface specified for PXE access. ',
-                        f'  Offered address: {dhcp["IP Offered"]}',
-                        f'  From server:     {dhcp["Server Identifier"]}']
+        dhcp = u.get_dhcp_servers(form_data.pxe_ethernet_ifc.val)
+        if dhcp and dhcp["Server Identifier"] not in pxe_addrs:
+            msg += ['- Warning a DHCP server exists already on',
+                    '  the interface specified for PXE access. ',
+                    f'  Offered address: {dhcp["IP Offered"]}',
+                    f'  From server:     {dhcp["Server Identifier"]}']
 
         return msg
 
-    def config_interfaces(self):
-        p = self.prof.get_profile_tuple()
-        bmc_ifc = p.bmc_ethernet_ifc
-        pxe_ifc = p.pxe_ethernet_ifc
+    def add_firewall_rules(self, form_data):
+        msg = []
+        rc = u.firewall_add_services(['http', 'tftp', 'dhcp'])
+        if rc != 0:
+            msg = "Error\nFailed to configure firewall!"
+        return msg
 
-        # create tagged vlan interfaces if any
-        if p.bmc_vlan_number:
-            bmc_ifc = p.bmc_ethernet_ifc + '.' + p.bmc_vlan_number
-            if not self.ifcs.is_vlan_used_elsewhere(p.bmc_vlan_number,
-                                                    bmc_ifc):
-                self.ifcs.create_tagged_ifc(p.bmc_ethernet_ifc,
-                                            p.bmc_vlan_number)
+    def install_and_configure_nginx(self, form_data):
+        status_dir = CLIENT_STATUS_DIR
+        msg = []
+        rc = nginx_setup(root_dir=HTTP_ROOT_DIR)
+        if rc != 0:
+            msg += "ERROR\nFailed to configure nginx!"
+            return
 
-        if p.pxe_vlan_number:
-            pxe_ifc = p.pxe_ethernet_ifc + '.' + p.pxe_vlan_number
-            if not self.ifcs.is_vlan_used_elsewhere(p.pxe_vlan_number,
-                                                    pxe_ifc):
-                self.ifcs.create_tagged_ifc(p.pxe_ethernet_ifc,
-                                            p.pxe_vlan_number)
+        if not os.path.isdir(status_dir):
+            os.makedirs(status_dir)
+            os.chmod(status_dir, 0o777)
+        nginx_location = {f'/client_status/':
+                          [f'alias {status_dir}',
+                           'dav_methods PUT',
+                           'create_full_put_path on',
+                           'dav_access user:rw group:rw all:rw',
+                           'allow all',
+                           'autoindex on']}
 
-        if not self.ifcs.find_unused_addr_and_add_to_ifc(bmc_ifc,
-                                                         p.bmc_subnet_cidr):
-            self.log.error(f'Failed to add an addr to {bmc_ifc}')
+        rc = u.nginx_modify_conf('/etc/nginx/conf.d/server1.conf',
+                                 locations=nginx_location)
+        if rc != 0:
+            msg += "ERROR\nFailed to configure nginx!"
+            return
 
-        if not self.ifcs.find_unused_addr_and_add_to_ifc(pxe_ifc,
-                                                         p.pxe_subnet_cidr):
-            self.log.error(f'Failed to add an addr to {pxe_ifc}')
+    def configure_dnsmasq(self, form_data):
+        msg = []
+        rc = dnsmasq_configuration(form_data)
+        if rc != 0:
+            msg += "Error\nFailed to configure dnsmasq!"
+        return msg
 
-#            cmd = f'nmap -PR {p.bmc_subnet_cidr}'
-#            res, err, rc = u.sub_proc_exec(cmd)
-#            if rc != 0:
-#                self.log.error('An error occurred while scanning the BMC '
-#                               'subnet')
-#            bmc_addr_dict = {}
-#            res = res.split('Nmap scan report')
-#            for item in res:
-#                ip = re.search(r'\d+\.\d+\.\d+\.\d+', item, re.DOTALL)
-#                if ip:
-#                    mac = re.search(r'((\w+:){5}\w+)', item, re.DOTALL)
-#                    if mac:
-#                        bmc_addr_dict[ip.group(0)] = mac.group(1)
-#                    else:
-#                        bmc_addr_dict[ip.group(0)] = ''
-#            #code.interact(banner='There', local=dict(globals(), **locals()))
-#            # Remove the temp route
-#            res = self.ifcs.route('del', dst=p.bmc_subnet_cidr,
-#                            oif=self.ifcs.link_lookup(ifname=bmc_ifc)[0])
-#            if res[0]['header']['error']:
-#                self.log.error('Error occurred removing route from '
-#                               f'{bmc_ifc}')
+    def on_ok_fns(self, fn_to_run, form_data, active_form):
+        if active_form == 'MAIN':
+            if fn_to_run == 'is_valid_profile':
+                msg = self.is_valid_profile(form_data)
+
+            if fn_to_run == 'config_interfaces':
+                msg = self.config_interfaces(form_data)
+
+            if fn_to_run == 'check_for_existing_dhcp':
+                msg = self.check_for_existing_dhcp(form_data)
+
+            if fn_to_run == 'add_firewall_rules':
+                msg = self.add_firewall_rules(form_data)
+
+            if fn_to_run == 'install_and_configure_nginx':
+                msg = self.install_and_configure_nginx(form_data)
+
+            if fn_to_run == 'configure_dnsmasq':
+                msg = self.configure_dnsmasq(form_data)
+
+        if active_form == 'NODE':
+            pass
+
+        return msg
 
 
 class MyButtonPress(npyscreen.MiniButtonPress):
@@ -748,6 +853,10 @@ class Pup_form(npyscreen.ActionFormV2):
         self.fields = {}  # dictionary for holding field instances
         self.next_form = self.parentApp.NEXT_ACTIVE_FORM
         self.talking_nodes = {}  # Nodes we can talk to using ipmi or openBMC
+        node_status_path = os.path.join(GEN_PATH, 'osinstall_node_status.yml')
+        if os.path.isfile(node_status_path):
+            os.remove(node_status_path)
+
         if hasattr(self.form, 'bmc_userid'):
             self.scan_uid = self.form.bmc_userid.val
             self.scan_pw = self.form.bmc_password.val
@@ -885,9 +994,6 @@ class Pup_form(npyscreen.ActionFormV2):
                 self.fields[item].entry_widget.add_handlers({curses.KEY_F1:
                                                              self.h_help})
 
-        if hasattr(self.form, 'status_table'):
-            self.update_status_values()
-
     def on_cancel(self):
         fvl = self.parentApp._FORM_VISIT_LIST
         res = npyscreen.notify_yes_no('Quit without saving?',
@@ -907,7 +1013,6 @@ class Pup_form(npyscreen.ActionFormV2):
     def on_ok(self):
         res = True
         fld_error = False
-        val_error = False
         msg = []
         for item in self.form:
             if hasattr(self.form[item], 'dtype'):
@@ -925,13 +1030,14 @@ class Pup_form(npyscreen.ActionFormV2):
                             nodes = {'selected': {}}
                             for index in self.fields[item].value:
                                 data = self.fields['node_list'].\
-                                    values[index].split(', ')
+                                    values[index].split()
 
                                 # BMC MAC address as "nodes['selected']" key
                                 nodes['selected'][data[2].upper()] = (
                                     {'serial': data[0].upper(),
                                      'model': data[1].upper(),
-                                     'bmc_ip': data[3].upper()})
+                                     'bmc_ip': data[3].upper(),
+                                     'bmc_type': data[4]})
 
                             with open(NODE_STATUS, 'w') as f:
                                 yaml.dump(nodes, f, indent=4,
@@ -974,47 +1080,58 @@ class Pup_form(npyscreen.ActionFormV2):
                     self.form[item]['val'] = None
                 else:
                     self.form[item]['val'] = self.fields[item].value
-        if not fld_error:
-            popmsg = ['Validating network profile']
-            if (hasattr(self.form, 'bmc_address_mode')):
-                if (self.form.bmc_address_mode.val == 'dhcp' or
-                        self.form.pxe_ethernet_ifc.val):
-                    popmsg += ['and checking for existing DHCP servers']
-                npyscreen.notify(popmsg, title='Info')
-                sleep(1)
 
-            msg += self.parentApp.is_valid_profile(self.form)
-            if 'Error' in msg:
-                val_error = True
+        if fld_error:
+            msg += ['---------------------',
+                    'Continue with OS install?',
+                    '(No to continue editing the profile data)']
 
-            if not fld_error or val_error:
-                res = True
-                if msg:
-                    msg += ['---------------------',
-                            'Continue with OS install?',
-                            '(No to continue editing the profile data)']
+            editw = 1 if len(msg) < 10 else 0
+            res = npyscreen.notify_yes_no(msg, title='Profile validation',
+                                          editw=editw)
 
-                    editw = 1 if len(msg) < 10 else 0
-                    res = npyscreen.notify_yes_no(msg,
-                                                  title='Profile validation',
-                                                  editw=editw)
+        # Note that the self.parentApp.NEXT_ACTIVE_FORM is actually the
+        # current form
+        ok_fns_err = False
+        if self.parentApp.NEXT_ACTIVE_FORM in ('MAIN',):  # ('MAIN', 'NODE', 'STATUS'):
+            on_ok_fns_list = self.parentApp.on_ok_fns_list[self.parentApp.NEXT_ACTIVE_FORM]
+            if not fld_error or res:
+                popmsg = ''
+                for fn in on_ok_fns_list:
+                    popmsg += on_ok_fns_list[fn] + '\n'
+                    npyscreen.notify(popmsg, title='Info')
+                    msg = self.parentApp.on_ok_fns(fn, self.form,
+                                                   self.parentApp.NEXT_ACTIVE_FORM)
+                    sleep(1)
+                    if msg:
+                        if 'Error' in ' '.join(msg) or 'ERROR' in ' '.join(msg):
+                            msg += ['Please resolve issues before continuing.']
+                            npyscreen.notify_confirm(msg, title='cancel', editw=1)
+                            ok_fns_err = True
+                            break
+                        res = False
+                        msg += ['---------------------',
+                                'Continue with OS install?',
+                                '(No to continue editing the profile data)']
+                        editw = 1 if len(msg) < 10 else 0
+                        res = npyscreen.notify_yes_no(msg, title='Profile validation',
+                                                      editw=editw)
+                    if not res:
+                        break
+            if not ok_fns_err and res:
+                if self.parentApp.NEXT_ACTIVE_FORM == 'MAIN':
+                    self.parentApp.prof.update_network_profile(self.form)
+                    self.next_form = 'NODE'
 
-                if res:
-                    if self.parentApp.NEXT_ACTIVE_FORM == 'MAIN':
-                        self.parentApp.prof.update_network_profile(self.form)
-                        self.next_form = 'NODE'
-                        self.configure_services()
-                    elif self.parentApp.NEXT_ACTIVE_FORM == 'NODE':
-                        self.parentApp.prof.update_node_profile(self.form)
-                        self.initiate_os_installation()
-                        self.next_form = 'STATUS'
-                    elif self.parentApp.NEXT_ACTIVE_FORM == 'STATUS':
-                        self.parentApp.prof.update_status_profile(self.form)
-                        self.next_form = None
-
-        elif fld_error or val_error:
-            msg += ['Please reslove issues.']
-            npyscreen.notify_confirm(msg, title='cancel', editw=1)
+        if res:
+            if self.parentApp.NEXT_ACTIVE_FORM == 'NODE':
+                self.parentApp.prof.update_node_profile(self.form)
+                self.initiate_os_installation()
+                self.next_form = 'STATUS'
+            elif self.parentApp.NEXT_ACTIVE_FORM == 'STATUS':
+                self.parentApp.prof.update_status_profile(self.form)
+                self.next_form = None
+        else:
             # stay on this form
             self.next_form = self.parentApp.NEXT_ACTIVE_FORM
 
@@ -1078,7 +1195,6 @@ class Pup_form(npyscreen.ActionFormV2):
         if self.scan:  # Initiated by button press
             scan_uid = self.fields['bmc_userid'].value
             scan_pw = self.fields['bmc_password'].value
-
             if scan_uid != self.scan_uid or scan_pw != self.scan_pw:
                 self.talking_nodes = {}
                 self.fields['node_list'].values = [None]
@@ -1093,27 +1209,46 @@ class Pup_form(npyscreen.ActionFormV2):
 
             msg = ['Attempting to communicate with BMCs']
             npyscreen.notify(msg)
-
+            # basic icmp 'ping' scan. returns (ip, mac)
             nodes = u.scan_subnet(p.bmc_subnet_cidr)
-            node_dict = {node[0]: node[1] for node in nodes}
+            device_dict = {node[0]: node[1] for node in nodes}
 
             self.fields['devices_found'].value = str(len(nodes))
 
             ips = [node[0] for node in nodes]
 
-            nodes = u.scan_subnet_for_port_open(ips, 623)
-            ips = [node[0] for node in nodes]
-            self.fields['bmcs_found'].value = str(len(nodes))
+            nodes = []
+            node_dict = {}
+            # Access BMCs for serial number and part number
+            for port in ('2200', '623'):
+                # get list of tuples of (ip, mac)
+                _nodes = u.scan_subnet_for_port_open(ips, port)
+                if _nodes:
+                    nodes += _nodes
+                    _ips = [item[0] for item in _nodes]
+                    node_dict.update(self._get_bmcs_sn_pn(_ips, scan_uid, scan_pw, port))
+                if len(_nodes) == len(ips):
+                    break
 
-            node_list = self._get_bmcs_sn_pn(ips, scan_uid, scan_pw)
+            if nodes:
+                self.fields['bmcs_found'].value = str(len(nodes))
+            # Replace any spaces in serial and part number with dashes
+            # so that the individual data fields can be later retrieved with a split()
+            for _node in node_dict:
+                node = list(node_dict[_node])
+                node[0] = node[0].replace(' ', '-')
+                node[1] = node[1].replace(' ', '-')
+                node_dict[_node] = node
+
             self.display()
-            if node_list:
-                for node in node_list:
+            if node_dict:
+                for node in node_dict:
                     if node not in self.talking_nodes:
-                        self.talking_nodes[node] = (node_list[node] +
-                                                    (node_dict[node], node))
-            field_list = [', '.join(self.talking_nodes[node])
-                          for node in self.talking_nodes]
+                        self.talking_nodes[node] = (f'{node_dict[node][0]:>16}' +
+                                                    f'{node_dict[node][1]:^18}' +
+                                                    f'{device_dict[node]:^19} {node:^17}' +
+                                                    f'{node_dict[node][2]:^9}')
+            field_list = [self.talking_nodes[node] for node in self.talking_nodes]
             field_list = [None] if field_list == [] else field_list
             bmcs_found_cnt = self.fields['bmcs_found'].value
 
@@ -1315,59 +1450,6 @@ class Pup_form(npyscreen.ActionFormV2):
         self.next_form = 'MAIN'
         self.parentApp.switchForm('MAIN')
 
-    def configure_services(self):
-        notify_title = "Configuring Services"
-        status_dir = CLIENT_STATUS_DIR
-
-        msg = "Adding firewall rules... "
-        npyscreen.notify(msg, title=notify_title)
-        rc = u.firewall_add_services(['http', 'tftp', 'dhcp'])
-        if rc != 0:
-            msg += "ERROR\nFailed to configure firewall!"
-            npyscreen.notify_confirm(msg, title=notify_title, editw=1)
-            self.next_form = None
-            return
-
-        msg += "done\nInstall and configure nginx... "
-        npyscreen.notify(msg, title=notify_title)
-        rc = nginx_setup(root_dir=HTTP_ROOT_DIR)
-        if rc != 0:
-            msg += "ERROR\nFailed to configure nginx!"
-            npyscreen.notify_confirm(msg, title=notify_title, editw=1)
-            self.next_form = None
-            return
-
-        if not os.path.isdir(status_dir):
-            os.makedirs(status_dir)
-            os.chmod(status_dir, 0o777)
-        nginx_location = {f'/client_status/':
-                          [f'alias {status_dir}',
-                           'dav_methods PUT',
-                           'create_full_put_path on',
-                           'dav_access user:rw group:rw all:rw',
-                           'allow all',
-                           'autoindex on']}
-
-        rc = u.nginx_modify_conf('/etc/nginx/conf.d/server1.conf',
-                                 locations=nginx_location)
-        if rc != 0:
-            msg += "ERROR\nFailed to configure nginx!"
-            npyscreen.notify_confirm(msg, title=notify_title, editw=1)
-            self.next_form = None
-            return
-
-        msg += "done\nConfigure dnsmasq... "
-        npyscreen.notify(msg, title=notify_title)
-        rc = dnsmasq_configuration(self.parentApp.prof)
-        if rc != 0:
-            msg += "ERROR\nFailed to configure dnsmasq!"
-            npyscreen.notify_confirm(msg, title=notify_title, editw=1)
-            self.next_form = None
-            return
-        msg += "done\n"
-        npyscreen.notify(msg, title=notify_title)
-        sleep(1)
-
     def initiate_os_installation(self):
         notify_title = "Client OS Installation"
 
@@ -1395,44 +1477,56 @@ class Pup_form(npyscreen.ActionFormV2):
 
         msg += "done\n"
 
-    def _get_bmcs_sn_pn(self, node_list, uid, pw):
+    def _get_bmcs_sn_pn(self, node_list, uid, pw, bmc_type):
         """ Scan the node list for BMCs. Return the sn and pn of nodes which
         responded
 
         Args:
-            node_list: Tuple or list of node ipv4 addresses
+            node_list(tup or list): Node ipv4 addresses
+            bmc_type(str): BMC type, can be 'open' or '2200' for openBMC or
+                       '623' or 'ipmi' for ipmi based BMCs
         returns:
-            List of tuples containing ip, sn, pn
+            Dictionary. Keys are ip address. Values are tuple containing
+                sn, pn, bmc_type
         """
         # create dict to hold Bmc class instances
         bmc_inst = {}
         # list for responding BMCs
         sn_pn_list = {}
+        if bmc_type in ('2200', 'openbmc'):
+            for ip in node_list:
+                this_bmc = Bmc(ip, uid, pw, 'openbmc')
+                if this_bmc.is_connected():
+                    bmc_inst[ip] = this_bmc
+            for ip in bmc_inst:
+                sn_pn = bmc_inst[ip].get_system_sn_pn() + ('openbmc',)
+                sn_pn_list[ip] = sn_pn
 
-        for ip in node_list:
-            this_bmc = Bmc(ip, uid, pw, 'ipmi')
-            if this_bmc.is_connected():
-                bmc_inst[ip] = this_bmc
+        elif bmc_type in ('623', 'ipmi'):
+            for ip in node_list:
+                this_bmc = Bmc(ip, uid, pw, 'ipmi')
+                if this_bmc.is_connected():
+                    bmc_inst[ip] = this_bmc
 
-        # Create dict to hold inventory gathering sub process instances
-        sub_proc_instance = {}
-        # Start a sub process instance to gather inventory for each node.
-        for node in bmc_inst:
-            sub_proc_instance[node] = bmc_inst[node].\
-                get_system_inventory_in_background()
-        # poll for inventory gathering completion
-        st_time = time()
-        timeout = 15  # seconds
+            # Create dict to hold inventory gathering sub process instances
+            sub_proc_instance = {}
+            # Start a sub process instance to gather inventory for each node.
+            for node in bmc_inst:
+                sub_proc_instance[node] = bmc_inst[node].\
+                    get_system_inventory_in_background()
+            # poll for inventory gathering completion
+            st_time = time()
+            timeout = 15  # seconds
 
-        while time() < st_time + timeout and len(sn_pn_list) < len(bmc_inst):
-            for node in sub_proc_instance:
-                if sub_proc_instance[node].poll() is not None:
-                    if (sub_proc_instance[node].poll() == 0 and
-                            node not in sn_pn_list):
-                        inv, stderr = sub_proc_instance[node].communicate()
-                        inv = inv.decode('utf-8')
-                        sn_pn_list[node] = bmc_inst[node].\
-                            extract_system_sn_pn(inv)
+            while time() < st_time + timeout and len(sn_pn_list) < len(bmc_inst):
+                for node in sub_proc_instance:
+                    if sub_proc_instance[node].poll() is not None:
+                        if (sub_proc_instance[node].poll() == 0 and
+                                node not in sn_pn_list):
+                            inv, stderr = sub_proc_instance[node].communicate()
+                            inv = inv.decode('utf-8')
+                            sn_pn_list[node] = bmc_inst[node].\
+                                extract_system_sn_pn(inv) + ('ipmi',)
 
         for node in bmc_inst:
             bmc_inst[node].logout()
@@ -1482,19 +1576,6 @@ class Pup_form(npyscreen.ActionFormV2):
                 Pup_form.pxeboot_enabled = False
             self.fields['status_table'].values = (
                 get_install_status(NODE_STATUS, colorized=False).splitlines())
-
-
-def validate(profile_tuple):
-    LOG = logger.getlogger()
-    if profile_tuple.bmc_address_mode == "dhcp" or (
-            profile_tuple.pxe_address_mode == "dhcp"):
-        hasDhcpServers = u.has_dhcp_servers(profile_tuple.ethernet_port)
-        if not hasDhcpServers:
-            LOG.warn("No Dhcp servers found on {0}".format(
-                profile_tuple.ethernet_port))
-        else:
-            LOG.info("Dhcp servers found on {0}".format(
-                profile_tuple.ethernet_port))
 
 
 def main(prof_path):

@@ -31,6 +31,7 @@ Welcome to POWER-Up User's Guide documentation!
    Installing
    Create-Config-File
    Run-Cluster-Genesis
+   Running-OSinstall.rst
    Run-Software-Install
    Creating-Software-Install-Modules
    Running-paie
