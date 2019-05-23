@@ -1686,9 +1686,8 @@ class software(object):
                 if key not in validation_status:
                     validation_status[key] = f'{self.v_status}'
             print("\n   *** Validation Status ***\n")
-            for key,val in validation_status.items():
+            for key, val in validation_status.items():
                 print(f'{key} = {val}')
-
 
             print('\nVerification Completed\n')
         # Validate end
@@ -1855,6 +1854,9 @@ class software(object):
         self.sw_vars['ana_powerup_repo_channels'] = []
         self.sw_vars['yum_powerup_repo_files'] = {}
         self.sw_vars['root_dir_nginx'] = self.root_dir_nginx
+        self.sw_vars['eng_mode'] = self.eng_mode
+        self.sw_vars['ibmai_public_channel'] = '  - ' + self.content['ibmai'].source. \
+            baseurl.format(ana_platform_basename=self.ana_platform_basename)
         for _item in self.content:
             item = self.content[_item]
             if item.type == 'file':

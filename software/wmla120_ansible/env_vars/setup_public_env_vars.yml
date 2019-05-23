@@ -1,11 +1,11 @@
 ---
-install_mount_dir: ""
-interface: ""
-host_nfs_ip_address: ""
-gateway_ip_address: ""
-srv_ip_sub: ""
-interface_addres: ""
-external_dir: ""
+install_mount_dir: "/nfs/pwrai/"
+interface: "enP4p10s0f0"
+host_nfs_ip_address: "9.3.89.51"
+gateway_ip_address: "9.3.89.0/24"
+srv_ip_sub: "192.168.77.252"
+interface_addres: "192.168.77.173"
+external_dir: "/media/shnfs_sdo/nfs/pwrai"
 #
 network_points:
   - device: "{{ interface }}"
@@ -13,36 +13,37 @@ network_points:
     address: "{{ interface_addres }}"
     bootproto: "none"
     defaultroute: "YES"
-    gateway: "192.168.65.3"
+#    gateway: "192.168.77.252"
+    gateway: "{{ srv_ip_sub }}"
     state: present
     dnsnameservers: "9.3.1.200,9.0.128.50"
-    hostname: "server-1"
+    hostname: "master1.lan"
 
 route_points:
   - device: "{{ interface }}"
     prefix: "{{ gateway_ip_address }}/24"
     next_hop: "{{ srv_ip_sub }}"
-    state: absent 
-    hostname: "server-1"
-  - device: "{{ interface }}"
-    prefix: "9.188.189.2/24"
-    next_hop: "{{ srv_ip_sub }}"
     state: absent
-    hostname: "server-1"
-  - device: "{{ interface }}"
-    prefix: "default"
-    next_hop: "{{ srv_ip_sub }}"
-    state: present 
-    hostname: "server-1"
+    hostname: "master1.lan"
+#  - device: "{{ interface }}"
+#    prefix: "9.188.189.2/24"
+#    next_hop: "{{ srv_ip_sub }}"
+#    state: absent
+#    hostname: "master1.lan"
+#  - device: "{{ interface }}"
+#    prefix: "default"
+#    next_hop: "{{ srv_ip_sub }}"
+#    state: present
+#    hostname: "master1.lan"
 
 file_points:
-  # - path: "{{ install_mount_dir }}"
+  - path: "{{ install_mount_dir }}"
     # owner: nfsnobody
     # group: nfsnobody
-    # mode: "u=rwx,g=rx,o=rx"
-    # state: directory
-    # recurse: yes
-    # force: yes
+    mode: "u=rwx,g=rx,o=rx"
+    state: directory
+    recurse: yes
+    force: yes
   - src: "/usr/bin/mount"
     dest: "/usr/sbin/mount"
     state: link
@@ -60,7 +61,7 @@ mount_points:
     src: "{{ host_nfs_ip_address }}:{{ external_dir }}"
     fstype: nfs
     opts: vers=3
-    state: mounted 
+    state: mounted
 # mount_server_points:
   # - path: "{{ install_mount_dir }}"
     # access:
@@ -78,19 +79,23 @@ mount_points:
     # group: "nfsnobody"
     # mode: "u=rwx,g=rx,o=rx"
 yum_packages:
-  - name: nfs-utils 
-    state: present 
+  - name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
+    state: present
+  - name: nfs-utils
+    state: present
   - name: libnfsidmap
     state: present
-  - name: parted 
+  - name: parted
     state: present
 yum_repos:
   - name: rhsm
-    state: present 
-  - name: epel
-    state: present 
-    description: EPEL YUM repo
-    baseurl: "https://download.fedoraproject.org/pub/epel/$releasever/$basearch/"
+    state: present
+  - name: cuda-powerup
+    state: absent
+  - name: dependencies-powerup
+    state: absent
+  - name: epel-ppc64le-powerup
+    state: absent
 run_service:
   - name: "network"
     state: "restarted"
@@ -103,17 +108,17 @@ run_service:
     # flags: "[ lvm ]"
 run_filesystem:
   - dev:  /dev/sdb1
-    fstype: ext4 
+    fstype: ext4
 firewall_service:
-  - service: nfs 
-    permanent: yes  
-    state: enabled  
-  - service:  mountd 
-    permanent: yes  
-    state: enabled  
-  - service: rpc-bind 
-    permanent: yes  
-    state: enabled  
-  - port: "2049/tcp" 
-    permanent: yes  
-    state: enabled  
+  - service: nfs
+    permanent: yes
+    state: enabled
+  - service:  mountd
+    permanent: yes
+    state: enabled
+  - service: rpc-bind
+    permanent: yes
+    state: enabled
+  - port: "2049/tcp"
+    permanent: yes
+    state: enabled

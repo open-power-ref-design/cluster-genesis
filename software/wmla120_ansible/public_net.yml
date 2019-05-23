@@ -1,5 +1,5 @@
 ---
-# This task list attempts to setup a public network interface 
+# This task list attempts to setup a public network interface
 ## in all its clients it does this by doing these steps
    # Ensure hostname set
    # Resolve hostnames in /etc/hosts
@@ -56,7 +56,7 @@
 # - name: Gathering data
   # set_fact:
 #
-- name: Import Data 
+- name: Import Data
   include_vars: "env_vars/setup_public_env_vars.yml"
 # create routes and/or deletes old ones
 
@@ -78,8 +78,16 @@
   include: "network_interface.yml"
   become: yes
 
-# create files or directories 
-- name: Create directories 
+- name: Enable Repos
+  include: "yum_repository.yml"
+  become: yes
+
+- name: Install yum packages
+  include: "yum.yml"
+  become: yes
+
+# create files or directories
+- name: Create directories
   include: "file.yml"
   become: yes
 #
@@ -87,10 +95,10 @@
   include: "mount.yml"
   become: yes
 
-- name: Enable Repos
-  include: "yum_repository.yml"
-  become: yes
+#- name: Enable Repos
+#  include: "yum_repository.yml"
+#  become: yes
 
-- name: Restart Network 
+- name: Restart Network
   include: "service.yml"
   become: yes

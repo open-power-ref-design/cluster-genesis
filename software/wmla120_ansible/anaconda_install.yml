@@ -36,17 +36,20 @@
   file:
     path: "{{ install_dir }}/.condarc"
     state: touch
+#  when: not eng_mode
   become: yes
 
 - name: "Check if 'channels:' exists in {{ install_dir }}/.condarc"
   shell: "grep '^channels:' {{ install_dir }}/.condarc"
   register: channels_exists
   failed_when: channels_exists.rc == 2
+#  when: not eng_mode
 
 - name: "Create 'channels:' key in {{ install_dir }}/.condarc"
   lineinfile:
     path: "{{ install_dir }}/.condarc"
     line: 'channels:'
+#  when: not eng_mode and channels_exists.rc == 1
   when: channels_exists.rc == 1
   become: yes
 
@@ -55,5 +58,22 @@
     path: "{{ install_dir }}/.condarc"
     insertafter: '^channels:.*'
     line: "{{ item }}"
+    regexp: "{{ item }}"
   loop: "{{ ana_powerup_repo_channels }}"
+  when: not eng_mode
+  become: yes
+
+- name: "Populate IBMLAI public repo channel when eng mode"
+  lineinfile:
+    path: "{{ install_dir }}/.condarc"
+    insertafter: '^channels:.*'
+    line: "{{ item }}"
+    regexp: "{{ item }}"
+#    line: "{{ ibmai_public_channel }}"
+#    regexp: "{{ ibmai_public_channel }}"
+#    regexp: "{{ item }}"
+  loop:
+    - "  - defaults"
+    - "{{ powerai_public_channel }}"
+  when: eng_mode
   become: yes

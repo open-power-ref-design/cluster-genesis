@@ -24,10 +24,11 @@ import argparse
 import lib.logger as logger
 import lib.genesis as gen
 from lib.genesis import GEN_SOFTWARE_PATH
-from lib.utilities import get_selection, sub_proc_exec
+from lib.utilities import get_selection, sub_proc_exec, backup_file
 if gen.GEN_SOFTWARE_PATH not in sys.path:
     sys.path.append(gen.GEN_SOFTWARE_PATH)
 from yamlvault import YAMLVault
+
 DEF_PKGS = ["ntp", "nfs-utils", "wget"]
 #  RC_SUCCESS = 0
 #  RC_ERROR = 99  # generic failure
@@ -118,7 +119,7 @@ def parse_pkg_list(repo_list, software_type, proc_family=""):
         fromTemplate = False
         print(yaml.dump(lists, indent=4, default_flow_style=False))
     except:
-        print("Error")
+        input(f"Error loading pkg list file {file_path}.")
     for key, val in repo_list.items():
         #  load the file
         for i in val:
@@ -174,7 +175,8 @@ def generate_pkg_list(repo_list, software_type, arch, dep_dir):
         file_path = GEN_SOFTWARE_PATH + get_file_name(software_type, arch)
         if os.path.exists(file_path):
             log.warn("File exists: " + file_path)
-
+            log.info(f"Making backup to {file_path}.orig.n")
+            backup_file(file_path)
     with open(file_path, 'w') as f:
         yaml.dump(repo_list, f, indent=4, default_flow_style=False)
     log.info("Wrote to file :" + file_path)
@@ -248,10 +250,10 @@ def main(args):
         sys.exit()
 
     #  # Change file ownership to current user
-    if not os.access(dep_dir, os.W_OK):
-        username = getpass.getuser()
-        cmd = f'sudo chown -R {username}:{username} {dep_dir}'
-        sub_proc_exec(cmd, shell=True)
+    # if not os.access(dep_dir, os.W_OK):
+    username = getpass.getuser()
+    cmd = f'sudo chown -R {username}:{username} {dep_dir}'
+    sub_proc_exec(cmd, shell=True)
 
     # Clear comments and other known header content from files
     for item in dep_files:
