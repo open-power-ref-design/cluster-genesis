@@ -28,6 +28,7 @@ from shutil import copy2, rmtree
 import calendar
 import time
 import yaml
+from yamlvault import YAMLVault
 from orderedattrdict.yamlutils import AttrDictYAMLLoader
 import json
 from getpass import getpass
@@ -195,7 +196,7 @@ class software(object):
         self.log.debug(f'software variables: {self.sw_vars}')
 
     def __del__(self):
-        if os.path.isfile(self.vault_pass_file):
+        if hasattr(self, 'vault_pass_file') and os.path.isfile(self.vault_pass_file):
             os.remove(self.vault_pass_file)
 
     def README(self):
@@ -2293,21 +2294,6 @@ def _set_spectrum_conductor_install_env(ansible_inventory, package, ana_ver=None
 
     print(f'Spectrum Conductor {package} configuration variables successfully '
           'loaded\n')
-
-
-class YAMLVault(yaml.YAMLObject):
-    yaml_tag = u'!vault'
-
-    def __init__(self, ansible_become_pass):
-        self.ansible_become_pass = ansible_become_pass
-
-    @classmethod
-    def from_yaml(cls, loader, node):
-        return YAMLVault(node.value)
-
-    @classmethod
-    def to_yaml(cls, dumper, data):
-        return dumper.represent_scalar(cls.yaml_tag, data.ansible_become_pass)
 
 
 if __name__ == '__main__':
