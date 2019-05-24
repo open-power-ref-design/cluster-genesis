@@ -393,21 +393,13 @@ class software(object):
 
             repo = PowerupAnaRepoFromRepo(repo_id, repo_name, self.root_dir, arch=self.arch)
             # Get the 'linux-{arch}' status
-            repo_path = self.sw_vars[f'{which}_repo_path'] + f'linux-{self.arch}'
-            try:
-                pkglist = os.listdir(repo_path)
-            except FileNotFoundError:
-                pkglist = []
-            pkglist = [pkg for pkg in pkglist if pkg[-8:] == '.tar.bz2']
+            linux_repo_id = f'{which}_linux_{self.arch}'
+            pkglist = self.pkgs[linux_repo_id]['accept_list']
             status1 = repo.verify_pkgs(pkglist)
 
             # Get the 'noarch' status
-            repo_path = self.sw_vars[f'{which}_repo_path'] + 'noarch'
-            try:
-                pkglist = os.listdir(repo_path)
-            except FileNotFoundError:
-                pkglist = []
-            pkglist = [pkg for pkg in pkglist if pkg[-8:] == '.tar.bz2']
+            noarch_repo_id = f'{which}_noarch'
+            pkglist = self.pkgs[noarch_repo_id]['accept_list']
             status2 = repo.verify_pkgs(pkglist, noarch=True)
             # Total the results for the linux and noarch repos
             pkg_lst_cnt, pkg_cnt, nwr_cnt, old_cnt = tuple(p + q for p, q in
