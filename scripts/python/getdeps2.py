@@ -177,6 +177,7 @@ def generate_pkg_list(repo_list, software_type, arch, dep_dir):
             log.warn("File exists: " + file_path)
             log.info(f"Making backup to {file_path}.orig.n")
             backup_file(file_path)
+
     with open(file_path, 'w') as f:
         yaml.dump(repo_list, f, indent=4, default_flow_style=False)
     log.info("Wrote to file :" + file_path)

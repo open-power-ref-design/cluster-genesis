@@ -1,11 +1,11 @@
 ---
-install_mount_dir: "/nfs/pwrai/"
-interface: "enP4p10s0f0"
-host_nfs_ip_address: "9.3.89.51"
-gateway_ip_address: "9.3.89.0/24"
-srv_ip_sub: "192.168.77.252"
-interface_addres: "192.168.77.173"
-external_dir: "/media/shnfs_sdo/nfs/pwrai"
+install_mount_dir: ""
+interface: ""
+host_nfs_ip_address: ""
+gateway_ip_address: ""
+srv_ip_sub: ""
+interface_addres: ""
+external_dir: ""
 #
 network_points:
   - device: "{{ interface }}"
