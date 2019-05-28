@@ -10,7 +10,32 @@
 - name: DEBUG - List imported variables
   debug:
     msg: "{{ ports }}"
+    
+#Enable and Start firewall
+- name: Enable firewall on clients
+  command: "systemctl enable firewalld"
+  
+- name: Start firewall service
+  command: "systemctl start firewalld"
 
+#Check State of Firewall (Running/not Running)
+- name: Check status of firewall
+  command: "firewall-cmd --state"
+  register: host_firewall_status
+  ignore_errors: yes
+  become: yes
+
+- name: DEBUG - Print success status of host firewall
+  debug:
+    msg: "Firewall Running"
+  when: host_firewall_status.stdout == 'running'  
+
+- name: DEBUG - Print fail status if firewall not enbaled
+  debug:
+    msg: "Firewall Not Enabled"
+  when: host_firewall_status.stderr == 'not running'
+
+#Open Ports
 - name: Open Ports for Spectrum Conductor 
   firewalld:
     port: "{{ item }}"
