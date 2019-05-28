@@ -1111,7 +1111,7 @@ class software(object):
             # if not exists or ch == 'F':
             url = repo.get_repo_url(baseurl, alt_url, contains=['free', 'linux',
                                     f'{self.arch}'], excludes=['noarch', 'main'],
-                                    filelist=['cython-*'])
+                                    filelist=['redis-*'])
             if url:
                 if not url == baseurl:
                     self.sw_vars[f'{name}-alt-url'] = url
