@@ -52,7 +52,7 @@
   mount:
     path: "{{ item.item.path }}"
     src : "{{ item.item.src }}"
-    fstype: "{{ item.item.fstype }}"
+    fstype: "{{ item.item.fstype | default(omit) }}"
     opts: "{{ item.item.opts | default(omit) }}"
     state: "{{ item.item.state }}"
   with_items: "{{ mount_points_paths.results }}"

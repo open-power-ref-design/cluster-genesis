@@ -35,7 +35,6 @@ from getpass import getpass
 import pwd
 import grp
 import click
-
 import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
     PowerupAnaRepoFromRepo, PowerupRepoFromRpm, setup_source_file, \
@@ -53,6 +52,10 @@ ENVIRONMENT_VARS = {
     "DEFAULT_GATHER_TIMEOUT": "10",
     "ANSIBLE_GATHER_TIMEOUT": "10"
 }
+
+FILE_TASK = "file.yml"
+MOUNT_TASK = "mount.yml"
+LOG = logger.getlogger()
 
 
 class software(object):
@@ -1626,9 +1629,69 @@ class software(object):
                            f'rc: {_rc} err: {err}')
         return rc
 
+    def get_nfs_info_from_user(self, interface=None):
+        ipquery = 'Enter a ip or hostname of nfs server: '
+        pathquery = 'Enter a path to client directory: '
+        srcquery = 'Enter a path of server directory: '
+
+        if interface is None:
+            ret = 1
+            retries = 0
+            while ret != 0 and retries < 3:
+                ip = input(ipquery)
+                ret = os.system('ping -c 1 ' + ip + " > /dev/null 2>&1")
+                if ret != 0:
+                    self.log.error("No route to host " + ip)
+                    retries = retries + 1
+            if ret == 0:
+                path = input(pathquery)
+                src = input(srcquery)
+            else:
+                return None, None, None
+        # different interface
+        return ip, path, src
+
+    def write_nfs_info_to_file(self, ip, path, src):
+        swvars = GEN_SOFTWARE_PATH + self.sw_vars_file_name
+        mount_args = [{'path': path, 'state': 'mounted',
+                       "src": ip + ":" + src, "fstype": "nfs"}]
+        file_points = [{'group': "nfsnobody", 'mode': 'u=rwx,g=rx,o=rx',
+                        "owner": "nfsnobody", 'path': path, "state": "directory"}]
+        write_to_yaml(mount_args, 'mount_points', swvars)
+        write_to_yaml(file_points, 'file_points', swvars)
+
+    def get_info_from_user(self):
+        ip, path, src = self.get_nfs_info_from_user()
+        if ip is not None:
+            self.write_nfs_info_to_file(ip, path, src)
+            return True
+        else:
+            self.log.error("Failed to get information from user ... ")
+            return False
+
+    def do_run_nfs_client(self):
+        # create directory to be mounted
+        if not self.get_info_from_user():
+            return True
+        rc = self._run_ansible_tasks(FILE_TASK)
+        if rc != 0:
+            self.log.error("Unable to create directories ... ")
+            return rc
+        # run mounted on file
+        rc = self._run_ansible_tasks(MOUNT_TASK)
+        if rc != 0:
+            self.log.error("Unable to mount directories ... ")
+            return rc
+        return rc
+
+    def run_nfs_client(self, interface=None):
+        if interface is None:
+            if get_yesno('Run nfs client configuration on cluster nodes '):
+                if self.do_run_nfs_client():
+                    self.log.error("Unable to create nfs clients")
+
     def init_clients(self):
         log = logger.getlogger()
-
         print(bold(f'\n\n\n  Initializing clients for install from  Repository : '
               f'{self.repo_shortname}'))
         print(bold(f'  Architecture: {self.arch}'))
@@ -1664,6 +1727,10 @@ class software(object):
         elif self.sw_vars['ansible_become_pass'] is None:
             cmd += '--ask-become-pass '
             prompt_msg = "\nClient password required for privilege escalation"
+
+        self.prep_post()  # write sudo password to swvars
+        self.run_nfs_client()
+
         # Verification Loop
         if get_yesno('Run configuration verification checks on cluster nodes '):
             specific_arch = "_" + self.arch if self.arch == 'x86_64' else ""
@@ -1680,7 +1747,6 @@ class software(object):
             print("\n   *** Validation Status ***\n")
             for key, val in validation_status.items():
                 print(f'{key} = {val}')
-
 
             print('\nVerification Completed\n')
         # Validate end
@@ -2138,7 +2204,7 @@ class software(object):
                     sys.exit('Exiting')
             else:
                 self.v_status = "Completed"
-                log.info("Ansible tasks ran successfully")
+                log.info("Ansible tasks completed.")
                 run = False
         return rc
 
@@ -2294,6 +2360,29 @@ def _set_spectrum_conductor_install_env(ansible_inventory, package, ana_ver=None
 
     print(f'Spectrum Conductor {package} configuration variables successfully '
           'loaded\n')
+
+
+def load_yamlfile(yamlfile):
+    try:
+        LOG.debug(yamlfile)
+        yaml_file = yaml.full_load(open(yamlfile, 'r'))
+    except yaml.YAMLError as e:
+        LOG.error("unable to open file: {0}\n error: {1}".format(yamlfile, e))
+        raise e
+    return yaml_file
+
+
+def write_to_yaml(data, data_key, filename_path):
+    # load yaml file
+    yamlvars = load_yamlfile(filename_path)
+    LOG.debug(yaml.dump(data, indent=4, default_flow_style=False))
+    if yamlvars is None:
+        LOG.warning("Found empty file at " + filename_path)
+        yamlvars = {}
+    # write to yaml file
+    yamlvars[data_key] = data
+    with open(f'{filename_path}', 'w') as f:
+        yaml.dump(yamlvars, f, default_flow_style=False)
 
 
 if __name__ == '__main__':
