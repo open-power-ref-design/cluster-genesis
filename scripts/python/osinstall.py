@@ -456,6 +456,7 @@ class Profile():
     def __init__(self, prof_path='profile-template.yml'):
         profile_template_path = os.path.join(GEN_SAMPLE_CONFIGS_PATH,
                                              'profile-template.yml')
+
         def _update_profile():
             """Converts a pre version 1.0 (version-less) profile.yml file into
             a version 1.0 profile.
@@ -852,9 +853,9 @@ class OSinstall(npyscreen.NPSAppManaged):
                 fields[field].values = ifc
                 fields[field].value = idx
 
-    def hide_if_phys_ifc(self, ifc_field, subnet_field, subnet_prefix_field,
+    def show_if_phys_ifc(self, ifc_field, subnet_field, subnet_prefix_field,
                          field, fields, form):
-        """ Hides a field specified by field, unless the interface specified
+        """ show a field specified by field, if the interface specified
         in the ifc field value is a physical interface and the subnet
         specified in subnet does not have an existing route out of the box.
         Args:

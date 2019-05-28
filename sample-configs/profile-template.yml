@@ -36,7 +36,7 @@ network:
         dtype: int-or-none2-4094
         hidden: True
         smart_update:
-            hide_if_phys_ifc:
+            show_if_phys_ifc:
                 - bmc_ethernet_ifc
                 - bmc_subnet
                 - bmc_subnet_prefix
@@ -100,7 +100,7 @@ network:
         hidden: True
         floc: skipline
         smart_update:
-            hide_if_phys_ifc:
+            show_if_phys_ifc:
                 - pxe_ethernet_ifc
                 - pxe_subnet
                 - pxe_subnet_prefix
