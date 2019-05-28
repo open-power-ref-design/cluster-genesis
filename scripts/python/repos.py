@@ -641,6 +641,9 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
         else:
             repo_dir = os.path.join(self.anarepo_dir, f'linux-{self.arch}')
 
+        if not os.path.isdir(repo_dir):
+            return 0, 0, 0, 0
+
         filelist = os.listdir(repo_dir)
         filelist = [fi for fi in filelist if fi[-8:] == '.tar.bz2']
         files_vers = parse_conda_filenames(filelist)
