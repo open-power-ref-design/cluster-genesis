@@ -61,7 +61,9 @@ _pup()
             COMPREPLY=( $( compgen -W "${files[@]}" -- ${cur} ) )
         else
             opts="--prep --init-clients --install --status --README --eval \
-                  --non-interactive --engr-mode"
+                  --non-interactive --bundle-to --extract-from \
+                  --download-install-deps --arch --base-dir --step \
+                  --proc-family --engr-mode --public --run_ansible_task"
             opts+="$comm_opts"
             COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         fi
@@ -103,7 +105,7 @@ _pup()
         opts+="--lookup-interface-names"
         opts="$opts""$comm_opts"
     elif [[ ${prev} == utils ]]; then
-        opts="--scan-pxe-network --scan-ipmi-network"
+        opts="--scan-pxe-network --scan-ipmi-network --download-install-deps"
     elif [[ ${cur} == -* ]]; then
         opts+="$comm_opts"
     fi

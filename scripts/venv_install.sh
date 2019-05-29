@@ -17,9 +17,18 @@
 
 set -e
 
-python3.6 -m venv ${1}pup-venv
-source ${1}pup-venv/bin/activate
-python3.6 -m pip install --upgrade pip
-python3.6 -m pip install --upgrade setuptools==40.0.0
-python3.6 -m pip install -r ${1}requirements.txt
+PIP_SOURCE=""
+INSTALL_DIR=""
+while getopts d:p: option; do
+    case "${option}" in
+        d) INSTALL_DIR="${OPTARG}";;
+        p) PIP_SOURCE="--no-index --find-links=file://${OPTARG} ";;
+    esac
+done
+
+python3.6 -m venv ${INSTALL_DIR}pup-venv
+source ${INSTALL_DIR}pup-venv/bin/activate
+python3.6 -m pip install $PIP_SOURCE --upgrade pip
+python3.6 -m pip install $PIP_SOURCE --upgrade setuptools==41.1.0
+python3.6 -m pip install $PIP_SOURCE -r ${INSTALL_DIR}requirements.txt
 deactivate

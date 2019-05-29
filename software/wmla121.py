@@ -48,6 +48,7 @@ from lib.utilities import sub_proc_display, sub_proc_exec, heading1, Color, \
 from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path, \
     get_playbooks_path, get_nginx_root_dir, get_venv_path, get_python_path, get_scripts_path, PYTHON_EXE
 from nginx_setup import nginx_setup
+import download_install_deps
 
 ENVIRONMENT_VARS = {
     "ANSIBLE_CONFIG": str(get_playbooks_path()) + "/" + "ansible.cfg",  # this probably should be different
@@ -266,6 +267,8 @@ class software(object):
         return ret
 
     def status(self, which='all'):
+        self._setup_firewall(silent=True)
+        self._setup_nginx_server(silent=True)
         rc = True
         self._update_software_vars()
         if which == 'all':
@@ -460,6 +463,7 @@ class software(object):
 
         def nginx_status(which):
             rc = True
+            self.chcon_srv()
             if self._is_nginx_running():
                 temp_dir = 'nginx-test-dir-123'
                 abs_temp_dir = os.path.join(self.root_dir_nginx, temp_dir)
@@ -549,9 +553,10 @@ class software(object):
             return True
         return False
 
-    def _setup_firewall(self, eval_ver=False, non_int=False):
+    def _setup_firewall(self, eval_ver=False, non_int=False, silent=False):
         if self._is_firewall_running():
-            heading1('Configuring firewall to enable http')
+            if not silent:
+                heading1('Configuring firewall to enable http')
             fw_err = 0
             cmd = 'firewall-cmd --permanent --add-service=http'
             resp, err, rc = sub_proc_exec(cmd)
@@ -566,11 +571,12 @@ class software(object):
                 self.log.error('Error attempting to restart firewall')
 
             self.status_prep(which='Firewall')
-            if self.state['Firewall'] == '-':
-                self.log.info('Failed to configure firewall')
-            else:
-                self.log.info(self.state['Firewall'])
-        else:
+            if not silent:
+                if self.state['Firewall'] == '-':
+                    self.log.info('Failed to configure firewall')
+                else:
+                    self.log.info(self.state['Firewall'])
+        elif not silent:
             self.log.debug('Firewall is not running')
             print()
             self.log.info(bold('The firewall is not enabled.\n'))
@@ -579,9 +585,10 @@ class software(object):
                 self.log.info('Exiting at user request')
                 sys.exit()
 
-    def _setup_nginx_server(self, eval_ver=False, non_int=False):
+    def _setup_nginx_server(self, eval_ver=False, non_int=False, silent=False):
         # nginx setup
-        heading1('Set up Nginx')
+        if not silent:
+            heading1('Set up Nginx')
 
         # if not self._is_nginx_running():
         nginx_setup(root_dir=self.root_dir_nginx, repo_id='nginx')
@@ -592,10 +599,11 @@ class software(object):
             sys.exit()
 
         self.status_prep(which='Nginx Web Server')
-        if self.state['Nginx Web Server'] == '-':
-            self.log.info('nginx web server is not running')
-        else:
-            self.log.info(self.state['Nginx Web Server'])
+        if not silent:
+            if self.state['Nginx Web Server'] == '-':
+                self.log.info('nginx web server is not running')
+            else:
+                self.log.info(self.state['Nginx Web Server'])
 
     def create_cuda_drv_repo(self, eval_ver=False, non_int=False):
         # Setup repository for cuda packages. The Cuda public repo is enabled
@@ -1497,9 +1505,11 @@ class software(object):
 
     def chcon_srv(self):
         # Set SELinux context on all repo files
-        cmd = f'chcon -Rv --type=httpd_sys_content_t {self.root_dir}'
-        resp, err, rc = sub_proc_exec(cmd)
-        if rc != 0:
+        cmd = f'chcon -Rv --type=httpd_sys_content_t {self.root_dir}/..'
+        resp, err, rc_1 = sub_proc_exec(cmd)
+        cmd = f'setsebool -P httpd_can_network_connect on'
+        resp, err, rc_2 = sub_proc_exec(cmd)
+        if rc_1 != 0 or rc_2 != 0:
             self.log.error('An error occurred while setting access \n'
                            f'permissions for directory '
                            f'{self.root_dir_nginx}.\n'
@@ -2302,6 +2312,14 @@ class software(object):
                 log.info("Ansible tasks ran successfully")
                 run = False
         return rc
+
+    def download_install_deps(self):
+        heading1('Set up POWER-Up pip install dependencies repo\n')
+        download_install_deps.create_pip_install_repo(self.root_dir, self.arch)
+        heading1('Set up POWER-Up yum install dependencies repo\n')
+        download_install_deps.create_yum_install_repo(self.root_dir, self.arch)
+        heading1('Set up POWER-Up install repo mirror\n')
+        download_install_deps.create_pup_repo_mirror(self.root_dir)
 
 
 def _interactive_anaconda_license_accept(ansible_inventory, ana_path,

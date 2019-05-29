@@ -67,6 +67,10 @@ DHCP_POOL_START = 21
 SWITCH_LOCK_PATH = '/var/lock/'
 OS_IMAGES_URLS_FILENAME = 'os-image-urls.yml'
 DOCKERFILE = 'Dockerfile'
+PY_REQUIREMENTS = 'requirements.txt'
+YUM_REQUIREMENTS = 'yum-requirements.txt'
+YUM_DEPENDS = 'yum-depends.txt'
+GITHUB_URL = 'https://github.com/ibm/power-up'
 
 
 class Color:
@@ -330,3 +334,19 @@ def get_dockerfile_path():
 if os.path.isfile(GEN_PATH + "playbooks/host_vars/localhost"):
     localhost_content = load_localhost(GEN_PATH + "playbooks/host_vars/localhost")
     container_name = localhost_content['container_name']
+
+
+def get_python_requirements_path():
+    return os.path.join(GEN_PATH, PY_REQUIREMENTS)
+
+
+def get_yum_requirements_path():
+    return os.path.join(GEN_PATH, YUM_REQUIREMENTS)
+
+
+def get_yum_depends_path():
+    return os.path.join(GEN_PATH, YUM_DEPENDS)
+
+
+def get_github_url():
+    return GITHUB_URL

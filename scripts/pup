@@ -45,6 +45,11 @@ if [[ "$1" == "validate" ]] && [[ "$2" == "--cluster-hardware" ]]; then
     exit
 fi
 
+if [[ "$1" == "utils" ]] && [[ "$2" == "--download-install-deps" ]]; then
+    sudo env "PATH=$PATH" gen.py $@
+    exit
+fi
+
 if [[ "$1" == "deploy" ]] && ([[ "$2" == "-a" ]] || [[ "$2" == "--all" ]] || \
             [[ "$2" == "-p" ]] || [[ "$2" == "-f" ]] || [ -z "$2" ] || \
             [[ "$2" != "-"* ]] || [[ "$2" == "--extra-vars" ]]); then

@@ -401,7 +401,7 @@ def sub_proc_launch(cmd, stdout=PIPE, stderr=PIPE):
     This is non blocking. This is useful for long running processes.
     """
     log = logger.getlogger()
-    log.debug(f"cmd='{cmd}' stdout='{stdout}' stderr='{stderr}'")
+    log.debug(f"sub_proc_launch cmd='{cmd}' stdout='{stdout}' stderr='{stderr}'")
     proc = Popen(cmd.split(), stdout=stdout, stderr=stderr)
     return proc
 
@@ -412,7 +412,7 @@ def sub_proc_exec(cmd, stdout=PIPE, stderr=PIPE, shell=False, env=None):
     This is blocking
     """
     log = logger.getlogger()
-    log.debug(f"cmd='{cmd}' stdout='{stdout}' stderr='{stderr}' "
+    log.debug(f"sub_proc_exec cmd='{cmd}' stdout='{stdout}' stderr='{stderr}' "
               f"shell='{shell}' env='{env}'")
     if not shell:
         cmd = cmd.split()
@@ -426,7 +426,7 @@ def sub_proc_exec(cmd, stdout=PIPE, stderr=PIPE, shell=False, env=None):
         stderr = stderr.decode('utf-8')
     except AttributeError:
         pass
-    log.debug(f"results: stdout='{stdout}' stderr='{stderr}' "
+    log.debug(f"sub_proc_exec stdout='{stdout}' stderr='{stderr}' "
               f"rc='{proc.returncode}'")
     return stdout, stderr, proc.returncode
 
@@ -436,14 +436,14 @@ def sub_proc_display(cmd, stdout=None, stderr=None, shell=False, env=None):
     to the parent screen. This is a blocking function.
     """
     log = logger.getlogger()
-    log.debug(f"cmd='{cmd}' stdout='{stdout}' stderr='{stderr}' "
-              f"shell='{shell}' env='{env}'")
+    log.debug(f"sub_proc_display cmd='{cmd}' stdout='{stdout}' "
+              f"stderr='{stderr}' shell='{shell}' env='{env}'")
     if not shell:
         cmd = cmd.split()
     proc = Popen(cmd, stdout=stdout, stderr=stderr, shell=shell, env=env)
     proc.wait()
     rc = proc.returncode
-    log.debug(f"results: rc='{rc}'")
+    log.debug(f"sub_proc_display rc='{rc}'")
     return rc
 
 
@@ -1880,3 +1880,53 @@ def lscpu():
         split = line.split(':', 1)
         lscpu_dict[split[0].strip()] = split[1].strip()
     return lscpu_dict
+
+
+def load_package_list_from_file(file_path):
+    """ Read and format software package list from file
+
+    Each software package should be listed on a separate line. This
+    function is designed to process output from
+    'pip list --format freeze' or lists of yum packages.
+
+    Args:
+        file_path (str): Path to package list text file
+
+    Returns:
+        str: List of packages separated by single spaces
+    """
+    pkg_list = ''
+    with open(file_path) as file_object:
+        for line in file_object:
+            pkg_list += f' {line.rstrip()}'
+    return pkg_list.lstrip()
+
+
+def get_and_create_dir(path=None):
+    """ Prompt for dir path and create it if needed
+
+    Prompt loops until valid path is entered.
+
+    Args:
+        path (str, optional): Text pre-loaded into prompt. If 'None' it
+                              is set to current working dir.
+
+    Returns:
+        str: Validated directory path
+    """
+    if path is None:
+        path = os.getcwd()
+
+    while True:
+        path = rlinput('Enter an absolute directory location: ', path)
+        if os.path.exists(path):
+            if os.path.isdir(path):
+                return path
+            else:
+                print(f"'{path}' is not a directory!")
+        elif get_yesno(f"'{path}' does not exist, create it? ", default='y'):
+            try:
+                os.makedirs(path)
+                return path
+            except OSError as exc:
+                print(f"Error: Failed to create '{path}' - {exc}")

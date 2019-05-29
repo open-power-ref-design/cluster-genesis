@@ -24,6 +24,9 @@ import os
 import tempfile
 import time
 from setuptools.archive_util import unpack_tarfile
+from os import getlogin
+import pwd
+import grp
 
 
 PAIE_SRV = "/srv/"
@@ -331,6 +334,13 @@ def archive(args):
         finally:
             if fileobj is not None:
                 fileobj.close()
+            user_name = getlogin()
+            if user_name != 'root':
+                user_uid = pwd.getpwnam(user_name).pw_uid
+                user_gid = grp.getgrnam(user_name).gr_gid
+                os.chown(filename, user_uid, user_gid)
+                os.chmod(filename, 0o644)
+
     except KeyboardInterrupt as e:
         try:
             os.unlink(fileobj.name)

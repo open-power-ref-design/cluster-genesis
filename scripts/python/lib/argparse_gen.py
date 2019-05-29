@@ -402,13 +402,19 @@ def get_args(parser_args=False):
         help='Run all software prep and install steps')
 
     parser_software.add_argument(
-        '--bundle_to',
+        '--bundle-to',
         nargs=1,
         help="Bundle repos and software directory")
+
     parser_software.add_argument(
-        '--extract_from',
+        '--extract-from',
         nargs=1,
         help="Extract bundled repos and software directory")
+
+    parser_software.add_argument(
+        '--download-install-deps',
+        action='store_true',
+        help='Download install dependencies into local repo')
 
     parser_software.add_argument(
         '--arch',
@@ -480,12 +486,17 @@ def get_args(parser_args=False):
         help='Config file name. Specify relative to the power-up directory.')
 
     parser_utils.add_argument(
-        '--bundle_from',
+        '--download-install-deps',
+        action='store_true',
+        help='Download install dependencies into local repo')
+
+    parser_utils.add_argument(
+        '--bundle-from',
         nargs=1,
         help="Extract bundled repos and software directory")
 
     parser_utils.add_argument(
-        '--bundle_to',
+        '--bundle-to',
         nargs=1,
         help="Bundle repos and software directory")
 
@@ -559,21 +570,26 @@ def _check_software(args, subparser):
     if not args.prep and not args.install and not args.name and not args.README \
             and not args.init_clients and not args.all and not args.extract_from and not args.bundle_to:
         subparser.error('one of the arguments --about --prep --status --eval'
-                        '--init-clients --install --non-interactive -a/--all --bundle_to --extract_from'
+                        '--init-clients --install --non-interactive -a/--all '
+                        '--download-install-deps --bundle-to --extract-from '
                         'plus a software installer module name is required')
 
 
 def _check_utils(args, subparser):
     if not args.scan_pxe_network and not args.scan_ipmi_network \
-            and not args.bundle_to and not args.bundle_from:
+            and not args.download_install_deps and not args.bundle_to \
+            and not args.bundle_from:
+        subparser.error('one of the arguments --scan-pxe-network '
+                        '--scan-ipmi-network --download-install-deps '
+                        '--bundle-to --bundle-from is required')
+    elif not args.scan_pxe_network and not args.scan_ipmi_network \
+            and args.bundle_to and not args.bundle_from:
         subparser.error(
-            'one of the arguments --scan-pxe-network --scan-ipmi-network --bundle_to --bundle_from is required')
-    elif not args.scan_pxe_network and not args.scan_ipmi_network and args.bundle_to and not args.bundle_from:
+            'argument --bundle-to requires --bundle-from')
+    elif not args.scan_pxe_network and not args.scan_ipmi_network \
+            and args.bundle_from and not args.bundle_to:
         subparser.error(
-            'argument --bundle_to requires --bundle_from')
-    elif not args.scan_pxe_network and not args.scan_ipmi_network and args.bundle_from and not args.bundle_to:
-        subparser.error(
-            'argument --bundle_from requires --bundle_to')
+            'argument --bundle-from requires --bundle-to')
 
 
 def is_arg_present(arg):

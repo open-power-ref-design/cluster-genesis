@@ -96,14 +96,14 @@ packages and binaries and syncs any specified repositories to the POWER-Up node.
 nginx web server is installed and software is moved to the /srv directory and made available via the web server. The install phase creates linkages on the client nodes to repositories
 on the POWER-Up node and then installs and configures the software.
 
-After software is installed in /srv/ or directory associated with the software dependent package. The software can be archived 
+After software is installed in /srv/ or directory associated with the software dependent package. The software can be archived
 by using this command::
-   
-   pup software <software>.py --bundle_to "/path/to/directory/"
 
-This will take some time depending on size of directory and will produce a tarfile 
+   pup software <software>.py --bundle-to "/path/to/directory/"
+
+This will take some time depending on size of directory and will produce a tarfile
 so it can be stored in a device or transferred to other operating system::
-    
+
    INFO - /tmp/srv/tmp8cut_euk
    INFO - not compressing
    INFO - archiving /srv/ to /tmp/srv/tmp8cut_euk
@@ -115,7 +115,7 @@ To extract tar file simply use linux command::
 
 if pup software is installed run command on deployment node::
 
-   pup software  <software>.py --extract_from /path/to/your/tarfile/tmp8cut_euk
+   pup software  <software>.py --extract-from /path/to/your/tarfile/tmp8cut_euk
 
 this will extract software to assigned pup software directory as described in the <software>.py file
 
@@ -128,5 +128,5 @@ POWER-Up provides utility functions to be used on deployer node.
 
 To archive a software directory::
 
-   pup utils <config-file>.yml --bundle_to "/tmp/srv" --bundle_from "/srv/"
+   pup utils <config-file>.yml --bundle-to "/tmp/srv" --bundle-from "/srv/"
 

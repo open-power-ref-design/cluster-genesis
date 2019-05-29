@@ -201,12 +201,22 @@ class PowerupRepo(object):
         self.rhel_ver = str(rhel_ver)
         self.repo_base_dir = repo_base_dir  # '/srv'
         if self.repo_id in ('dependencies', 'rhel-common', 'rhel-optional',
-                            'rhel-supplemental', 'rhel-extras'):
-            self.yumrepo_dir = (f'{self.repo_base_dir}repos/{self.repo_id}/rhel'
-                                f'{self.rhel_ver}/{self.proc_family}/{self.repo_id}')
+                            'rhel-supplemental', 'rhel-extras',
+                            'pup_install_yum'):
+            self.yumrepo_dir = os.path.join(self.repo_base_dir,
+                                            'repos',
+                                            self.repo_id,
+                                            'rhel',
+                                            self.rhel_ver,
+                                            self.proc_family,
+                                            self.repo_id)
         else:
-            self.yumrepo_dir = (f'{self.repo_base_dir}repos/{self.repo_id}/rhel'
-                                f'{self.rhel_ver}/{self.repo_id}')
+            self.yumrepo_dir = os.path.join(self.repo_base_dir,
+                                            'repos',
+                                            self.repo_id,
+                                            'rhel',
+                                            self.rhel_ver,
+                                            self.repo_id)
         self.log = logger.getlogger()
 
     def get_repo_dir(self):
@@ -858,7 +868,8 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
         super(PowerupPypiRepoFromRepo, self).__init__(repo_id, repo_name,
                                                       repo_base_dir, arch, rhel_ver)
         self.repo_type = 'pypi'
-        self.pypirepo_dir = f'{self.repo_base_dir}repos/{self.repo_id}'
+        self.pypirepo_dir = os.path.join(self.repo_base_dir, 'repos',
+                                         self.repo_id)
 
     def get_repo_dir(self):
         return self.pypirepo_dir
@@ -1119,6 +1130,38 @@ class PowerupRepoFromDir(PowerupRepo):
 #                                   'gpgcheck=0\n')
 #            if dot_repo not in self.sw_vars['yum_powerup_repo_files']:
 #                self.sw_vars['yum_powerup_repo_files'].append(dot_repo)
+
+
+class PowerupYumRepoFromRepoList(PowerupRepo):
+    """Sets up a local yum repository of specified packages downloaded
+    from any enabled repository.
+    """
+
+    def __init__(self, repo_id, repo_name, repo_base_dir, arch='ppc64le',
+                 proc_family='family', rhel_ver='7'):
+        super(PowerupYumRepoFromRepoList, self).__init__(repo_id,
+                                                         repo_name,
+                                                         repo_base_dir,
+                                                         arch,
+                                                         proc_family,
+                                                         rhel_ver)
+
+    def sync(self, pkg_list):
+        """
+        Args:
+            pkg_list (str): List of packages separated by single spaces.
+                            Packages can include versions
+                            (e.g. Keras==2.0.5).
+        """
+        self.log.info(f'Syncing {self.repo_name}')
+        cmd = (f'sudo yumdownloader --resolve --archlist={self.arch} '
+               f'--destdir {self.yumrepo_dir} {pkg_list}')
+        rc = sub_proc_display(cmd)
+        if rc != 0:
+            self.log.error(bold(f'\nFailed {self.repo_name} repo sync. {rc}'))
+            raise UserException
+        else:
+            self.log.info(f'{self.repo_name} sync finished successfully')
 
 
 if __name__ == '__main__':

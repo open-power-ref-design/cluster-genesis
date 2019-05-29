@@ -26,6 +26,49 @@ from lib.utilities import sub_proc_exec, nginx_modify_conf, line_in_file
 from repos import PowerupRepo
 
 
+def setup_nginx_yum_repo(root_dir='/srv', repo_id='nginx'):
+    """Install and setup nginx http server
+
+    Args:
+        root_dir (str): Path to root directory for requests
+        repo_id (str): Name of nginx yum repository
+
+    Returns:
+        int: Return code from 'yum makecache'
+    """
+
+    log = logger.getlogger()
+
+    baseurl = 'http://nginx.org/packages/rhel/7/' + platform.machine()
+    repo_file = os.path.join('/etc/yum.repos.d', repo_id + '.repo')
+
+    if os.path.isfile(repo_file):
+        with open(repo_file, 'r') as f:
+            content = f.read()
+        if baseurl in content:
+            rc = 0
+        else:
+            line_in_file(repo_file, r'^baseurl=.+', f'baseurl={baseurl}')
+            for cmd in ['yum clean all', 'yum makecache']:
+                resp, err, rc = sub_proc_exec(cmd)
+                if rc != 0:
+                    log.error(f"A problem occured while running '{cmd}'")
+                    log.error(f'Response: {resp}\nError: {err}\nRC: {rc}')
+    else:
+        repo_name = 'nginx.org public'
+        repo = PowerupRepo(repo_id, repo_name, root_dir)
+        content = repo.get_yum_dotrepo_content(baseurl, gpgcheck=0)
+        repo.write_yum_dot_repo_file(content)
+        cmd = 'yum makecache'
+        resp, err, rc = sub_proc_exec(cmd)
+        if rc != 0:
+            log.error('A problem occured while creating the yum '
+                      'caches')
+            log.error(f'Response: {resp}\nError: {err}\nRC: {rc}')
+
+    return rc
+
+
 def nginx_setup(root_dir='/srv', repo_id='nginx'):
     """Install and setup nginx http server
 
@@ -39,49 +82,28 @@ def nginx_setup(root_dir='/srv', repo_id='nginx'):
 
     log = logger.getlogger()
 
-    if 'rhel' in linux_distribution(full_distribution_name=False):
-        baseurl = 'http://nginx.org/packages/rhel/7/' + platform.machine()
-        repo_file = os.path.join('/etc/yum.repos.d', repo_id + '.repo')
-
-        if os.path.isfile(repo_file):
-            with open(repo_file, 'r') as f:
-                content = f.read()
-            if baseurl not in content:
-                line_in_file(repo_file, r'^baseurl=.+', f'baseurl={baseurl}')
-                for cmd in ['yum clean all', 'yum makecache']:
-                    resp, err, rc = sub_proc_exec(cmd)
-                    if rc != 0:
-                        log.error(f"A problem occured while running '{cmd}'")
-                        log.error(f'Response: {resp}\nError: {err}\nRC: {rc}')
-        else:
-            repo_name = 'nginx.org public'
-            repo = PowerupRepo(repo_id, repo_name, root_dir)
-            content = repo.get_yum_dotrepo_content(baseurl, gpgcheck=0)
-            repo.write_yum_dot_repo_file(content)
-            cmd = 'yum makecache'
-            resp, err, rc = sub_proc_exec(cmd)
-            if rc != 0:
-                log.error('A problem occured while creating the yum '
-                          'caches')
-                log.error(f'Response: {resp}\nError: {err}\nRC: {rc}')
-    elif 'ubuntu' in linux_distribution(full_distribution_name=False):
-        for cmd in ['apt-get update', 'apt-get install -y nginx']:
-            resp, err, rc = sub_proc_exec(cmd)
-            if rc != 0:
-                log.error(f"A problem occured while running '{cmd}'")
-                log.error(f'Response: {resp}\nError: {err}\nRC: {rc}')
-
     # Check if nginx installed. Install if necessary.
     cmd = 'nginx -v'
     try:
         resp, err, rc = sub_proc_exec(cmd)
     except OSError:
-        cmd = 'yum -y install nginx'
-        resp, err, rc = sub_proc_exec(cmd)
-        if rc != 0:
-            log.error('Failed installing nginx')
-            log.error(resp)
-            sys.exit(1)
+        if 'rhel' in linux_distribution(full_distribution_name=False):
+            cmd = 'yum -y install nginx'
+            resp, err, rc = sub_proc_exec(cmd)
+            if rc != 0:
+                setup_nginx_yum_repo(root_dir, repo_id)
+                cmd = 'yum -y install nginx'
+                resp, err, rc = sub_proc_exec(cmd)
+                if rc != 0:
+                    log.error('Failed installing nginx')
+                    log.error(resp)
+                    sys.exit(1)
+        elif 'ubuntu' in linux_distribution(full_distribution_name=False):
+            for cmd in ['apt-get update', 'apt-get install -y nginx']:
+                resp, err, rc = sub_proc_exec(cmd)
+                if rc != 0:
+                    log.error(f"A problem occured while running '{cmd}'")
+                    log.error(f'Response: {resp}\nError: {err}\nRC: {rc}')
 
     cmd = 'systemctl enable nginx.service'
     resp, err, rc = sub_proc_exec(cmd)

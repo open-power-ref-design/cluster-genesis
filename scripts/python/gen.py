@@ -22,14 +22,16 @@ import os
 import sys
 import getpass
 from subprocess import Popen, PIPE
+from platform import machine
 
 import enable_deployer_networks
 import enable_deployer_gateway
+import download_install_deps
 import validate_cluster_hardware
 import configure_mgmt_switches
 import osinstall
 import remove_client_host_keys
-from lib.utilities import scan_ping_network, sub_proc_exec
+from lib.utilities import scan_ping_network, sub_proc_exec, get_and_create_dir
 import download_os_images
 import lib.argparse_gen as argparse_gen
 import lib.logger as logger
@@ -132,6 +134,16 @@ class Gen(object):
                   format(COL.yellow, exc, COL.endc))
         else:
             print('Successfully completed PXE network gateway setup\n')
+
+    def _download_install_deps(self):
+        print(COL.scroll_ten, COL.up_ten)
+        print('{}Downloading installation dependencies{}\n'.
+              format(COL.header1, COL.endc))
+        arch = machine()
+        repo_base_dir = get_and_create_dir('/srv/pup')
+        download_install_deps.create_pip_install_repo(repo_base_dir, arch=arch)
+        download_install_deps.create_yum_install_repo(repo_base_dir, arch=arch)
+        download_install_deps.create_pup_repo_mirror(repo_base_dir)
 
     def _create_container(self):
         print(COL.scroll_ten, COL.up_ten)
@@ -760,7 +772,11 @@ class Gen(object):
                     argparse_gen.is_arg_present(self.args.init_clients) and not \
                     argparse_gen.is_arg_present(self.args.install) and not \
                     argparse_gen.is_arg_present(self.args.README) and not \
-                    argparse_gen.is_arg_present(self.args.status):
+                    argparse_gen.is_arg_present(self.args.status) and not \
+                    argparse_gen.is_arg_present(self.args.bundle_to) and not \
+                    argparse_gen.is_arg_present(self.args.extract_from) and not \
+                    argparse_gen.is_arg_present(self.args.extract_from) and not \
+                    argparse_gen.is_arg_present(self.args.download_install_deps):
                 self.args.all = True
             if self.args.bundle_to or self.args.extract_from:
                 self.args.all = False
@@ -905,11 +921,16 @@ class Gen(object):
                     print(exc)
                     print('No "status" information available')
 
+            if self.args.download_install_deps:
+                soft.download_install_deps()
+
         if cmd == argparse_gen.Cmd.UTIL.value:
             if self.args.scan_pxe_network:
                 self._scan_pxe_network()
             if self.args.scan_ipmi_network:
                 self._scan_ipmi_network()
+            if self.args.download_install_deps:
+                self._download_install_deps()
             if self.args.bundle_to or self.args.bundle_from:
                 self._bundle(self.args.bundle_from[0])
 

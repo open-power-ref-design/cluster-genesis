@@ -35,6 +35,7 @@ Welcome to POWER-Up User's Guide documentation!
    Run-Software-Install
    Creating-Software-Install-Modules
    Running-paie
+   WMLA-Airgap-Install
    Config-Specification
    Inventory-Specification
    Multi-Tenant
