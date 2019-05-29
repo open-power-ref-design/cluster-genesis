@@ -12,14 +12,14 @@
 
 - name: Download license rpm
   get_url:
-    owner: "{{ ansible_ssh_user }}"
-    group: "{{ ansible_ssh_user }}"
+    owner: "{{ ansible_user_id }}"
+    group: "{{ ansible_user_id }}"
     mode: 0744
     url: "http://{{ host_ip.stdout }}/poweraie-license/{{ file }}"
-    dest: "$HOME"
+    dest: "{{ ansible_env.HOME }}"
 
 - name: Install powerai-enterprise-license
   yum:
-    name: "$HOME/{{ file }}"
+    name: "{{ ansible_env.HOME }}/{{ file }}"
     state: present
   become: yes

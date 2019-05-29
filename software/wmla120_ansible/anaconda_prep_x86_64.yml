@@ -12,9 +12,9 @@
 
 - name: Download Anaconda
   get_url:
-    owner: "{{ ansible_ssh_user }}"
-    group: "{{ ansible_ssh_user }}"
+    owner: "{{ ansible_user_id }}"
+    group: "{{ ansible_user_id }}"
     mode: 0744
     checksum: md5:c9af603d89656bc89680889ef1f92623.
     url: "http://{{ host_ip.stdout }}/{{ file }}"
-    dest: "$HOME"
+    dest: "{{ ansible_env.HOME }}"
