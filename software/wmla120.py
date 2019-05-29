@@ -1684,6 +1684,7 @@ class software(object):
 
             print('\nVerification Completed\n')
         # Validate end
+        self._gather_facts()
         run = True
         while run:
             log.info(f"Running Ansible playbook 'init_clients.yml' ...")
@@ -1712,6 +1713,36 @@ class software(object):
                 log.info("Ansible playbook ran successfully")
                 run = False
             print('All done')
+
+    def _gather_facts(self):
+        log = logger.getlogger()
+        run = True
+        gather_facts_playbook = 'gather_facts.yml'
+        cmd = (f"{get_ansible_playbook_path()} -i "
+               f"{self.sw_vars['ansible_inventory']} "
+               f"{GEN_SOFTWARE_PATH}{gather_facts_playbook} ")
+        while run:
+            log.info(f"Running Ansible playbook '{gather_facts_playbook}' ...")
+            resp, err, rc = sub_proc_exec(cmd, shell=True,
+                                          env=ENVIRONMENT_VARS)
+            log.debug(f"cmd: {cmd}\nresp: {resp}\nerr: {err}\nrc: {rc}")
+            if rc != 0:
+                log.warning("Ansible playbook failed!")
+                if resp != '':
+                    print(f"stdout:\n{ansible_pprint(resp)}\n")
+                if err != '':
+                    print(f"stderr:\n{err}\n")
+                choice, item = get_selection(['Retry', 'Continue', 'Exit'])
+                if choice == "1":
+                    pass
+                elif choice == "2":
+                    run = False
+                elif choice == "3":
+                    log.debug('User chooses to exit.')
+                    sys.exit('Exiting')
+            else:
+                log.info("Ansible playbook ran successfully")
+                run = False
 
     def _cache_sudo_pass(self):
         from ansible_vault import Vault
@@ -2038,6 +2069,8 @@ class software(object):
                                             'dli', ana_ver)
 
         specific_arch = "_" + self.arch if self.arch == 'x86_64' else ""
+
+        self._gather_facts()
 
         self.run_ansible_task(GEN_SOFTWARE_PATH + f'{self.my_name}_install_procedure{specific_arch}.yml')
 
