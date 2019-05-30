@@ -4,16 +4,13 @@
 - name: Set local variables 
   set_fact:
     fs_size_requirement: '2000000' #in Kilobytes
+    CLUSTERADMIN: 'egoadmin'
+    ADMINGROUP: 'egoadmin'
 
 - name: Include DLI_SHARED_FS and DLI_RESULT_FS environment variables
   include_vars:
     file: envs_spectrum_conductor.yml
     name: envs
-
-- name: Include configuration dli environment variables
-  include_vars:
-    file: envs_spectrum_conductor_dli.yml
-    name: envs_dli
 
 #Check DLI_SHARED_FS status (Directory/Exists/Empty)
 - name: find state of DLI_SHARED_FS
@@ -142,7 +139,8 @@
 - name: Checks state of DLI_SHARED_FS Directory and Update ownership of DLI_SHARED_FS to CLUSTERADMIN
   file:
     path:  "{{ envs.DLI_SHARED_FS }}"
-    owner: "{{ envs_dli.CLUSTERADMIN }}"
+    owner: "{{ CLUSTERADMIN }}"
+    group: "{{ ADMINGROUP }}"
     state: file 
   register: verify_ownership_shared_fs
 
@@ -156,7 +154,8 @@
 - name: Checks state of DLI_SHARED_FS Directory and Update ownership of DLI_SHARED_FS to CLUSTERADMIN
   file:
     path:  "{{ envs.DLI_RESULT_FS }}"
-    owner: "{{ envs_dli.CLUSTERADMIN }}"
+    owner: "{{ CLUSTERADMIN }}"
+    group: "{{ ADMINGROUP }}"
     state: file     
   register: verify_ownership_result_fs
 
@@ -171,4 +170,22 @@
     path: "{{ envs.DLI_RESULT_FS }}"
     mode: "o+t"
   when: verify_ownership_result_fs.group == envs.CLUSTERADMIN
+  
+#Check User and group owners of DLI_SHARED_FS and DLI_RESULT_FS
+- name: Locate user of DLI_SHARED_FS and DLI_RESULT_FS directories 
+  shell: ls -l | grep {{ item }} | awk '{ print $3}'
+  register: fs_user
+  
+- name: Locate group of DLI_SHARED_FS and DLI_RESULT_FS directories
+  shell: ls -l | grep {{ item }} | awk '{ print $4}'
+  loop:
+    - envs.DLI_SHARED_FS
+    - envs.DLI_RESULT_FS
+  register: fs_group 
+  
+- name: Fail if user not owned by ansible_user
+  fail:
+    msg: "Directory not controlled by egoadmin"
+  when: fs_user != CLUSTERADMIN
+  
   
