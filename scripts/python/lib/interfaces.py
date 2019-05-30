@@ -102,7 +102,8 @@ class Interfaces(IPRoute):
         if not status:
             # Find an available address on the subnet.
             # if no route exists, add one temporarily so the subnet can be scanned
-            if cidr not in self.get_interfaces_routes()[ifc]:
+            routes = self.get_interfaces_routes()
+            if ifc not in routes or cidr not in routes[ifc]:
                 self.route('add', dst=cidr,
                            oif=self.link_lookup(ifname=ifc)[0])
             # Get an address near the top of the subnet
@@ -231,11 +232,18 @@ class Interfaces(IPRoute):
             ifc (str): Name of the interface to exclude from the check.
         Returns: True or False
         """
+        try:
+            vlan = int(vlan)
+        except (ValueError, TypeError):
+            return
+
         vlan_ifcs = self.get_vlan_interfaces(exclude=ifc)
-        if int(vlan) in vlan_ifcs.values():
-            return True
-        else:
-            return False
+        conflict_ifc = ''
+        for _ifc in vlan_ifcs:
+            if int(vlan) == vlan_ifcs[_ifc]:
+                conflict_ifc = _ifc
+                break
+        return conflict_ifc
 
     def create_tagged_ifc(self, ifc, vlan):
         passed = True
@@ -245,18 +253,18 @@ class Interfaces(IPRoute):
                            f'Non-existing interface: {ifc}')
             return False
 
-        if not self.ipr.link_lookup(ifname=tagged_ifc_name):
+        if not self.link_lookup(ifname=tagged_ifc_name):
             self.log.debug(f'Creating vlan interface: {tagged_ifc_name}')
-            res = self.ipr.link("add", ifname=tagged_ifc_name, kind="vlan",
-                                link=self.ipr.link_lookup(ifname=ifc)[0],
-                                vlan_id=int(vlan))
+            res = self.link("add", ifname=tagged_ifc_name, kind="vlan",
+                            link=self.link_lookup(ifname=ifc)[0],
+                            vlan_id=int(vlan))
             if res[0]['header']['error']:
                 self.log.error(f'Error creating vlan interface: {ifc} {res}')
-            passed = False
+                passed = False
         if passed:
-            self.ipr.link("set", index=self.ipr.link_lookup(ifname=ifc)[0],
-                          state="up")
-            if not self._wait_for_ifc_up(ifc):
+            self.link("set", index=self.link_lookup(ifname=tagged_ifc_name)[0],
+                      state="up")
+            if not self._wait_for_ifc_up(tagged_ifc_name):
                 self.log.error('Failed to bring up interface {ifc} ')
                 passed = False
         # Update the interfaces dict
@@ -264,8 +272,8 @@ class Interfaces(IPRoute):
         return passed
 
     def _is_ifc_up(self, ifname):
-        if 'UP' == self.ipr.get_links(
-                self.ipr.link_lookup(ifname=ifname))[0].get_attr('IFLA_OPERSTATE'):
+        if 'UP' == self.get_links(
+                self.link_lookup(ifname=ifname))[0].get_attr('IFLA_OPERSTATE'):
             return True
         return False
 

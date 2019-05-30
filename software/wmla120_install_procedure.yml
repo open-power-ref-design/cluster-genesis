@@ -71,12 +71,13 @@
 - description: ENGINEERING MODE - Gather post environment package data (conda, pip)
   tasks: engr_mode_env_post_install_gather.yml
 
+#ENGR_MODE
+- description: ENGINEERING MODE - Gather post client package data (yum, pip)
+  tasks: engr_mode_client_post_install_gather.yml
+
 - description: Add all hosts to cluster
   tasks: add_hosts_to_cluster.yml
 
 - description: PowerAI tuning recommendations
   tasks: powerai_tuning.yml
 
-#ENGR_MODE
-- description: ENGINEERING MODE - Gather post client package data (yum, pip)
-  tasks: engr_mode_client_post_install_gather.yml

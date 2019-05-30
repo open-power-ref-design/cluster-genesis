@@ -28,6 +28,7 @@ from shutil import copy2, rmtree
 import calendar
 import time
 import yaml
+from yamlvault import YAMLVault
 from orderedattrdict.yamlutils import AttrDictYAMLLoader
 import json
 from getpass import getpass
@@ -195,7 +196,7 @@ class software(object):
         self.log.debug(f'software variables: {self.sw_vars}')
 
     def __del__(self):
-        if os.path.isfile(self.vault_pass_file):
+        if hasattr(self, 'vault_pass_file') and os.path.isfile(self.vault_pass_file):
             os.remove(self.vault_pass_file)
 
     def README(self):
@@ -392,21 +393,13 @@ class software(object):
 
             repo = PowerupAnaRepoFromRepo(repo_id, repo_name, self.root_dir, arch=self.arch)
             # Get the 'linux-{arch}' status
-            repo_path = self.sw_vars[f'{which}_repo_path'] + f'linux-{self.arch}'
-            try:
-                pkglist = os.listdir(repo_path)
-            except FileNotFoundError:
-                pkglist = []
-            pkglist = [pkg for pkg in pkglist if pkg[-8:] == '.tar.bz2']
+            linux_repo_id = f'{which}_linux_{self.arch}'
+            pkglist = self.pkgs[linux_repo_id]['accept_list']
             status1 = repo.verify_pkgs(pkglist)
 
             # Get the 'noarch' status
-            repo_path = self.sw_vars[f'{which}_repo_path'] + 'noarch'
-            try:
-                pkglist = os.listdir(repo_path)
-            except FileNotFoundError:
-                pkglist = []
-            pkglist = [pkg for pkg in pkglist if pkg[-8:] == '.tar.bz2']
+            noarch_repo_id = f'{which}_noarch'
+            pkglist = self.pkgs[noarch_repo_id]['accept_list']
             status2 = repo.verify_pkgs(pkglist, noarch=True)
             # Total the results for the linux and noarch repos
             pkg_lst_cnt, pkg_cnt, nwr_cnt, old_cnt = tuple(p + q for p, q in
@@ -1671,7 +1664,7 @@ class software(object):
         elif self.sw_vars['ansible_become_pass'] is None:
             cmd += '--ask-become-pass '
             prompt_msg = "\nClient password required for privilege escalation"
-        # Verfication Loop
+        # Verification Loop
         if get_yesno('Run configuration verification checks on cluster nodes '):
             specific_arch = "_" + self.arch if self.arch == 'x86_64' else ""
             validate_tasks = yaml.full_load(open(GEN_SOFTWARE_PATH + f'{self.my_name}'
@@ -1685,10 +1678,11 @@ class software(object):
                 if key not in validation_status:
                     validation_status[key] = f'{self.v_status}'
             print("\n   *** Validation Status ***\n")
-            for key,val in validation_status.items():
+
+            for key, val in validation_status.items():
                 print(f'{key} = {val}')
 
-            print('\nVerfication Completed\n')
+            print('\nVerification Completed\n')
         # Validate end
         run = True
         while run:
@@ -2300,21 +2294,6 @@ def _set_spectrum_conductor_install_env(ansible_inventory, package, ana_ver=None
 
     print(f'Spectrum Conductor {package} configuration variables successfully '
           'loaded\n')
-
-
-class YAMLVault(yaml.YAMLObject):
-    yaml_tag = u'!vault'
-
-    def __init__(self, ansible_become_pass):
-        self.ansible_become_pass = ansible_become_pass
-
-    @classmethod
-    def from_yaml(cls, loader, node):
-        return YAMLVault(node.value)
-
-    @classmethod
-    def to_yaml(cls, dumper, data):
-        return dumper.represent_scalar(cls.yaml_tag, data.ansible_become_pass)
 
 
 if __name__ == '__main__':

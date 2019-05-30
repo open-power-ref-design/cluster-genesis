@@ -2,61 +2,57 @@
 #If a firewall is enabled, the following default ports must be granted access on all management hosts for IBM Spectrum Conductor Deep Learning Impact: 9243, 9280, 5000, 5001, 27017, and 6379. If you change these ports after installation, make sure to update firewall rules accordingly.
 #
 
-- name: Setting Variables
-  set_fact:
-    port_9243: '9243/tcp'
-    port_9080: '9080/tcp'
-    port_5000: '5000/tcp'
-    port_5001: '5001/tcp'
-    port_27017: '27017/tcp'
-    port_6379: '6379/tcp'
+- name: Include vars of envs_spectrum_conductor_dli.yml into the 'ports' variable
+  include_vars:
+    file: envs_spectrum_conductor_dli.yml
+    name: ports
 
-- name: List all host firewall data
-  shell: "firewall-cmd --list-all"
-  delegate_to: localhost
+- name: DEBUG - List imported variables
+  debug:
+    msg: "{{ ports }}"
+    
+- name: Check status of firewall
+  command: "firewall-cmd --state"
   register: host_firewall_status
+  ignore_errors: yes
+  become: yes
+  
+#Check For Firewall Status
+- name: List all host firewall data
+  command: "firewall-cmd --list-services"
+  when: host_firewall_status.stderr != 'not running'
+  register: host_firewall_data
   become: yes
 
-- name: Checking firewall_status stdout
+- name: DEBUG - Print success status of host firewall
   debug:
-    msg: "{{ host_firewall_status.stdout }}"
-
-- name: Checking firewall_status for http service enabled
+    msg: "Firewall Exists and http enabled"
+  when: host_firewall_status.stdout.find('http') != -1
+  
+- name: DEBUG - Print fail status if firewall not enbaled
   debug:
-    msg: "{{ host_firewall_status.stdout.find('http') }}"
-
-- name: Print success status of Host firewall
-  command: echo "Firewall Exists"
-  when: host_firewall_status.stdout.find('http') != -1
-
-- name: Else print fail status
-  command: echo "Firewall Does Not Exist"
-  when: host_firewall_status.stdout.find('http') == -1
-
-- name: Open Ports for Spectrum Conductor
-  firewalld:
-    port: "{{ item }}"
-    permanent: true
-    state: enabled
-    immediate: true
-  with_items:
-     - "{{ port_9243 }}"
-     - "{{ port_9080 }}"
-     - "{{ port_5000 }}"
-     - "{{ port_5001 }}"
-     - "{{ port_27017 }}"
-     - "{{ port_6379 }}"
-  when: host_firewall_status.stdout.find('http') != -1
+    msg: "WARNING - Firewall Not Enabled"
+  when: host_firewall_status.stderr == 'not running'  
+  
+# List Enabled Ports 
+- name: List ports status
+  command: "firewall-cmd --list-ports"
+  when: host_firewall_status.stderr != 'not running'
+  register: current_available_ports
   become: yes
-  register: port_status
-
-- name: Debug - Open Ports for Spectrum Conductor
+  
+- name: DEBUG - List ports status 
   debug:
-    msg: "{{ port_status }}"
-
-- name: Verify Open Ports
-  assert:
-    that:
-      - "port_status.msg == 'All items completed'"
-    fail_msg: "One or more ports failed to configure. Please check firewall settings"
-
+    msg: "{{ current_available_ports.stdout }}"
+  when: host_firewall_status.stderr != 'not running' 
+  
+- name: Check all ports are enabled in the firewall
+  fail:
+    msg: "Not all ports are enabled in the firewall"
+  loop: [ "{{ ports.DLI_DLPD_REST_PORT }}/tcp",
+  "{{ ports.DLI_DLPD_REST_PORT_SSL_NOT_ENABLED }}/tcp",
+  "{{ ports.DLI_INSIGHTS_MONITOR_PORT }}/tcp",
+  "{{ ports.DLI_INSIGHTS_OPTIMIZER_PORT }}/tcp",
+  "{{ ports.DLI_MONGODB_PORT }}/tcp",
+  "{{ ports.DLI_REDIS_PORT }}/tcp" ]
+  when: host_firewall_status.stdout == 'running' and item not in current_available_ports.stdout

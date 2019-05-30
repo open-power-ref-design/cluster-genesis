@@ -3,6 +3,12 @@
   command: cpupower -c all frequency-set -g performance
   become: yes
 
+- name: Check GPU is installed
+  command: nvidia-smi
+  register: nvidia_result
+  ignore_errors: true
+  become: yes
+
 - name: Enable GPU persistence mode
   command: "{{ item }}"
   with_items:
@@ -12,6 +18,7 @@
 
 - name: Set GPU memory and graphics clocks to their maximums
   command: "{{ item }}"
+  when: nvidia_result.rc == 0
   with_items:
     - nvidia-smi -ac 715,1480
     - nvidia-smi -ac 877,1530

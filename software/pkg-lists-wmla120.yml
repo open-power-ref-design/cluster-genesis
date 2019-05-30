@@ -73,7 +73,7 @@ ibmai_linux_ppc64le:
     - toposort-1.5-py36_409.04c40a6.tar.bz2
   reject_list:
 ibmai_noarch:
-    accept_list: all
+    accept_list:
     reject_list:
 #conda_forge_noarch_pkgs:
 #  accept_list:

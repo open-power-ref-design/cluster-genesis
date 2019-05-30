@@ -12,11 +12,10 @@
 
 - name: Download installer binary
   get_url:
-    owner: "{{ ansible_user_id }}"
-    group: "{{ ansible_user_id }}"
     mode: 0744
     url: "http://{{ host_ip.stdout }}/{{ file }}"
-    dest: "{{ ansible_env.HOME }}"
+    dest: "$HOME"
+  become: yes
 
 - name: Include configuration environment variables
   include_vars:
@@ -28,7 +27,7 @@
     filename: "{{ content_files['spectrum-conductor'].split('/')[-1] }}"
 
 - name: Install IBM Spectrum Conductor
-  shell: "{{ ansible_env.HOME }}/{{ filename }} --quiet"
+  shell: "$HOME/{{ filename }} --quiet"
   environment: "{{ envs }}"
   args:
     executable: /bin/bash
