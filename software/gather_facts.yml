@@ -3,7 +3,7 @@
   hosts: localhost
   gather_facts: True
   gather_timeout: 10
-  tasks: []
+  tasks:
     - name: Gather subset of localhost facts
       setup:
         gather_subset:
@@ -15,7 +15,7 @@
   hosts: all
   gather_facts: True
   gather_timeout: 10
-  tasks: []
+  tasks:
     - name: Gather subset of client facts
       setup:
         gather_subset:
