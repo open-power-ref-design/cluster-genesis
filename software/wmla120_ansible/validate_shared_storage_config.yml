@@ -1,48 +1,79 @@
 ---
 #Validate shared storage is mounted and configured properly
 
-- name: Set local variables #used for testing
+- name: Set local variables 
   set_fact:
-#    dli_shared_dir: '/home/rhel76/dli_shared' #Remove
-    test_dir: '/nfs/pwrai'  #Remove
     fs_size_requirement: '2000000' #in Kilobytes
 
-- name: Include configuration environment variables
+- name: Include DLI_SHARED_FS and DLI_RESULT_FS environment variables
   include_vars:
-    file: envs_spectrum_conductor_dli.yml
+    file: envs_spectrum_conductor.yml
     name: envs
 
+- name: Include configuration dli environment variables
+  include_vars:
+    file: envs_spectrum_conductor_dli.yml
+    name: envs_dli
+
+#Check DLI_SHARED_FS status (Directory/Exists/Empty)
 - name: find state of DLI_SHARED_FS
-  stat: 
+  stat:
     path: "{{ envs.DLI_SHARED_FS }}"
-  become: yes
   register: DLI_SHARED_FS_state
+
+- name: Check if DLI_SHARED_FS is a directory and exists
+  fail:
+    msg: "Path: {{ envs.DLI_SHARED_FS }} does not exist or not a directory"
+  when: DLI_SHARED_FS_state.stat.isdir is not defined or not DLI_SHARED_FS_state.stat.isdir
 
 - name: Check if DLI_SHARED_FS is empty
   command: "ls {{ envs.DLI_SHARED_FS }}"
-  become: yes
   register: DLI_SHARED_FS_empty
 
-- name: DEBUG - Status of file paths
-  command: "echo Path is Empty!"
-  when: DLI_SHARED_FS_state['stat']['isdir'] is defined and DLI_SHARED_FS_empty['stdout'] == ""
+- name: Fail if DLI_SHARED_FS is not empty
+  fail: 
+    msg: "Path: {{ envs.DLI_SHARED_FS }} is not empty. Please verify directory is empty"
+  when: DLI_SHARED_FS_empty['stdout'] != ""
 
+#Check DLI_RESULT_FS status (Directory/Exists/Empty)
+- name: find state of DLI_RESULT_FS
+  stat:
+    path: "{{ envs.DLI_RESULT_FS }}"
+  register: DLI_RESULT_FS_state
+
+- name: Check if DLI_RESULT_FS is a directory and exists
+  fail:
+    msg: "Path: {{ envs.DLI_RESULT_FS }} does not exist or not a directory"
+  when: DLI_RESULT_FS_state.stat.isdir is not defined or not DLI_RESULT_FS_state.stat.isdir
+
+- name: Check if DLI_RESULT_FS is empty
+  command: "ls {{ envs.DLI_RESULT_FS }}"
+  register: DLI_RESULT_FS_empty
+
+- name: Fail if DLI_RESULT_FS is not empty
+  fail:
+    msg: "Path: {{ envs.DLI_RESULT_FS }} is not empty. Please verify directory is empty"
+  when: DLI_RESULT_FS_empty['stdout'] != ""
+
+#Check /etc/fstab for mounted file system
 - name: Locate shared file systems on /etc/fstab
   shell: "cat /etc/fstab | sed 1,8d | awk '{ print $2}' | grep {{ envs.DLI_SHARED_FS }}"
   register: DLI_SHARED_FS_collected
   become: yes
 
-- name: Fail status of DLI_SHARED_FS on /etc/fstab
-  command: "echo DLI_SHARED_FS does not exist in /etc/fstab"
+- name: Fail if DLI_SHARED_FS not present in /etc/fstab
+  fail:
+    msg: "DLI_SHARED_FS path: {{ envs.DLI_SHARED_FS }} does not exist in /etc/fstab"
   when: DLI_SHARED_FS_collected.stdout == ""
 
-- name: Success status of DLI_SHARED_FS on /etc/fstab
-  command: "echo DLI_SHARED_FS exists in /etc/fstab"
+- name: DEBUG - Success status of DLI_SHARED_FS present in /etc/fstab
+  debug:
+    msg: "DLI_SHARED_FS path: {{ envs.DLI_SHARED_FS }} exists in /etc/fstab"
   when: DLI_SHARED_FS_collected.stdout != ""
 
-#Verify Storage of DLI_SHARED_FS
-- name: Check shared fs storage size
-  shell: "df {{ envs.DLI_SHARED_FS }} --output='avail' | tail -n 1" 
+#Verify storage size requirement of DLI_SHARED_FS
+- name: Check DLI_SHARED_FS directory size
+  shell: "df {{ envs.DLI_SHARED_FS }} --output='avail' | tail -n 1"
   register: DLI_SHARED_FS_space
 
 - name: Verify size requirement of at least 2GB
@@ -51,67 +82,93 @@
       - "{{ DLI_SHARED_FS_space.stdout }} >= {{ fs_size_requirement }}"
     fail_msg: "Shared storage fails to meet 2GB storage requirements"
 
-#- name: Debug variables
-#  debug:
-#    msg: "{{ DLI_SHARED_FS_state }}"  
+# Check read and write user permissions of (DLI_SHARED_FS)
+- name: DEBUG - DLI_SHARED_FS variables
+  debug:
+    msg: "{{ DLI_SHARED_FS_state }}"
 
 - name: Check permissions for CLUSTERADMIN user (read/write)
-  command: "echo Owner:{{ DLI_SHARED_FS_state.stat.pw_name }} \
+  debug:
+    msg: "Owner:{{ DLI_SHARED_FS_state.stat.pw_name }} \
   Read:{{ DLI_SHARED_FS_state.stat.rusr }} \
   Write:{{ DLI_SHARED_FS_state.stat.wusr }}"
 
-- name: Print sucess Status if CLUSTERADMIN user has correct permissions
-  command: "echo {{ DLI_SHARED_FS_state.stat.pw_name }} has correct permissions"
-  when: DLI_SHARED_FS_state.stat.rusr and DLI_SHARED_FS_state.stat.wusr 
+- name: Print fail status if CLUSTERADMIN user has correct permissions
+  fail:
+    msg: "{{ DLI_SHARED_FS_state.stat.pw_name }} has incorrect directory permissions"
+  when: not DLI_SHARED_FS_state.stat.rusr and not DLI_SHARED_FS_state.stat.wusr
 
-- name: Install acl on cluster nodes
+# Check read and write user permissions of (DLI_RESULT_FS)
+- name: DEBUG - DLI_RESULT_FS variables
+  debug:
+    msg: "{{ DLI_RESULT_FS_state }}"
+
+- name: Check permissions for CLUSTERADMIN user (read/write)
+  debug:
+    msg: "Owner:{{ DLI_RESULT_FS_state.stat.pw_name }} \
+  Read:{{ DLI_RESULT_FS_state.stat.rusr }} \
+  Write:{{ DLI_RESULT_FS_state.stat.wusr }}"
+
+- name: Print fail status if CLUSTERADMIN user has correct permissions
+  fail:
+    msg: "{{ DLI_RESULT_FS_state.stat.pw_name }} has incorrect directory permissions"
+  when: not DLI_RESULT_FS_state.stat.rusr and not DLI_RESULT_FS_state.stat.wusr
+
+#Verify state of acl yum package and setfacl
+- name: Check if ACL (Access Control) is installed on cluster nodes
   yum:
-    name: acl
-    state: present
+    list: acl
+  register: acl_status
+  
+- name: DEBUG - Check if acl is installed on cluster nodes
+  debug:
+    msg: "{{acl_status}}"
+
+- name: Fail if ACL is not installed
+  fail:
+    msg: "ACL yum package is not currently installed"
+  when: acl_status.stdout == ""
 
 - name: Verify setfacl is present
   command: "setfacl -v"
   register:  setfacl_status
 
-- name: Ensure that the file system allows traditional (Posix) and NFSv4 ACLs
-  command: " echo Still need to complete"
-  register: acl_info
+- name: fail if setfacl is not present
+  fail:
+    msg: "setfacl is not present. Please verify package is available"
+  when: setfacl_status.stdout == ""
 
-#Verify Mounted Correctly
-- name: Export Environment Variables
-  shell: "export CLUSTERADMIN={{ envs.CLUSTERADMIN }}; \
-  export ADMINGROUP={{ envs.CLUSTERADMIN }}; \
-  export DLI_SHARED_FS={{ dli_shared_dir }}; \
-  echo $CLUSTERADMIN $ADMINGROUP $DLI_SHARED_FS"
-  
-- name: Creates Directory if not exists and Update ownership of DLI_SHARED_FS to CLUSTERADMIN
+#Verify DLI_SHARED_FS has correct permissions
+- name: Checks state of DLI_SHARED_FS Directory and Update ownership of DLI_SHARED_FS to CLUSTERADMIN
   file:
     path:  "{{ envs.DLI_SHARED_FS }}"
-    owner: "{{ envs.CLUSTERADMIN }}"
-    state: directory 
-  register: verify_ownership
+    owner: "{{ envs_dli.CLUSTERADMIN }}"
+    state: file 
+  register: verify_ownership_shared_fs
 
-- name: Verify DLI_SHARED_FS is owned by CLUSTERADMIN and remove all other access 
+- name: Verify DLI_SHARED_FS is set to mode '755' 
   file:
     path: "{{ envs.DLI_SHARED_FS }}"
-    mode: 755
-  when: verify_ownership.group == envs.CLUSTERADMIN
+    mode: '0755'
+  when: verify_ownership.group_shared_fs == envs.CLUSTERADMIN
 
-- name: Set the correct ownership for DLI_RESULT_FS 
+#Verify DLI_RESULT_FS has correct permissions
+- name: Checks state of DLI_SHARED_FS Directory and Update ownership of DLI_SHARED_FS to CLUSTERADMIN
   file:
-    path: "{{ envs.DLI_SHARED_FS }}"
-    owner: "{{ envs.CLUSTERADMIN }}"  #$egoadmin ??
-  when: verify_ownership.group == envs.CLUSTERADMIN
+    path:  "{{ envs.DLI_RESULT_FS }}"
+    owner: "{{ envs_dli.CLUSTERADMIN }}"
+    state: file     
+  register: verify_ownership_result_fs
 
-- name: Update DLI_RESULT_FS mode '733'
+- name: Verify DLI_RESULT_FS is set to mode '733'
   file:
-    path: "{{ envs.DLI_SHARED_FS }}"
-    mode: "733"
-  when: verify_ownership.group == envs.CLUSTERADMIN
+    path: "{{ envs.DLI_RESULT_FS }}"
+    mode: '0733'
+  when: verify_ownership_result_fs.group == envs.CLUSTERADMIN
 
-- name: Update DLI_RESULT_FS mode 'o+t'
+- name: Verify DLI_RESULT_FS is set to mode 'o+t'
   file:
-    path: "{{ envs.DLI_SHARED_FS }}"
+    path: "{{ envs.DLI_RESULT_FS }}"
     mode: "o+t"
-  when: verify_ownership.group == envs.CLUSTERADMIN
+  when: verify_ownership_result_fs.group == envs.CLUSTERADMIN
   
