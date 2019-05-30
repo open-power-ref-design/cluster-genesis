@@ -183,9 +183,9 @@
     - envs.DLI_RESULT_FS
   register: fs_group 
   
-- name: Fail if user not owned by ansible_user
-  fail:
-    msg: "Directory not controlled by egoadmin"
-  when: fs_user != CLUSTERADMIN
+#- name: Fail if user not owned by ansible_user
+#  fail:
+#    msg: "Directory not controlled by egoadmin"
+#  when: fs_user != CLUSTERADMIN
   
   
