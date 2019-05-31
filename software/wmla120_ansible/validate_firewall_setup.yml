@@ -34,9 +34,9 @@
   become: yes
   register: loaded_state_status
 
-- name: Check if firewall is enabled/disabled
-  command: "echo {{ loaded_state_status.stdout.find('enabled')}}"
-  register: enabled_state_status
+#- name: Check if firewall is enabled/disabled
+#  command: "echo {{ loaded_state_status.stdout.find('enabled')}}"
+#  register: enabled_state_status
 
 - name: DEBUG - Firewall is running but not enabled
   debug:
@@ -46,14 +46,18 @@
 # List Enabled Ports 
 - name: List ports status
   command: "firewall-cmd --list-ports"
-  when: host_firewall_status.stdout == 'running' and enabled_state_status.stdout.find('enabled') != -1
+  when: 
+    - host_firewall_status.stdout == 'running' 
+    - loaded_state_status.stdout.find('enabled') != -1
   register: current_available_ports
   become: yes
   
 - name: DEBUG - List ports status 
   debug:
     msg: "{{ current_available_ports.stdout }}"
-  when: host_firewall_status.stdout == 'running' and enabled_state_status.stdout.find('enabled') != -1
+  when: 
+    - host_firewall_status.stdout == 'running' 
+    - loaded_state_status.stdout.find('enabled') != -1
   
 - name: Check all ports are enabled in the firewall
   fail:
@@ -64,4 +68,7 @@
   "{{ ports.DLI_INSIGHTS_OPTIMIZER_PORT }}/tcp",
   "{{ ports.DLI_MONGODB_PORT }}/tcp",
   "{{ ports.DLI_REDIS_PORT }}/tcp" ]
-  when: host_firewall_status.stdout == 'running' and enabled_state_status.stdout.find('enabled') != -1 and item not in current_available_ports.stdout
+  when: 
+    - host_firewall_status.stdout == 'running' 
+    - loaded_state_status.stdout.find('enabled') != -1 
+    - item not in current_available_ports.stdout
