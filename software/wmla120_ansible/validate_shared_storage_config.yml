@@ -90,7 +90,7 @@
   Read:{{ DLI_SHARED_FS_state.stat.rusr }} \
   Write:{{ DLI_SHARED_FS_state.stat.wusr }}"
 
-- name: Print fail status if CLUSTERADMIN user has correct permissions
+- name: Print fail status if CLUSTERADMIN user has incorrect permissions
   fail:
     msg: "{{ DLI_SHARED_FS_state.stat.pw_name }} has incorrect directory permissions"
   when: not DLI_SHARED_FS_state.stat.rusr and not DLI_SHARED_FS_state.stat.wusr
@@ -174,6 +174,9 @@
 #Check User and group owners of DLI_SHARED_FS and DLI_RESULT_FS
 - name: Locate user of DLI_SHARED_FS and DLI_RESULT_FS directories 
   shell: ls -l | grep {{ item }} | awk '{ print $3}'
+  loop:
+    - envs.DLI_SHARED_FS
+    - envs.DLI_RESULT_FS
   register: fs_user
   
 - name: Locate group of DLI_SHARED_FS and DLI_RESULT_FS directories
@@ -187,5 +190,12 @@
 #  fail:
 #    msg: "Directory not controlled by egoadmin"
 #  when: fs_user != CLUSTERADMIN
-  
-  
+
+- name: DEBUG - Locate user of DLI_SHARED_FS and DLI_RESULT_FS directories 
+  debug:
+    msg: "{{ fs_user }}"
+    
+- name: DEBUG - Locate group of DLI_SHARED_FS and DLI_RESULT_FS directories 
+  debug:
+    msg: "{{ fs_group }}"
+ 
