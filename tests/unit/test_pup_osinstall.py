@@ -19,8 +19,6 @@
 import unittest
 from mock import patch as patch
 from lib import utilities as util
-from scripts.python import osinstall as installer
-from collections import namedtuple
 GOOD_NMAP_OUTPUT = """[sudo] password for jja:
 Starting Nmap 6.40 ( http://nmap.org ) at 2019-01-23 13:33 EST
 Pre-scan script results:
@@ -62,8 +60,7 @@ class TestScript(unittest.TestCase):
 
     @patch("lib.utilities.get_dhcp_servers")
     @patch("lib.utilities.bash_cmd")
-    @patch("lib.utilities.has_dhcp_servers")
-    def test_has_dhcp_servers(self, mock_get, mock_cmd, mock_has):
+    def test_has_dhcp_servers(self, mock_get, mock_cmd):
         mock_cmd.return_value = GOOD_NMAP_OUTPUT
         device = "ent1"
         # good path
@@ -77,8 +74,3 @@ class TestScript(unittest.TestCase):
         # erroneous device ... not found
         util.has_dhcp_servers(device)
         assert mock_get.called_once_with(device)
-        profile_tuple = namedtuple("profile_tuple", "bmc_vlan_number bmc_subnet_prefix bmc_address_mode ethernet_port")
-        profile_tuple = profile_tuple(bmc_vlan_number=12, bmc_subnet_prefix=24,
-                                      bmc_address_mode='dhcp', ethernet_port='br-pxe-12')
-        #  installer.validate(profile_tuple)
-        #  assert mock_has.called_once_with(profile_tuple.ethernet_port)
