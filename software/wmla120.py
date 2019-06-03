@@ -46,6 +46,7 @@ from lib.utilities import sub_proc_display, sub_proc_exec, heading1, Color, \
 from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path, \
     get_playbooks_path, get_nginx_root_dir
 from nginx_setup import nginx_setup
+import inquirer
 
 ENVIRONMENT_VARS = {
     "ANSIBLE_CONFIG": str(get_playbooks_path()) + "/" + "ansible.cfg",  # this probably should be different
@@ -56,6 +57,16 @@ ENVIRONMENT_VARS = {
 FILE_TASK = "file.yml"
 MOUNT_TASK = "mount.yml"
 LOG = logger.getlogger()
+
+
+def validate_ip(_, current):
+    if current == 'skip':
+        return True
+    ret = os.system('ping -c 1 ' + current + " > /dev/null 2>&1")
+    if ret != 0:
+        LOG.error("No route to host " + current)
+        return False
+    return True
 
 
 class software(object):
@@ -1630,25 +1641,47 @@ class software(object):
         return rc
 
     def get_nfs_info_from_user(self, interface=None):
-        ipquery = 'Enter a ip or hostname of nfs server: '
-        pathquery = 'Enter a path to client directory: '
-        srcquery = 'Enter a path of server directory: '
-
+        ipquery = 'Enter a ip or hostname of nfs server'
+        pathquery = 'Enter a path to client directory'
+        srcquery = 'Enter a path of server directory'
+        # different interface
         if interface is None:
             ret = 1
             retries = 0
+            plus_str = ": "
             while ret != 0 and retries < 3:
-                ip = input(ipquery)
+                ip = input(ipquery + plus_str)
                 ret = os.system('ping -c 1 ' + ip + " > /dev/null 2>&1")
                 if ret != 0:
                     self.log.error("No route to host " + ip)
                     retries = retries + 1
             if ret == 0:
-                path = input(pathquery)
-                src = input(srcquery)
+                path = input(pathquery + plus_str)
+                src = input(srcquery + plus_str)
             else:
                 return None, None, None
-        # different interface
+        else:
+            nfs_questions = [{"kind": "text",
+                              "name": "ip",
+                              "message": ipquery + " (enter skip to exit out)",
+                              "validate": validate_ip
+                              }]
+            answers = interface.prompt(interface.load_from_list(nfs_questions))
+            ip = answers["ip"]
+            if ip == "skip":
+                return None, None, None
+            else:
+                nfs_questions = [{"kind": "text",
+                                  "name": "path",
+                                  "message": pathquery,
+                                  },
+                                 {"kind": "text",
+                                  "name": "src",
+                                  "message": srcquery,
+                                  }]
+                answers = interface.prompt(interface.load_from_list(nfs_questions))
+                path = answers["path"]
+                src = answers["src"]
         return ip, path, src
 
     def write_nfs_info_to_file(self, ip, path, src):
@@ -1661,7 +1694,7 @@ class software(object):
         write_to_yaml(file_points, 'file_points', swvars)
 
     def get_info_from_user(self):
-        ip, path, src = self.get_nfs_info_from_user()
+        ip, path, src = self.get_nfs_info_from_user(inquirer)
         if ip is not None:
             self.write_nfs_info_to_file(ip, path, src)
             return True
