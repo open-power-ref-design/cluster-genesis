@@ -9,14 +9,22 @@
 
 - name: Include DLI_SHARED_FS and DLI_RESULT_FS environment variables
   include_vars:
-    file: envs_spectrum_conductor.yml
+    file: envs_spectrum_conductor_dli.yml
     name: envs
+
+#- name: DEBUG - envs variables
+#  debug:
+#    msg: "{{ envs }}"
 
 #Check DLI_SHARED_FS status (Directory/Exists/Empty)
 - name: find state of DLI_SHARED_FS
   stat:
     path: "{{ envs.DLI_SHARED_FS }}"
   register: DLI_SHARED_FS_state
+
+#- name: DEBUG - DLI_SHARED_FS_state
+#  debug:
+#    msg: "{{ DLI_SHARED_FS_state }}"
 
 - name: Check if DLI_SHARED_FS is a directory and exists
   fail:
@@ -80,11 +88,11 @@
     fail_msg: "Shared storage fails to meet 2GB storage requirements"
 
 # Check read and write user permissions of (DLI_SHARED_FS)
-- name: DEBUG - DLI_SHARED_FS variables
-  debug:
-    msg: "{{ DLI_SHARED_FS_state }}"
+#- name: DEBUG - DLI_SHARED_FS variables
+#  debug:
+#    msg: "{{ DLI_SHARED_FS_state }}"
 
-- name: Check permissions for CLUSTERADMIN user (read/write)
+- name: Check permissions for CLUSTERADMIN user for DLI_SHARED_FS (read/write)
   debug:
     msg: "Owner:{{ DLI_SHARED_FS_state.stat.pw_name }} \
   Read:{{ DLI_SHARED_FS_state.stat.rusr }} \
@@ -96,17 +104,17 @@
   when: not DLI_SHARED_FS_state.stat.rusr and not DLI_SHARED_FS_state.stat.wusr
 
 # Check read and write user permissions of (DLI_RESULT_FS)
-- name: DEBUG - DLI_RESULT_FS variables
-  debug:
-    msg: "{{ DLI_RESULT_FS_state }}"
+#- name: DEBUG - DLI_RESULT_FS variables
+#  debug:
+#    msg: "{{ DLI_RESULT_FS_state }}"
 
-- name: Check permissions for CLUSTERADMIN user (read/write)
+- name: Check permissions for CLUSTERADMIN user for DLI_RESULT_FS (read/write)
   debug:
     msg: "Owner:{{ DLI_RESULT_FS_state.stat.pw_name }} \
   Read:{{ DLI_RESULT_FS_state.stat.rusr }} \
   Write:{{ DLI_RESULT_FS_state.stat.wusr }}"
 
-- name: Print fail status if CLUSTERADMIN user has correct permissions
+- name: Print fail status if CLUSTERADMIN user has incorrect permissions
   fail:
     msg: "{{ DLI_RESULT_FS_state.stat.pw_name }} has incorrect directory permissions"
   when: not DLI_RESULT_FS_state.stat.rusr and not DLI_RESULT_FS_state.stat.wusr
@@ -117,14 +125,15 @@
     list: acl
   register: acl_status
   
-- name: DEBUG - Check if acl is installed on cluster nodes
+- name: DEBUG - Check if acl is available/installed on cluster nodes
   debug:
-    msg: "{{acl_status}}"
+    msg: "{{ acl_status.results.0.yumstate }}"
 
 - name: Fail if ACL is not installed
   fail:
-    msg: "ACL yum package is not currently installed"
-  when: acl_status.stdout == ""
+    msg: "ACL yum package is not currently installed!"
+#  when: acl_status.results.0.yumstate != 'installed'
+  when: acl_status.results.0.yumstate == '' 
 
 - name: Verify setfacl is present
   command: "setfacl -v"
@@ -132,70 +141,70 @@
 
 - name: fail if setfacl is not present
   fail:
-    msg: "setfacl is not present. Please verify package is available"
+    msg: "setfacl is not present. Please verify nfs-utils package is available/installed"
   when: setfacl_status.stdout == ""
 
 #Verify DLI_SHARED_FS has correct permissions
-- name: Checks state of DLI_SHARED_FS Directory and Update ownership of DLI_SHARED_FS to CLUSTERADMIN
+- name: Check state of DLI_SHARED_FS Directory and Update ownership of DLI_SHARED_FS to CLUSTERADMIN
   file:
     path:  "{{ envs.DLI_SHARED_FS }}"
-    owner: "{{ CLUSTERADMIN }}"
-    group: "{{ ADMINGROUP }}"
-    state: file 
+    owner: "{{ envs.CLUSTERADMIN }}"
+#    group: "{{ ADMINGROUP }}"
+    state: directory
   register: verify_ownership_shared_fs
 
 - name: Verify DLI_SHARED_FS is set to mode '755' 
   file:
     path: "{{ envs.DLI_SHARED_FS }}"
     mode: '0755'
-  when: verify_ownership.group_shared_fs == envs.CLUSTERADMIN
 
 #Verify DLI_RESULT_FS has correct permissions
-- name: Checks state of DLI_SHARED_FS Directory and Update ownership of DLI_SHARED_FS to CLUSTERADMIN
+- name: Check state of DLI_SHARED_FS Directory and Update ownership of DLI_SHARED_FS to CLUSTERADMIN
   file:
     path:  "{{ envs.DLI_RESULT_FS }}"
-    owner: "{{ CLUSTERADMIN }}"
-    group: "{{ ADMINGROUP }}"
-    state: file     
+    owner: "{{ envs.CLUSTERADMIN }}"
+#    group: "{{ ADMINGROUP }}"
+    state: directory
   register: verify_ownership_result_fs
 
 - name: Verify DLI_RESULT_FS is set to mode '733'
   file:
     path: "{{ envs.DLI_RESULT_FS }}"
     mode: '0733'
-  when: verify_ownership_result_fs.group == envs.CLUSTERADMIN
 
 - name: Verify DLI_RESULT_FS is set to mode 'o+t'
   file:
     path: "{{ envs.DLI_RESULT_FS }}"
     mode: "o+t"
-  when: verify_ownership_result_fs.group == envs.CLUSTERADMIN
   
 #Check User and group owners of DLI_SHARED_FS and DLI_RESULT_FS
-- name: Locate user of DLI_SHARED_FS and DLI_RESULT_FS directories 
-  shell: ls -l | grep {{ item }} | awk '{ print $3}'
+- name: Locate USER of DLI_SHARED_FS and DLI_RESULT_FS directories 
+  shell: "ls -l | grep {{ item }} | awk '{ print $3}'"
   loop:
-    - envs.DLI_SHARED_FS
-    - envs.DLI_RESULT_FS
+    - "{{ envs.DLI_SHARED_FS.split('/')[-1] }}"
+    - "{{ envs.DLI_RESULT_FS.split('/')[-1] }}"
   register: fs_user
   
-- name: Locate group of DLI_SHARED_FS and DLI_RESULT_FS directories
-  shell: ls -l | grep {{ item }} | awk '{ print $4}'
+- name: Locate GROUP of DLI_SHARED_FS and DLI_RESULT_FS directories
+  shell: "ls -l | grep {{ item }} | awk '{ print $4}'"
   loop:
-    - envs.DLI_SHARED_FS
-    - envs.DLI_RESULT_FS
+    - "{{ envs.DLI_SHARED_FS.split('/')[-1] }}"
+    - "{{ envs.DLI_RESULT_FS.split('/')[-1] }}"
   register: fs_group 
   
-#- name: Fail if user not owned by ansible_user
-#  fail:
-#    msg: "Directory not controlled by egoadmin"
-#  when: fs_user != CLUSTERADMIN
+- name: DEBUG - Locate USER of DLI_SHARED_FS and DLI_RESULT_FS directories 
+  debug:
+    msg: 
+      - "DLI_SHARED_FS User: {{ fs_user.results.0.stdout }}"
+      - "DLI_RESULT_FS User: {{ fs_user.results.1.stdout }}"
 
-- name: DEBUG - Locate user of DLI_SHARED_FS and DLI_RESULT_FS directories 
+- name: DEBUG - Locate GROUP of DLI_SHARED_FS and DLI_RESULT_FS directories 
   debug:
-    msg: "{{ fs_user }}"
-    
-- name: DEBUG - Locate group of DLI_SHARED_FS and DLI_RESULT_FS directories 
-  debug:
-    msg: "{{ fs_group }}"
- 
+    msg: 
+      - "DLI_SHARED_FS Group: {{ fs_group.results.0.stdout }}"
+      - "DLI_RESULT_FS Group: {{ fs_group.results.1.stdout }}"
+
+- name: Fail if user not owned by ansible_user
+  fail:
+    msg: "Directory not controlled by {{ CLUSTERADMIN.envs }}"
+  when: fs_user.results.0.stdout != envs.CLUSTERADMIN
