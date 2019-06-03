@@ -19,7 +19,7 @@ route_points:
   - device: "{{ interface }}"
     prefix: "{{ gateway_ip_address }}"
     next_hop: "{{ srv_ip_sub }}"
-    state: present 
+    state: present
     hostname: "server-1"
   - device: "{{ interface }}"
     prefix: "9.38.89.2/24"
@@ -32,8 +32,8 @@ route_points:
     state: absent
     hostname: "server-1"
 yum_packages:
-  - name: nfs-utils 
-    state: present 
+  - name: nfs-utils
+    state: present
 file_points:
   - path: "{{ install_mount_dir }}"
     owner: nfsnobody
@@ -41,14 +41,14 @@ file_points:
     mode: "u=rwx,g=rx,o=rx"
     state: directory
   - path: "{{ install_mount_dir }}/dli_shared_fs"
-    owner: nfsnobody 
+    owner: nfsnobody
     group: nfsnobody
     mode: "u=rwx,g=rx,o=rx"
     state: directory
     recurse: yes
     force: yes
   - path: "{{ install_mount_dir }}/dli_result_fs"
-    owner: nfsnobody 
+    owner: nfsnobody
     group: nfsnobody
     mode: "u=rwx,g=rx,o=rx"
     state: directory
@@ -64,7 +64,7 @@ yum_repos:
   - name: rhsm
     state: absent
   - name: epel
-    state: absent 
+    state: absent
     description: EPEL YUM repo
     baseurl: "https://download.fedoraproject.org/pub/epel/$releasever/$basearch/"
 

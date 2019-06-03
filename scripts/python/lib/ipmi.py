@@ -302,6 +302,8 @@ def hostBootSource(host, source, bmc, timeout=None):
             res = None
         else:
             res = res['bootdev']
+            if res == 'hd':
+                res = 'disk'
     else:
         try:
             res = bmc.get_bootdev()
@@ -311,6 +313,8 @@ def hostBootSource(host, source, bmc, timeout=None):
             res = None
         else:
             res = res['bootdev']
+            if res == 'hd':
+                res = 'disk'
     return res
 
 

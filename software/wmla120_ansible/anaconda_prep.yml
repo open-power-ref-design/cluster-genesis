@@ -12,9 +12,8 @@
 
 - name: Download Anaconda
   get_url:
-    owner: "{{ ansible_user_id }}"
-    group: "{{ ansible_user_id }}"
     mode: 0744
     checksum: md5:a775fb6d6c441b899ff2327bd9dadc6d
     url: "http://{{ host_ip.stdout }}/{{ file }}"
-    dest: "{{ ansible_env.HOME }}"
+    dest: "$HOME"
+  become: yes

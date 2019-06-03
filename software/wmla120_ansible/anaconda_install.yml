@@ -20,7 +20,7 @@
   register: anaconda_dir
 
 - name: Install Anaconda
-  shell: "{{ ansible_env.HOME }}/{{ file }} \
+  shell: "$HOME/{{ file }} \
           -b -p {{ install_dir }} -f"
   args:
     executable: /bin/bash
@@ -55,5 +55,19 @@
     path: "{{ install_dir }}/.condarc"
     insertafter: '^channels:.*'
     line: "{{ item }}"
+    regexp: "{{ item }}"
   loop: "{{ ana_powerup_repo_channels }}"
+  when: not eng_mode
+  become: yes
+
+- name: "Populate IBMAI public repo channel when eng mode"
+  lineinfile:
+    path: "{{ install_dir }}/.condarc"
+    insertafter: '^channels:.*'
+    line: "{{ item }}"
+    regexp: "{{ item }}"
+  loop:
+    - "  - defaults"
+    - "{{ powerai_public_channel }}"
+  when: eng_mode
   become: yes
