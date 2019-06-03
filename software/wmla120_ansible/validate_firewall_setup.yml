@@ -17,34 +17,47 @@
   ignore_errors: yes
   become: yes
   
-#Check For Firewall Status
-- name: List all host firewall data
-  command: "firewall-cmd --list-services"
-  when: host_firewall_status.stderr != 'not running'
-  register: host_firewall_data
-  become: yes
-
+#Check State of Firewall (Running/not Running)
 - name: DEBUG - Print success status of host firewall
   debug:
-    msg: "Firewall Exists and http enabled"
-  when: host_firewall_status.stdout.find('http') != -1
-  
+    msg: "Firewall Exists"
+  when: host_firewall_status.stdout == 'running'  
+
 - name: DEBUG - Print fail status if firewall not enbaled
   debug:
     msg: "WARNING - Firewall Not Enabled"
-  when: host_firewall_status.stderr == 'not running'  
-  
+  when: host_firewall_status.stderr == 'not running'
+
+#Check if Firewall is active but enabled/disabled
+- name: Check state of active firewall
+  shell: "systemctl status firewalld | head -n 2 | tail -n 1 | awk '{print $4}'"
+  become: yes
+  register: loaded_state_status
+
+#- name: Check if firewall is enabled/disabled
+#  command: "echo {{ loaded_state_status.stdout.find('enabled')}}"
+#  register: enabled_state_status
+
+- name: DEBUG - Firewall is running but not enabled
+  debug:
+    msg: " Firewall is active but not enabled!"
+  when:  loaded_state_status.stdout.find('enabled') == -1
+   
 # List Enabled Ports 
 - name: List ports status
   command: "firewall-cmd --list-ports"
-  when: host_firewall_status.stderr != 'not running'
+  when: 
+    - host_firewall_status.stdout == 'running' 
+    - loaded_state_status.stdout.find('enabled') != -1
   register: current_available_ports
   become: yes
   
 - name: DEBUG - List ports status 
   debug:
     msg: "{{ current_available_ports.stdout }}"
-  when: host_firewall_status.stderr != 'not running' 
+  when: 
+    - host_firewall_status.stdout == 'running' 
+    - loaded_state_status.stdout.find('enabled') != -1
   
 - name: Check all ports are enabled in the firewall
   fail:
@@ -55,4 +68,7 @@
   "{{ ports.DLI_INSIGHTS_OPTIMIZER_PORT }}/tcp",
   "{{ ports.DLI_MONGODB_PORT }}/tcp",
   "{{ ports.DLI_REDIS_PORT }}/tcp" ]
-  when: host_firewall_status.stdout == 'running' and item not in current_available_ports.stdout
+  when: 
+    - host_firewall_status.stdout == 'running' 
+    - loaded_state_status.stdout.find('enabled') != -1 
+    - item not in current_available_ports.stdout

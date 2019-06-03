@@ -1,7 +1,7 @@
 ---
 ##  Call yum_repository  module in a list
 ### How to use
-#### Example list to be used with file  
+#### Example list to be used with file
 # yum_repos:
 # - name: rhsm
 #   state: present
@@ -10,15 +10,15 @@
 #   description: EPEL YUM repo
 #   baseurl: "https://download.fedoraproject.org/pub/epel/$releasever/$basearch/"
 #### In your ansible yaml file call it by:
-# - name: Add Yum repos  
+# - name: Add Yum repos
 #   include: "yum_repository.yml"
 #   become: yes
 #
-### Input List expects device, number  to be defined 
-### all the other attributes are not expected  
+### Input List expects device, number  to be defined
+### all the other attributes are not expected
 - name: Set defaults
   set_fact:
-    yum_repos: 
+    yum_repos:
       - state: ""
   when: yum_repos is not defined
 
@@ -40,20 +40,20 @@
     # var: red_hat_status
   # when: red_hat_status[0] == "Unknown"
 
-- name: Add rhsm repo 
-  shell: "subscription-manager config --rhsm.manage_repos=1" 
+- name: Add rhsm repo
+  shell: "subscription-manager config --rhsm.manage_repos=1"
   with_items: "{{ yum_repos }}"
-  when: item.name is defined and item.name == "rhsm" and item.state == "present" 
+  when: item.name is defined and item.name == "rhsm" and item.state == "present"
     and red_hat_status[0] != "Unknown"
   become: yes
 
-- name: Remove rhsm repo 
-  shell: "subscription-manager config --rhsm.manage_repos=0" 
+- name: Remove rhsm repo
+  shell: "subscription-manager config --rhsm.manage_repos=0"
   with_items: "{{ yum_repos }}"
-  when: item.name is defined and item.name == "rhsm" and item.state == "absent" 
+  when: item.name is defined and item.name == "rhsm" and item.state == "absent"
     and red_hat_status[0] != "Unknown"
   become: yes
- 
+
 - name: Add any repository
   yum_repository:
     name: "{{ item.name }}"

@@ -39,7 +39,8 @@ import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
     PowerupAnaRepoFromRepo, PowerupRepoFromRpm, setup_source_file, \
     PowerupPypiRepoFromRepo, get_name_dir
-from software_hosts import get_ansible_inventory, validate_software_inventory
+from software_hosts import get_ansible_inventory, \
+    validate_software_inventory, get_host_list_no_reboot
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, Color, \
     get_selection, get_yesno, rlinput, bold, ansible_pprint, replace_regex, \
     lscpu, parse_rpm_filenames
@@ -1125,7 +1126,7 @@ class software(object):
             # if not exists or ch == 'F':
             url = repo.get_repo_url(baseurl, alt_url, contains=['free', 'linux',
                                     f'{self.arch}'], excludes=['noarch', 'main'],
-                                    filelist=['cython-*'])
+                                    filelist=['redis-*'])
             if url:
                 if not url == baseurl:
                     self.sw_vars[f'{name}-alt-url'] = url
@@ -1778,11 +1779,13 @@ class software(object):
                 if key not in validation_status:
                     validation_status[key] = f'{self.v_status}'
             print("\n   *** Validation Status ***\n")
+
             for key, val in validation_status.items():
                 print(f'{key} = {val}')
 
             print('\nVerification Completed\n')
         # Validate end
+        self._gather_facts()
         run = True
         while run:
             log.info(f"Running Ansible playbook 'init_clients.yml' ...")
@@ -1811,6 +1814,36 @@ class software(object):
                 log.info("Ansible playbook ran successfully")
                 run = False
             print('All done')
+
+    def _gather_facts(self):
+        log = logger.getlogger()
+        run = True
+        gather_facts_playbook = 'gather_facts.yml'
+        cmd = (f"{get_ansible_playbook_path()} -i "
+               f"{self.sw_vars['ansible_inventory']} "
+               f"{GEN_SOFTWARE_PATH}{gather_facts_playbook} ")
+        while run:
+            log.info(f"Running Ansible playbook '{gather_facts_playbook}' ...")
+            resp, err, rc = sub_proc_exec(cmd, shell=True,
+                                          env=ENVIRONMENT_VARS)
+            log.debug(f"cmd: {cmd}\nresp: {resp}\nerr: {err}\nrc: {rc}")
+            if rc != 0:
+                log.warning("Ansible playbook failed!")
+                if resp != '':
+                    print(f"stdout:\n{ansible_pprint(resp)}\n")
+                if err != '':
+                    print(f"stderr:\n{err}\n")
+                choice, item = get_selection(['Retry', 'Continue', 'Exit'])
+                if choice == "1":
+                    pass
+                elif choice == "2":
+                    run = False
+                elif choice == "3":
+                    log.debug('User chooses to exit.')
+                    sys.exit('Exiting')
+            else:
+                log.info("Ansible playbook ran successfully")
+                run = False
 
     def _cache_sudo_pass(self):
         from ansible_vault import Vault
@@ -1946,6 +1979,9 @@ class software(object):
         self.sw_vars['ana_powerup_repo_channels'] = []
         self.sw_vars['yum_powerup_repo_files'] = {}
         self.sw_vars['root_dir_nginx'] = self.root_dir_nginx
+        self.sw_vars['eng_mode'] = self.eng_mode
+        self.sw_vars['ibmai_public_channel'] = '  - ' + self.content['ibmai'].source. \
+            baseurl.format(ana_platform_basename=self.ana_platform_basename)
         for _item in self.content:
             item = self.content[_item]
             if item.type == 'file':
@@ -2138,6 +2174,8 @@ class software(object):
 
         specific_arch = "_" + self.arch if self.arch == 'x86_64' else ""
 
+        self._gather_facts()
+
         self.run_ansible_task(GEN_SOFTWARE_PATH + f'{self.my_name}_install_procedure{specific_arch}.yml')
 
     def run_ansible_task(self, yamlfile):
@@ -2151,6 +2189,29 @@ class software(object):
         for task in install_tasks:
             if 'engr_mode' in task['tasks'] and not self.eng_mode:
                 continue
+            if task['description'] == "PowerAI tuning recommendations":
+                no_reboot_hosts = (
+                    get_host_list_no_reboot(self.sw_vars['ansible_inventory']))
+                if len(no_reboot_hosts) > 0:
+                    print(bold("\nInstallation cannot complete until all "
+                               "clients have been rebooted."))
+                    print(bold("\nThe following client nodes have not been "
+                               "automatically rebooted: "))
+                    for host in no_reboot_hosts:
+                        print(f"    {host}")
+                    print(bold("\nPlease manually reboot these hosts and then "
+                               "run the following command from the "
+                               "installer:"))
+                    tasks_path = f'{self.my_name}_ansible/' + task['tasks']
+                    cmd = (f'{get_ansible_playbook_path()} -i '
+                           f'{self.sw_vars["ansible_inventory"]} '
+                           f'{GEN_SOFTWARE_PATH}'
+                           f'{self.my_name}_ansible/run.yml '
+                           f'--extra-vars '
+                           f'"task_file={GEN_SOFTWARE_PATH}{tasks_path}" '
+                           f'--ask-become-pass\n')
+                    print(f"    {cmd}")
+                    break
             heading1(f"Client Node Action: {task['description']}")
             if task['description'] == "Install Anaconda installer":
                 _interactive_anaconda_license_accept(

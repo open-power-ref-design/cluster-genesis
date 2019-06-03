@@ -8,7 +8,7 @@
 # ftp3_user: "ftp3_user"
 # ftp3_pass: "ftp3_pass"
 # will attempt to subscribe to the ftp3 satellite
-- name: Import Data 
+- name: Import Data
   include_vars: "env_vars/setup_ftp3_env_vars.yml"
 
 - name: Verify Redhat Subscription Manager
@@ -38,7 +38,7 @@
   register: wget_sh_script
   when: red_hat_status[0] == "Unknown"
 
-- name: Run bash script to subscribe to ftp3 
+- name: Run bash script to subscribe to ftp3
   shell: "bash /tmp/ibm-rhsm.sh"
   register: ibmrhsm_status
   become: yes

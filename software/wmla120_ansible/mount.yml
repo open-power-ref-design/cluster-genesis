@@ -1,7 +1,7 @@
 ---
 ##  Create mounts with mount module in a list
 ### How to use
-#### Example list to be used with file  
+#### Example list to be used with file
 # route_points:
 #   - device: "{{ interface }}"
     # prefix: "{{ gateway_ip_address }}/24"
@@ -12,11 +12,11 @@
     # next_hop: "{{ srv_ip_sub }}"
     # state: absent
 #### In your ansible yaml file call it by:
-# - name: Create  mounts 
+# - name: Create  mounts
 #   include: "mount.yml"
 #   become: yes
 #
-### Input List expects src, path, state, prefix, and fstype  to be defined 
+### Input List expects src, path, state, prefix, and fstype  to be defined
 # - name: Gathering data constants
   # set_fact:
     # install_mount_dir: ""
@@ -36,8 +36,8 @@
 - name: Check path already exists
   stat:
     path: "{{ item.path }}"
-  register: mount_points_paths 
-  with_items: "{{ mount_points }}" 
+  register: mount_points_paths
+  with_items: "{{ mount_points }}"
   become: yes
 
 # - name: Remove Line in /etc/fstab
@@ -48,7 +48,7 @@
   # with_items: "{{ mount_points }}"
   # become: yes
 
-- name: Add mount point 
+- name: Add mount point
   mount:
     path: "{{ item.item.path }}"
     src : "{{ item.item.src }}"

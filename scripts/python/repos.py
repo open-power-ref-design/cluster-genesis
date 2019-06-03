@@ -25,6 +25,7 @@ import os
 import re
 from shutil import copy, copytree, rmtree, Error
 import time
+from sys import executable as PYTHON
 
 import lib.logger as logger
 from lib.utilities import sub_proc_display, sub_proc_exec, get_url, \
@@ -641,6 +642,9 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
         else:
             repo_dir = os.path.join(self.anarepo_dir, f'linux-{self.arch}')
 
+        if not os.path.isdir(repo_dir):
+            return 0, 0, 0, 0
+
         filelist = os.listdir(repo_dir)
         filelist = [fi for fi in filelist if fi[-8:] == '.tar.bz2']
         files_vers = parse_conda_filenames(filelist)
@@ -1008,17 +1012,17 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
             host = re.search(r'http://([^/]+)', alt_url).group(1)
             cmd = host  # Dummy assign to silence tox
             # wait on 'f' string formatting since 'pkg' is not available yet
-            cmd = ("f'python -m pip download --python-version {py_ver} "
+            cmd = ("f'{PYTHON} -m pip download --python-version {py_ver} "
                    "--platform {self.arch} --no-deps --index-url={alt_url} "
                    "-d {self.pypirepo_dir} {pkg} --trusted-host {host}'")
         else:
-            cmd = ("f'python -m pip download --python-version {py_ver} "
+            cmd = ("f'{PYTHON} -m pip download --python-version {py_ver} "
                    "--platform {self.arch} --no-deps -d {self.pypirepo_dir} {pkg}'")
         for pkg in pkg_list2:
             print(pkg)
             resp, err, rc = sub_proc_exec(eval(cmd), shell=True)
             if rc != 0:
-                err_str = '"python setup.py egg_info" failed with error code 1 in'
+                err_str = '"{PYTHON} setup.py egg_info" failed with error code 1 in'
                 if 'functools32' in resp or 'weave' in resp and err_str in err:
                     pass
                 else:

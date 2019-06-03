@@ -28,6 +28,7 @@ from lib.utilities import get_selection, sub_proc_exec, backup_file
 if gen.GEN_SOFTWARE_PATH not in sys.path:
     sys.path.append(gen.GEN_SOFTWARE_PATH)
 from yamlvault import YAMLVault
+
 DEF_PKGS = ["ntp", "nfs-utils", "wget"]
 #  RC_SUCCESS = 0
 #  RC_ERROR = 99  # generic failure

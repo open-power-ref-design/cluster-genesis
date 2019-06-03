@@ -1,5 +1,5 @@
 ---
-##  This ansible task list creates an nfs server 
+##  This ansible task list creates an nfs server
 ## by these steps
    # Install additional software repositories
    # Install additional software packages
@@ -13,8 +13,8 @@
    # Run firewalld to enable nfs services
    # Restart nfs server service
 ### How to use need to add mount_server_points list
-### also need to have the device created or 
-#### Example list to be used with file  
+### also need to have the device created or
+#### Example list to be used with file
 # network_points:
 #   - device: "eth39"
 #     prefix:  24
@@ -26,19 +26,19 @@
 #     dnsnameservers: "9.3.244.200,9.0.128.50"
 #     hostname: "server-1"
 #
-#### Example list to be used with file to create device  
+#### Example list to be used with file to create device
     # run_parted:
       # - device: /dev/sdb
         # number: 1
         # state: present
         # flags: "[ lvm ]"
-#### Example list to be used with file to create filesystem on device  
+#### Example list to be used with file to create filesystem on device
     # run_filesystem:
       # - dev:  /dev/sdb1
         # fstype: ext4
-    
+
 #### Example list to be used with file to create the nfs server
-#### can create multiple  nfs server. 
+#### can create multiple  nfs server.
     # mount_server_points:
       # - path: "{{ install_mount_dir }}"
         # access:
@@ -58,12 +58,12 @@
 #
 #
 #### In your ansible yaml file call it by:
-# - name: Create nfs server task  
+# - name: Create nfs server task
 #   include: "nfs_server.yml"
 #   become: yes
 #
-### Input List expects device, state and hostname to be defined 
-### all the other attributes are not expected  
+### Input List expects device, state and hostname to be defined
+### all the other attributes are not expected
 - name: Gathering data constants
   set_fact:
     install_mount_dir: "/nfs/pwrai/"
@@ -114,8 +114,8 @@
         force: yes
     mount_points:
       - path: "{{ install_mount_dir }}"
-        src: "/dev/sdk1"
-        fstype: auto 
+        src: "/dev/sdb1"
+        fstype: auto
         state: mounted
     mount_server_points:
       - path: "{{ install_mount_dir }}"
@@ -132,19 +132,19 @@
               - 'no_root_squash'
         owner: "nfsnobody"
         group: "nfsnobody"
-        mode: "u=rwx,g=rx,o=rx" 
+        mode: "u=rwx,g=rx,o=rx"
     yum_packages:
-      - name: nfs-utils 
-        state: present 
+      - name: nfs-utils
+        state: present
       - name: libnfsidmap
         state: present
-      - name: parted 
+      - name: parted
         state: present
     yum_repos:
       - name: rhsm
-        state: present 
+        state: present
       - name: epel
-        state: present 
+        state: present
         description: EPEL YUM repo
         baseurl: "https://download.fedoraproject.org/pub/epel/$releasever/$basearch/"
     run_service:
@@ -153,26 +153,26 @@
         enabled: "yes"
         become: yes
     run_parted:
-      - device: /dev/sdk 
-        number: 1 
-        state: present 
+      - device: /dev/sdb
+        number: 1
+        state: present
         flags: "[ lvm ]"
     run_filesystem:
-      - dev:  /dev/sdk1
-        fstype: ext4 
+      - dev:  /dev/sdb1
+        fstype: ext4
     firewall_service:
-      - service: nfs 
-        permanent: yes  
-        state: enabled  
-      - service:  mountd 
-        permanent: yes  
-        state: enabled  
-      - service: rpc-bind 
-        permanent: yes  
-        state: enabled  
-      - port: "2049/tcp" 
-        permanent: yes  
-        state: enabled  
+      - service: nfs
+        permanent: yes
+        state: enabled
+      - service:  mountd
+        permanent: yes
+        state: enabled
+      - service: rpc-bind
+        permanent: yes
+        state: enabled
+      - port: "2049/tcp"
+        permanent: yes
+        state: enabled
 
 - name: Install additional software repositories
   include: "yum_repository.yml"
@@ -202,7 +202,7 @@
   include: "create_nfs_server.yml"
   become: yes
 
-- name: Check if firewall-cmd is installed 
+- name: Check if firewall-cmd is installed
   command: command -v firewall-cmd >/dev/null 2>&1
   register: is_firewall_cmd_exist
   ignore_errors: yes
@@ -215,11 +215,11 @@
   become: yes
 #
 - name: debug
-  debug: 
+  debug:
    msg: "{{ is_firewall_running }}"
 
 - name: Run firewalld to enable nfs services
-  firewalld: 
+  firewalld:
     service: "{{ item.service | default(omit) }}"
     permanent: "{{ item.permanent }}"
     state: "{{ item.state }}"
@@ -229,7 +229,7 @@
   when: is_firewall_cmd_exist.rc == 0 and is_firewall_running.rc == 0
   become: yes
 
-# restart service 
+# restart service
 - name: Restart nfs server service
   include: "service.yml"
   become: yes
