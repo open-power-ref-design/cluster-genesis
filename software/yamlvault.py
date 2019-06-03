@@ -17,6 +17,7 @@
 
 import yaml
 
+
 class YAMLVault(yaml.YAMLObject):
     yaml_tag = u'!vault'
 
@@ -30,5 +31,3 @@ class YAMLVault(yaml.YAMLObject):
     @classmethod
     def to_yaml(cls, dumper, data):
         return dumper.represent_scalar(cls.yaml_tag, data.ansible_become_pass)
-
-

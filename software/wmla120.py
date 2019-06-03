@@ -1847,6 +1847,9 @@ class software(object):
         self.sw_vars['ana_powerup_repo_channels'] = []
         self.sw_vars['yum_powerup_repo_files'] = {}
         self.sw_vars['root_dir_nginx'] = self.root_dir_nginx
+        self.sw_vars['eng_mode'] = self.eng_mode
+        self.sw_vars['ibmai_public_channel'] = '  - ' + self.content['ibmai'].source. \
+            baseurl.format(ana_platform_basename=self.ana_platform_basename)
         for _item in self.content:
             item = self.content[_item]
             if item.type == 'file':

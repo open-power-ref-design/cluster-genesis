@@ -78,6 +78,14 @@
   include: "network_interface.yml"
   become: yes
 
+- name: Enable Repos
+  include: "yum_repository.yml"
+  become: yes
+
+- name: Install yum packages
+  include: "yum.yml"
+  become: yes
+
 # create files or directories
 - name: Create directories
   include: "file.yml"
@@ -85,10 +93,6 @@
 #
 - name: Create Mounts
   include: "mount.yml"
-  become: yes
-
-- name: Enable Repos
-  include: "yum_repository.yml"
   become: yes
 
 - name: Restart Network
