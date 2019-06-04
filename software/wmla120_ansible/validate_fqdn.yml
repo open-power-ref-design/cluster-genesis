@@ -1,56 +1,100 @@
 ---
-#Validate FQDN on all cluster nodes: hostname -f and getent hosts [ip_address]
-#getent hosts with no ip address on all nodes should list the fqdn for all nodes in the cluster
+# Validate FQDN on all cluster nodes: hostname -f and getent hosts [ip_address]
+# getent hosts with no ip address on all nodes should list the fqdn for all nodes in the cluster
+
 - name: Use client hostnames/ansible_fqdn to gather IPv4 data for clients
-  command: "getent ahostsv4 {{ item }}"
-  loop: "{{ groups['all']|flatten }}"
+  command: "getent ahostsv4"
   register: client_data
 
 - name: Debug - Use client hostnames/ansible_fqdn to gather IPv4 data
   debug:
-    msg: "{{ item.stdout }}"
-  loop: "{{ client_data.results }}"
+    msg: "getent data: {{ client_data.stdout }}"
 
-- name: Fail if IP Address Does not Exist
+- name: Filter for items which are in inventory
+  set_fact:
+    hosts_getent: "{{ hosts_getent|default([]) + [ item ] }}"
+  when: item.split()[1] in groups['all']|flatten
+  loop: "{{ client_data.stdout_lines }}"
+
+- name: Fail if length hosts is unequal to length inventory
   fail:
-    msg: "One or more nodes have a conflict Validating FQDN. Please check node settings."
-  when: not item.stdout.split()[0] | ipv4
-  loop: "{{ client_data.results }}"
+    msg: "Client node does not recognize all nodes in inventory: {{ hosts_getent }}"
+  when: hosts_getent|length != groups['all']|length
 
-- name:  check listed hostnames for client nodes
-  command: " hostname -f"
-  register: gathered_hostnames
-
-- name: DEBUG - check listed hostnames for client nodes
-  debug: 
-    msg: "{{ gathered_hostnames.stdout }}"
-
-- name: Gather IP's of FQDN's
-  shell: "getent ahostsv4 {{ gathered_hostnames.stdout }} | awk '{ print $1}' | head -n 1"
-  register: hostname_ip
-
-- name: DEBUG - Gather IP's of FQDN's
+- name: Debug - Does IP address exist for each getent host entry
   debug:
-    msg: "{{ hostname_ip.stdout }}" 
+    msg: "IP ADDRESS: {{ item.split()[0] | ipv4 }}"
+  loop: "{{ hosts_getent }}"
 
-- name: Gather IP's of FQDN's 
-  shell: "getent hosts {{ hostname_ip.stdout }} | awk '{print $3}'"
-  delegate_to: localhost
-  register: ip_compare_host
+- name: Fail if IP Address Does not exist for each getent host entry
+  fail:
+    msg: "One or more nodes have a conflict Validating FQDN IP addr. Please check node settings."
+  when: not item.split()[0] | ipv4
+  loop: "{{ hosts_getent }}"
 
-- name: DEBUG - Gather IP's of FQDN's
+- name:  check hostname for client nodes
+  command: " hostname --fqdn"
+  register: gathered_hostname
+
+- name: DEBUG - check hostname for client nodes
   debug:
-    msg: "{{ ip_compare_host.stdout }}"
+    msg: "HOST FQDN {{ gathered_hostname.stdout }}"
 
-- name: Debug - Check if hostname is associated with IP 
-  debug:
-    msg: 
-      - "{{ gathered_hostnames.stdout != 'localhost' }}"
-      - "{{ ip_compare_host.stdout == gathered_hostnames.stdout }}"
+- name: Fail if FQDN not in inventory
+  fail:
+    msg: "One or more nodes hostnames ({{ gathered_hostname.stdout }}) does not match inventory. Please check node FQDNs."
+  when: gathered_hostname.stdout not in groups['all']|flatten
 
-- name: Check if hostname is associated with IP
-  assert:
-    that:
-      -  gathered_hostnames.stdout != 'localhost'
-      -  ip_compare_host.stdout == gathered_hostnames.stdout
+#######################################
+#- name: Use client hostnames/ansible_fqdn to gather IPv4 data for clients
+#  command: "getent ahostsv4 {{ item }}"
+#  loop: "{{ groups['all']|flatten }}"
+#  register: client_data
+#
+#- name: Debug - Use client hostnames/ansible_fqdn to gather IPv4 data
+#  debug:
+#    msg: "{{ item.stdout }}"
+#  loop: "{{ client_data.results }}"
+#
+#- name: Fail if IP Address Does not Exist
+#  fail:
+#    msg: "One or more nodes have a conflict Validating FQDN. Please check node settings."
+#  when: not item.stdout.split()[0] | ipv4
+#  loop: "{{ client_data.results }}"
 
+#- name:  check listed hostnames for client nodes
+#  command: " hostname -f"
+#  register: gathered_hostnames
+
+#- name: DEBUG - check listed hostnames for client nodes
+#  debug: 
+#    msg: "{{ gathered_hostnames.stdout }}"
+
+#- name: Gather IP's of FQDN's
+#  shell: "getent ahostsv4 {{ gathered_hostnames.stdout }} | awk '{ print $1}' | head -n 1"
+#  register: hostname_ip
+
+#- name: DEBUG - Gather IP's of FQDN's
+#  debug:
+#    msg: "{{ hostname_ip.stdout }}" 
+
+#- name: Gather IP's of FQDN's 
+#  shell: "getent hosts {{ hostname_ip.stdout }} | awk '{print $3}'"
+#  delegate_to: localhost
+#  register: ip_compare_host
+
+#- name: DEBUG - Gather IP's of FQDN's
+#  debug:
+#    msg: "{{ ip_compare_host.stdout }}"
+
+#- name: Debug - Check if hostname is associated with IP 
+#  debug:
+#    msg: 
+#      - "{{ gathered_hostnames.stdout != 'localhost' }}"
+#      - "{{ ip_compare_host.stdout == gathered_hostnames.stdout }}"
+
+#- name: Check if hostname is associated with IP
+#  assert:
+#    that:
+#      -  gathered_hostnames.stdout != 'localhost'
+#      -  ip_compare_host.stdout == gathered_hostnames.stdout
