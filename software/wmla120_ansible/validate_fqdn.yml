@@ -2,8 +2,12 @@
 # Validate FQDN on all cluster nodes: hostname -f and getent hosts [ip_address]
 # getent hosts with no ip address on all nodes should list the fqdn for all nodes in the cluster
 
+- name: DEBUG - Flatten groups all
+  debug:
+    msg: "groups all: {{ groups['all'] | join('\n') }}"
+
 - name: Use client hostnames/ansible_fqdn to gather IPv4 data for clients
-  command: "getent ahostsv4"
+  command: "getent ahostsv4 {{ groups['all'] | join('\n') }}"
   register: client_data
 
 - name: Debug - Use client hostnames/ansible_fqdn to gather IPv4 data
@@ -13,7 +17,9 @@
 - name: Filter for items which are in inventory
   set_fact:
     hosts_getent: "{{ hosts_getent|default([]) + [ item ] }}"
-  when: item.split()[1] in groups['all']|flatten
+  when:
+    - item.split()|length == 3
+    - item.split()[2] in groups['all']|flatten
   loop: "{{ client_data.stdout_lines }}"
 
 - name: Fail if length hosts is unequal to length inventory
