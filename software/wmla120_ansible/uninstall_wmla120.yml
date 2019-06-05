@@ -8,12 +8,12 @@
     #  sudo rm -rf /root/.powerai
     #  sudo rm -rf /opt/anaconda3
     #  sudo rm -rf /opt/ibm
-- set_fact:  
+- set_fact:
     source_profile: "source /opt/ibm/spectrumcomputing/profile.platform >> /tmp/profile.platform.log 2>&1"
     login_user: "egosh user logon -u Admin -x Admin"
     shutdown_services: "egoshutdown.sh >> /tmp/profile.platform.log 2>&1"
 
-- name: Gathering data 
+- name: Gathering data
   set_fact:
     remove_dict:
       - name: "anaconda"
@@ -51,10 +51,10 @@
   stat:
     path: "{{ item.dir }}"
   with_items: "{{ remove_dict }}"
-  register: dir_exists 
+  register: dir_exists
   become: yes
 
-- name: Validate egosh exists 
+- name: Validate egosh exists
   shell: "{{ source_profile }} && {{ login_user }}"
   become: yes
   ignore_errors: yes
@@ -66,21 +66,21 @@
   become: yes
   args:
     executable: /bin/bash
-  when: item.stat.exists 
-    and item.item.name == "spectrum_computing" 
-    and egosh_output.rc == 0 
+  when: item.stat.exists
+    and item.item.name == "spectrum_computing"
+    and egosh_output.rc == 0
   with_items: "{{ dir_exists.results }}"
 
-- name: Uninstall Spectrum Computing and Dli 
+- name: Uninstall Spectrum Computing and Dli
   shell: "{{ item.item.uninstall }} >> /tmp/profile.platform.log 2>&1"
   with_items: "{{ dir_exists.results }}"
   register: results_sc_dli
   when: item.stat.exists
-    and egosh_output.rc == 0 
+    and egosh_output.rc == 0
     and item.item.uninstall != "None"
   become: yes
 
-- name: Gather residual packages 
+- name: Gather residual packages
   shell: "rpm -qa | grep -e '^ascd' -e '^conductor' -e '^ego' -e '^explorer'"
   register: dangling_pkgs
   ignore_errors: yes
@@ -90,7 +90,7 @@
   # debug:
     # msg: "{{ dangling_pkgs }}"
 #
-- name: Remove residual Packages 
+- name: Remove residual Packages
   shell: "yum --setopt=tsflags=noscripts remove -y {{ dangling_pkgs.stdout_lines | join(' ') }}"
   when: dangling_pkgs.rc == 0 and dangling_pkgs.stdout_lines is defined
   register: residual_pkgs
@@ -118,7 +118,7 @@
     # msg: "{{ dangling_procs.stdout }}"
 
 - name: Remove Directories
-  file: 
+  file:
     name: "{{ item.dir }}"
     state: absent
   async: 1000
@@ -139,4 +139,4 @@
   when:  residual_pkgs.skipped is defined or residual_pkgs.rc == 0 # no dangling packages
   retries: 30
   become: yes
-  
+

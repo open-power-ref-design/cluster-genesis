@@ -1,7 +1,7 @@
 ---
 ##  Call file  module in a list
 ### How to use
-#### Example list to be used with file  
+#### Example list to be used with file
 #file_points:
 #  - path: "{{ install_mount_dir }}"
 #    owner: nfsnobody
@@ -23,17 +23,17 @@
 #    state: link
 #    force: yes
 #### In your ansible yaml file call it by:
-# - name: Create file or directory 
+# - name: Create file or directory
 #   include: "file.yml"
 #   become: yes
 #
-### Input List expects device, state and hostname to be defined 
-### all the other attributes are not expected  
-- name: Create files or folders  
+### Input List expects device, state and hostname to be defined
+### all the other attributes are not expected
+- name: Create files or folders
  # create a directory if it doesn't exist
   file:
-    path: "{{ item.path | default(omit)}}"
-    mode: "{{ item.mode | default(omit)}}"
+    path: "{{ item.path | default(omit) }}"
+    mode: "{{ item.mode | default(omit) }}"
     state: "{{ item.state }}"
     owner: "{{ item.owner | default(omit) }}"
     group: "{{ item.group | default(omit) }}"
@@ -50,7 +50,7 @@
     access_time_format: "{{ item.access_time_format | default(omit) }}"
     modification_time: "{{ item.modification_time | default(omit) }}"
     modification_time_format: "{{ item.modification_time_format | default(omit) }}"
-  become: yes 
+  become: yes
   when: file_points is defined
   with_items: "{{ file_points }}"
 

@@ -1,17 +1,28 @@
 ---
+- debug:
+    var: ansible_connection
+
+- debug:
+    msg: "Non-local connection!"
+  when: ansible_connection != "local"
+
+- command: whoami
+
+- command: whoami
+  become: yes
+
 - name: Install additional software packages
   yum:
-    name: "{{ item }}"
+    name:
+        - wget
+        - bzip2
+        - curl
+        - bind-utils
+        - iproute
+        - acl
+        - net-tools
+        - openssl
+        - dejavu-serif-fonts
+        - nfs-utils
     state: latest
-  with_items:
-    - wget
-    - bzip2
-    - curl
-    - bind-utils
-    - iproute
-    - acl
-    - net-tools
-    - openssl
-    - dejavu-serif-fonts
-    - nfs-utils
   become: yes

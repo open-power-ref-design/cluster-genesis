@@ -276,11 +276,11 @@ def chassisPower(host, op, session, timeout=5):
             res = session.get(url, headers=httpHeader, verify=False,
                               timeout=timeout)
         except(requests.exceptions.Timeout) as exc:
-            log.debug('BMC request timeout error. Host: {host}')
+            log.debug(f'BMC request timeout error. Host: {host}')
             log.debug(exc)
             res = None
         except(requests.exceptions.ConnectionError) as exc:
-            log.debug('BMC request connection error. Host: {host}')
+            log.debug(f'BMC request connection error. Host: {host}')
             log.debug(exc)
             res = None
         else:
@@ -380,6 +380,12 @@ def get_system_info(host, session, timeout=5):
 
 
 def get_system_sn_pn(host, session, timeout=5):
+    """Get the sn and pn for a host
+    Args:
+        host(str): host ip or name
+        session(session object instance)
+    returns: tuple with sn and pn
+    """
     log = logger.getlogger()
 
     url = (f"https://{host}/xyz/openbmc_project/inventory/system")

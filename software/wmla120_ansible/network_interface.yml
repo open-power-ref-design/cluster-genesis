@@ -4,7 +4,7 @@
 #   Which are used to configure the interface. It also creates
 #   a backup for the network scripts to be removed
 ### How to use
-#### Example list to be used with file  
+#### Example list to be used with file
 # network_points:
 #   - device: "eth39"
 #     prefix:  24
@@ -22,12 +22,12 @@
 #   include: "network_interface.yml"
 #   become: yes
 #
-### Input List expects device, state and hostname to be defined 
-### all the other attributes are not expected  
+### Input List expects device, state and hostname to be defined
+### all the other attributes are not expected
 
 - name: Set defaults
   set_fact:
-    network_points: 
+    network_points:
       - state: "None"
   when: network_points is not defined
 
@@ -56,7 +56,7 @@
     group: "root"
     mode: "0644"
     backup: no
-  when: item.device is defined and item.state =="present" and item.hostname == inventory_hostname 
+  when: item.device is defined and item.state =="present" and item.hostname == inventory_hostname
   with_items: "{{ network_points }}"
   become: yes
 

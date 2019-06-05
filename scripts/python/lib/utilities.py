@@ -117,6 +117,8 @@ def scan_subnet(cidr):
     Args:
         cidr (str): subnet in cidr format or can be list of ips separated by
                     spaces
+    Returns:
+        list of tuples of (ip_addr, mac_addr)
     """
     cmd = f'sudo nmap -sn {cidr}'
     res, err, rc = sub_proc_exec(cmd)
@@ -142,6 +144,7 @@ def scan_subnet_for_port_open(cidr, port):
         cidr (str or list): subnet in cidr format or can be list of ips
                             separated by spaces.
         port (str or int) : tcp port to check
+    returns: (list): list of tuples with ip and mac address
     """
     if isinstance(cidr, list):
         cidr = ' '.join(cidr)
