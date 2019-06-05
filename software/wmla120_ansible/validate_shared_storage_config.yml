@@ -61,8 +61,13 @@
   when: DLI_RESULT_FS_empty['stdout'] != ""
 
 #Check /etc/fstab for mounted file system
-- name: Locate shared file systems on /etc/fstab
-  shell: "cat /etc/fstab | sed 1,8d | awk '{ print $2}' | grep {{ envs.DLI_SHARED_FS }}"
+#- name: Locate shared file systems on /etc/fstab
+#  shell: "cat /etc/fstab | sed 1,8d | awk '{ print $2}' | grep {{ envs.DLI_SHARED_FS }}"
+#  register: DLI_SHARED_FS_collected
+#  become: yes
+
+- name: Locate shared file systems on /etc/fstab . Newly updated logic to remove lines including '#'
+  shell: "cat /etc/fstab | sed  -e '/^\s*#.*$/d' -e '/^\s*$/d' | awk '{ print $1}'| grep {{ envs.DLI_SHARED_FS }}"
   register: DLI_SHARED_FS_collected
   become: yes
 
@@ -75,6 +80,15 @@
   debug:
     msg: "DLI_SHARED_FS path: {{ envs.DLI_SHARED_FS }} exists in /etc/fstab"
   when: DLI_SHARED_FS_collected.stdout != ""
+
+- name: Verify DLI_SHARED_FS is mounted on client
+  command: "df -h {{ envs.DLI_SHARED_FS }}"
+  register: mount_status
+
+- name: Fail if DLI_SHARED_FS is not mounted on client
+  fail:
+    msg: "{{ envs.DLI_SHARED_FS }} path is not mounted on client. Please verify on client node"
+  when: mount_status.stderr != ""
 
 #Verify storage size requirement of DLI_SHARED_FS
 - name: Check DLI_SHARED_FS directory size
