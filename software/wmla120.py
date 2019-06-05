@@ -1674,7 +1674,7 @@ class software(object):
         elif self.sw_vars['ansible_become_pass'] is None:
             cmd += '--ask-become-pass '
             prompt_msg = "\nClient password required for privilege escalation"
-        # Verfication Loop
+        # Verification Loop
         if get_yesno('Run configuration verification checks on cluster nodes '):
             specific_arch = "_" + self.arch if self.arch == 'x86_64' else ""
             validate_tasks = yaml.full_load(open(GEN_SOFTWARE_PATH + f'{self.my_name}'
@@ -1691,7 +1691,7 @@ class software(object):
             for key, val in validation_status.items():
                 print(f'{key} = {val}')
 
-            print('\nVerfication Completed\n')
+            print('\nVerification Completed\n')
         # Validate end
         run = True
         while run:
@@ -1879,6 +1879,8 @@ class software(object):
                 else:
                     if self.running != 'prep':
                         self.log.error(f'No {_glob} found in software server.')
+                    else:
+                        self.log.debug(f'No {_glob} found in software server.')
                     path = ''
                 self.sw_vars['content_files'][_item.replace('_', '-')] = path
             elif item.type == 'conda':
@@ -1896,6 +1898,8 @@ class software(object):
                 else:
                     if self.running != 'prep':
                         self.log.error(f'No {repo_name} found in software server.')
+                    else:
+                        self.log.debug(f'No {repo_name} found in software server.')
                     _dir = ''
                 _dir = _dir[len(self.root_dir_nginx):]
                 # form .condarc channel entry. Note that conda adds
@@ -1930,6 +1934,8 @@ class software(object):
                 else:
                     if self.running != 'prep':
                         self.log.error(f'No {repo_id} repo found in software server.')
+                    else:
+                        self.log.debug(f'No {repo_id} repo found in software server.')
                     _dir = ''
                 _dir = _dir.rstrip('/')
 
