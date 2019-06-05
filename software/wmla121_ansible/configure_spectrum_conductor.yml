@@ -26,8 +26,8 @@
           - "asyncio==3.4.3 ipaddress==1.0.22 defusedxml==0.5.0"
 
 - name: Get route to client
-  command: "{{ python_executable_local }} \
-  {{ scripts_path_local }}/python/ip_route_get_to.py \
+  command: "{{ hostvars['localhost']['python_executable_local'] }} \
+  {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
   {{ inventory_hostname }}"
   delegate_to: localhost
   register: host_ip
@@ -36,13 +36,13 @@
   set_fact:
     pypi_url: "https://pypi.org/simple"
     trusted_host: "pypi.org"
-  when: eng_mode or public
+  when: eng_mode
 
 - name: Set pypi url for normal mode
   set_fact:
     pypi_url: "http://{{ host_ip.stdout }}{{ pypi_http_path }}"
     trusted_host: "{{ host_ip.stdout }}"
-  when: not eng_mode and not public
+  when: not eng_mode
 
 - name: Install openssh-client
   yum:

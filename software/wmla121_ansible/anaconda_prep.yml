@@ -39,4 +39,5 @@
     mode: 0744
     checksum: md5:a775fb6d6c441b899ff2327bd9dadc6d
     url: "http://{{ host_ip.stdout }}/{{ file }}"
-    dest: "{{ ansible_env.HOME }}"
+    dest: "{{ ansible_remote_dir }}"
+  become: yes

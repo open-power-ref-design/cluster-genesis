@@ -20,7 +20,8 @@
     group: "{{ ansible_user }}"
     mode: 0744
     url: "http://{{ host_ip.stdout }}/{{ file }}"
-    dest: "{{ ansible_env.HOME }}"
+    dest: "{{ ansible_remote_dir }}"
+  become: yes
 
 - name: Get enterprise license filename from software-vars.yml
   set_fact:
@@ -30,5 +31,5 @@
 # # (accept-ibm-wmla-license.sh) Interactive license acceptance across the cluster
 # is orchestrated by the software install python module
 - name: Install wmla license
-  shell: "{{ install_dir }}/bin/conda install --yes --use-local file:/{{ ansible_env.HOME }}/{{ filename }}"
+  shell: "{{ install_dir }}/bin/conda install --yes --use-local file:/{{ ansible_remote_dir }}/{{ filename }}"
   become: yes

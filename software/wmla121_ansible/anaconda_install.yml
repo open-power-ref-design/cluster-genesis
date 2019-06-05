@@ -24,7 +24,7 @@
   register: anaconda_dir
 
 - name: Install Anaconda
-  shell: "{{ ansible_env.HOME }}/{{ file }} \
+  shell: "{{ ansible_remote_dir }}/{{ file }} \
           -b -p {{ install_dir }} -f"
   args:
     executable: /bin/bash

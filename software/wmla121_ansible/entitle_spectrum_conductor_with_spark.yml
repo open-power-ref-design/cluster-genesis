@@ -16,7 +16,7 @@
     group: "{{ ansible_user }}"
     mode: 0744
     url: "http://{{ host_ip.stdout }}/{{ file }}"
-    dest: "{{ ansible_env.HOME }}"
+    dest: "{{ ansible_remote_dir }}"
 
 - name: Get enterprise license filename from software-vars.yml
   set_fact:
@@ -25,6 +25,6 @@
 - name: Entitle IBM Spectrum Conductor with Spark
   shell: "source /opt/ibm/spectrumcomputing/profile.platform && \
   egoconfig join {{ groups['master'][0] }} -f && \
-  egoconfig setentitlement {{ ansible_env.HOME }}/{{ filename }}"
+  egoconfig setentitlement {{ ansible_remote_dir }}/{{ filename }}"
   args:
     executable: /bin/bash

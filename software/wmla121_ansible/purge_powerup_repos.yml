@@ -1,0 +1,13 @@
+- name: Find files
+  find:
+    paths: /etc/yum.repos.d/
+    patterns: "*powerup.repo"
+  register: wildcard_files_to_delete
+  become: yes
+
+- name: Remove Powerup Repos 
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  with_items: "{{ wildcard_files_to_delete.files }}"
+  become: yes

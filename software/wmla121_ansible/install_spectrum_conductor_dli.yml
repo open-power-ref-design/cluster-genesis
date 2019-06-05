@@ -16,7 +16,8 @@
     group: "{{ ansible_user }}"
     mode: 0744
     url: "http://{{ host_ip.stdout }}/{{ file }}"
-    dest: "{{ ansible_env.HOME }}"
+    dest: "{{ ansible_remote_dir }}"
+  become: yes
 
 - name: Include configuration environment variables
   include_vars:
@@ -49,7 +50,7 @@
     filename: "{{ content_files['spectrum-dli'].split('/')[-1] }}"
 
 - name: Install IBM Spectrum Conductor DLI
-  shell: "{{ egocomputehost }} {{ ansible_env.HOME }}/{{ filename }} --quiet"
+  shell: "{{ egocomputehost }} {{ ansible_remote_dir }}/{{ filename }} --quiet"
   environment: "{{ envs }}"
   args:
     executable: /bin/bash

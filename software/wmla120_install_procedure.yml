@@ -13,14 +13,14 @@
 - description: Install additional software packages
   tasks: yum_install_additional_software.yml
 
-- description: Update kernel
-  tasks: update_kernel.yml
+# - description: Update kernel
+  # tasks: update_kernel.yml
 
 - description: Disable Memory Auto-Onlining
   tasks: disable_udev_mem_auto_onlining.yml
 
-- description: Install CUDA
-  tasks: install_cuda.yml
+# - description: Install CUDA
+  # tasks: install_cuda.yml
 
 - description: Download Anaconda installer
   tasks: anaconda_prep.yml

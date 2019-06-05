@@ -39,7 +39,7 @@
                         #YUM
 - name: Check if YUM pre data exists
   stat:
-    path: "{{ ansible_env.HOME }}/{{ yum_pre }}"
+    path: "{{ ansible_remote_dir }}/{{ yum_pre }}"
   register: yum_pre_result
 
 - name: Create YUM pre data file, if data doesnt exist already on client
@@ -48,13 +48,13 @@
 
 - name: Copy YUM data back to deployer
   fetch:
-    src: "{{ ansible_env.HOME }}/{{ yum_pre }}"
+    src: "{{ ansible_remote_dir }}/{{ yum_pre }}"
     dest: "{{ dependencies_dir }}"
 
                         #PIP
 - name: Check that the check if PIP pre data exists
   stat:
-    path: "{{ ansible_env.HOME }}/{{ pip_pre }}"
+    path: "{{ ansible_remote_dir }}/{{ pip_pre }}"
   register: pip_pre_result
 
 - name: Create PIP pre data file, if data doesnt exist already on client
@@ -63,5 +63,5 @@
 
 - name: Copy PIP data back to deployer
   fetch:
-    src: "{{ ansible_env.HOME }}/{{ pip_pre }}"
+    src: "{{ ansible_remote_dir }}/{{ pip_pre }}"
     dest: "{{ dependencies_dir }}"

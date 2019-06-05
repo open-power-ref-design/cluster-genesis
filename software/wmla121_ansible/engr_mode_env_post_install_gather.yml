@@ -27,7 +27,7 @@
 
 - name: Check if dlipy3 post data exists (PIP)
   stat:
-    path: "{{ ansible_env.HOME }}/{{ dlipy3_pip }}"
+    path: "{{ ansible_remote_dir }}/{{ dlipy3_pip }}"
   register: dlipy3_pip_result
 
 - name: Activate dlipy3 environment and gather post data (PIP)
@@ -39,13 +39,13 @@
 
 - name: Copy data back to deployer (PIP)
   fetch:
-    src: "{{ ansible_env.HOME }}/{{ dlipy3_pip }}"
+    src: "{{ ansible_remote_dir }}/{{ dlipy3_pip }}"
     dest: "{{ dependencies_dir }}"
   when: not dlipy3_pip_result.stat.exists
 
 - name: Check if dlipy3 post data exists (Conda)
   stat:
-    path: "{{ ansible_env.HOME }}/{{ dlipy3_conda }}"
+    path: "{{ ansible_remote_dir }}/{{ dlipy3_conda }}"
   register: dlipy3_conda_result
 
 - name: Activate dlipy3 environment and gather post data (Conda)
@@ -57,7 +57,7 @@
 
 - name: Copy data back to deployer (Conda)
   fetch:
-    src: "{{ ansible_env.HOME }}/{{ dlipy3_conda }}"
+    src: "{{ ansible_remote_dir }}/{{ dlipy3_conda }}"
     dest: "{{ dependencies_dir }}"
   when: not dlipy3_conda_result.stat.exists
 
@@ -65,7 +65,7 @@
 
 - name: Check if dlipy2 post data exists (PIP)
   stat:
-    path: "{{ ansible_env.HOME }}/{{ dlipy2_pip }}"
+    path: "{{ ansible_remote_dir }}/{{ dlipy2_pip }}"
   register: dlipy2_pip_result
 
 - name: Activate dlipy2 environment and gather post data (PIP)
@@ -76,13 +76,13 @@
   when: not dlipy2_pip_result.stat.exists
 - name: Copy data back to deployer (PIP)
   fetch:
-    src: "{{ ansible_env.HOME }}/{{ dlipy2_pip }}"
+    src: "{{ ansible_remote_dir }}/{{ dlipy2_pip }}"
     dest: "{{ dependencies_dir }}"
   when: not dlipy2_pip_result.stat.exists
 
 - name: Check if dlipy2 post data exists (Conda)
   stat:
-    path: "{{ ansible_env.HOME }}/{{ dlipy2_conda }}"
+    path: "{{ ansible_remote_dir }}/{{ dlipy2_conda }}"
   register: dlipy2_conda_result
 
 - name: Activate dlipy2 environment and gather post data (Conda)
@@ -94,7 +94,7 @@
 
 - name: Copy data back to deployer (Conda)
   fetch:
-    src: "{{ ansible_env.HOME }}/{{ dlipy2_conda }}"
+    src: "{{ ansible_remote_dir }}/{{ dlipy2_conda }}"
     dest: "{{ dependencies_dir }}"
   when: not dlipy2_conda_result.stat.exists
 
@@ -102,7 +102,7 @@
 
 - name: Check if dlinsights post data exists (PIP)
   stat:
-    path: "{{ ansible_env.HOME }}/{{ dlinsights_pip }}"
+    path: "{{ ansible_remote_dir }}/{{ dlinsights_pip }}"
   register: dlinsights_pip_result
 
 - name: Activate dlinsights and gather post data (PIP)
@@ -114,13 +114,13 @@
 
 - name: Copy data back to deployer (PIP)
   fetch:
-    src: "{{ ansible_env.HOME }}/{{ dlinsights_pip }}"
+    src: "{{ ansible_remote_dir }}/{{ dlinsights_pip }}"
     dest: "{{ dependencies_dir }}"
   when: not dlinsights_pip_result.stat.exists
 
 - name: Check if dlinsights post data exists (Conda)
   stat:
-    path: "{{ ansible_env.HOME }}/{{ dlinsights_conda }}"
+    path: "{{ ansible_remote_dir }}/{{ dlinsights_conda }}"
   register: dlinsights_conda_result
 
 - name: Activate dlinsights and gather post data (Conda)
@@ -132,7 +132,7 @@
 
 - name: Copy data back to deployer (Conda)
   fetch:
-    src: "{{ ansible_env.HOME }}/{{ dlinsights_conda }}"
+    src: "{{ ansible_remote_dir }}/{{ dlinsights_conda }}"
     dest: "{{ dependencies_dir }}"
   when: not dlinsights_conda_result.stat.exists
 

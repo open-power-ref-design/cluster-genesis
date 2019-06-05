@@ -174,6 +174,7 @@ class software(object):
 
         self.sw_vars['rhel_ver'] = self.rhel_ver
         self.sw_vars['arch'] = self.arch
+        self.sw_vars['ansible_remote_dir'] = "/tmp/" 
 
         if os.path.isdir('/srv/wmla-license') and not os.path.isdir(self.root_dir):
             msg = ('\nThis version of the PowerUp software server utilizes a new '

@@ -18,7 +18,7 @@
                         #YUYM
 - name: Check that the check if YUM post data exists
   stat:
-    path: "{{ ansible_env.HOME }}/{{ yum_post }}"
+    path: "{{ ansible_remote_dir }}/{{ yum_post }}"
   register: yum_post_result
 
 - name: Create YUM post data file, if data doesnt exist already on client
@@ -27,13 +27,13 @@
 
 - name: Copy YUM data back to deployer
   fetch:
-    src: "{{ ansible_env.HOME }}/{{ yum_post }}"
+    src: "{{ ansible_remote_dir }}/{{ yum_post }}"
     dest: "{{ dependencies_dir }}"
 
                         #PIP
 - name: Check that the check if PIP post data exists
   stat:
-    path: "{{ ansible_env.HOME }}/{{ pip_post }}"
+    path: "{{ ansible_remote_dir }}/{{ pip_post }}"
   register: pip_post_result
 
 - name: Create PIP post data file, if data doesnt exist already on client
@@ -42,5 +42,5 @@
 
 - name: Copy PIP data back to deployer
   fetch:
-    src: "{{ ansible_env.HOME }}/{{ pip_post }}"
+    src: "{{ ansible_remote_dir }}/{{ pip_post }}"
     dest: "{{ dependencies_dir }}"
