@@ -3,44 +3,37 @@
 # getent hosts with list of ip addresses from inventory should list the fqdn for
 # all nodes in the cluster
 
-- name: DEBUG - Flatten groups all
+- name: DEBUG - Groups all
   debug:
-    msg: "groups all: {{ groups['all'] | join('\n') }}"
+    msg: "groups all: {{ groups['all'] | join(' ') }}"
 
 - name: Use client hostnames/ansible_fqdn to gather IPv4 data for clients
-  command: "getent ahostsv4 {{ groups['all'] | join('\n') }}"
-  register: client_data
+  command: "getent hosts {{ groups['all'] | join(' ') }}"
+  register: client_data_getent_hosts
+  ignore_errors: yes
 
 - name: Debug - Use client hostnames/ansible_fqdn to gather IPv4 data
   debug:
-    msg: "getent data: {{ client_data.stdout }}"
-
-- name: Filter for items which are in inventory
-  set_fact:
-    hosts_getent: "{{ hosts_getent|default([]) + [ item ] }}"
-  when:
-    - item.split()|length == 3
-    - item.split()[2] in groups['all']|flatten
-  loop: "{{ client_data.stdout_lines }}"
+    msg: "getent data: {{ client_data_getent_hosts.stdout }}"
 
 - name: Fail if length hosts is unequal to length inventory
   fail:
-    msg: "Client node does not recognize all nodes in inventory: {{ hosts_getent }}"
-  when: hosts_getent|length != groups['all']|length
+    msg: "Client node does not recognize all nodes in inventory: {{ client_data_getent_hosts.stdout_lines }}"
+  when: client_data_getent_hosts.stdout_lines|length != groups['all']|length
 
 - name: Debug - Does IP address exist for each getent host entry
   debug:
-    msg: "IP ADDRESS: {{ item.split()[0] | ipv4 }}"
-  loop: "{{ hosts_getent }}"
+    msg: "IP ADDRESS: {{ item.split()[0] | ipaddr }}"
+  loop: "{{ client_data_getent_hosts.stdout_lines }}"
 
 - name: Fail if IP Address Does not exist for each getent host entry
   fail:
     msg: "One or more nodes have a conflict Validating FQDN IP addr. Please check node settings."
-  when: not item.split()[0] | ipv4
-  loop: "{{ hosts_getent }}"
+  when: not item.split()[0] | ipaddr
+  loop: "{{ client_data_getent_hosts.stdout_lines }}"
 
 - name:  check hostname for client nodes
-  command: " hostname --fqdn"
+  command: "hostname --fqdn"
   register: gathered_hostname
 
 - name: DEBUG - check hostname for client nodes
