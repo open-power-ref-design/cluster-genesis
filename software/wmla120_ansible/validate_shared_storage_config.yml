@@ -82,7 +82,7 @@
   when: DLI_SHARED_FS_collected.stdout != ""
 
 - name: Verify DLI_SHARED_FS is mounted on client
-  command: "df -h {{ envs.DLI_SHARED_FS }}"
+  shell: "df -h {{ envs.DLI_SHARED_FS }} | sed 1d |  awk '{print $1}'"
   register: mount_status
 
 - name: Fail if DLI_SHARED_FS is not mounted on client
