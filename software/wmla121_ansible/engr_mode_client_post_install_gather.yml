@@ -9,8 +9,8 @@
     dependencies_dir: "{{ hostvars['localhost']['deps_path_local'] }}"
 
 - name: Get route to client
-  command: "{{ hostvars['localhost']['python_executable_local'] }} \
-  {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+  command: "{{ python_executable_local }} \
+  {{ scripts_path_local }}/python/ip_route_get_to.py \
   {{ inventory_hostname }}"
   delegate_to: localhost
   register: host_ip

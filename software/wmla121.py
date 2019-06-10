@@ -46,7 +46,7 @@ from lib.utilities import sub_proc_display, sub_proc_exec, heading1, Color, \
     get_selection, get_yesno, rlinput, bold, ansible_pprint, replace_regex, \
     lscpu, parse_rpm_filenames
 from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path, \
-    get_playbooks_path, get_nginx_root_dir
+    get_playbooks_path, get_nginx_root_dir, get_venv_path, get_python_path, get_scripts_path, PYTHON_EXE
 from nginx_setup import nginx_setup
 
 ENVIRONMENT_VARS = {
@@ -164,6 +164,10 @@ class software(object):
             self.root_dir = f"{self.root_dir_nginx}/{self.sw_vars['base_dir']}/"
         else:
             self.root_dir = f'{self.root_dir_nginx}/{self.my_name}-{arch}/'
+
+        self.sw_vars['python_executable_local'] = get_venv_path() + "/" + PYTHON_EXE
+        self.sw_vars['scripts_path_local'] = get_scripts_path()
+        self.sw_vars['python_path_local'] = get_python_path()
 
         # Primarily intended for display purposes:
         self.repo_shortname = self.root_dir[len(self.root_dir_nginx):].strip('/')
