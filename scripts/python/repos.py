@@ -25,13 +25,15 @@ import os
 import re
 from shutil import copy, copytree, rmtree, Error
 import time
-from sys import executable as PYTHON
+from sys import executable
 
 import lib.logger as logger
 from lib.utilities import sub_proc_display, sub_proc_exec, get_url, \
     get_dir, get_yesno, get_selection, get_file_path, get_src_path, bold, \
     parse_conda_filenames, parse_rpm_filenames, parse_pypi_filenames, get_rpm_info
 from lib.exception import UserException
+
+PYTHON = executable
 
 
 def setup_source_file(name, src_glob, dest_dir, base_dir, url='', alt_url='http://',
