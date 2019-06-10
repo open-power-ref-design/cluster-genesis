@@ -1,0 +1,70 @@
+---
+install_mount_dir: ""
+interface: ""
+nfs_ip_address: ""
+gateway_ip_address: ""
+srv_ip_sub: ""
+interface_addres: ""
+external_dir: ""
+#
+network_points:
+  - device: "{{ interface }}"
+    prefix:  24
+    address: "{{ interface_addres }}"
+    bootproto: "none"
+    defaultroute: "NO"
+    state: present
+    hostname: "server-1"
+route_points:
+  - device: "{{ interface }}"
+    prefix: "{{ gateway_ip_address }}"
+    next_hop: "{{ srv_ip_sub }}"
+    state: present
+    hostname: "server-1"
+  - device: "{{ interface }}"
+    prefix: "9.38.89.2/24"
+    next_hop: "{{ srv_ip_sub }}"
+    state: absent
+    hostname: "server-1"
+  - device: "{{ interface }}"
+    prefix: "default"
+    next_hop: "{{ srv_ip_sub }}"
+    state: absent
+    hostname: "server-1"
+yum_packages:
+  - name: nfs-utils
+    state: present
+file_points:
+  - path: "{{ install_mount_dir }}"
+    owner: nfsnobody
+    group: nfsnobody
+    mode: "u=rwx,g=rx,o=rx"
+    state: directory
+  - path: "{{ install_mount_dir }}/dli_shared_fs"
+    owner: nfsnobody
+    group: nfsnobody
+    mode: "u=rwx,g=rx,o=rx"
+    state: directory
+    recurse: yes
+    force: yes
+  - path: "{{ install_mount_dir }}/dli_result_fs"
+    owner: nfsnobody
+    group: nfsnobody
+    mode: "u=rwx,g=rx,o=rx"
+    state: directory
+    recurse: yes
+    force: yes
+mount_points:
+  - path: "{{ install_mount_dir }}"
+    src: "{{ nfs_ip_address }}:{{ external_dir }}"
+    fstype: nfs
+    opts: vers=3
+    state: mounted
+yum_repos:
+  - name: rhsm
+    state: absent
+  - name: epel
+    state: absent
+    description: EPEL YUM repo
+    baseurl: "https://download.fedoraproject.org/pub/epel/$releasever/$basearch/"
+

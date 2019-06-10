@@ -1,0 +1,70 @@
+---
+##  Add routes in a list
+### How to use
+#### Example list to be used with file
+# route_points:
+#   - device: "{{ interface }}"
+    # prefix: "{{ gateway_ip_address }}/24"
+    # next_hop: "{{ srv_ip_sub }}"
+    # state: present
+#   - device: "{{ interface }}"
+    # prefix: "{{ gateway_ip_address }}/24"
+    # next_hop: "{{ srv_ip_sub }}"
+    # state: absent
+#### In your ansible yaml file call it by:
+# - name: Create routes
+#   include: "route.yml"
+#   become: yes
+#
+### Input List expects device, state, prefix, and next_hop  to be defined
+- name: Set defaults
+  set_fact:
+    route_points:
+      - state: "None"
+  when: route_points is not defined
+
+- name: Check path already exists
+  shell: "ip route show {{ item.prefix }} | grep '{{ item.prefix }}' |  wc -l"
+  register: route_points_exist
+  when: item.prefix is defined
+  with_items: "{{ route_points }}"
+  become: yes
+
+# - name: Check path already exists
+  # debug:
+    # msg: "{{ route_points_exist.results }}"
+
+- name: Remove route files
+  file:
+    path: "/etc/sysconfig/network-scripts/route-{{ item.device }}"
+    state: "{{ item.state }}"
+  when: item.device is defined and item.state == "absent" and item.hostname == inventory_hostname
+  with_items: "{{ route_points }}"
+  become: yes
+#
+- name: Generate RHEL/CentOS route files
+  template:
+    src: "templates/make_routes_rhel.j2"
+    dest: "/etc/sysconfig/network-scripts/route-{{ item.device }}"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+    backup: no
+  when: item.device is defined and item.prefix is defined and item.state == "present"
+    and item.hostname == inventory_hostname
+  with_items: "{{ route_points }}"
+  become: yes
+#
+- name: Add routes if they do not exist
+  shell:  "ip route add {{ item.item.prefix }} via {{ item.item.next_hop }}  dev {{ item.item.device }}"
+  when: item.item.device is defined and item.item.prefix is defined and item.item.state == "present"
+    and item.stdout == "0" and item.item.hostname == inventory_hostname
+  with_items: "{{ route_points_exist.results }}"
+  become: yes
+
+- name: Remove routes if they exist
+  shell: "ip route del {{ item.item.prefix }}"
+  when: item.item.device is defined and item.item.prefix is defined and item.item.state == "absent"
+    and item.stdout != "0" and item.item.hostname == inventory_hostname
+  with_items: "{{ route_points_exist.results }}"
+  become: yes

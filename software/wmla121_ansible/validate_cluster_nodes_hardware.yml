@@ -1,0 +1,104 @@
+---
+#All nodes are of the same architecture. (valid architectures are p8, p9 or x86)
+#Hardware memory and storage requirements;
+#Requirement Mgmt Host Compute Host
+#RAM 64 GB 32 GB
+#Disk space (Spectrum Cond) 12 GB 12 GB
+#Disk space (Spectrum DLI) 11 GB 11 GB
+#Much of the hardware requirements can probably be checked with Ansible facts.
+
+- name: Set Variables
+  set_fact:
+    mountname: "/" #root_filesystem
+    cond_dli_size: 33000000 #kilobytes
+    mgmt_ram: 64  #GB
+    compute_ram: 32  #GB
+
+#Verify RAM space
+- name: gather master nodes Host RAM
+  shell: "free -t -g | tail -n 1 | awk '{ print $2}'"
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['master'] | flatten }}"
+  register: mgmt_ram_size
+
+- name: DEBUG - master nodes Host RAM
+  debug:
+    msg: "{{ mgmt_ram_size['results'][0]['stdout'] }}"
+  when: (groups['master'] | length > 0)
+
+- name: Verify master nodes RAM Requirements
+  assert:
+    that:
+      - "{{ mgmt_ram_size['results'][0]['stdout'] }} >=  {{ mgmt_ram }}"
+    fail_msg: "RAM Requirement failed. Verify there is RAM available. (CMD: free )"
+  when: (groups['master'] | length > 0)
+
+- name: Gather compute Host RAM
+  shell: "free -t -g | tail -n 1 | awk '{ print $2}'"
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['compute'] | flatten }}"
+  register: compute_ram_size
+
+- name: DEBUG - compute_ram_size
+  debug:
+    msg: "{{ compute_ram_size['results'][0]['stdout'] }}"
+  when: groups['compute'] is defined and (groups['compute'] | length > 0)
+
+- name: Verify compute RAM Requirements
+  assert:
+    that:
+      - "{{ compute_ram_size['results'][0]['stdout'] }} >=  {{ compute_ram }}"
+    fail_msg: "RAM Requirement failed. Verify there is RAM available. (CMD: free )"
+  when: groups['compute'] is defined and (groups['compute'] | length > 0)
+
+#Verify Hdisk space
+- name: Verify disk data
+  shell: "df {{ mountname }} --output='avail' | tail -n 1"
+  register: disk_space
+
+- name: Verify free space is sufficent for software install
+  assert:
+    that:
+      - "{{ disk_space.stdout }} >= {{ cond_dli_size }}"
+    fail_msg: "Not enough disk space on '{{ mountname }}' mounted drive."
+
+- name: Debug - Verify free space is sufficent for software install
+  debug:
+    msg:
+      - "disk size: {{ disk_space.stdout }}"
+
+#Verify System Arch
+- name: Check master nodes arch
+  shell: "lscpu | grep 'Model name' | awk '{print $3}'" #POWER8, POWER9, Intel[x86_64]
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['master'] | flatten }}"
+  register: mgmt_arch
+
+- name: Check compute nodes arch
+  command: "/usr/bin/lscpu"
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['compute'] | flatten }}"
+  register: client_arch
+
+- name: DEBUG - Check master nodes Arch
+  debug:
+    msg: "{{ mgmt_arch['results'][0]['stdout'] }}"
+
+- name: Check Arch unity across first two masters if two exist
+  assert:
+    that:
+      - mgmt_arch['results'][0]['stdout'] == mgmt_arch['results'][1]['stdout']
+  when: (groups['master'] | length > 1)
+
+- name: DEBUG - Check compute nodes Arch
+  debug:
+    msg: "{{ client_arch['results'][0]['stdout'] }}"
+  when: groups['compute'] is defined and (groups['compute'] | length > 0)
+
+- name: Check if Arch Unity Exists
+  assert:
+    that:
+      - client_arch['results'][0]['stdout'].find('{{ mgmt_arch['results'][0]['stdout'] }}') != -1
+    fail_msg: "Architecture varies between nodes. If aware of hybrid nodes, please continue"
+  register: arch_unity
+  when: groups['compute'] is defined and (groups['compute'] | length > 0)

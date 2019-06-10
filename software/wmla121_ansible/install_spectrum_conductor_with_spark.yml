@@ -1,0 +1,35 @@
+---
+- name: Get filename from software-vars.yml
+  set_fact:
+    file: "{{ content_files['spectrum-conductor'].split('/', 3)[-1] }}"
+
+- name: Get route to client
+  command: "{{ hostvars['localhost']['python_executable_local'] }} \
+  {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+  {{ inventory_hostname }}"
+  delegate_to: localhost
+  register: host_ip
+
+- name: Download installer binary
+  get_url:
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: 0744
+    url: "http://{{ host_ip.stdout }}/{{ file }}"
+    dest: "{{ ansible_env.HOME }}"
+
+- name: Include configuration environment variables
+  include_vars:
+    file: envs_spectrum_conductor.yml
+    name: envs
+
+- name: Get enterprise license filename from software-vars.yml
+  set_fact:
+    filename: "{{ content_files['spectrum-conductor'].split('/')[-1] }}"
+
+- name: Install IBM Spectrum Conductor
+  shell: "{{ ansible_env.HOME }}/{{ filename }} --quiet"
+  environment: "{{ envs }}"
+  args:
+    executable: /bin/bash
+  become: yes

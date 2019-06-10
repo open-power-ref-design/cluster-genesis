@@ -1,0 +1,10 @@
+---
+- name:  Set hostname to be resolved in /etc/hosts
+  lineinfile:
+    dest: /etc/hosts
+    regexp: "{{ hostvars[item].ansible_default_ipv4.address }}.*{{ item }}$"
+    line: "{{ hostvars[item].ansible_default_ipv4.address }} {{ item }}"
+    state: present
+  with_items: "{{ groups['all'] }}"
+  register: resolve_hostname
+  become: yes

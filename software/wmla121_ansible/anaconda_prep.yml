@@ -1,0 +1,42 @@
+---
+- name: Gather facts
+  setup:
+    gather_subset: min
+
+- name: Get filename from software-vars.yml
+  set_fact:
+    file: "{{ content_files['anaconda'].split('/', 3)[-1] }}"
+
+- name: Get route to client
+  command: "{{ hostvars['localhost']['python_executable_local'] }} \
+  {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+  {{ inventory_hostname }}"
+  delegate_to: localhost
+  register: host_ip
+
+- command: pwd
+  register: pwd
+
+- debug:
+    var: pwd.stdout
+
+- debug:
+    var: ansible_user
+
+- debug:
+    var: ansible_user_dir
+
+- debug:
+    var: ansible_user
+
+- debug:
+    var: ansible_facts
+
+- name: Download Anaconda
+  get_url:
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: 0744
+    checksum: md5:a775fb6d6c441b899ff2327bd9dadc6d
+    url: "http://{{ host_ip.stdout }}/{{ file }}"
+    dest: "{{ ansible_env.HOME }}"

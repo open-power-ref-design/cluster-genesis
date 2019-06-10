@@ -1,0 +1,74 @@
+---
+##  Call network_interface module in a list
+### This ansible module sets up and network scripts
+#   Which are used to configure the interface. It also creates
+#   a backup for the network scripts to be removed
+### How to use
+#### Example list to be used with file
+# network_points:
+#   - device: "eth39"
+#     prefix:  24
+#     address: "192.244.89.3"
+#     bootproto: "none"
+#     defaultroute: "YES"
+#     gateway: "192.244.65.3"
+#     state: present
+#     dnsnameservers: "9.3.244.200,9.0.128.50"
+#     hostname: "server-1"
+#
+#
+#### In your ansible yaml file call it by:
+# - name: Create Network Interface
+#   include: "network_interface.yml"
+#   become: yes
+#
+### Input List expects device, state and hostname to be defined
+### all the other attributes are not expected
+
+- name: Set defaults
+  set_fact:
+    network_points:
+      - state: "None"
+  when: network_points is not defined
+
+- name: Backup interface files
+  copy:
+    src: "/etc/sysconfig/network-scripts/ifcfg-{{ item.device }}"
+    dest: "/etc/sysconfig/network-scripts/backup-ifcfg-{{ item.device }}"
+    remote_src: yes
+  when: item.device is defined and item.state =="absent" and item.hostname == inventory_hostname
+  with_items: "{{ network_points }}"
+  become: yes
+
+- name: Remove interface files
+  file:
+    path: "/etc/sysconfig/network-scripts/ifcfg-{{ item.device }}"
+    state: "{{ item.state }}"
+  when: item.device is defined and item.state =="absent" and item.hostname == inventory_hostname
+  with_items: "{{ network_points }}"
+  become: yes
+
+- name: Generate RHEL/CentOS interfaces files
+  template:
+    src: "templates/make_interfaces_rhel.j2"
+    dest: "/etc/sysconfig/network-scripts/ifcfg-{{ item.device }}"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+    backup: no
+  when: item.device is defined and item.state =="present" and item.hostname == inventory_hostname
+  with_items: "{{ network_points }}"
+  become: yes
+
+- name: Bring up network interfaces
+  shell:  bash -c "ifup {{ item.device }}"
+  when: item.device is defined and item.state =="present" and item.hostname == inventory_hostname
+  with_items: "{{ network_points }}"
+  become: yes
+
+- name: Bring down network interfaces
+  shell:  bash -c "ifdown {{ item.device }}"
+  when: item.device is defined and item.state =="absent" and item.hostname == inventory_hostname
+  with_items: "{{ network_points }}"
+  become: yes
+

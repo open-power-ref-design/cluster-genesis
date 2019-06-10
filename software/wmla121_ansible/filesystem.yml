@@ -1,0 +1,29 @@
+---
+##  Call filesystem  module in a list
+### How to use
+#### Example list to be used with file
+#run_filesystem:
+#  - dev:  /dev/sdb1
+#   fstype: ext4
+#### In your ansible yaml file call it by:
+# - name: Create filesystem
+#   include: "filesystem.yml"
+#   become: yes
+#
+### Input List expects fstype, dev  to be defined
+### all the other attributes are not expected
+- name: Set defaults
+  set_fact:
+    run_filesystem:
+      - opts: "None"
+  when: run_filesystem is not defined
+
+- name: Create a "{{ item.fstype }}" filesystem on "{{ item.dev }}"
+  filesystem:
+    fstype: "{{ item.fstype }}"
+    dev: "{{ item.dev }}"
+    opts: "{{ item.opts | default(omit) }}"
+    force: "{{ item.force | default(omit) }}"
+    resizefs: "{{ item.resizefs | default(omit) }}"
+  with_items: "{{ run_filesystem }}"
+  when: item.fstype is defined and item.dev is defined

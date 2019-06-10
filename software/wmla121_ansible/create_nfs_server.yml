@@ -1,0 +1,59 @@
+---
+##  Call Service module in a list
+### How to use
+#### Example list to be used with file  
+    # mount_server_points:
+      # - path: "/your/path"
+        # access:
+          # - hostname: "9.39.89.3/24"
+            # opts:
+              # - 'rw'
+              # - 'sync'
+              # - 'no_subtree_check'
+              # - 'no_root_check'
+#
+#
+#### In your ansible yaml file call it by:
+# - name: Create nfs server in exports 
+#   include: "create_nfs_server.yml"
+#   become: yes
+#
+### Input List expects path, hostname, opts to be defined
+# Example of the data needed to run this yaml
+# - name: Gathering data constants
+  # set_fact:
+    # install_mount_dir: ""
+    # nfs_ip_address: ""
+
+# - name: Gathering data
+  # set_fact:
+    # mount_server_points:
+      # - path: "{{ install_mount_dir }}"
+        # access:
+          # - hostname: "{{ nfs_ip_address }}"
+            # opts:
+              # - 'rw'
+              # - 'sync'
+              # - 'no_subtree_check'
+              # - 'no_root_check'
+        # owner: "nfsnobody"
+        # group: "nfsnobody"
+        # mode: "u=rwx,g=rx,o=rx"
+#
+- name: Validate Paths Exist
+  file:
+    dest: "{{ item['path'] }}"
+    owner: "{{ item['owner'] }}"
+    group: "{{ item['group'] }}"
+    mode: "{{ item['mode']|default(omit) }}"
+    state: "directory"
+  with_items: '{{ mount_server_points }}'
+  when: mount_server_points is defined
+
+- name: Configure /etc/exports
+  template:
+    src: "templates/create_exports.j2"
+    dest: "/etc/exports"
+    owner: "root"
+    group: "root"
+    mode: "u=rw,g=r,o=r"

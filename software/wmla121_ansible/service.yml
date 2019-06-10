@@ -1,0 +1,30 @@
+---
+##  Call Service module in a list
+### How to use
+#### Example list to be used with file
+# run_service:
+# - name: "network"
+#   state: "restarted"
+#   enabled: "yes" # this can be left blank
+#   become: yes
+#
+#
+#### In your ansible yaml file call it by:
+# - name: Call service module
+#   include: "service.yml"
+#   become: yes
+#
+### Input List expects name, state to be defined
+- name: Set defaults
+  set_fact:
+    run_service:
+      - enabled: "None"
+  when: run_service is not defined
+- name: "{{ item.state }} {{ item.name }}"
+  service:
+    name: "{{ item.name }}"
+    state: "{{ item.state }}"
+    enabled: "{{ item.enabled | default(omit) }}"
+  with_items: "{{ run_service }}"
+  when: item.name is defined and item.state is defined
+  become: yes

@@ -1,0 +1,236 @@
+---
+##  This ansible task list creates an nfs server
+## by these steps
+   # Install additional software repositories
+   # Install additional software packages
+   # Create partition on device
+   # Add filesystem to device
+   # Create directory
+   # Mount new directory
+   # Create nfs server
+   # Check if firewall-cmd is installed
+   # Check if firewalld is running
+   # Run firewalld to enable nfs services
+   # Restart nfs server service
+### How to use need to add mount_server_points list
+### also need to have the device created or
+#### Example list to be used with file
+# network_points:
+#   - device: "eth39"
+#     prefix:  24
+#     address: "192.244.89.3"
+#     bootproto: "none"
+#     defaultroute: "YES"
+#     gateway: "192.244.65.3"
+#     state: present
+#     dnsnameservers: "9.3.244.200,9.0.128.50"
+#     hostname: "server-1"
+#
+#### Example list to be used with file to create device
+    # run_parted:
+      # - device: /dev/sdb
+        # number: 1
+        # state: present
+        # flags: "[ lvm ]"
+#### Example list to be used with file to create filesystem on device
+    # run_filesystem:
+      # - dev:  /dev/sdb1
+        # fstype: ext4
+
+#### Example list to be used with file to create the nfs server
+#### can create multiple  nfs server.
+    # mount_server_points:
+      # - path: "{{ install_mount_dir }}"
+        # access:
+          # - hostname: "9.0.0.0/8"
+            # opts:
+              # - 'rw'
+              # - 'sync'
+              # - 'no_root_squash'
+          # - hostname: "192.168.0.0/16"
+            # opts:
+              # - 'rw'
+              # - 'sync'
+              # - 'no_root_squash'
+        # owner: "nfsnobody"
+        # group: "nfsnobody"
+        # mode: "u=rwx,g=rx,o=rx"
+#
+#
+#### In your ansible yaml file call it by:
+# - name: Create nfs server task
+#   include: "nfs_server.yml"
+#   become: yes
+#
+### Input List expects device, state and hostname to be defined
+### all the other attributes are not expected
+- name: Gathering data constants
+  set_fact:
+    install_mount_dir: "/nfs/pwrai/"
+    interface: "eth15"
+    nfs_ip_address: ""
+    gateway_ip_address: ""
+    srv_ip_sub: ""
+    interface_addres: ""
+    external_dir: ""
+#
+- name: Gathering data
+  set_fact:
+    # network_points:
+      # - device: "{{ interface }}"
+        # prefix:  24
+        # address: "{{ interface_addres }}"
+        # bootproto: "none"
+        # defaultroute: "NO"
+        # state: present
+    # route_points:
+      # - device: "{{ interface }}"
+        # prefix: "{{ gateway_ip_address }}/24"
+        # next_hop: "{{ srv_ip_sub }}"
+        # state: present
+      # - device: "{{ interface }}"
+        # prefix: "{{ gateway_ip_address }}/24"
+        # next_hop: "{{ srv_ip_sub }}"
+        # state: absent
+    file_points:
+      - path: "{{ install_mount_dir }}"
+        owner: nfsnobody
+        group: nfsnobody
+        mode: "u=rwx,g=rx,o=rx"
+        state: directory
+        recurse: yes
+        force: yes
+      - src: "/usr/bin/mount"
+        dest: "/usr/sbin/mount"
+        state: link
+        force: yes
+      - src: "/usr/bin/systemctl"
+        dest: "/usr/sbin/systemctl"
+        state: link
+        force: yes
+      - src: "/usr/bin/umount"
+        dest: "/usr/sbin/umount"
+        state: link
+        force: yes
+    mount_points:
+      - path: "{{ install_mount_dir }}"
+        src: "/dev/sdb1"
+        fstype: auto
+        state: mounted
+    mount_server_points:
+      - path: "{{ install_mount_dir }}"
+        access:
+          - hostname: "9.3.0.0/16"
+            opts:
+              - 'rw'
+              - 'sync'
+              - 'no_root_squash'
+          - hostname: "192.168.0.0/16"
+            opts:
+              - 'rw'
+              - 'sync'
+              - 'no_root_squash'
+        owner: "nfsnobody"
+        group: "nfsnobody"
+        mode: "u=rwx,g=rx,o=rx"
+    yum_packages:
+      - name: nfs-utils
+        state: present
+      - name: libnfsidmap
+        state: present
+      - name: parted
+        state: present
+    yum_repos:
+      - name: rhsm
+        state: present
+      - name: epel
+        state: present
+        description: EPEL YUM repo
+        baseurl: "https://download.fedoraproject.org/pub/epel/$releasever/$basearch/"
+    run_service:
+      - name: "nfs-server"
+        state: "restarted"
+        enabled: "yes"
+        become: yes
+    run_parted:
+      - device: /dev/sdb
+        number: 1
+        state: present
+        flags: "[ lvm ]"
+    run_filesystem:
+      - dev:  /dev/sdb1
+        fstype: ext4
+    firewall_service:
+      - service: nfs
+        permanent: yes
+        state: enabled
+      - service:  mountd
+        permanent: yes
+        state: enabled
+      - service: rpc-bind
+        permanent: yes
+        state: enabled
+      - port: "2049/tcp"
+        permanent: yes
+        state: enabled
+
+- name: Install additional software repositories
+  include: "yum_repository.yml"
+  become: yes
+#
+- name: Install additional software packages
+  include: "yum.yml"
+  become: yes
+
+- name: Create partition on device
+  include: "parted.yml"
+  become: yes
+
+- name: Add filesystem to device
+  include: "filesystem.yml"
+  become: yes
+#
+- name: Create directory
+  include: "file.yml"
+  become: yes
+
+- name: Mount new directory
+  include: "mount.yml"
+  become: yes
+#
+- name: Create nfs server
+  include: "create_nfs_server.yml"
+  become: yes
+
+- name: Check if firewall-cmd is installed
+  command: command -v firewall-cmd >/dev/null 2>&1
+  register: is_firewall_cmd_exist
+  ignore_errors: yes
+
+- name: Check if firewalld is running
+  command: "systemctl status firewalld"
+  ignore_errors: yes
+  when: is_firewall_cmd_exist.rc == 0
+  register: is_firewall_running
+  become: yes
+#
+- name: debug
+  debug:
+   msg: "{{ is_firewall_running }}"
+
+- name: Run firewalld to enable nfs services
+  firewalld:
+    service: "{{ item.service | default(omit) }}"
+    permanent: "{{ item.permanent }}"
+    state: "{{ item.state }}"
+    zone: "{{ item.zone | default(omit) }}"
+    port: "{{ item.port | default(omit) }}"
+  with_items: "{{ firewall_service }}"
+  when: is_firewall_cmd_exist.rc == 0 and is_firewall_running.rc == 0
+  become: yes
+
+# restart service
+- name: Restart nfs server service
+  include: "service.yml"
+  become: yes
+

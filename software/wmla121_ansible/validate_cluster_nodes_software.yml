@@ -1,0 +1,16 @@
+---
+- name: Gather system release information
+  command: " cat /etc/system-release-cpe"
+  register: rel_info
+
+- name: Verify unity of all nodes
+  assert:
+    that:
+      - rel_info.stdout.find('7.6') != -1
+      - rel_info.stdout.find('redhat') != -1
+    fail_msg: "One or more nodes does not meet software requirements (RedHat 7.6)"
+  register: unity_state
+
+- name: DEBUG - Verify unity of all nodes
+  debug:
+    msg: "{{ unity_state }}"

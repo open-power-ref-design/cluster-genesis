@@ -1,0 +1,61 @@
+---
+- name: Get filename from software-vars.yml
+  set_fact:
+    file: "{{ content_files['spectrum-dli-entitlement'].split('/', 3)[-1] }}"
+
+- name: Get route to client
+  command: "{{ hostvars['localhost']['python_executable_local'] }} \
+  {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+  {{ inventory_hostname }}"
+  delegate_to: localhost
+  register: host_ip
+
+- name: Download entitlement file
+  get_url:
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: 0744
+    url: "http://{{ host_ip.stdout }}/{{ file }}"
+    dest: "{{ ansible_env.HOME }}"
+
+- name: Get enterprise license filename from software-vars.yml
+  set_fact:
+    filename: "{{ content_files['spectrum-dli-entitlement'].split('/')[-1] }}"
+
+- name: Entitle IBM Spectrum dli
+  shell: "source /opt/ibm/spectrumcomputing/profile.platform && \
+  egoconfig setentitlement {{ ansible_env.HOME }}/{{ filename }}"
+  args:
+    executable: /bin/bash
+
+- name: Start the IBM Spectrum Conductor with Spark cluster
+  shell: "source /opt/ibm/spectrumcomputing/profile.platform && \
+  egosh ego start && sleep 60"
+  args:
+    executable: /bin/bash
+  become: yes
+
+- name: Check the entitlement information
+  shell: "source /opt/ibm/spectrumcomputing/profile.platform && \
+  egosh user logon -u Admin -x Admin && \
+  egosh entitlement info"
+  args:
+    executable: /bin/bash
+  register: out
+  become: yes
+
+- name: Fail if any compoment entitlement is missing
+  fail:
+    msg: |
+        One of the following components are not entitled:
+        - EGO
+        - IBM Spectrum Conductor
+        - IBM Spectrum Conductor Deep Learning Impact
+        -------------------------------------------------
+        Output from 'egosh entitlement info':
+        {{ out.stdout }}
+  when: >
+    out.rc != 0 or
+    out.stdout is not search("EGO\s*:\s*Entitled") or
+    out.stdout is not search("Conductor\s*:\s*Entitled") or
+    out.stdout is not search("Conductor Deep Learning Impact\s*:\s*Entitled")

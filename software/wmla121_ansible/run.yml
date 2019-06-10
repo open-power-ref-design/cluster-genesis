@@ -1,0 +1,16 @@
+---
+- name: Gather localhost facts
+  hosts: localhost
+  gather_facts: True
+  gather_timeout: 10
+  tasks: []
+
+- hosts: all
+  gather_facts: False
+  gather_subset:
+    - network
+  gather_timeout: 10
+  handlers:
+    - import_tasks: reboot.yml
+  tasks:
+    - include_tasks: "{{ task_file }}"

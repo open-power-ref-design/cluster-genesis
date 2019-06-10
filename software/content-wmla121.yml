@@ -1,0 +1,205 @@
+# Values with {arch} should be formatted with self.arch at run time.
+# ie content['anaconda'].filename.format(arch=self.arch)
+anaconda:
+    desc: Anaconda install file
+    dtype: file-.sh
+    filename: Anaconda3-2019.03-Linux-{arch}.sh
+    fileglob: Anaconda3-20[1-2][8-9].[1-9][2-9]*-Linux-{arch}.sh
+    ftype: file
+    help: Anaconda installer file. Contains the Anaconda3 install
+    license_file:
+    license_for:
+    name: Anaconda  # Generally for display / prompting purposes
+    path: anaconda  # path under the nginx root location
+    type: file
+    source:
+        url: https://repo.continuum.io/archive/
+        disk:
+            - /home/
+            - /root/
+
+spectrum_conductor:
+    desc: Spectrum Conductor install file
+    dtype: file-.bin
+    filename: conductor2.3.0.0_{arch}.bin
+    fileglob: conductor[2-9]*.[3-9]*.[0-9]*.[0-9]*_{arch}.bin
+    filename_eval: conductoreval2.3.0.0_{arch}.bin
+    fileglob_eval: conductoreval[2-9]*.[3-9]*.[0-9]*.[0-9]*_{arch}.bin
+    ftype: file
+    help: Spectrum Conductor install file
+    license_file: spectrum_conductor_entitlement  # key
+    license_for:  # key
+    name: Spectrum Conductor
+    path: spectrum-conductor
+    type: file
+    source:
+        disk:
+            - /home/
+            - /root/
+        url:
+        also_get: spectrum_conductor_entitlement
+
+spectrum_conductor_entitlement:
+    desc: Spectrum Conductor entitlement file
+    dtype: file-.dat
+    filename: conductor_entitlement.dat
+    fileglob: conductor_entitlement.dat
+    filename_eval: conductoreval_entitlement.dat
+    fileglob_eval: conductoreval_entitlement.dat
+    ftype: file
+    help: Spectrum Conductor entitlement file
+    license_file:
+    license_for: spectrum_conductor
+    name: Spectrum Conductor entitlement
+    path: spectrum-conductor
+    type: file
+    source:
+
+spectrum_dli:
+    desc: Spectrum DLI install file
+    dtype: file-.bin
+    filename: dli-1.2.3.0_{arch}.bin
+    fileglob: dli-[1-9]*.[2-9]*.[2-9]*.[0-9]*_{arch}.bin
+    filename_eval: dlieval-1.2.3.0_{arch}.bin
+    fileglob_eval: dlieval-[1-9]*.[2-9]*.[2-9]*.[0-9]*_{arch}.bin
+    ftype: file
+    help: Spectrum DLI install file
+    license_file: spectrum_dli_entitlement  # key
+    license_for:  # key
+    name: Spectrum DLI
+    path: spectrum-dli
+    type: file
+    source:
+        disk:
+            - /home/
+            - /root/
+        url:
+    license_source: same
+
+spectrum_dli_entitlement:
+    desc: Spectrum DLI entitlement file
+    dtype: file-.dat
+    filename: dli_entitlement.dat
+    fileglob: dli_entitlement.dat
+    filename_eval: dlieval_entitlement.dat
+    fileglob_eval: dlieval_entitlement.dat
+    ftype: file
+    help: Spectrum DLI entitlement file
+    license_file:
+    license_for: spectrum_dli
+    name: Spectrum DLI entitlement
+    path: spectrum-dli
+    type: file
+    source:  # Include key but leave empty if content license_source is same
+
+wmla_license:
+    desc: WMLA license install file
+    dtype: file-.tar.gz
+    filename: ibm-wmla-license_g812996f.162_{arch}.tar.gz
+    fileglob: ibm-wmla-license_*.tar.gz
+    filename_eval: ibm-wmla-license-eval_g812996f.162_{arch}.tar.gz
+    fileglob_eval: ibm-wmla-license-eval_*.tar.bz2
+    ftype: file
+    help: WMLA license installation file. Anaconda or Miniconda must be
+          installed for extraction.
+    license_file:
+    license_for:
+    name: WMLA license
+    path: wmla-license
+    type: file
+    source:
+        disk:
+            - /home/
+            - /root/
+        url:
+
+dependent_packages:
+    desc: Dependent packages partial repository
+    dtype: repo
+    ftype: select-one
+    help: Partial aggregate of RHEL repositories
+    name: Dependencies
+    type: yum
+    repo_id: dependencies  # optional
+    repo_name: Dependencies # optional
+    source:
+        Enabled repositories:
+        baseurl:
+
+epel:
+    desc: EPEL partial repository
+    dtype: repo
+    ftype: select-one
+    help: Partial replica of the EPEL repository
+    name: EPEL
+    type: yum
+    repo_id: epel-{arch}  # optional
+    repo_name: EPEL-{arch} # optional
+    source:
+        Enabled repositories:
+        baseurl:
+
+cuda_driver:
+    desc: CUDA driver repository
+    dtype: repo
+    ftype: select-one
+    help: Partial replica of the CUDA repository
+    name: CUDA
+    type: yum
+    repo_id: cuda  # optional
+    repo_name: CUDA driver repository  # optional
+    gpgkey: "{baseurl}/7fa2af80.pub"
+    source:
+        baseurl: http://developer.download.nvidia.com/compute/cuda/repos/rhel7/{arch}
+        rpm:
+
+ibmai:
+    desc: IBM AI repository
+    dtype: repo
+    ftype: select-one
+    help: Replica of the IBM AI repository
+    #name: IBMAI
+    name: ibmai
+    type: conda
+    repo_id: ibmai  # optional
+    repo_name: IBM AI repository  # optional
+    source:
+        baseurl: https://public.dhe.ibm.com/ibmdl/export/pub/software/server/ibm-ai/conda/linux-{ana_platform_basename}/
+
+anaconda_main:
+    desc: Anaconda main partial repository
+    dtype: repo
+    ftype: select-one
+    help: Partial replica of the Anaconda main repository
+    #name: Anaconda Main
+    name: main
+    type: conda
+    repo_id: anaconda  # optional
+    repo_name: Anaconda Main repository  # optional
+    source:
+        baseurl: https://repo.continuum.io/pkgs/main/linux-{ana_platform_basename}/
+
+anaconda_free:
+    desc: Anaconda free partial repository
+    dtype: repo
+    ftype: select-one
+    help: Partial replica of the Anaconda free repository
+    #name: Anaconda Free
+    name: free
+    type: conda
+    repo_id: anaconda  # optional
+    repo_name: Anaconda Free repository  # optional
+    source:
+        baseurl: https://repo.continuum.io/pkgs/free/linux-{ana_platform_basename}/
+
+pypi:
+    desc: Python package index partial repository
+    dtype: repo
+    ftype: select-one
+    help: Partial replica of the Python package index repository
+    name: Python package index
+    type: simple
+    repo_id: pypi  # optional
+    repo_name: Python Package  # optional
+    source:
+        baseurl: https://pypi.org

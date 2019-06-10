@@ -1,0 +1,80 @@
+---
+##  Call yum_repository  module in a list
+### How to use
+#### Example list to be used with file
+# yum_repos:
+# - name: rhsm
+#   state: present
+# - name: epel
+#   state: present
+#   description: EPEL YUM repo
+#   baseurl: "https://download.fedoraproject.org/pub/epel/$releasever/$basearch/"
+#### In your ansible yaml file call it by:
+# - name: Add Yum repos
+#   include: "yum_repository.yml"
+#   become: yes
+#
+### Input List expects device, number  to be defined
+### all the other attributes are not expected
+- name: Set defaults
+  set_fact:
+    yum_repos:
+      - state: ""
+  when: yum_repos is not defined
+
+- name: Verify Redhat Subscription Manager
+  shell: "subscription-manager list"
+  args:
+    executable: /bin/bash
+  register: subscription_status
+  become: yes
+
+- name: Validate Manager
+  set_fact:
+    red_hat_status: "{{ subscription_status.stdout | regex_search(regexp,'\\1') }}"
+  vars:
+    regexp: 'Status:\s+(.+)'
+
+# - name: Get Status
+  # debug:
+    # var: red_hat_status
+  # when: red_hat_status[0] == "Unknown"
+
+- name: Add rhsm repo
+  shell: "subscription-manager config --rhsm.manage_repos=1"
+  with_items: "{{ yum_repos }}"
+  when: item.name is defined and item.name == "rhsm" and item.state == "present"
+    and red_hat_status[0] != "Unknown"
+  become: yes
+
+- name: Remove rhsm repo
+  shell: "subscription-manager config --rhsm.manage_repos=0"
+  with_items: "{{ yum_repos }}"
+  when: item.name is defined and item.name == "rhsm" and item.state == "absent"
+    and red_hat_status[0] != "Unknown"
+  become: yes
+
+- name: Add any repository
+  yum_repository:
+    name: "{{ item.name }}"
+    description: "{{ item.description }}"
+    baseurl: "{{ item.baseurl }}"
+  with_items: "{{ yum_repos }}"
+  when: item.name is defined and item.state is defined  and item.state == 'present' and item.name != "rhsm"
+  become: yes
+
+# Handler showing how to clean yum metadata cache
+# - name: yum-clean-metadata
+  # command: yum clean metadata
+  # args:
+    # warn: no
+  # become: yes
+
+- name: Remove any repository
+  yum_repository:
+    name: "{{ item.name }}"
+    state: "{{ item.state }}"
+  with_items: "{{ yum_repos  }}"
+  when: item.name is defined and item.state is defined  and item.state == 'absent' and item.name != "rhsm"
+  become: yes
+  # notify: yum-clean-metadata

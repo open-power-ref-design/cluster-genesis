@@ -1,0 +1,93 @@
+---
+#Validate that either chronyd is running on all nodes in the cluster and all are configured to a reachable source address or alternatively, all nodes are running ntpd and all are configured to a reachable source
+#address.
+
+- name: Set variable
+  set_fact:
+    source_0: '0.rhel.pool.ntp.org'
+    source_1: '1.rhel.pool.ntp.org'
+    source_2: '2.rhel.pool.ntp.org'
+    source_3: '3.rhel.pool.ntp.org'
+
+- name: check if /var/run/chronyd.pid exists/Running
+  stat:
+    path: "/var/run/chronyd.pid"
+  register: chronyd_result
+
+- name: Debug - Check Status of chronyd service
+  debug:
+    var: chronyd_result.stat.exists
+
+#Check if source_0 is a reachable source
+- name: Validate source_0 are configured to a reachable source
+  command: 'ping {{ source_0 }} -c 3'
+  delegate_to: localhost
+  ignore_errors: yes
+  register: source_0_status
+
+- name: Debug - Validate nodes are configured to a reachable source
+  debug:
+    msg: "{{ source_0_status }}"
+
+- name: Check if icmp_seq Exists
+  command: "echo {{ source_0_status.stdout.find('icmp_seq=3') }}"
+  register: icmp_seq_exists
+
+#Check if source_1 is a reachable source
+- name: Validate source_1 are configured to a reachable source
+  command: 'ping {{ source_1 }} -c 3'
+  delegate_to: localhost
+  ignore_errors: yes
+  register: source_1_status
+
+- name: Debug - Validate nodes are configured to a reachable source
+  debug:
+    msg: "{{ source_1_status }}"
+
+- name: Check if icmp_seq Exists
+  command: "echo {{ source_1_status.stdout.find('icmp_seq=3') }}"
+  register: icmp_seq_exists
+  when: icmp_seq_exists != -1
+
+#Check if source_2 is a reachable source
+- name: Validate source_2 are configured to a reachable source
+  command: 'ping {{ source_2 }} -c 3'
+  delegate_to: localhost
+  ignore_errors: yes
+  register: source_2_status
+
+- name: Debug - Validate nodes are configured to a reachable source
+  debug:
+    msg: "{{ source_2_status }}"
+
+- name: Check if icmp_seq Exists
+  command: "echo {{ source_2_status.stdout.find('icmp_seq=3') }}"
+  register: icmp_seq_exists
+  when: icmp_seq_exists != -1
+
+#Check if source_3 is a reachable source
+- name: Validate source_0 are configured to a reachable source
+  command: 'ping {{ source_3 }} -c 3'
+  delegate_to: localhost
+  ignore_errors: yes
+  register: source_3_status
+
+- name: Debug - Validate nodes are configured to a reachable source
+  debug:
+    msg: "{{ source_3_status }}"
+
+- name: Check if icmp_seq Exists
+  command: "echo {{ source_3_status.stdout.find('icmp_seq=3') }}"
+  register: icmp_seq_exists
+  when: icmp_seq_exists != -1
+
+#Fail logic
+- name: Debug - Check if icmp_seq Exists
+  debug:
+    msg: "{{ icmp_seq_exists.stdout }}"
+
+- name: Fail/Pass on icmp_seq Exists Data
+  assert:
+    that: icmp_seq_exists.stdout != -1
+    fail_msg: "There are currently no reachable sources. please verify chronyd config."
+

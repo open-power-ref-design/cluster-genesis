@@ -1,0 +1,8 @@
+---
+- name: Reboot
+  reboot:
+    reboot_timeout: 1000
+  become: yes
+  when: pup_reboot
+
+...

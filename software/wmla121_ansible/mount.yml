@@ -1,0 +1,61 @@
+---
+##  Create mounts with mount module in a list
+### How to use
+#### Example list to be used with file
+# route_points:
+#   - device: "{{ interface }}"
+    # prefix: "{{ gateway_ip_address }}/24"
+    # next_hop: "{{ srv_ip_sub }}"
+    # state: present
+#   - device: "{{ interface }}"
+    # prefix: "{{ gateway_ip_address }}/24"
+    # next_hop: "{{ srv_ip_sub }}"
+    # state: absent
+#### In your ansible yaml file call it by:
+# - name: Create  mounts
+#   include: "mount.yml"
+#   become: yes
+#
+### Input List expects src, path, state, prefix, and fstype  to be defined
+# - name: Gathering data constants
+  # set_fact:
+    # install_mount_dir: ""
+    # nfs_ip_address: ""
+    # external_dir: ""
+    # remove_default: "ip route del default"
+#
+# - name: Gathering data
+  # set_fact:
+    # mount_points:
+      # - path: "{{ install_mount_dir }}"
+        # src: "{{ nfs_ip_address }}:{{ external_dir }}"
+        # fstype: nfs
+        # opts: vers=3
+        # state: mounted
+#
+- name: Check path already exists
+  stat:
+    path: "{{ item.path }}"
+  register: mount_points_paths
+  with_items: "{{ mount_points }}"
+  become: yes
+
+# - name: Remove Line in /etc/fstab
+  # lineinfile:
+    # dest: "/etc/fstab"
+    # regexp: "{{ item.src }}"
+    # state: absent
+  # with_items: "{{ mount_points }}"
+  # become: yes
+
+- name: Add mount point
+  mount:
+    path: "{{ item.item.path }}"
+    src : "{{ item.item.src }}"
+    fstype: "{{ item.item.fstype }}"
+    opts: "{{ item.item.opts | default(omit) }}"
+    state: "{{ item.item.state }}"
+  with_items: "{{ mount_points_paths.results }}"
+  when:  item.stat.exists
+  become: yes
+

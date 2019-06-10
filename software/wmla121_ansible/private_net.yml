@@ -1,0 +1,116 @@
+---
+# This task list attempts to setup a private network interface
+## in all its clients it does this by doing these steps
+# - name: Gathering data constants
+  # set_fact:
+    # install_mount_dir: ""
+    # interface: ""
+    # nfs_ip_address: ""
+    # gateway_ip_address: ""
+    # srv_ip_sub: ""
+    # interface_addres: ""
+    # external_dir: ""
+   # Ensure hostname set
+   # Resolve hostnames in /etc/hosts
+   # Remove Repos
+    # yum_repos:
+      # - name: rhsm
+        # state: absent
+      # - name: epel
+        # state: absent
+        # name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+   # Create Routes
+    # route_points:
+      # - device: "{{ interface }}"
+        # prefix: "24"
+        # next_hop: "{{ srv_ip_sub }}"
+        # state: present
+      # - device: "{{ interface }}"
+        # prefix: "24"
+        # next_hop: "{{ srv_ip_sub }}"
+        # state: absent
+   # Create Interface
+    # network_points:
+      # - device: "{{ interface }}"
+        # prefix:  24
+        # address: "{{ interface_addres }}"
+        # bootproto: "none"
+        # defaultroute: "NO"
+        # dnsnameservers: "9.8.39.8,9.89.39.40"
+        # state: present
+    # Validate if yum-config-manager exists
+    # Disable Unavailable Repos
+   # create files or directories
+    # file_points:
+      # - path: "{{ install_mount_dir }}"
+        # owner: nfsnobody
+        # group: nfsnobody
+        # mode: "u=rwx,g=rx,o=rx"
+        # state: directory
+      # - path: "{{ install_mount_dir }}/jja"
+        # owner: rhel76
+        # group: rhel76
+        # mode: "u=rwx,g=rx,o=rx"
+        # state: directory
+        # recurse: yes
+        # force: yes
+      # - path: "{{ install_mount_dir }}/dli_result_fs"
+        # owner: nfsnobody
+        # group: nfsnobody
+        # mode: "u=rwx,g=rx,o=rx"
+        # state: directory
+        # recurse: yes
+        # force: yes
+   # Create Mounts
+    # mount_points:
+      # - path: "{{ install_mount_dir }}"
+        # src: "{{ nfs_ip_address }}:{{ external_dir }}"
+        # fstype: nfs
+        # opts: vers=3
+        # state: mounted
+- name: Import Data
+  include_vars: "env_vars/setup_private_env_vars.yml"
+
+- name: Ensure hostname set
+  hostname:
+    name: "{{ inventory_hostname }}"
+  register: hostname_set
+  become: yes
+#
+- name: Resolve hostnames in /etc/hosts
+  include: "resolve_server_hostnames.yml"
+  become: yes
+
+# disable repos
+- name: Remove repos
+  include: "yum_repository.yml"
+  become: yes
+
+# create routes and/or deletes old ones
+- name: Create Routes
+  include: "route.yml"
+  become: yes
+
+- name: Create Interface
+  include: "network_interface.yml"
+  become: yes
+
+- name: Validate if yum-config-manager exists
+  shell: "yum-config-manager"
+  ignore_errors: yes
+  register: yum_config_manager_installed
+  become: yes
+
+- name: Disable Unavailable Repos
+  shell: "yum-config-manager --setopt=\\*.skip_if_unavailable=1 --save"
+  when: yum_config_manager_installed.rc == 0
+  become: yes
+
+# create files or directories
+- name: Create directories
+  include: "file.yml"
+  become: yes
+#
+- name: Create Mounts
+  include: "mount.yml"
+  become: yes

@@ -1,0 +1,36 @@
+---
+##  Call yum module in a list
+### How to use
+#### Example list to be used with file
+# yum_packages:
+# - name: nfs-utils
+#   state: present
+# - name: libnfsidmap
+#   state: present
+# - name: parted
+#   state: present
+#
+#
+#### In your ansible yaml file call it by:
+# - name: Add packages
+#   include: "yum.yml"
+#   become: yes
+#
+### Input List expects name, state to be defined
+### and enablerepo and disablerepo are mutually
+### exclusive but are not expected
+- name: Set defaults
+  set_fact:
+    yum_packages:
+      - repo_name: "None"
+  when: yum_packages is not defined
+
+- name: Install/Remove packages
+  yum:
+    name: "{{ item.name }}"
+    state: "{{ item.state }}"
+    enablerepo: "{{ item.enablerepo | default(omit) }}"
+    disablerepo: "{{ item.disablerepo | default(omit) }}"
+  with_items: "{{ yum_packages }}"
+  when: item.name is defined
+  become: yes

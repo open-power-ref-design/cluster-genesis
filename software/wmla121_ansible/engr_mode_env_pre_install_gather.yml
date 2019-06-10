@@ -1,0 +1,172 @@
+---
+- name: Setting Variables
+  set_fact:
+    dlipy3_pip: dlipy3_pip_pre_install.txt
+    dlipy3_conda: dlipy3_conda_pre_install.txt
+    dlipy2_pip: dlipy2_pip_pre_install.txt
+    dlipy2_conda: dlipy2_conda_pre_install.txt
+    dlinsights_pip: dlinsights_pip_pre_install.txt
+    dlinsights_conda: dlinsights_conda_pre_install.txt
+
+- name: Set dependencies directory variable
+  set_fact:
+    dependencies_dir: "{{ hostvars['localhost']['deps_path_local'] }}"
+
+- name: Set installation directory variable
+  set_fact:
+    install_dir: "/opt/anaconda3"
+
+- name: Get route to client
+  command: "{{ hostvars['localhost']['python_executable_local'] }} \
+  {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+  {{ inventory_hostname }}"
+  delegate_to: localhost
+  register: host_ip
+
+                        #dlipy3 env
+
+- name: Check if Anaconda dlipy3_test environment already exists
+  stat:
+    path: "{{ install_dir }}/envs/dlipy3_test"
+  register: dlipy3_test_env
+
+- name: "Create an Anaconda environment named dlipy3_test for initial list gather \
+         Spectrum Conductor Deep Learning Impact"
+  shell: "{{ install_dir }}/bin/conda create --name dlipy3_test --yes pip python=3.6"
+  when: not dlipy3_test_env.stat.exists
+  become: yes
+
+- name: Check if dlipy3 pre data exists (PIP)
+  stat:
+    path: "{{ ansible_env.HOME }}/{{ dlipy3_pip }}"
+  register: dlipy3_pip_result
+
+- name: Activate dlipy3_test environment and gather pre data (PIP)
+  shell: "source {{ install_dir }}/bin/activate dlipy3_test && {{ item }}"
+  loop:
+    - "conda list > {{ vars.dlipy3_pip }} "
+  become: yes
+  when: not dlipy3_pip_result.stat.exists
+
+- name: Copy data back to deployer (PIP)
+  fetch:
+    src: "{{ ansible_env.HOME }}/{{ dlipy3_pip }}"
+    dest: "{{ dependencies_dir }}"
+  when: not dlipy3_pip_result.stat.exists
+
+- name: Check if dlipy3 pre data exists (Conda)
+  stat:
+    path: "{{ ansible_env.HOME }}/{{ dlipy3_conda }}"
+  register: dlipy3_conda_result
+
+- name: Activate dlipy3_test environment and gather pre data (Conda)
+  shell: "source {{ install_dir }}/bin/activate dlipy3_test && {{ item }}"
+  loop:
+    - "conda list --explicit > {{ vars.dlipy3_conda }}"
+  become: yes
+  when: not dlipy3_conda_result.stat.exists
+
+- name: Copy data back to deployer (Conda)
+  fetch:
+    src: "{{ ansible_env.HOME }}/{{ dlipy3_conda }}"
+    dest: "{{ dependencies_dir }}"
+  when: not dlipy3_conda_result.stat.exists
+
+                #dlipy2 env
+
+- name: Check if Anaconda dlipy2_test environment already exists
+  stat:
+    path: "{{ install_dir }}/envs/dlipy2_test"
+  register: conda_dlipy2_test_env
+
+- name: "Create an Anaconda environment named dlipy2_test for initial list gather \
+         Spectrum Conductor Deep Learning Impact"
+  shell: "{{ install_dir }}/bin/conda create --name dlipy2_test --yes pip python=3.6"
+  when: not conda_dlipy2_test_env.stat.exists
+  become: yes
+
+- name: Check if dlipy2 pre data exists (PIP)
+  stat:
+    path: "{{ ansible_env.HOME }}/{{ dlipy2_pip }}"
+  register: dlipy2_pip_result
+
+- name: Activate dlipy2_test environment and gather pre data (PIP)
+  shell: "source {{ install_dir }}/bin/activate dlipy2_test && {{ item }}"
+  loop:
+    - "conda list > {{ vars.dlipy2_pip }}"
+  become: yes
+  when: not dlipy2_pip_result.stat.exists
+
+- name: Copy data back to deployer (PIP)
+  fetch:
+    src: "{{ ansible_env.HOME }}/{{ dlipy2_pip }}"
+    dest: "{{ dependencies_dir }}"
+  when: not dlipy2_pip_result.stat.exists
+
+- name: Check if dlipy2 pre data exists (Conda)
+  stat:
+    path: "{{ ansible_env.HOME }}/{{ dlipy2_conda }}"
+  register: dlipy2_conda_result
+
+- name: Activate dlipy2_test environment and gather pre data (Conda)
+  shell: "source {{ install_dir }}/bin/activate dlipy2_test && {{ item }}"
+  loop:
+    - "conda list --explicit > {{ vars.dlipy2_conda }}"
+  become: yes
+  when: not dlipy2_conda_result.stat.exists
+
+- name: Copy data back to deployer (Conda)
+  fetch:
+    src: "{{ ansible_env.HOME }}/{{ dlipy2_conda }}"
+    dest: "{{ dependencies_dir }}"
+  when: not dlipy2_conda_result.stat.exists
+
+                        #dlinsights env
+
+- name: Check if Anaconda dlinsights_test environment already exists
+  stat:
+    path: "{{ install_dir }}/envs/dlinsights_test"
+  register: dlinsights_test_env
+
+- name: "Create an Anaconda environment named dlipy3_test for initial list gather \
+         Spectrum Conductor Deep Learning Impact"
+  shell: "{{ install_dir }}/bin/conda create --name dlinsights_test --yes pip python=3.6"
+  when: not dlinsights_test_env.stat.exists
+  become: yes
+
+- name: Check if dlinsights pre data exists (PIP)
+  stat:
+    path: "{{ ansible_env.HOME }}/{{ dlinsights_pip }}"
+  register: dlinsights_pip_result
+
+- name: Activate dlinsights and gather pre data (PIP)
+  shell: "source {{ install_dir }}/bin/activate dlinsights_test && {{ item }}"
+  loop:
+    - "conda list > {{ vars.dlinsights_pip }}"
+  become: yes
+  when: not dlinsights_pip_result.stat.exists
+
+- name: Copy data back to deployer (PIP)
+  fetch:
+    src: "{{ ansible_env.HOME }}/{{ dlinsights_pip }}"
+    dest: "{{ dependencies_dir }}"
+  when: not dlinsights_pip_result.stat.exists
+
+- name: Check if dlinsights pre data exists (Conda)
+  stat:
+    path: "{{ ansible_env.HOME }}/{{ dlinsights_conda }}"
+  register: dlinsights_conda_result
+
+- name: Activate dlinsights and gather pre data (Conda)
+  shell: "source {{ install_dir }}/bin/activate dlinsights_test && {{ item }}"
+  loop:
+    - "conda list --explicit > {{ vars.dlinsights_conda }}"
+  become: yes
+  when: not dlinsights_conda_result.stat.exists
+
+- name: Copy data back to deployer (Conda)
+  fetch:
+    src: "{{ ansible_env.HOME }}/{{ dlinsights_conda }}"
+    dest: "{{ dependencies_dir }}"
+  when: not dlinsights_conda_result.stat.exists
+

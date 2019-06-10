@@ -1,0 +1,125 @@
+---
+install_mount_dir: ""
+interface: ""
+host_nfs_ip_address: ""
+gateway_ip_address: ""
+srv_ip_sub: ""
+interface_addres: ""
+external_dir: ""
+#
+network_points:
+  - device: "{{ interface }}"
+    prefix:  24
+    address: "{{ interface_addres }}"
+    bootproto: "none"
+    defaultroute: "YES"
+#    gateway: "192.168.77.252"
+    gateway: "{{ srv_ip_sub }}"
+    state: present
+    dnsnameservers: "9.3.1.200,9.0.128.50"
+    hostname: "master1.lan"
+
+route_points:
+  - device: "{{ interface }}"
+    prefix: "{{ gateway_ip_address }}/24"
+    next_hop: "{{ srv_ip_sub }}"
+    state: absent
+    hostname: "master1.lan"
+#  - device: "{{ interface }}"
+#    prefix: "9.188.189.2/24"
+#    next_hop: "{{ srv_ip_sub }}"
+#    state: absent
+#    hostname: "master1.lan"
+#  - device: "{{ interface }}"
+#    prefix: "default"
+#    next_hop: "{{ srv_ip_sub }}"
+#    state: present
+#    hostname: "master1.lan"
+
+file_points:
+  - path: "{{ install_mount_dir }}"
+    # owner: nfsnobody
+    # group: nfsnobody
+    mode: "u=rwx,g=rx,o=rx"
+    state: directory
+    recurse: yes
+    force: yes
+  - src: "/usr/bin/mount"
+    dest: "/usr/sbin/mount"
+    state: link
+    force: yes
+  - src: "/usr/bin/systemctl"
+    dest: "/usr/sbin/systemctl"
+    state: link
+    force: yes
+  - src: "/usr/bin/umount"
+    dest: "/usr/sbin/umount"
+    state: link
+    force: yes
+mount_points:
+  - path: "{{ install_mount_dir }}"
+    src: "{{ host_nfs_ip_address }}:{{ external_dir }}"
+    fstype: nfs
+    opts: vers=3
+    state: mounted
+# mount_server_points:
+  # - path: "{{ install_mount_dir }}"
+    # access:
+      # - hostname: "9.0.0.0/8"
+        # opts:
+          # - 'rw'
+          # - 'sync'
+          # - 'no_root_squash'
+      # - hostname: "192.168.0.0/16"
+        # opts:
+          # - 'rw'
+          # - 'sync'
+          # - 'no_root_squash'
+    # owner: "nfsnobody"
+    # group: "nfsnobody"
+    # mode: "u=rwx,g=rx,o=rx"
+yum_packages:
+  # setup EPEL repo access
+  - name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
+    state: present
+  - name: nfs-utils
+    state: present
+  - name: libnfsidmap
+    state: present
+  - name: parted
+    state: present
+yum_repos:
+  - name: rhsm
+    state: present
+  - name: cuda-powerup
+    state: absent
+  - name: dependencies-powerup
+    state: absent
+  - name: epel-ppc64le-powerup
+    state: absent
+run_service:
+  - name: "network"
+    state: "restarted"
+    enabled: "yes"
+    become: yes
+# run_parted:
+  # - device: /dev/sdb
+    # number: 1
+    # state: present
+    # flags: "[ lvm ]"
+run_filesystem:
+  - dev:  /dev/sdb1
+    fstype: ext4
+firewall_service:
+  - service: nfs
+    permanent: yes
+    state: enabled
+  - service:  mountd
+    permanent: yes
+    state: enabled
+  - service: rpc-bind
+    permanent: yes
+    state: enabled
+  - port: "2049/tcp"
+    permanent: yes
+    state: enabled

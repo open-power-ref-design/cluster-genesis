@@ -1,0 +1,46 @@
+---
+- name: Setting Variables
+  set_fact:
+    yum_post: client_yum_post_install.txt
+    pip_post: client_pip_post_install.txt
+
+- name: Set dependencies directory variable
+  set_fact:
+    dependencies_dir: "{{ hostvars['localhost']['deps_path_local'] }}"
+
+- name: Get route to client
+  command: "{{ hostvars['localhost']['python_executable_local'] }} \
+  {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+  {{ inventory_hostname }}"
+  delegate_to: localhost
+  register: host_ip
+
+                        #YUYM
+- name: Check that the check if YUM post data exists
+  stat:
+    path: "{{ ansible_env.HOME }}/{{ yum_post }}"
+  register: yum_post_result
+
+- name: Create YUM post data file, if data doesnt exist already on client
+  shell: "yum list installed | sed 1,2d | xargs -n3 | column -t > {{ yum_post }}"
+  when: not yum_post_result.stat.exists
+
+- name: Copy YUM data back to deployer
+  fetch:
+    src: "{{ ansible_env.HOME }}/{{ yum_post }}"
+    dest: "{{ dependencies_dir }}"
+
+                        #PIP
+- name: Check that the check if PIP post data exists
+  stat:
+    path: "{{ ansible_env.HOME }}/{{ pip_post }}"
+  register: pip_post_result
+
+- name: Create PIP post data file, if data doesnt exist already on client
+  shell: "touch {{ pip_post }}"
+  when: not pip_post_result.stat.exists
+
+- name: Copy PIP data back to deployer
+  fetch:
+    src: "{{ ansible_env.HOME }}/{{ pip_post }}"
+    dest: "{{ dependencies_dir }}"

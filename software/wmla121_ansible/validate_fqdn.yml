@@ -1,0 +1,21 @@
+---
+#Validate FQDN on all cluster nodes: hostname -f and getent hosts [ip_address]
+#getent hosts with no ip address on all nodes should list the fqdn for all nodes in the cluster
+- name: Use client hostnames/ansible_fqdn to gather IPv4 data for clients
+  command: "getent ahostsv4 {{ item }}"
+  loop: "{{ groups['all']|flatten }}"
+  register: client_ip
+
+- name: Debug - Use client hostnames/ansible_fqdn to gather IPv4 data
+  debug:
+    msg: "{{ item.stdout }}"
+  loop: "{{ client_ip.results }}"
+
+- name: Fail if IP Address Does not Exist
+  fail:
+    msg: "One or more nodes have a conflict Validating FQDN. Please check node settings."
+  when: not item.stdout.split()[0] | ipv4
+  loop: "{{ client_ip.results }}"
+
+
+

@@ -1,0 +1,56 @@
+---
+##  Call file  module in a list
+### How to use
+#### Example list to be used with file
+#file_points:
+#  - path: "{{ install_mount_dir }}"
+#    owner: nfsnobody
+#    group: nfsnobody
+#    mode: "u=rwx,g=rx,o=rx"
+#    state: directory
+#    recurse: yes
+#    force: yes
+#  - src: "/usr/bin/mount"
+#    dest: "/usr/sbin/mount"
+#    state: link
+#    force: yes
+#  - src: "/usr/bin/systemctl"
+#    dest: "/usr/sbin/systemctl"
+#    state: link
+#    force: yes
+#  - src: "/usr/bin/umount"
+#    dest: "/usr/sbin/umount"
+#    state: link
+#    force: yes
+#### In your ansible yaml file call it by:
+# - name: Create file or directory
+#   include: "file.yml"
+#   become: yes
+#
+### Input List expects device, state and hostname to be defined
+### all the other attributes are not expected
+- name: Create files or folders
+ # create a directory if it doesn't exist
+  file:
+    path: "{{ item.path | default(omit) }}"
+    mode: "{{ item.mode | default(omit) }}"
+    state: "{{ item.state }}"
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+    recurse: "{{ item.recurse | default(omit) }}"
+    unsafe_writes: "{{ item.unsafe_writes | default(omit) }}"
+    seuser: "{{ item.seuser | default(omit) }}"
+    setype: "{{ item.setype | default(omit) }}"
+    selevel: "{{ item.selevel | default(omit) }}"
+    src: "{{ item.src | default(omit) }}"
+    dest: "{{ item.dest | default(omit) }}"
+    force: "{{ item.force | default(omit) }}"
+    follow: "{{ item.follow | default(omit) }}"
+    access_time: "{{ item.access_time | default(omit) }}"
+    access_time_format: "{{ item.access_time_format | default(omit) }}"
+    modification_time: "{{ item.modification_time | default(omit) }}"
+    modification_time_format: "{{ item.modification_time_format | default(omit) }}"
+  become: yes
+  when: file_points is defined
+  with_items: "{{ file_points }}"
+

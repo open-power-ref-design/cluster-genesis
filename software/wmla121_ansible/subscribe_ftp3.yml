@@ -1,0 +1,50 @@
+---
+# Manage Red hat satellite through ansible
+# to run this task list you have to add these variables
+#
+# ftp_user: "username"
+# ftp_pass: "pass"
+# ftp3_site: "https://ftp3.linux.ibm.com/dl.php?file=/redhat/ibm-rhsm.sh"
+# ftp3_user: "ftp3_user"
+# ftp3_pass: "ftp3_pass"
+# will attempt to subscribe to the ftp3 satellite
+- name: Import Data
+  include_vars: "env_vars/setup_ftp3_env_vars.yml"
+
+- name: Verify Redhat Subscription Manager
+  shell: "subscription-manager list"
+  args:
+    executable: /bin/bash
+  register: subscription_status
+  become: yes
+
+- name: Get Status
+  debug:
+    var: subscription_status
+
+- name: Validate Manager
+  set_fact:
+    red_hat_status: "{{ subscription_status.stdout | regex_search(regexp,'\\1') }}"
+  vars:
+    regexp: 'Status:\s+(.+)'
+
+- name: Get Status
+  debug:
+    var: red_hat_status
+  when: red_hat_status[0] == "Unknown"
+
+- name: Get Ret hat sub manager script
+  shell:  "wget --no-check-certificate --user='{{ ftp_user }}' --password='{{ ftp_pass }}' -O /tmp/ibm-rhsm.sh {{ ftp3_site }}"
+  register: wget_sh_script
+  when: red_hat_status[0] == "Unknown"
+
+- name: Run bash script to subscribe to ftp3
+  shell: "bash /tmp/ibm-rhsm.sh"
+  register: ibmrhsm_status
+  become: yes
+  environment:
+    FTP3USER: "{{ ftp3_user  }}"
+    FTP3PASS: "{{ ftp3_pass  }}"
+    FTP3FORCE: "y"
+  when: red_hat_status[0] == "Unknown"
+

@@ -1,0 +1,37 @@
+---
+- debug:
+    var: ansible_connection
+
+- debug:
+    msg: "Non-local connection!"
+  when: ansible_connection != "local"
+
+- command: whoami
+
+- command: whoami
+  become: yes
+
+- name: Install additional software packages
+  yum:
+    name:
+        - wget
+        - bzip2
+        - curl
+        - bind-utils
+        - iproute
+        - acl
+        - net-tools
+        - openssl
+        - dejavu-serif-fonts
+        - nfs-utils
+        - pkg_install_yum 
+        - sudo 
+        - openssh-clients 
+        - gcc-c++ 
+        - gcc-gfortran 
+        - openssl-devel
+        - gettext 
+        - which 
+        - zip
+    state: latest
+  become: yes

@@ -1,0 +1,67 @@
+---
+- name: Setting Variables
+  set_fact:
+    yum_pre: client_yum_pre_install.txt
+    pip_pre: client_pip_pre_install.txt
+
+- name: Gathering minimal facts
+  setup:
+    gather_subset:
+      -  '!all'
+      -  '!min'
+      -  'env'
+  register: facts
+
+- name: Printing the environment Variable in Ansible
+  debug:
+    msg: "{{ facts }}"
+
+- name: Set dependencies directory variable
+  set_fact:
+    dependencies_dir: "{{ hostvars['localhost']['deps_path_local'] }}"
+
+            #Create Dependencies Directory
+- name: Create dependencies directory
+  file:
+    path: "{{ dependencies_dir }}"
+    state: directory
+    mode: u=rwX,g=rwX,o=rwX
+    recurse: yes
+  delegate_to: localhost
+
+- name: Get route to client
+  command: "{{ hostvars['localhost']['python_executable_local'] }} \
+  {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+  {{ inventory_hostname }}"
+  delegate_to: localhost
+  register: host_ip
+
+                        #YUM
+- name: Check if YUM pre data exists
+  stat:
+    path: "{{ ansible_env.HOME }}/{{ yum_pre }}"
+  register: yum_pre_result
+
+- name: Create YUM pre data file, if data doesnt exist already on client
+  shell: "yum list installed | sed 1,2d | xargs -n3 | column -t > {{ yum_pre }}"
+  when: not yum_pre_result.stat.exists
+
+- name: Copy YUM data back to deployer
+  fetch:
+    src: "{{ ansible_env.HOME }}/{{ yum_pre }}"
+    dest: "{{ dependencies_dir }}"
+
+                        #PIP
+- name: Check that the check if PIP pre data exists
+  stat:
+    path: "{{ ansible_env.HOME }}/{{ pip_pre }}"
+  register: pip_pre_result
+
+- name: Create PIP pre data file, if data doesnt exist already on client
+  shell: "touch {{ pip_pre }}"
+  when: not pip_pre_result.stat.exists
+
+- name: Copy PIP data back to deployer
+  fetch:
+    src: "{{ ansible_env.HOME }}/{{ pip_pre }}"
+    dest: "{{ dependencies_dir }}"

@@ -1,0 +1,22 @@
+---
+- name: Include configuration environment variables
+  include_vars:
+    file: envs_spectrum_conductor.yml
+    name: envs
+
+- name: Grant permission to DLI admin to write audit directory
+  shell: "setfacl -m u:{{ envs['CLUSTERADMIN'] }}:rwx /opt/DL/powerai-enterprise/audit"
+  args:
+    executable: /bin/bash
+  register: out
+  become: yes
+
+- name: Fail if rc
+  fail:
+    msg: |
+        Failed setting write permission for audit directory:
+        /opt/DL/powerai-enterprise/audit
+        Output from 'setfacl':
+        {{ out.stdout }}
+  when: >
+    out.rc != 0

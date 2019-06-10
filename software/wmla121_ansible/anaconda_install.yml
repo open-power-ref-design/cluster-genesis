@@ -1,0 +1,77 @@
+---
+- name: Gather facts
+  setup:
+    gather_subset: min
+
+- name: Get filename from software-vars.yml
+  set_fact:
+    file: "{{ content_files['anaconda'].split('/')[-1] }}"
+
+- name: Set installation directory variable
+  set_fact:
+    install_dir: "/opt/anaconda3"
+
+- name: Get route to client
+  command: "{{ hostvars['localhost']['python_executable_local'] }} \
+  {{ hostvars['localhost']['scripts_path_local'] }}/python/ip_route_get_to.py \
+  {{ inventory_hostname }}"
+  delegate_to: localhost
+  register: host_ip
+
+- name: Check if anaconda bin directory already exists
+  stat:
+    path: "{{ install_dir }}/bin"
+  register: anaconda_dir
+
+- name: Install Anaconda
+  shell: "{{ ansible_env.HOME }}/{{ file }} \
+          -b -p {{ install_dir }} -f"
+  args:
+    executable: /bin/bash
+  when: anaconda_dir.stat.isdir is not defined or not anaconda_dir.stat.isdir
+  become: yes
+
+- name: Configure Anaconda
+  shell: "{{ install_dir }}/bin/conda config --system --set \
+          auto_update_conda false && {{ install_dir }}/bin/conda clean -tipsy"
+  become: yes
+
+- name: "Create {{ install_dir }}/.condarc"
+  file:
+    path: "{{ install_dir }}/.condarc"
+    state: touch
+  become: yes
+
+- name: "Check if 'channels:' exists in {{ install_dir }}/.condarc"
+  shell: "grep '^channels:' {{ install_dir }}/.condarc"
+  register: channels_exists
+  failed_when: channels_exists.rc == 2
+
+- name: "Create 'channels:' key in {{ install_dir }}/.condarc"
+  lineinfile:
+    path: "{{ install_dir }}/.condarc"
+    line: 'channels:'
+  when: channels_exists.rc == 1
+  become: yes
+
+- name: "Populate 'channels:' value in {{ install_dir }}/.condarc"
+  lineinfile:
+    path: "{{ install_dir }}/.condarc"
+    insertafter: '^channels:.*'
+    line: "{{ item }}"
+    regexp: "{{ item }}"
+  loop: "{{ ana_powerup_repo_channels }}"
+  when: not eng_mode
+  become: yes
+
+- name: "Populate IBMAI public repo channel when eng mode"
+  lineinfile:
+    path: "{{ install_dir }}/.condarc"
+    insertafter: '^channels:.*'
+    line: "{{ item }}"
+    regexp: "{{ item }}"
+  loop:
+    - "  - defaults"
+    - "{{ powerai_public_channel }}"
+  when: eng_mode
+  become: yes

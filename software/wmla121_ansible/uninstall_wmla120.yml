@@ -1,0 +1,142 @@
+---
+    # source /opt/ibm/spectrumcomputing/profile.platform
+    #  egosh user logon -u Admin -x Admin
+    #  egosh service stop all
+    #  egosh ego shutdown
+    #  sudo bash /opt/ibm/spectrumcomputing/uninstall/deeplearningimpactuninstall-1.2.2.0.sh
+    #  sudo bash /opt/ibm/spectrumcomputing/uninstall/conductorsparkuninstall-2.3.0.sh
+    #  sudo rm -rf /root/.powerai
+    #  sudo rm -rf /opt/anaconda3
+    #  sudo rm -rf /opt/ibm
+- set_fact:
+    source_profile: "source /opt/ibm/spectrumcomputing/profile.platform >> /tmp/profile.platform.log 2>&1"
+    login_user: "egosh user logon -u Admin -x Admin"
+    shutdown_services: "egoshutdown.sh >> /tmp/profile.platform.log 2>&1"
+
+- name: Gathering data
+  set_fact:
+    remove_dict:
+      - name: "anaconda"
+        dir: "/opt/anaconda3/"
+        command: "sudo rm -rf /opt/anaconda3/"
+        service: "None"
+        uninstall: "None"
+      - name: "spectrum_computing"
+        dir: "/opt/ibm/spectrumcomputing/uninstall/conductorsparkuninstall-2.3.0.sh"
+        command: "sudo rm -rf /opt/ibm/"
+        service: "{{ source_profile }} &&  {{ shutdown_services }}"
+        uninstall: "echo Y |  bash /opt/ibm/spectrumcomputing/uninstall/conductorsparkuninstall*.sh"
+      - name: "dli"
+        dir: "/opt/ibm/spectrumcomputing/uninstall/deeplearningimpactuninstall-1.2.2.0.sh"
+        command: "sudo rm -rf /opt/ibm/"
+        service: "{{ source_profile }} && {{ login_user }} && {{ shutdown_services }} || true "
+        uninstall: "echo Y | bash /opt/ibm/spectrumcomputing/uninstall/deeplearningimpactuninstall*.sh"
+      - name: "powerai_license"
+        dir: "/root/.powerai"
+        command: "sudo rm -rf /root/.powerai"
+        service: "None"
+        uninstall: "None"
+      - name: "sys_ctl_changes"
+        dir: "/opt/ibm/"
+        command: "sed -i '/vm.max_map_count=262144/d' /etc/sysctl.conf"
+        service: "None"
+        uninstall: "None"
+      - name: "egosh"
+        dir: "/opt/ibm/"
+        command: "egosh"
+        service: "None"
+        uninstall: "None"
+
+- name: Check if directories exists
+  stat:
+    path: "{{ item.dir }}"
+  with_items: "{{ remove_dict }}"
+  register: dir_exists
+  become: yes
+
+- name: Validate egosh exists
+  shell: "{{ source_profile }} && {{ login_user }}"
+  become: yes
+  ignore_errors: yes
+  register: egosh_output
+
+
+- name: Stop All Spectrum Computing Services and Shutdown
+  shell: "{{ item.item.service }}"
+  become: yes
+  args:
+    executable: /bin/bash
+  when: item.stat.exists
+    and item.item.name == "spectrum_computing"
+    and egosh_output.rc == 0
+  with_items: "{{ dir_exists.results }}"
+
+- name: Uninstall Spectrum Computing and Dli
+  shell: "{{ item.item.uninstall }} >> /tmp/profile.platform.log 2>&1"
+  with_items: "{{ dir_exists.results }}"
+  register: results_sc_dli
+  when: item.stat.exists
+    and egosh_output.rc == 0
+    and item.item.uninstall != "None"
+  become: yes
+
+- name: Gather residual packages
+  shell: "rpm -qa | grep -e '^ascd' -e '^conductor' -e '^ego' -e '^explorer'"
+  register: dangling_pkgs
+  ignore_errors: yes
+  become: yes
+
+# - name: Check dangling pkgs status
+  # debug:
+    # msg: "{{ dangling_pkgs }}"
+#
+- name: Remove residual Packages
+  shell: "yum --setopt=tsflags=noscripts remove -y {{ dangling_pkgs.stdout_lines | join(' ') }}"
+  when: dangling_pkgs.rc == 0 and dangling_pkgs.stdout_lines is defined
+  register: residual_pkgs
+  become: yes
+
+- name: Check if any left over services of conductor & dli exist
+  shell: "ps -ef | grep -e spectrum -e conductor -e ascd | grep -v grep"
+  register: dangling_procs_exist
+  ignore_errors: yes
+  become: yes
+
+# - name: Check dangling pkgs status
+  # debug:
+    # msg: "{{ residual_pkgs }}"
+
+- name: Deleting any left over services of conductor & dli
+  shell: "ps -ef | grep -e spectrum -e conductor -e ascd | grep -v grep | awk '{print $2}' | xargs kill -9"
+  register: dangling_procs
+  when: dangling_procs_exist.rc == 0
+  ignore_errors: yes
+  become: yes
+
+# - name: Check Dangling process status
+  # debug:
+    # msg: "{{ dangling_procs.stdout }}"
+
+- name: Remove Directories
+  file:
+    name: "{{ item.dir }}"
+    state: absent
+  async: 1000
+  poll: 0
+  with_items: "{{ remove_dict }}"
+  register: async_results_dir
+  when:  residual_pkgs.skipped is defined or residual_pkgs.rc == 0 # no dangling packages
+  become: yes
+#
+- name: Join Jobs for removing directory
+  async_status:
+    jid: "{{ async_result_item.ansible_job_id }}"
+  with_items: "{{ async_results_dir.results }}"
+  loop_control:
+    loop_var: "async_result_item"
+  register: async_results_dir
+  until: async_results_dir.finished
+  when:  residual_pkgs.skipped is defined or residual_pkgs.rc == 0 # no dangling packages
+  retries: 30
+  become: yes
+
