@@ -40,7 +40,8 @@ import lib.logger as logger
 from repos import PowerupRepo, PowerupRepoFromDir, PowerupYumRepoFromRepo, \
     PowerupAnaRepoFromRepo, PowerupRepoFromRpm, setup_source_file, \
     PowerupPypiRepoFromRepo, get_name_dir
-from software_hosts import get_ansible_inventory, validate_software_inventory
+from software_hosts import get_ansible_inventory, \
+    validate_software_inventory, get_host_list_no_reboot
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, Color, \
     get_selection, get_yesno, rlinput, bold, ansible_pprint, replace_regex, \
     lscpu, parse_rpm_filenames
@@ -73,6 +74,7 @@ class software(object):
     def __init__(self, eval_ver=False, non_int=False, arch='ppc64le',
                  proc_family=None, engr_mode=False, base_dir=None):
         self.log = logger.getlogger()
+        self.running = ''
         self.log_lvl = logger.get_log_level_print()
         self.my_name = sys.modules[__name__].__name__
         self.rhel_ver = '7'
@@ -1111,7 +1113,7 @@ class software(object):
             # if not exists or ch == 'F':
             url = repo.get_repo_url(baseurl, alt_url, contains=['free', 'linux',
                                     f'{self.arch}'], excludes=['noarch', 'main'],
-                                    filelist=['cython-*'])
+                                    filelist=['redis-*'])
             if url:
                 if not url == baseurl:
                     self.sw_vars[f'{name}-alt-url'] = url
@@ -1468,6 +1470,7 @@ class software(object):
         self._setup_nginx_server()
 
     def prep(self, eval_ver=False, non_int=False):
+        self.running = 'prep'
 
         self._update_software_vars()
 
@@ -1627,6 +1630,7 @@ class software(object):
         return rc
 
     def init_clients(self):
+        self.running = 'init-clients'
         log = logger.getlogger()
 
         print(bold(f'\n\n\n  Initializing clients for install from  Repository : '
@@ -1664,6 +1668,14 @@ class software(object):
         elif self.sw_vars['ansible_become_pass'] is None:
             cmd += '--ask-become-pass '
             prompt_msg = "\nClient password required for privilege escalation"
+
+        ana_ver = re.search(r'(anaconda\d)-\d', self.sw_vars['content_files']
+                            ['anaconda'], re.IGNORECASE).group(1).lower()
+        _set_spectrum_conductor_install_env(self.sw_vars['ansible_inventory'],
+                                            'spark')
+        _set_spectrum_conductor_install_env(self.sw_vars['ansible_inventory'],
+                                            'dli', ana_ver)
+
         # Verification Loop
         if get_yesno('Run configuration verification checks on cluster nodes '):
             specific_arch = "_" + self.arch if self.arch == 'x86_64' else ""
@@ -1684,6 +1696,7 @@ class software(object):
 
             print('\nVerification Completed\n')
         # Validate end
+        self._gather_facts()
         run = True
         while run:
             log.info(f"Running Ansible playbook 'init_clients.yml' ...")
@@ -1712,6 +1725,36 @@ class software(object):
                 log.info("Ansible playbook ran successfully")
                 run = False
             print('All done')
+
+    def _gather_facts(self):
+        log = logger.getlogger()
+        run = True
+        gather_facts_playbook = 'gather_facts.yml'
+        cmd = (f"{get_ansible_playbook_path()} -i "
+               f"{self.sw_vars['ansible_inventory']} "
+               f"{GEN_SOFTWARE_PATH}{gather_facts_playbook} ")
+        while run:
+            log.info(f"Running Ansible playbook '{gather_facts_playbook}' ...")
+            resp, err, rc = sub_proc_exec(cmd, shell=True,
+                                          env=ENVIRONMENT_VARS)
+            log.debug(f"cmd: {cmd}\nresp: {resp}\nerr: {err}\nrc: {rc}")
+            if rc != 0:
+                log.warning("Ansible playbook failed!")
+                if resp != '':
+                    print(f"stdout:\n{ansible_pprint(resp)}\n")
+                if err != '':
+                    print(f"stderr:\n{err}\n")
+                choice, item = get_selection(['Retry', 'Continue', 'Exit'])
+                if choice == "1":
+                    pass
+                elif choice == "2":
+                    run = False
+                elif choice == "3":
+                    log.debug('User chooses to exit.')
+                    sys.exit('Exiting')
+            else:
+                log.info("Ansible playbook ran successfully")
+                run = False
 
     def _cache_sudo_pass(self):
         from ansible_vault import Vault
@@ -1871,7 +1914,10 @@ class software(object):
                 elif len(paths) == 1:
                     path = paths[0]
                 else:
-                    self.log.error(f'No {_glob} found in software server.')
+                    if self.running != 'prep':
+                        self.log.error(f'No {_glob} found in software server.')
+                    else:
+                        self.log.debug(f'No {_glob} found in software server.')
                     path = ''
                 self.sw_vars['content_files'][_item.replace('_', '-')] = path
             elif item.type == 'conda':
@@ -1887,7 +1933,10 @@ class software(object):
                     print(msg)
                     ch, _dir = get_selection(dirs)
                 else:
-                    self.log.error(f'No {repo_name} found in software server.')
+                    if self.running != 'prep':
+                        self.log.error(f'No {repo_name} found in software server.')
+                    else:
+                        self.log.debug(f'No {repo_name} found in software server.')
                     _dir = ''
                 _dir = _dir[len(self.root_dir_nginx):]
                 # form .condarc channel entry. Note that conda adds
@@ -1920,7 +1969,10 @@ class software(object):
                     print(msg)
                     ch, _dir = get_selection(dirs)
                 else:
-                    self.log.error(f'No {repo_id} repo found in software server.')
+                    if self.running != 'prep':
+                        self.log.error(f'No {repo_id} repo found in software server.')
+                    else:
+                        self.log.debug(f'No {repo_id} repo found in software server.')
                     _dir = ''
                 _dir = _dir.rstrip('/')
 
@@ -2003,6 +2055,7 @@ class software(object):
         return ready
 
     def install(self):
+        self.running = 'install'
         self._update_software_vars()
         if not self._install_ready():
             msg = ('\nNot all content is present in the software server. Re-run\n'
@@ -2033,14 +2086,9 @@ class software(object):
 
         self._unlock_vault()
 
-        ana_ver = re.search(r'(anaconda\d)-\d', self.sw_vars['content_files']
-                            ['anaconda'], re.IGNORECASE).group(1).lower()
-        _set_spectrum_conductor_install_env(self.sw_vars['ansible_inventory'],
-                                            'spark')
-        _set_spectrum_conductor_install_env(self.sw_vars['ansible_inventory'],
-                                            'dli', ana_ver)
-
         specific_arch = "_" + self.arch if self.arch == 'x86_64' else ""
+
+        self._gather_facts()
 
         self.run_ansible_task(GEN_SOFTWARE_PATH + f'{self.my_name}_install_procedure{specific_arch}.yml')
 
@@ -2055,6 +2103,29 @@ class software(object):
         for task in install_tasks:
             if 'engr_mode' in task['tasks'] and not self.eng_mode:
                 continue
+            if task['description'] == "PowerAI tuning recommendations":
+                no_reboot_hosts = (
+                    get_host_list_no_reboot(self.sw_vars['ansible_inventory']))
+                if len(no_reboot_hosts) > 0:
+                    print(bold("\nInstallation cannot complete until all "
+                               "clients have been rebooted."))
+                    print(bold("\nThe following client nodes have not been "
+                               "automatically rebooted: "))
+                    for host in no_reboot_hosts:
+                        print(f"    {host}")
+                    print(bold("\nPlease manually reboot these hosts and then "
+                               "run the following command from the "
+                               "installer:"))
+                    tasks_path = f'{self.my_name}_ansible/' + task['tasks']
+                    cmd = (f'{get_ansible_playbook_path()} -i '
+                           f'{self.sw_vars["ansible_inventory"]} '
+                           f'{GEN_SOFTWARE_PATH}'
+                           f'{self.my_name}_ansible/run.yml '
+                           f'--extra-vars '
+                           f'"task_file={GEN_SOFTWARE_PATH}{tasks_path}" '
+                           f'--ask-become-pass\n')
+                    print(f"    {cmd}")
+                    break
             heading1(f"Client Node Action: {task['description']}")
             if task['description'] == "Install Anaconda installer":
                 _interactive_anaconda_license_accept(

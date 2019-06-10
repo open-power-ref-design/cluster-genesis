@@ -1,5 +1,7 @@
 .. highlight:: none
 
+.. _running_os:
+
 Running Operating System Install
 ================================
 

@@ -1,0 +1,182 @@
+---
+#Validate shared storage is mounted and configured properly
+
+- name: Set local variables 
+  set_fact:
+    fs_size_requirement: '2000000' #in Kilobytes
+
+- name: Include DLI_SHARED_FS and DLI_RESULT_FS environment variables
+  include_vars:
+    file: envs_spectrum_conductor_dli.yml
+    name: envs
+
+#- name: DEBUG - envs variables
+#  debug:
+#    msg: "{{ envs }}"
+
+#Check DLI_SHARED_FS status (Directory/Exists/Empty)
+- name: find state of DLI_SHARED_FS
+  stat:
+    path: "{{ envs.DLI_SHARED_FS }}"
+  register: DLI_SHARED_FS_state
+
+#- name: DEBUG - DLI_SHARED_FS_state
+#  debug:
+#    msg: "{{ DLI_SHARED_FS_state }}"
+
+- name: Check if DLI_SHARED_FS is a directory and exists
+  fail:
+    msg: "Path: {{ envs.DLI_SHARED_FS }} does not exist or not a directory"
+  when: DLI_SHARED_FS_state.stat.isdir is not defined or not DLI_SHARED_FS_state.stat.isdir
+
+- name: Check if DLI_SHARED_FS is empty
+  command: "ls {{ envs.DLI_SHARED_FS }}"
+  register: DLI_SHARED_FS_empty
+  ignore_errors: yes
+
+- name: Fail if DLI_SHARED_FS is not empty
+  fail: 
+    msg: "Path: {{ envs.DLI_SHARED_FS }} is not empty. Please verify directory is empty"
+  when: DLI_SHARED_FS_empty['stdout'] != ""
+
+- name: Get DLI_SHARED_FS filesystem
+  shell: "df {{ envs.DLI_SHARED_FS }} | sed 1d | awk '{print $1}'"
+  register: dli_shared_fs_filesystem
+  ignore_errors: yes
+
+#Check DLI_RESULT_FS status (Directory/Exists/Empty)
+- name: find state of DLI_RESULT_FS
+  stat:
+    path: "{{ envs.DLI_RESULT_FS }}"
+  register: DLI_RESULT_FS_state
+
+- name: Check if DLI_RESULT_FS is a directory and exists
+  fail:
+    msg: "Path: {{ envs.DLI_RESULT_FS }} does not exist or not a directory"
+  when: DLI_RESULT_FS_state.stat.isdir is not defined or not DLI_RESULT_FS_state.stat.isdir
+
+- name: Check if DLI_RESULT_FS is empty
+  command: "ls {{ envs.DLI_RESULT_FS }}"
+  register: DLI_RESULT_FS_empty
+  ignore_errors: yes
+
+- name: Fail if DLI_RESULT_FS is not empty
+  fail:
+    msg: "Path: {{ envs.DLI_RESULT_FS }} is not empty. Please verify directory is empty"
+  when: DLI_RESULT_FS_empty['stdout'] != ""
+
+- name: Get DLI_RESULT_FS filesystem
+  shell: "df {{ envs.DLI_RESULT_FS }} | sed 1d | awk '{print $1}'"
+  register: dli_result_fs_filesystem
+  ignore_errors: yes
+
+#Check /etc/fstab for list of mounted file system
+- name: Locate shared file systems on /etc/fstab
+  # Get list of mount points
+  shell: >
+    cat /etc/fstab | sed  -e '/^\s*#.*$/d' -e '/^\s*$/d' | awk '{print $1}'
+  register: mounted_file_systems
+
+# Verify that DLI_RESULT_FS filesystem is in the list of filesystems mounted
+# by /etc/fstab
+- name: Verify that DLI_RESULT_FS filesystem is mounted by /etc/fstab
+  fail:
+    msg: "DLI_RESULT_FS filesystem is not mounted by /etc/fstab"
+  when: dli_result_fs_filesystem.stdout not in mounted_file_systems.stdout
+
+# Verify that DLI_SHARED_FS filesystem is in the list of filesystems mounted
+# by /etc/fstab
+- name: Verify that DLI_SHARED_FS filesystem is mounted by /etc/fstab
+  fail:
+    msg: "DLI_SHARED_FS filesystem is not mounted by /etc/fstab"
+  when: dli_shared_fs_filesystem.stdout not in mounted_file_systems.stdout
+
+#Verify storage size requirement of DLI_SHARED_FS
+- name: Check DLI_SHARED_FS directory size
+  shell: "df {{ envs.DLI_SHARED_FS }} --output='avail' | tail -n 1"
+  register: DLI_SHARED_FS_space
+
+- name: Verify size requirement of at least 2GB
+  assert:
+    that:
+      - "{{ DLI_SHARED_FS_space.stdout }} >= {{ fs_size_requirement }}"
+    fail_msg: "Shared storage fails to meet 2GB storage requirements"
+
+# Check read and write user permissions of (DLI_SHARED_FS)
+#- name: DEBUG - DLI_SHARED_FS variables
+#  debug:
+#    msg: "{{ DLI_SHARED_FS_state }}"
+
+- name: Check permissions for CLUSTERADMIN user for DLI_SHARED_FS (read/write)
+  debug:
+    msg: "Owner:{{ DLI_SHARED_FS_state.stat.pw_name }} \
+  Read:{{ DLI_SHARED_FS_state.stat.rusr }} \
+  Write:{{ DLI_SHARED_FS_state.stat.wusr }}"
+
+- name: Print fail status if CLUSTERADMIN user has incorrect permissions
+  fail:
+    msg: "{{ DLI_SHARED_FS_state.stat.pw_name }} has incorrect directory permissions"
+  when: not DLI_SHARED_FS_state.stat.rusr or not DLI_SHARED_FS_state.stat.wusr or DLI_SHARED_FS_state.stat.pw_name != envs.CLUSTERADMIN or DLI_SHARED_FS_state.stat.gr_name != envs.CLUSTERADMIN
+
+# Check read and write user permissions of (DLI_RESULT_FS)
+#- name: DEBUG - DLI_RESULT_FS variables
+#  debug:
+#    msg: "{{ DLI_RESULT_FS_state }}"
+
+- name: Check permissions for CLUSTERADMIN user for DLI_RESULT_FS (read/write)
+  debug:
+    msg: "Owner:{{ DLI_RESULT_FS_state.stat.pw_name }} \
+  Read:{{ DLI_RESULT_FS_state.stat.rusr }} \
+  Write:{{ DLI_RESULT_FS_state.stat.wusr }}"
+
+- name: Print fail status if CLUSTERADMIN user has incorrect permissions
+  fail:
+    msg: "{{ DLI_RESULT_FS_state.stat.pw_name }} has incorrect directory permissions"
+  when: not DLI_RESULT_FS_state.stat.rusr or not DLI_RESULT_FS_state.stat.wusr or DLI_RESULT_FS_state.stat.pw_name != envs.CLUSTERADMIN or DLI_RESULT_FS_state.stat.gr_name != envs.CLUSTERADMIN
+
+#Verify state of acl yum package and setfacl
+- name: Check if ACL (Access Control) is installed on cluster nodes
+  yum:
+    list: acl
+  register: acl_status
+  
+- name: DEBUG - Check if acl is available/installed on cluster nodes
+  debug:
+    msg: "{{ acl_status.results.0.yumstate }}"
+
+- name: Fail if ACL is not installed
+  fail:
+    msg: "ACL yum package is not currently installed!"
+#  when: acl_status.results.0.yumstate != 'installed'
+  when: acl_status.results.0.yumstate == '' 
+
+- name: Verify setfacl is present
+  command: "setfacl -v"
+  register:  setfacl_status
+
+- name: fail if setfacl is not present
+  fail:
+    msg: "setfacl is not present. Please verify nfs-utils package is available/installed"
+  when: setfacl_status.stdout == ""
+
+- name: Get DLI_SHARED_FS permissions
+  shell: find /nfs/pwrai/rh/dli_shared_fs -perm -755  # Does not preclude additional bits
+  register: dli_shared_fs_perms
+
+- name: Verify DLI_SHARED_FS has required permissions set
+  fail:
+    msg: |
+      The permissions are not set properly on the DLI_SHARED_FS directory.
+      Required: 755
+  when: dli_shared_fs_perms.stdout == ""
+
+- name: Get DLI_RESULT_FS permissions
+  shell: find /nfs/pwrai/rh/dli_result_fs -perm -733 -perm -o=t
+  register: dli_result_fs_perms
+
+- name: Verify DLI_RESULT_FS has required permissions set
+  fail:
+    msg: |
+      The permissions are not set properly on the DLI_RESULT_FS directory.
+      Required: 733
+  when: dli_result_fs_perms.stdout == ""

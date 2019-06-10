@@ -473,6 +473,8 @@ class Profile():
                 if hasattr(fld_data, 'smart_update'):
                     self.profile.network[fld]['smart_update'] = fld_data.smart_update
 
+            self.profile.status = profile_template.status
+
         self.log = logger.getlogger()
         if prof_path == 'profile-template.yml':
             self.prof_path = profile_template_path

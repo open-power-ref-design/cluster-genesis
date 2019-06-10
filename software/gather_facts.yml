@@ -1,0 +1,24 @@
+---
+- name: Gather localhost facts
+  hosts: localhost
+  gather_facts: True
+  gather_timeout: 10
+  tasks:
+    - name: Gather subset of localhost facts
+      setup:
+        gather_subset:
+          - '!all'
+          - min
+          - network
+
+- name: Gather client facts
+  hosts: all
+  gather_facts: True
+  gather_timeout: 10
+  tasks:
+    - name: Gather subset of client facts
+      setup:
+        gather_subset:
+          - '!all'
+          - min
+          - network

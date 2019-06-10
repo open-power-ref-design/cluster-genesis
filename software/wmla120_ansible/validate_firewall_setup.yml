@@ -45,7 +45,7 @@
 
 # List Enabled Ports
 - name: List ports status
-  command: "firewall-cmd --list-ports"
+  command: "firewall-cmd --list-ports --permanent"
   when:
     - host_firewall_status.stdout == 'running'
     - loaded_state_status.stdout.find('enabled') != -1

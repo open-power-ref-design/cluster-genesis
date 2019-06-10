@@ -7,9 +7,7 @@ Overview
 --------
 The WML Accelerator software installation can be automated using the POWER-Up software installer and the WML Accelerator Software Install Module. At current time, the WMLA software installer only supports the licensed version of WMLA running on Power hardware.
 
-The WML Accelerator Software Install Module provides for rapid installation of the WML Accelerator software to a homogenous cluster of POWER8 or POWER9 servers.
-
-The POWER-Up software installer does not currently support installation of WML Accelerator onto the node running the POWER-Up software installer.
+The WML Accelerator Software Install Module provides for rapid installation of the WML Accelerator software to a homogeneous cluster of POWER8 or POWER9 servers.
 
 The install module creates a web based software installation server on one of the cluster nodes or another node with access to the cluster.
 The software server is populated with repositories and files needed for installation of WML Accelerator.
@@ -59,12 +57,13 @@ POWER-Up Node  Prerequisites;
    "1.1.2", "software-install-b2.12", "Support for installation of PAIE 1.1.2"
    "1.2.0", "wmla120-1.0.0", "Support for installation of WMLA 1.2.0"
    "1.2.0", "wmla120-1.0.1", "Support for installation of WMLA 1.2.0"
+   "1.2.0", "wmla120-1.0.2", "Validation checks. Install WMLA to installer node. Operating system install."
 
 From your home directory install the POWER-Up software and initialize the environment. For additional information see :ref:`installing`::
 
     $ sudo yum install git
 
-    $ git clone https://github.com/open-power-ref-design-toolkit/power-up -b wmla120-1.0.1
+    $ git clone https://github.com/open-power-ref-design-toolkit/power-up -b wmla120-1.0.2
 
     $ cd power-up
 
@@ -99,7 +98,7 @@ Installation of the WML Accelerator software involves the following steps;
 Preparation of the client nodes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Before beginning automated installation, you should have completed the 'Setup for automated installer steps' at https://www.ibm.com/support/knowledgecenter/SSFHA8_1.2.0/wmla_auto_install_setup.html
+Before beginning automated installation, you should have completed the 'Setup for automated installer steps' at https://www.ibm.com/support/knowledgecenter/SSFHA8_1.2.0/wmla_auto_install_setup.html. PowerUp includes a simple to use operating system installation utility which can be used to install operating systems if needed. See :ref:`running_os`
 
 Before proceeding with preparation of the POWER-Up server, you will need to gather the following information;
 
@@ -154,7 +153,7 @@ These can be accessed using the public internet (URL's are 'built-in') or from a
 
     ./software/get-dependent-packages.sh userid hostname arch
 
-The hostname can be a resolvable hostname or ip address. The get-dependent-packages script will download the required packages on the specified Power node and then move them to the ~/tempdl directory on the installer node. After running the script, run/rerun the --prep phase of installation. For dependent packages, choose option D (Create from files in a local Directory) and enter the full absolute path to the tempdl/ directory. To run the WMLA installer and refresh just the dependencies repo, execucute the following::
+The hostname can be a resolvable hostname or ip address. The get-dependent-packages script will download the required packages on the specified Power node and then move them to the ~/tempdl directory on the installer node. After running the script, run/rerun the --prep phase of installation. For dependent packages, choose option D (Create from files in a local Directory) and enter the full absolute path to the tempdl/ directory. To run the WMLA installer and refresh just the dependencies repo, execute the following::
 
     pup software --step dependency_repo --prep wmla*
 
@@ -182,13 +181,28 @@ Preparation is interactive and may be rerun if needed. Respond to the prompts as
 
 Initialization of the Client Nodes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-During the initialization phase, you will need to enter a resolvable hostname for each client node. Optionally you may select from an ssh key in your .ssh/ directory. If one is not available, an ssh key pair will be automatically generated. You will also be prompted for a password for the client nodes. Initialization will also set up all client nodes
+During the initialization phase, you will need to enter a resolvable hostname for each client node in a cluster inventory file. If installing WMLA to the installer node, it also must be entered in the cluster inventory file. Optionally you may select from an ssh key in your .ssh/ directory. If one is not available, an ssh key pair will be automatically generated. You will also be prompted for a password for the client nodes. Initialization will set up all client nodes for installation.  Optionally during init clients you may run validation checks against all cluster nodes. Validation checks validate the following;
+
+-  hostnames are resolvable to FQDN for all nodes in the cluster
+-  Firewall ports are enabled (or firewall is disabled)
+-  Shared storage directories are properly mounted and appropriate permission bits set
+-  Time is synchronizes across the cluster nodes
+-  Storage and memory resources are adequate on all cluster nodes
+-  Appropriate OS is installed on all cluster nodes
+
 
 To initialize the client nodes and enable access to the POWER-Up software server::
 
     $ pup software --init-clients wmla*
 
-Note: Initialization of client nodes can be rerun if needed.
+NOTES:
+
+-  During the initialization phase you will be required to create an inventory list of the nodes being installed. An editor window will be opened automatically to enable this.
+-  During the initialization phase you will be required to provide values for certain environment variables needed by Spectrum Conductor with Spark and Spectrum Deep Learning Impact. An editor window will be automatically opened to enable this.
+-  The CLUSTERADMIN variable will be automatically populated with the cluster node userid provided during the cluster inventory creation.
+-  The DLI_SHARED_FS environment variable should be the full absolute path to the shared file system mount point. (eg DLI_SHARED_FS: /mnt/my-mount-point). The shared file system and the client node mount points need to be configured prior to installing WML Accelerator.
+-  If left blank, the DLI_CONDA_HOME environment variable will be automatically populated. If entered, it should be the full absolute path of the install location for Anaconda. (ie DLI_CONDA_HOME: /opt/anaconda3)
+-  Initialization of client nodes can be rerun if needed.
 
 Installation
 ~~~~~~~~~~~~
@@ -198,10 +212,6 @@ To install the WML Accelerator software and prerequisites::
 
 NOTES:
 
--  During the installation phase you will be required to provide values for certain environment variables needed by Spectrum Conductor with Spark and Spectrum Deep Learning Impact. An editor window will be automatically opened to enable this.
-    -  If left blank, the CLUSTERADMIN variable will be automatically populated with the cluster node userid provided during the init-client phase of installation.
-    -  The DLI_SHARED_FS environment variable should be the full absolute path to the shared file system mount point. (eg DLI_SHARED_FS: /mnt/my-mount-point). The shared file system and the client node mount points need to be configured prior to installing WML Accelerator.
-    -  If left blank, the DLI_CONDA_HOME environment variable will be automatically populated. If entered, it should be the full absolute path of the install location for Anaconda. (ie DLI_CONDA_HOME: /opt/anaconda2)
 -  Installation of WML Accelerator can be rerun if needed.
 
 After completion of the installation of the WML Accelerator software, you must configure Spectrum Conductor Deep Learning Impact and apply any outstanding fixes.

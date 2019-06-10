@@ -1,21 +1,46 @@
 ---
-#Validate FQDN on all cluster nodes: hostname -f and getent hosts [ip_address]
-#getent hosts with no ip address on all nodes should list the fqdn for all nodes in the cluster
+# Validate FQDN on all cluster nodes: hostname -f and getent hosts [ip_address]
+# getent hosts with list of ip addresses from inventory should list the fqdn for
+# all nodes in the cluster
+
+- name: DEBUG - Groups all
+  debug:
+    msg: "groups all: {{ groups['all'] | join(' ') }}"
+
 - name: Use client hostnames/ansible_fqdn to gather IPv4 data for clients
-  command: "getent ahostsv4 {{ item }}"
-  loop: "{{ groups['all']|flatten }}"
-  register: client_ip
+  command: "getent hosts {{ groups['all'] | join(' ') }}"
+  register: client_data_getent_hosts
+  ignore_errors: yes
 
 - name: Debug - Use client hostnames/ansible_fqdn to gather IPv4 data
   debug:
-    msg: "{{ item.stdout }}"
-  loop: "{{ client_ip.results }}"
+    msg: "getent data: {{ client_data_getent_hosts.stdout }}"
 
-- name: Fail if IP Address Does not Exist
+- name: Fail if length hosts is unequal to length inventory
   fail:
-    msg: "One or more nodes have a conflict Validating FQDN. Please check node settings."
-  when: not item.stdout.split()[0] | ipv4
-  loop: "{{ client_ip.results }}"
+    msg: "Client node does not recognize all nodes in inventory: {{ client_data_getent_hosts.stdout_lines }}"
+  when: client_data_getent_hosts.stdout_lines|length != groups['all']|length
 
+- name: Debug - Does IP address exist for each getent host entry
+  debug:
+    msg: "IP ADDRESS: {{ item.split()[0] | ipaddr }}"
+  loop: "{{ client_data_getent_hosts.stdout_lines }}"
 
+- name: Fail if IP Address Does not exist for each getent host entry
+  fail:
+    msg: "One or more nodes have a conflict Validating FQDN IP addr. Please check node settings."
+  when: not item.split()[0] | ipaddr
+  loop: "{{ client_data_getent_hosts.stdout_lines }}"
 
+- name:  check hostname for client nodes
+  command: "hostname --fqdn"
+  register: gathered_hostname
+
+- name: DEBUG - check hostname for client nodes
+  debug:
+    msg: "HOST FQDN {{ gathered_hostname.stdout }}"
+
+- name: Fail if FQDN not in inventory
+  fail:
+    msg: "One or more nodes hostnames ({{ gathered_hostname.stdout }}) does not match inventory. Please check node FQDNs."
+  when: gathered_hostname.stdout not in groups['all']|flatten
