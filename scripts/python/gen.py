@@ -777,7 +777,9 @@ class Gen(object):
                                'class named "software"')
                 sys.exit(1)
             else:
-                soft = software_module.software(self.args.eval, self.args.non_interactive, self.args.arch, self.args.proc_family, self.args.engr_mode, self.args.base_dir)
+                soft = software_module.software(self.args.eval, self.args.non_interactive, self.args.arch, 
+                                                self.args.proc_family, self.args.engr_mode, self.args.base_dir,
+                                                self.args.public)
 
             if self.args.bundle_to:
                 try:

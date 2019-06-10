@@ -72,7 +72,7 @@ class software(object):
             appended to the root_dir_nginx directory.
     """
     def __init__(self, eval_ver=False, non_int=False, arch='ppc64le',
-                 proc_family=None, engr_mode=False, base_dir=None):
+                 proc_family=None, engr_mode=False, base_dir=None, public=None):
         self.log = logger.getlogger()
         self.log_lvl = logger.get_log_level_print()
         self.my_name = sys.modules[__name__].__name__
@@ -143,6 +143,12 @@ class software(object):
                                'is running')
                 if not get_yesno('Continue ?'):
                     sys.exit('Exit at user request')
+        
+        if public is None:
+            self.sw_vars['public'] = False
+        else:
+            self.sw_vars['public'] = True
+            
 
         if base_dir is not None:
             # force to single level directory
@@ -2114,12 +2120,12 @@ class software(object):
                     print(f"    {cmd}")
                     break
             heading1(f"Client Node Action: {task['description']}")
-            if task['description'] == "Install Anaconda installer":
+            if task['description'] == "Install Anaconda installer" and not self.sw_vars["public"]:
                 _interactive_anaconda_license_accept(
                     self.sw_vars['ansible_inventory'],
                     self.sw_vars['content_files']['anaconda'])
             elif (task['description'] ==
-                    "Check WMLA License acceptance and install to root"):
+                    "Check WMLA License acceptance and install to root") and not self.sw_vars["public"]:
                 _interactive_wmla_license_accept(
                     self.sw_vars['ansible_inventory'], self.eval_ver)
             extra_args = ''
@@ -2218,7 +2224,7 @@ def _interactive_anaconda_license_accept(ansible_inventory, ana_path):
     if "ansible_ssh_common_args" in hostvars:
         base_cmd += f'{hostvars["ansible_ssh_common_args"]} '
 
-    cmd = base_cmd + f' ls {ip}'
+    cmd = base_cmd + f' ls ~/{ip}'
     resp, err, rc = sub_proc_exec(cmd, env=ENVIRONMENT_VARS)
 
     # If install directory already exists assume license has been accepted

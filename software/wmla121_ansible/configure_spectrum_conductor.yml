@@ -36,13 +36,13 @@
   set_fact:
     pypi_url: "https://pypi.org/simple"
     trusted_host: "pypi.org"
-  when: eng_mode
+  when: eng_mode and public
 
 - name: Set pypi url for normal mode
   set_fact:
     pypi_url: "http://{{ host_ip.stdout }}{{ pypi_http_path }}"
     trusted_host: "{{ host_ip.stdout }}"
-  when: not eng_mode
+  when: not eng_mode or not public
 
 - name: Install openssh-client
   yum:

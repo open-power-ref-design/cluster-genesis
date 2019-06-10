@@ -14,10 +14,17 @@
 - name: Fail if license not accepted
   fail:
     msg: "The WMLA license has not been accepted"
-  when: (not stat_result.stat.exists) and not eval_ver
+  when: (not stat_result.stat.exists) and not eval_ver and not public
 
 - name: Fail if eval license not accepted
   fail:
     msg: "The WMLA evaluation license has not been accepted"
-  when: (not stat_result_eval.stat.exists) and eval_ver
+  when: (not stat_result_eval.stat.exists) and eval_ver and not public
 
+- name: Install License to root
+  shell: "bash /opt/anaconda3/bin/accept-ibm-wmla-license.sh"
+  register: ibmai_status
+  become: yes
+  environment:
+    IBM_POWERAI_LICENSE_ACCEPT: "yes"
+  when: public

@@ -447,6 +447,12 @@ def get_args(parser_args=False):
         default=False,
         action='store_true',
         help='Runs engineering mode function')
+    
+    parser_software.add_argument(
+        '--public',
+        default=None,
+        action='store_true',
+        help='Use public access, default is to use --prep to install private repos')
 
     parser_software.add_argument(
         '--run_ansible_task',

@@ -15,12 +15,14 @@
 
 - description: Update kernel
   tasks: update_kernel.yml
+  when: not public
 
 - description: Disable Memory Auto-Onlining
   tasks: disable_udev_mem_auto_onlining.yml
 
 - description: Install CUDA
   tasks: install_cuda.yml
+  when: not public
 
 - description: Download Anaconda installer
   tasks: anaconda_prep.yml

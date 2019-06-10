@@ -54,6 +54,19 @@
   when: channels_exists.rc == 1
   become: yes
 
+- name: "Populate IBMAI public repo channel when eng mode"
+  lineinfile:
+    path: "{{ install_dir }}/.condarc"
+    insertafter: '^channels:.*'
+    line: "{{ item }}"
+    regexp: "{{ item }}"
+    state: absent
+  loop:
+    - "  - defaults"
+    - "{{ powerai_public_channel }}"
+  when: not eng_mode and not public
+  become: yes
+
 - name: "Populate 'channels:' value in {{ install_dir }}/.condarc"
   lineinfile:
     path: "{{ install_dir }}/.condarc"
@@ -61,7 +74,18 @@
     line: "{{ item }}"
     regexp: "{{ item }}"
   loop: "{{ ana_powerup_repo_channels }}"
-  when: not eng_mode
+  when: not eng_mode and not public
+  become: yes
+
+- name: "Remove 'channels:' value in {{ install_dir }}/.condarc"
+  lineinfile:
+    path: "{{ install_dir }}/.condarc"
+    insertafter: '^channels:.*'
+    line: "{{ item }}"
+    regexp: "{{ item }}"
+    state: absent 
+  loop: "{{ ana_powerup_repo_channels }}"
+  when: eng_mode or public
   become: yes
 
 - name: "Populate IBMAI public repo channel when eng mode"
@@ -73,5 +97,5 @@
   loop:
     - "  - defaults"
     - "{{ powerai_public_channel }}"
-  when: eng_mode
+  when: eng_mode or public
   become: yes
