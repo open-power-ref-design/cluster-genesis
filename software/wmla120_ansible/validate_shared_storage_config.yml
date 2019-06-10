@@ -1,7 +1,7 @@
 ---
 #Validate shared storage is mounted and configured properly
 
-- name: Set local variables 
+- name: Set local variables
   set_fact:
     fs_size_requirement: '2000000' #in Kilobytes
 
@@ -35,9 +35,9 @@
   ignore_errors: yes
 
 - name: Fail if DLI_SHARED_FS is not empty
-  fail: 
+  fail:
     msg: "Path: {{ envs.DLI_SHARED_FS }} is not empty. Please verify directory is empty"
-  when: DLI_SHARED_FS_empty['stdout'] != ""
+  when: DLI_SHARED_FS_empty['stdout']
 
 - name: Get DLI_SHARED_FS filesystem
   shell: "df {{ envs.DLI_SHARED_FS }} | sed 1d | awk '{print $1}'"
@@ -63,7 +63,7 @@
 - name: Fail if DLI_RESULT_FS is not empty
   fail:
     msg: "Path: {{ envs.DLI_RESULT_FS }} is not empty. Please verify directory is empty"
-  when: DLI_RESULT_FS_empty['stdout'] != ""
+  when: DLI_RESULT_FS_empty['stdout']
 
 - name: Get DLI_RESULT_FS filesystem
   shell: "df {{ envs.DLI_RESULT_FS }} | sed 1d | awk '{print $1}'"
@@ -139,7 +139,7 @@
   yum:
     list: acl
   register: acl_status
-  
+
 - name: DEBUG - Check if acl is available/installed on cluster nodes
   debug:
     msg: "{{ acl_status.results.0.yumstate }}"
@@ -148,7 +148,7 @@
   fail:
     msg: "ACL yum package is not currently installed!"
 #  when: acl_status.results.0.yumstate != 'installed'
-  when: acl_status.results.0.yumstate == '' 
+  when: not acl_status.results.0.yumstate
 
 - name: Verify setfacl is present
   command: "setfacl -v"
@@ -157,7 +157,7 @@
 - name: fail if setfacl is not present
   fail:
     msg: "setfacl is not present. Please verify nfs-utils package is available/installed"
-  when: setfacl_status.stdout == ""
+  when: not setfacl_status.stdout
 
 - name: Get DLI_SHARED_FS permissions
   shell: find /nfs/pwrai/rh/dli_shared_fs -perm -755  # Does not preclude additional bits
@@ -168,7 +168,7 @@
     msg: |
       The permissions are not set properly on the DLI_SHARED_FS directory.
       Required: 755
-  when: dli_shared_fs_perms.stdout == ""
+  when: not dli_shared_fs_perms.stdout
 
 - name: Get DLI_RESULT_FS permissions
   shell: find /nfs/pwrai/rh/dli_result_fs -perm -733 -perm -o=t
@@ -179,4 +179,4 @@
     msg: |
       The permissions are not set properly on the DLI_RESULT_FS directory.
       Required: 733
-  when: dli_result_fs_perms.stdout == ""
+  when: not dli_result_fs_perms.stdout
