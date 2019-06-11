@@ -52,7 +52,9 @@ from nginx_setup import nginx_setup
 ENVIRONMENT_VARS = {
     "ANSIBLE_CONFIG": str(get_playbooks_path()) + "/" + "ansible.cfg",  # this probably should be different
     "DEFAULT_GATHER_TIMEOUT": "10",
-    "ANSIBLE_GATHER_TIMEOUT": "10"
+    "ANSIBLE_GATHER_TIMEOUT": "10",
+    "DEFAULT_REMOTE_TMP": "/tmp/",
+    "ANSIBLE_REMOTE_TEMP": "/tmp/"
 }
 
 
@@ -185,6 +187,7 @@ class software(object):
         self.sw_vars['rhel_ver'] = self.rhel_ver
         self.sw_vars['arch'] = self.arch
         self.sw_vars['ansible_remote_dir'] = "/tmp/" 
+        self.sw_vars['remote_spectrum_computing_install_dir'] = "/opt/ibm/spectrumcomputing/" 
 
         if os.path.isdir('/srv/wmla-license') and not os.path.isdir(self.root_dir):
             msg = ('\nThis version of the PowerUp software server utilizes a new '

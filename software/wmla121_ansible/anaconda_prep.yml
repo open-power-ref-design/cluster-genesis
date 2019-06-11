@@ -11,6 +11,7 @@
   set_fact:
     file: "{{ content_files['anaconda'] | basename }}"
   when: public
+
 - name: Get route to client
   command: "{{ python_executable_local }} \
   {{ scripts_path_local }}/python/ip_route_get_to.py \

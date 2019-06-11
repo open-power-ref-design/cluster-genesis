@@ -63,7 +63,7 @@
     state: absent
   loop:
     - "  - defaults"
-    - "{{ powerai_public_channel }}"
+    - "{{ ibmai_public_channel }}"
   when: not eng_mode and not public
   become: yes
 
@@ -96,6 +96,6 @@
     regexp: "{{ item }}"
   loop:
     - "  - defaults"
-    - "{{ powerai_public_channel }}"
+    - "{{ ibmai_public_channel }}"
   when: eng_mode or public
   become: yes

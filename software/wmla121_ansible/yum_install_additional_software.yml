@@ -24,7 +24,6 @@
         - openssl
         - dejavu-serif-fonts
         - nfs-utils
-        - pkg_install_yum 
         - sudo 
         - openssh-clients 
         - gcc-c++ 

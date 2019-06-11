@@ -27,9 +27,38 @@
   set_fact:
     filename: "{{ content_files['wmla-license'].split('/')[-1] }}"
 
+- name: Get enterprise license filename from software-vars.yml
+  set_fact:
+    filename: "{{ content_files['wmla-license'] | basename }}"
+  when: public
+
+- name: Create directory
+  file:
+    path: "{{ remote_spectrum_computing_install_dir  }}"
+    state: directory
+        # - pkg_install_yum
 # wmla license acceptance script installs to /opt/anaconda3/bin/
 # # (accept-ibm-wmla-license.sh) Interactive license acceptance across the cluster
 # is orchestrated by the software install python module
-- name: Install wmla license
-  shell: "{{ install_dir }}/bin/conda install --yes --use-local file:/{{ ansible_remote_dir }}/{{ filename }}"
+# - name: Install wmla license
+  # shell: "{{ install_dir }}/bin/conda install --yes --offline {{ ansible_remote_dir }}/{{ filename }}"
+  # become: yes
+
+- name: Copy wmla license
+  copy:
+    src: "{{ content_files['wmla-license'] }}"
+    dest: "{{ install_dir }}"
   become: yes
+
+- name: Extract wmla license
+  shell: "tar zxvf {{ install_dir }}/{{ filename }} -C $EGO_TOP --no-same-owner"
+  become: yes
+  environment:
+    EGO_TOP: "{{ remote_spectrum_computing_install_dir  }}"
+
+- name: Accept the wmla license
+  shell: "$EGO_TOP/ibm-wmla/1.2.1/bin/accept-ibm-wmla-license.sh"
+  become: yes
+  environment:
+    EGO_TOP: "{{ remote_spectrum_computing_install_dir  }}"
+    IBM_WMLA_LICENSE_ACCEPT: "yes"

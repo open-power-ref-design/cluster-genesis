@@ -4,7 +4,7 @@ anaconda:
     desc: Anaconda install file
     dtype: file-.sh
     filename: Anaconda3-2019.03-Linux-{arch}.sh
-    fileglob: Anaconda3-20[1-2][8-9].[1-9][2-9]*-Linux-{arch}.sh
+    fileglob: Anaconda3-20[1-2][8-9].[0-9][0-9]*-Linux-{arch}.sh
     ftype: file
     help: Anaconda installer file. Contains the Anaconda3 install
     license_file:
@@ -164,7 +164,7 @@ ibmai:
     repo_id: ibmai  # optional
     repo_name: IBM AI repository  # optional
     source:
-        baseurl: http://ausgsa.ibm.com/gsa/projects/p/powerai-conda/sys-powerai-next-daily-conda-local/linux-{ana_platform_basename}/
+        baseurl: http://ausgsa.ibm.com/gsa/projects/p/powerai-conda/sys-powerai-next-daily-conda-local/
 
 anaconda_main:
     desc: Anaconda main partial repository
