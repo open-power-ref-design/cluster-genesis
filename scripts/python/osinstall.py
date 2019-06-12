@@ -104,7 +104,8 @@ def dnsmasq_configuration(form_data):
 
     rc = u.dnsmasq_config_pxelinux(interface=interfaces,
                                    dhcp_range=dhcp_pxe_ip_range,
-                                   lease_time=dhcp_lease_time)
+                                   lease_time=dhcp_lease_time,
+                                   disable_dns=True)
 
     if rc != 0:
         return rc

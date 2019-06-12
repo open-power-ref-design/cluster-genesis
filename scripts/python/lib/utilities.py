@@ -1237,6 +1237,7 @@ def dnsmasq_config_pxelinux(interface=None,
                             lease_time='1h',
                             default_route=None,
                             tftp_root=None,
+                            disable_dns=False,
                             conf_path='/etc/dnsmasq.conf',
                             reload=True):
     """Create dnsmasq configuration to support PXE boots
@@ -1250,6 +1251,8 @@ def dnsmasq_config_pxelinux(interface=None,
                                     formatted as "<start_ip>,<end_ip>"
         lease_time (str, optional): Time duration of IP leases
         default_route (str, optional): IP pushed to clients as default route
+        tftp_root (str, optional): TFTP root directory path
+        disable_dns (bool, optional): Disable DNS functionality
         conf_path (str, optional): Path to dnsmasq configuration file
         reload (bool, optional): Reload dnsmasq after writing config
 
@@ -1289,6 +1292,9 @@ def dnsmasq_config_pxelinux(interface=None,
 
         if dhcp_range is not None:
             file_object.write(f"dhcp-range={dhcp_range},{lease_time}\n")
+
+        if disable_dns:
+            file_object.write("port=0\n")
 
     cmd = (f'dnsmasq --test')
     stdout, stderr, rc = sub_proc_exec(cmd)
