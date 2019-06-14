@@ -681,7 +681,8 @@ class OSinstall(npyscreen.NPSAppManaged):
             msg += ['- Error - the subnet specified on the BMC interface',
                     f'  overlaps a subnet on interface {ifc}']
 
-        if u.is_overlapping_addr(bmc_cidr, pxe_cidr):
+        if (u.is_overlapping_addr(bmc_cidr, pxe_cidr) and
+                pxe_ethernet_ifc != bmc_ethernet_ifc):
             msg += ['- Warning - BMC and PXE subnets are overlapping.']
 
         if bmc_subnet_prefix != pxe_subnet_prefix:
