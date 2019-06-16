@@ -1,23 +1,26 @@
 ---
-- name: Check that the status.dat file exists
+- name: Check if the status.dat file exists in root home dir
   stat:
-    path: "/root/.powerai/ibm-wmla-license/1.2.0/license/status.dat"
+    path: "$HOME/.powerai/ibm-wmla-license/1.2.0/license/status.dat"
   register: stat_result
   become: yes
 
-- name: Check that the status.dat file exists for eval version
+- name: Check if the status.dat file exists for eval version in root home dir
   stat:
-    path: "/root/.powerai/ibm-wmla-license-eval/1.2.0/license/status.dat"
+    path: "$HOME/.powerai/ibm-wmla-license-eval/1.2.0/license/status.dat"
   register: stat_result_eval
   become: yes
 
 - name: Fail if license not accepted
   fail:
     msg: "The WMLA license has not been accepted"
-  when: (not stat_result.stat.exists) and not eval_ver
+  when:
+    - not eval_ver
+    - not stat_result.stat.exists
 
 - name: Fail if eval license not accepted
   fail:
     msg: "The WMLA evaluation license has not been accepted"
-  when: (not stat_result_eval.stat.exists) and eval_ver
-
+  when:
+    - eval_ver
+    - not stat_result_eval.stat.exists
