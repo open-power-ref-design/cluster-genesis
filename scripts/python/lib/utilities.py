@@ -400,6 +400,8 @@ def sub_proc_launch(cmd, stdout=PIPE, stderr=PIPE):
     """Launch a subprocess and return the Popen process object.
     This is non blocking. This is useful for long running processes.
     """
+    log = logger.getlogger()
+    log.debug(f"cmd='{cmd}' stdout='{stdout}' stderr='{stderr}'")
     proc = Popen(cmd.split(), stdout=stdout, stderr=stderr)
     return proc
 
@@ -409,6 +411,9 @@ def sub_proc_exec(cmd, stdout=PIPE, stderr=PIPE, shell=False, env=None):
     Returns stdout from the process
     This is blocking
     """
+    log = logger.getlogger()
+    log.debug(f"cmd='{cmd}' stdout='{stdout}' stderr='{stderr}' "
+              f"shell='{shell}' env='{env}'")
     if not shell:
         cmd = cmd.split()
     proc = Popen(cmd, stdout=stdout, stderr=stderr, shell=shell, env=env)
@@ -428,6 +433,9 @@ def sub_proc_display(cmd, stdout=None, stderr=None, shell=False, env=None):
     """Popen subprocess created without PIPES to allow subprocess printing
     to the parent screen. This is a blocking function.
     """
+    log = logger.getlogger()
+    log.debug(f"cmd='{cmd}' stdout='{stdout}' stderr='{stderr}' "
+              f"shell='{shell}' env='{env}'")
     if not shell:
         cmd = cmd.split()
     proc = Popen(cmd, stdout=stdout, stderr=stderr, shell=shell, env=env)
