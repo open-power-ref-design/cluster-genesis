@@ -144,29 +144,50 @@ node:
     bmc_userid:
         val: ADMIN
         desc: BMC userid
-        help: User ID used to log into the target nodes BMCs. The user ID must be the
-              same for all target nodes.
+        help:
+            User ID used to log into the target nodes BMCs. The user ID must
+            be the same for all target nodes.
+
     bmc_password:
         val: admin
         desc: BMC password
-        help: Password to log into the target nodes BMCs. The password must be the
-              same for all target nodes.
+        help:
+            Password to log into the target nodes BMCs. The password must be
+            the same for all target nodes.
+
     hostname:
         val: compute
-        desc: Host name
+        desc: Hostname
         help:
-            This is the 'hostname' which will be given to the target nodes. Host names
-            will be suffixed with a dash and a number starting with 1. ie hostname-1,
-            hostname-2 etc.
+            This is the 'hostname' which will be given to the target nodes.
+            Host names will be suffixed with a dash and a number starting
+            with 1. ie hostname-1, hostname-2 etc.
         floc: skipline
+
+    domain:
+        val: localdomain
+        desc: Domain
+        help: This is the domain which will be given to the target nodes.
+
+    username:
+        val: pupuser
+        desc: Username
+        help: A user account will be created with this name.
+
+    password:
+        val: passw0rd
+        desc: Password
+        help: This password will be assigned to both root and user accounts.
 
     iso_image_file:
         val:
         desc: ISO image file
         help:
-            Name of the file containing the 'iso' image for the OS to be installed.
+            Name of the file containing the 'iso' image for the OS to be
+            installed.
         ftype: file
         dtype: file-iso
+        floc: skipline
 
     devices_found:
         val:
@@ -182,7 +203,8 @@ node:
         dtype: no-save
 
     node_list_header:
-        val: "  SERIAL NUMBER   PART NUMBER        MAC ADDRESS        IP ADDRESS    BMC TYPE"
+        val: "  SERIAL NUMBER   PART NUMBER        MAC ADDRESS        \
+              IP ADDRESS    BMC TYPE"
         desc: node list header
         floc: skipline
         ftype: ftext
@@ -192,9 +214,11 @@ node:
         values:
             - null
         desc: Node list
-        help: This field contains the list of discovered nodes on the BMC subnet. Nodes
-            in this list respond to OpenBMC or IPMI communication protocol. Press space bar
-            or enter to select a node for OS installation.
+        help:
+            This field contains the list of discovered nodes on the BMC
+            subnet. Nodes in this list respond to OpenBMC or IPMI
+            communication protocol. Press space bar or enter to select a node
+            for OS installation.
         # floc: skipline
         ftype: select-multi
         dtype: no-save
