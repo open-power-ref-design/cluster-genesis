@@ -1677,7 +1677,7 @@ class software(object):
                                             'dli', ana_ver)
 
         # Verification Loop
-        if get_yesno('Run configuration verification checks on cluster nodes '):
+        if False:  # Needs work, disabling for now
             specific_arch = "_" + self.arch if self.arch == 'x86_64' else ""
             validate_tasks = yaml.full_load(open(GEN_SOFTWARE_PATH + f'{self.my_name}'
                                             f'_validate_procedure{specific_arch}.yml'))
