@@ -397,14 +397,16 @@ def _validate_ansible_ping(software_hosts_file_path, hosts_list):
                     cmd = (f'ssh-keyscan -H {host}')
                     new_host_key, err, rc = sub_proc_exec(cmd)
                     for known_hosts in known_hosts_files:
-                        print(f'Removing host keys for {host} '
-                              f'from {known_hosts}')
-                        cmd = (f'ssh-keygen -R {host} -f {known_hosts}')
-                        resp, err, rc = sub_proc_exec(cmd)
-                        print(f'Appending new host key for {host} to '
-                              f'{known_hosts}')
-                        append_line(known_hosts, new_host_key,
-                                    check_exists=False)
+                        for host_entry in [host, socket.gethostbyname(host)]:
+                            print(f'Removing host keys for {host_entry} '
+                                  f'from {known_hosts}')
+                            cmd = (f'ssh-keygen -R {host_entry} '
+                                   f'-f {known_hosts}')
+                            resp, err, rc = sub_proc_exec(cmd)
+                            print(f'Appending new host key for {host_entry} '
+                                  f'to {known_hosts}')
+                            append_line(known_hosts, new_host_key,
+                                        check_exists=False)
 
                 if user_home_dir != str(Path.home()):
                     user_known_hosts = os.path.join(user_home_dir, ".ssh",
