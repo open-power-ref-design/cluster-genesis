@@ -43,7 +43,9 @@
   register: yum_pre_result
 
 - name: Create YUM pre data file, if data doesnt exist already on client
-  shell: "yum list installed | sed 1,2d | xargs -n3 | column -t > {{ yum_pre }}"
+  shell: >
+    yum list installed | sed 1,2d | xargs -n3 | column -t >
+    {{ ansible_remote_dir }}/{{ yum_pre }}
   when: not yum_pre_result.stat.exists
 
 - name: Copy YUM data back to deployer
@@ -58,7 +60,7 @@
   register: pip_pre_result
 
 - name: Create PIP pre data file, if data doesnt exist already on client
-  shell: "touch {{ pip_pre }}"
+  shell: "touch {{ ansible_remote_dir }}/{{ pip_pre }}"
   when: not pip_pre_result.stat.exists
 
 - name: Copy PIP data back to deployer

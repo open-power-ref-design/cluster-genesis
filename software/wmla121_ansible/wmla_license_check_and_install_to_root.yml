@@ -22,9 +22,11 @@
   when: (not stat_result_eval.stat.exists) and eval_ver and not public
 
 - name: Install License to root
-  shell: "bash /opt/anaconda3/bin/accept-ibm-wmla-license.sh"
+  shell: "{{ remote_spectrum_computing_install_dir }}/ibm-wmla/1.2.1/bin/accept-ibm-wmla-license.sh"
   register: ibmai_status
   become: yes
+  args:
+    executable: /bin/bash
   environment:
     IBM_POWERAI_LICENSE_ACCEPT: "yes"
   when: public

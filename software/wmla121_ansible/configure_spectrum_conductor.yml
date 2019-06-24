@@ -57,27 +57,38 @@
 
 - name: "Create an Anaconda environment named dlipy3 for installing IBM \
          Spectrum Conductor Deep Learning Impact"
-  shell: "{{ install_dir }}/bin/conda create --name dlipy3 --yes pip python=3.6"
+  shell: >
+    {{ install_dir }}/bin/conda create --name dlipy3 --yes pip python=3.6
   when: not conda_dlipy3_env.stat.exists
   become: yes
 
 - name: Activate dlipy3 environment and install powerai
-  shell: "source {{ install_dir }}/bin/activate dlipy3 && {{ install_dir }}/bin/conda install --yes --no-update-dependencies {{ item }}"
+  shell: >
+    source {{ install_dir }}/bin/activate dlipy3 &&
+    {{ install_dir }}/bin/conda install --yes --no-update-deps {{ item }}
   become: yes
   with_items: "{{ conda_dli_powerai_packages }}"
 
 - name: Activate dlipy3 environment and install dependencies
-  shell: "source {{ install_dir }}/bin/activate dlipy3 && {{ install_dir }}/bin/conda install --yes --no-update-dependencies {{ item }}"
+  shell: >
+    source {{ install_dir }}/bin/activate dlipy3 &&
+    {{ install_dir }}/bin/conda install --yes --no-update-deps {{ item }}
   become: yes
   with_items: "{{ conda_dli_packages }}"
 
 - name: Activate dlipy3 environment and install python  dependencies
-  shell: "source {{ install_dir }}/bin/activate dlipy3 && pip install --index-url {{ pypi_url }} {{ item }} --trusted-host {{ trusted_host }}"
+  shell: >
+    source {{ install_dir }}/bin/activate dlipy3 &&
+    pip install --index-url {{ pypi_url }} {{ item }}
+    --trusted-host {{ trusted_host }}
   become: yes
   with_items: "{{ pip_dli_packages }}"
 
 - name: Activate dlipy3 environment and install python3 dependencies
-  shell: "source {{ install_dir }}/bin/activate dlipy3 && pip install --index-url {{ pypi_url }} {{ item }} --trusted-host {{ trusted_host }}"
+  shell: >
+    source {{ install_dir }}/bin/activate dlipy3 &&
+    pip install --index-url {{ pypi_url }} {{ item }}
+    --trusted-host {{ trusted_host }}
   become: yes
   with_items: "{{ pip3_dli_packages }}"
 
@@ -93,22 +104,32 @@
   become: yes
 
 - name: Activate dlipy2 environment and install powerai
-  shell: "source {{ install_dir }}/bin/activate dlipy2 && {{ install_dir }}/bin/conda install --yes --no-update-dependencies {{ item }}"
+  shell: >
+    source {{ install_dir }}/bin/activate dlipy2 &&
+    {{ install_dir }}/bin/conda install --yes --no-update-deps {{ item }}
   become: yes
   with_items: "{{ conda_dli_powerai_packages }}"
 
 - name: Activate dlipy2 environment and install dependencies
-  shell: "source {{ install_dir }}/bin/activate dlipy2 && {{ install_dir }}/bin/conda install --yes --no-update-dependencies {{ item }}"
+  shell: >
+    source {{ install_dir }}/bin/activate dlipy2 &&
+    {{ install_dir }}/bin/conda install --yes --no-update-deps {{ item }}
   become: yes
   with_items: "{{ conda_dli_packages }}"
 
 - name: Activate dlipy2 environment and install python  dependencies
-  shell: "source {{ install_dir }}/bin/activate dlipy2 && pip install --index-url {{ pypi_url }} {{ item }} --trusted-host {{ trusted_host }}"
+  shell: >
+    source {{ install_dir }}/bin/activate dlipy2 &&
+    pip install --index-url {{ pypi_url }} {{ item }}
+    --trusted-host {{ trusted_host }}
   become: yes
   with_items: "{{ pip_dli_packages }}"
 
 - name: Activate dlipy2 environment and install python3 dependencies
-  shell: "source {{ install_dir }}/bin/activate dlipy2 && pip install --index-url {{ pypi_url }} {{ item }} --trusted-host {{ trusted_host }}"
+  shell: >
+    source {{ install_dir }}/bin/activate dlipy2 &&
+    pip install --index-url {{ pypi_url }} {{ item }}
+    --trusted-host {{ trusted_host }}
   become: yes
   with_items: "{{ pip2_dli_packages }}"
 
@@ -148,16 +169,22 @@
 
 - name: "Create an Anaconda environment named dlinsights for IBM Spectrum \
          Conductor Deep Learning Impact training insights"
-  shell: "{{ install_dir }}/bin/conda create --name dlinsights --yes pip python=2.7"
+  shell: >
+    {{ install_dir }}/bin/conda create --name dlinsights --yes pip python=2.7
   when: not conda_dlinsights_env.stat.exists
   become: yes
 
 - name: Activate dlinsights environment and install dependencies
-  shell: "source {{ install_dir }}/bin/activate dlinsights && {{ install_dir }}/bin/conda install --yes --no-update-dependencies {{ item }}"
+  shell: >
+    source {{ install_dir }}/bin/activate dlinsights &&
+    {{ install_dir }}/bin/conda install --yes --no-update-deps {{ item }}
   become: yes
   with_items: "{{ conda_dlinsights_packages }}"
 
 - name: Activate dlinsights environment and install python  dependencies
-  shell: "source {{ install_dir }}/bin/activate dlinsights && pip install --index-url {{ pypi_url }} {{ item }} --trusted-host {{ trusted_host }}"
+  shell: >
+    source {{ install_dir }}/bin/activate dlinsights &&
+    pip install --index-url {{ pypi_url }} {{ item }}
+    --trusted-host {{ trusted_host }}
   become: yes
   with_items: "{{ pip_dlinsights_packages }}"

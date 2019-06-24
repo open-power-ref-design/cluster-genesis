@@ -31,9 +31,9 @@
   register: dlipy3_pip_result
 
 - name: Activate dlipy3 environment and gather post data (PIP)
-  shell: "source {{ install_dir }}/bin/activate dlipy3 && {{ item }}"
-  loop:
-    - "conda list > {{ vars.dlipy3_pip }} "
+  shell: >
+    source {{ install_dir }}/bin/activate dlipy3 &&
+    conda list > {{ ansible_remote_dir }}/{{ vars.dlipy3_pip }}
   become: yes
   when: not dlipy3_pip_result.stat.exists
 
@@ -49,9 +49,9 @@
   register: dlipy3_conda_result
 
 - name: Activate dlipy3 environment and gather post data (Conda)
-  shell: "source {{ install_dir }}/bin/activate dlipy3 && {{ item }}"
-  loop:
-    - "conda list --explicit > {{ vars.dlipy3_conda }}"
+  shell: >
+    source {{ install_dir }}/bin/activate dlipy3 &&
+    conda list --explicit > {{ ansible_remote_dir }}/{{ vars.dlipy3_conda }}
   become: yes
   when: not dlipy3_conda_result.stat.exists
 
@@ -69,11 +69,12 @@
   register: dlipy2_pip_result
 
 - name: Activate dlipy2 environment and gather post data (PIP)
-  shell: "source {{ install_dir }}/bin/activate dlipy2 && {{ item }}"
-  loop:
-    - "conda list > {{ vars.dlipy2_pip }}"
+  shell: >
+    source {{ install_dir }}/bin/activate dlipy2 &&
+    conda list > {{ ansible_remote_dir }}/{{ vars.dlipy2_pip }}
   become: yes
   when: not dlipy2_pip_result.stat.exists
+
 - name: Copy data back to deployer (PIP)
   fetch:
     src: "{{ ansible_remote_dir }}/{{ dlipy2_pip }}"
@@ -86,9 +87,9 @@
   register: dlipy2_conda_result
 
 - name: Activate dlipy2 environment and gather post data (Conda)
-  shell: "source {{ install_dir }}/bin/activate dlipy2 && {{ item }}"
-  loop:
-    - "conda list --explicit > {{ vars.dlipy2_conda }}"
+  shell: >
+    source {{ install_dir }}/bin/activate dlipy2 &&
+    conda list --explicit > {{ ansible_remote_dir }}/{{ vars.dlipy2_conda }}
   become: yes
   when: not dlipy2_conda_result.stat.exists
 
@@ -106,9 +107,9 @@
   register: dlinsights_pip_result
 
 - name: Activate dlinsights and gather post data (PIP)
-  shell: "source {{ install_dir }}/bin/activate dlinsights && {{ item }}"
-  loop:
-    - "conda list > {{ vars.dlinsights_pip }}"
+  shell: >
+    source {{ install_dir }}/bin/activate dlinsights &&
+    conda list > {{ ansible_remote_dir }}/{{ vars.dlinsights_pip }}
   become: yes
   when: not dlinsights_pip_result.stat.exists
 
@@ -124,9 +125,10 @@
   register: dlinsights_conda_result
 
 - name: Activate dlinsights and gather post data (Conda)
-  shell: "source {{ install_dir }}/bin/activate dlinsights && {{ item }}"
-  loop:
-    - "conda list --explicit > {{ vars.dlinsights_conda }}"
+  shell: >
+    source {{ install_dir }}/bin/activate dlinsights &&
+    conda list --explicit >
+    {{ ansible_remote_dir }}/{{ vars.dlinsights_conda }}
   become: yes
   when: not dlinsights_conda_result.stat.exists
 
@@ -135,4 +137,3 @@
     src: "{{ ansible_remote_dir }}/{{ dlinsights_conda }}"
     dest: "{{ dependencies_dir }}"
   when: not dlinsights_conda_result.stat.exists
-
