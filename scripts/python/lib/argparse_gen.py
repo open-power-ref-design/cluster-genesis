@@ -447,7 +447,7 @@ def get_args(parser_args=False):
         default=False,
         action='store_true',
         help='Runs engineering mode function')
-    
+
     parser_software.add_argument(
         '--public',
         default=None,

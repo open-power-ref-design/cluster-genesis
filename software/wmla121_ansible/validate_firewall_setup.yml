@@ -10,18 +10,18 @@
 - name: DEBUG - List imported variables
   debug:
     msg: "{{ ports }}"
-    
+
 - name: Check status of firewall
   command: "firewall-cmd --state"
   register: host_firewall_status
   ignore_errors: yes
   become: yes
-  
+
 #Check State of Firewall (Running/not Running)
 - name: DEBUG - Print success status of host firewall
   debug:
     msg: "Firewall Exists"
-  when: host_firewall_status.stdout == 'running'  
+  when: host_firewall_status.stdout == 'running'
 
 - name: DEBUG - Print fail status if firewall not enbaled
   debug:
@@ -42,23 +42,23 @@
   debug:
     msg: " Firewall is active but not enabled!"
   when:  loaded_state_status.stdout.find('enabled') == -1
-   
-# List Enabled Ports 
+
+# List Enabled Ports
 - name: List ports status
   command: "firewall-cmd --list-ports"
-  when: 
-    - host_firewall_status.stdout == 'running' 
+  when:
+    - host_firewall_status.stdout == 'running'
     - loaded_state_status.stdout.find('enabled') != -1
   register: current_available_ports
   become: yes
-  
-- name: DEBUG - List ports status 
+
+- name: DEBUG - List ports status
   debug:
     msg: "{{ current_available_ports.stdout }}"
-  when: 
-    - host_firewall_status.stdout == 'running' 
+  when:
+    - host_firewall_status.stdout == 'running'
     - loaded_state_status.stdout.find('enabled') != -1
-  
+
 - name: Check all ports are enabled in the firewall
   fail:
     msg: "Not all ports are enabled in the firewall"
@@ -68,7 +68,7 @@
   "{{ ports.DLI_INSIGHTS_OPTIMIZER_PORT }}/tcp",
   "{{ ports.DLI_MONGODB_PORT }}/tcp",
   "{{ ports.DLI_REDIS_PORT }}/tcp" ]
-  when: 
-    - host_firewall_status.stdout == 'running' 
-    - loaded_state_status.stdout.find('enabled') != -1 
+  when:
+    - host_firewall_status.stdout == 'running'
+    - loaded_state_status.stdout.find('enabled') != -1
     - item not in current_available_ports.stdout

@@ -151,7 +151,6 @@ class software(object):
         else:
             self.sw_vars['public'] = True
 
-
         if base_dir is not None:
             # force to single level directory
             base_dir = base_dir.replace('/', '')

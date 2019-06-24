@@ -83,7 +83,7 @@
     insertafter: '^channels:.*'
     line: "{{ item }}"
     regexp: "{{ item }}"
-    state: absent 
+    state: absent
   loop: "{{ ana_powerup_repo_channels }}"
   when: eng_mode or public
   become: yes

@@ -24,13 +24,13 @@
         - openssl
         - dejavu-serif-fonts
         - nfs-utils
-        - sudo 
-        - openssh-clients 
-        - gcc-c++ 
-        - gcc-gfortran 
+        - sudo
+        - openssh-clients
+        - gcc-c++
+        - gcc-gfortran
         - openssl-devel
-        - gettext 
-        - which 
+        - gettext
+        - which
         - zip
     state: latest
   become: yes

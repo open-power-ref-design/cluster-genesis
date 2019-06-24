@@ -5,7 +5,7 @@
   register: wildcard_files_to_delete
   become: yes
 
-- name: Remove Powerup Repos 
+- name: Remove Powerup Repos
   file:
     path: "{{ item.path }}"
     state: absent
