@@ -145,12 +145,12 @@ class software(object):
                                'is running')
                 if not get_yesno('Continue ?'):
                     sys.exit('Exit at user request')
-        
+
         if public is None:
             self.sw_vars['public'] = False
         else:
             self.sw_vars['public'] = True
-            
+
 
         if base_dir is not None:
             # force to single level directory
@@ -186,8 +186,8 @@ class software(object):
 
         self.sw_vars['rhel_ver'] = self.rhel_ver
         self.sw_vars['arch'] = self.arch
-        self.sw_vars['ansible_remote_dir'] = "/tmp/" 
-        self.sw_vars['remote_spectrum_computing_install_dir'] = "/opt/ibm/spectrumcomputing/" 
+        self.sw_vars['ansible_remote_dir'] = "/tmp/"
+        self.sw_vars['remote_spectrum_computing_install_dir'] = "/opt/ibm/spectrumcomputing/"
 
         if os.path.isdir('/srv/wmla-license') and not os.path.isdir(self.root_dir):
             msg = ('\nThis version of the PowerUp software server utilizes a new '
@@ -1680,7 +1680,7 @@ class software(object):
             cmd += '--ask-become-pass '
             prompt_msg = "\nClient password required for privilege escalation"
         # Verification Loop
-        if get_yesno('Run configuration verification checks on cluster nodes '):
+        if False:  # Needs work, disabling for now
             specific_arch = "_" + self.arch if self.arch == 'x86_64' else ""
             validate_tasks = yaml.full_load(open(GEN_SOFTWARE_PATH + f'{self.my_name}'
                                             f'_validate_procedure{specific_arch}.yml'))
