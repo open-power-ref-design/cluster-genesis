@@ -41,7 +41,7 @@ import lib.logger as logger
 from lib.genesis import get_python_path, CFG_FILE, \
     get_dynamic_inventory_path, get_playbooks_path, get_ansible_path
 from lib.utilities import bash_cmd, sub_proc_exec, heading1, get_selection, \
-    bold, get_yesno, remove_line, append_line, rlinput, line_in_file
+    bold, get_yesno, remove_line, append_line, rlinput, replace_regex
 
 
 def _get_dynamic_inventory():
@@ -397,14 +397,16 @@ def _validate_ansible_ping(software_hosts_file_path, hosts_list):
                     cmd = (f'ssh-keyscan -H {host}')
                     new_host_key, err, rc = sub_proc_exec(cmd)
                     for known_hosts in known_hosts_files:
-                        print(f'Removing host keys for {host} '
-                              f'from {known_hosts}')
-                        cmd = (f'ssh-keygen -R {host} -f {known_hosts}')
-                        resp, err, rc = sub_proc_exec(cmd)
-                        print(f'Appending new host key for {host} to '
-                              f'{known_hosts}')
-                        append_line(known_hosts, new_host_key,
-                                    check_exists=False)
+                        for host_entry in [host, socket.gethostbyname(host)]:
+                            print(f'Removing host keys for {host_entry} '
+                                  f'from {known_hosts}')
+                            cmd = (f'ssh-keygen -R {host_entry} '
+                                   f'-f {known_hosts}')
+                            resp, err, rc = sub_proc_exec(cmd)
+                            print(f'Appending new host key for {host_entry} '
+                                  f'to {known_hosts}')
+                            append_line(known_hosts, new_host_key,
+                                        check_exists=False)
 
                 if user_home_dir != str(Path.home()):
                     user_known_hosts = os.path.join(user_home_dir, ".ssh",
@@ -485,9 +487,15 @@ def _set_pup_reboot(software_hosts_file_path, hosts_list):
     if installer_fqdn in hosts_list:
         log.debug(f"Self-install detected - '{installer_fqdn}' in software "
                   "hosts. Setting host var 'pup_reboot=False'")
-        line_in_file(software_hosts_file_path,
-                     f'^{installer_fqdn}.*',
-                     installer_fqdn + " pup_reboot=False")
+        replace_regex(software_hosts_file_path,
+                      '(' + installer_fqdn + r'[^#.]*)\spup_reboot=\S*',
+                      r'\1')
+        replace_regex(software_hosts_file_path,
+                      '(' + installer_fqdn + r')[ \t]*',
+                      r'\1 pup_reboot=False ')
+        replace_regex(software_hosts_file_path,
+                      r'(pup_reboot=False)[ \t]+$',
+                      r'\1')
 
 
 def _validate_client_hostnames(software_hosts_file_path, hosts_list):

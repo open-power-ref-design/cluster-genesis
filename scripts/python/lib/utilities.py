@@ -400,6 +400,8 @@ def sub_proc_launch(cmd, stdout=PIPE, stderr=PIPE):
     """Launch a subprocess and return the Popen process object.
     This is non blocking. This is useful for long running processes.
     """
+    log = logger.getlogger()
+    log.debug(f"cmd='{cmd}' stdout='{stdout}' stderr='{stderr}'")
     proc = Popen(cmd.split(), stdout=stdout, stderr=stderr)
     return proc
 
@@ -409,6 +411,9 @@ def sub_proc_exec(cmd, stdout=PIPE, stderr=PIPE, shell=False, env=None):
     Returns stdout from the process
     This is blocking
     """
+    log = logger.getlogger()
+    log.debug(f"cmd='{cmd}' stdout='{stdout}' stderr='{stderr}' "
+              f"shell='{shell}' env='{env}'")
     if not shell:
         cmd = cmd.split()
     proc = Popen(cmd, stdout=stdout, stderr=stderr, shell=shell, env=env)
@@ -428,6 +433,9 @@ def sub_proc_display(cmd, stdout=None, stderr=None, shell=False, env=None):
     """Popen subprocess created without PIPES to allow subprocess printing
     to the parent screen. This is a blocking function.
     """
+    log = logger.getlogger()
+    log.debug(f"cmd='{cmd}' stdout='{stdout}' stderr='{stderr}' "
+              f"shell='{shell}' env='{env}'")
     if not shell:
         cmd = cmd.split()
     proc = Popen(cmd, stdout=stdout, stderr=stderr, shell=shell, env=env)
@@ -1237,6 +1245,7 @@ def dnsmasq_config_pxelinux(interface=None,
                             lease_time='1h',
                             default_route=None,
                             tftp_root=None,
+                            disable_dns=False,
                             conf_path='/etc/dnsmasq.conf',
                             reload=True):
     """Create dnsmasq configuration to support PXE boots
@@ -1250,6 +1259,8 @@ def dnsmasq_config_pxelinux(interface=None,
                                     formatted as "<start_ip>,<end_ip>"
         lease_time (str, optional): Time duration of IP leases
         default_route (str, optional): IP pushed to clients as default route
+        tftp_root (str, optional): TFTP root directory path
+        disable_dns (bool, optional): Disable DNS functionality
         conf_path (str, optional): Path to dnsmasq configuration file
         reload (bool, optional): Reload dnsmasq after writing config
 
@@ -1289,6 +1300,9 @@ def dnsmasq_config_pxelinux(interface=None,
 
         if dhcp_range is not None:
             file_object.write(f"dhcp-range={dhcp_range},{lease_time}\n")
+
+        if disable_dns:
+            file_object.write("port=0\n")
 
     cmd = (f'dnsmasq --test')
     stdout, stderr, rc = sub_proc_exec(cmd)

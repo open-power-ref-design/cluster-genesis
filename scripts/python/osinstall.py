@@ -104,7 +104,8 @@ def dnsmasq_configuration(form_data):
 
     rc = u.dnsmasq_config_pxelinux(interface=interfaces,
                                    dhcp_range=dhcp_pxe_ip_range,
-                                   lease_time=dhcp_lease_time)
+                                   lease_time=dhcp_lease_time,
+                                   disable_dns=True)
 
     if rc != 0:
         return rc
@@ -164,14 +165,10 @@ def render_kickstart(profile_object, kickstart_template=None):
         if kickstart_out.endswith('.j2'):
             kickstart_out = kickstart_out[:-3]
 
-        j2_vars = {'default_user': 'rhel75',
-                   'default_pass': 'passw0rd',
-                   'pass_crypted': False,
+        j2_vars = {'pass_crypted': False,
                    'install_disk': None,
-                   'domain': 'localdomain',
                    'timezone': 'America/Chicago',
-                   'utc': True,
-                   }
+                   'utc': True}
 
         pxe_network = IPNetwork(p_netw.pxe_subnet_cidr)
         j2_vars['http_server'] = ip_route_get_to(str(pxe_network.ip))
@@ -181,6 +178,12 @@ def render_kickstart(profile_object, kickstart_template=None):
                                                 j2_vars['http_repo_name'])
 
         j2_vars['hostname'] = p_node.hostname
+
+        j2_vars['domain'] = p_node.domain
+
+        j2_vars['default_user'] = p_node.username
+
+        j2_vars['default_pass'] = p_node.password
 
         with open(kickstart_template, 'r') as file_object:
             template = Template(file_object.read())
@@ -681,7 +684,8 @@ class OSinstall(npyscreen.NPSAppManaged):
             msg += ['- Error - the subnet specified on the BMC interface',
                     f'  overlaps a subnet on interface {ifc}']
 
-        if u.is_overlapping_addr(bmc_cidr, pxe_cidr):
+        if (u.is_overlapping_addr(bmc_cidr, pxe_cidr) and
+                pxe_ethernet_ifc != bmc_ethernet_ifc):
             msg += ['- Warning - BMC and PXE subnets are overlapping.']
 
         if bmc_subnet_prefix != pxe_subnet_prefix:

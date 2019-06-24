@@ -1677,7 +1677,7 @@ class software(object):
                                             'dli', ana_ver)
 
         # Verification Loop
-        if get_yesno('Run configuration verification checks on cluster nodes '):
+        if False:  # Needs work, disabling for now
             specific_arch = "_" + self.arch if self.arch == 'x86_64' else ""
             validate_tasks = yaml.full_load(open(GEN_SOFTWARE_PATH + f'{self.my_name}'
                                             f'_validate_procedure{specific_arch}.yml'))
@@ -2260,12 +2260,8 @@ def _interactive_wmla_license_accept(ansible_inventory, eval_ver):
     resp, err, rc = sub_proc_exec(cmd, shell=True)
     inv = json.loads(resp)
 
-    # accept_cmd = 'IBM_POWERAI_LICENSE_ACCEPT=yes;/opt/anaconda3/bin/accept-ibm-wmla-license.sh '
-    accept_cmd = 'sudo env IBM_POWERAI_LICENSE_ACCEPT=yes /opt/anaconda3/bin/accept-ibm-wmla-license.sh '
-    if eval_ver:
-        check_cmd = 'ls ~/.powerai/ibm-wmla-license-eval/1.2.0/license/status.dat'
-    else:
-        check_cmd = 'ls ~/.powerai/ibm-wmla-license/1.2.0/license/status.dat'
+    accept_cmd = ('sudo env IBM_POWERAI_LICENSE_ACCEPT=yes '
+                  '/opt/anaconda3/bin/accept-ibm-wmla-license.sh ')
 
     print(bold('Acceptance of the WMLA Enterprise license is required on '
                'all nodes in the cluster.'))
@@ -2278,31 +2274,25 @@ def _interactive_wmla_license_accept(ansible_inventory, eval_ver):
         if "ansible_ssh_private_key_file" in hostvars:
             base_cmd += f'-i {hostvars["ansible_ssh_private_key_file"]} '
 
-        cmd = base_cmd + check_cmd
-        resp, err, rc = sub_proc_exec(cmd, env=ENVIRONMENT_VARS)
-        if rc == 0:
-            print(bold('WMLA Enterprise license already accepted on '
+        run = True
+        while run:
+            print(bold('\nRunning WMLA Enterprise license script on '
                        f'{hostname}'))
-        else:
-            run = True
-            while run:
-                print(bold('\nRunning WMLA Enterprise license script on '
-                           f'{hostname}'))
-                cmd = base_cmd + accept_cmd
-                rc = sub_proc_display(cmd, env=ENVIRONMENT_VARS)
-                if rc == 0:
-                    print(f'\nLicense accepted on {hostname}.')
+            cmd = base_cmd + accept_cmd
+            rc = sub_proc_display(cmd, env=ENVIRONMENT_VARS)
+            if rc == 0:
+                print(f'\nLicense accepted on {hostname}.')
+                run = False
+            else:
+                print(f'\nWARNING: License not accepted on {hostname}!')
+                choice, item = get_selection(['Retry', 'Continue', 'Exit'])
+                if choice == "1":
+                    pass
+                elif choice == "2":
                     run = False
-                else:
-                    print(f'\nWARNING: License not accepted on {hostname}!')
-                    choice, item = get_selection(['Retry', 'Continue', 'Exit'])
-                    if choice == "1":
-                        pass
-                    elif choice == "2":
-                        run = False
-                    elif choice == "3":
-                        log.debug('User chooses to exit.')
-                        sys.exit('Exiting')
+                elif choice == "3":
+                    log.debug('User chooses to exit.')
+                    sys.exit('Exiting')
 
 
 def _set_spectrum_conductor_install_env(ansible_inventory, package, ana_ver=None):
