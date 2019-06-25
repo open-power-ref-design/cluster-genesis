@@ -2234,7 +2234,7 @@ def _interactive_anaconda_license_accept(ansible_inventory, ana_path,
     if "ansible_ssh_common_args" in hostvars:
         base_cmd += f'{hostvars["ansible_ssh_common_args"]} '
 
-    cmd = base_cmd + f' ls ~/{ip}'
+    cmd = base_cmd + f' ls {ip}'
     resp, err, rc = sub_proc_exec(cmd, env=ENVIRONMENT_VARS)
 
     # If install directory already exists assume license has been accepted
