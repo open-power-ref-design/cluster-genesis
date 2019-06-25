@@ -966,7 +966,7 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
         old_cnt = 0
         missing = []
         for pkg in pkgs_vers:
-            _file = pkg[0]
+            _file = pkg[0].lower()
             # pypi filenames allow both dashes and underscores in filenames
             # and also have cases with dashes in package names but
             # underscores in filenames.
@@ -975,6 +975,8 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
                 fyle = _file
             elif _file.replace('-', '_') in files_vers:
                 fyle = _file.replace('-', '_')
+            elif _file.replace('-', '.') in files_vers:
+                fyle = _file.replace('-', '.')
             if fyle:
                 ver_state = -2
                 ver_state = self.get_pypi_pkg_state(files_vers[fyle]['ver_bld'],

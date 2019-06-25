@@ -1627,6 +1627,7 @@ def parse_pypi_filenames(filenames):
                 if fnd:
                     ver = fnd.group(1)
                     name = _file[:fnd.span()[0]]  # strip trailing eq_eq chars
+                    name = name.lower()
                     bld = _file[fnd.span()[1]:]
                 else:
                     ver = ''

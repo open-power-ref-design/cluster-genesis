@@ -164,7 +164,7 @@ ibmai:
     repo_id: ibmai  # optional
     repo_name: IBM AI repository  # optional
     source:
-        baseurl: http://ausgsa.ibm.com/gsa/projects/p/powerai-conda/sys-powerai-next-daily-conda-local/
+        baseurl: https://public.dhe.ibm.com/ibmdl/export/pub/software/server/ibm-ai/conda/linux-{ana_platform_basename}/
 
 anaconda_main:
     desc: Anaconda main partial repository
