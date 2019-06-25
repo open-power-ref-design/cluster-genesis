@@ -72,9 +72,11 @@ class software(object):
         base_dir (str): Name of the directory to use. This can only be a
             depth of one (no slashes)('/'). This directory name will be
             appended to the root_dir_nginx directory.
+        public (bool): Do not use air gapped repositories
     """
     def __init__(self, eval_ver=False, non_int=False, arch='ppc64le',
-                 proc_family=None, engr_mode=False, base_dir=None, public=None):
+                 proc_family=None, engr_mode=False, base_dir=None,
+                 public=None):
         self.log = logger.getlogger()
         self.log_lvl = logger.get_log_level_print()
         self.my_name = sys.modules[__name__].__name__
