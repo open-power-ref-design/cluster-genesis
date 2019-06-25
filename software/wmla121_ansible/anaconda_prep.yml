@@ -25,7 +25,7 @@
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     mode: 0744
-    checksum: md5:a775fb6d6c441b899ff2327bd9dadc6d
+    checksum: md5:510c8d6f10f2ffad0b185adbbdddf7f9
     url: "http://{{ host_ip.stdout }}/{{ file }}"
     dest: "{{ ansible_remote_dir }}"
   become: yes
