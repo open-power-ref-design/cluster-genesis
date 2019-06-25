@@ -2136,7 +2136,8 @@ class software(object):
             elif (task['description'] ==
                     "Check WMLA License acceptance and install to root") and not self.sw_vars["public"]:
                 _interactive_wmla_license_accept(
-                    self.sw_vars['ansible_inventory'], self.eval_ver)
+                    self.sw_vars['ansible_inventory'], self.eval_ver,
+                    self.sw_vars['remote_spectrum_computing_install_dir'])
             extra_args = ''
             if 'hosts' in task:
                 extra_args = f"--limit \'{task['hosts']},localhost\'"
@@ -2256,46 +2257,39 @@ def _interactive_anaconda_license_accept(ansible_inventory, ana_path,
     return rc
 
 
-def _interactive_wmla_license_accept(ansible_inventory, eval_ver):
+def _interactive_wmla_license_accept(ansible_inventory, eval_ver, remote_dir):
     log = logger.getlogger()
-
     cmd = (f'ansible-inventory --inventory {ansible_inventory} --list')
     resp, err, rc = sub_proc_exec(cmd, shell=True)
     inv = json.loads(resp)
+    hostname, hostvars = inv['_meta']['hostvars'].popitem()
+    base_cmd = f'ssh -t {hostvars["ansible_user"]}@{hostname} '
+    if "ansible_ssh_private_key_file" in hostvars:
+        base_cmd += f'-i {hostvars["ansible_ssh_private_key_file"]} '
+    if "ansible_ssh_common_args" in hostvars:
+        base_cmd += f'{hostvars["ansible_ssh_common_args"]} '
 
-    accept_cmd = ('sudo env IBM_POWERAI_LICENSE_ACCEPT=yes '
-                  '/opt/anaconda3/bin/accept-ibm-wmla-license.sh ')
+    cmd = f'{base_cmd} ls {remote_dir}/ibm-wmla/1.2.1/license/status.dat'
+    resp, err, rc = sub_proc_exec(cmd, env=ENVIRONMENT_VARS)
 
-    print(bold('Acceptance of the WMLA Enterprise license is required on '
-               'all nodes in the cluster.'))
-    rlinput(f'Press Enter to silently install on each host')
-
-    for hostname, hostvars in inv['_meta']['hostvars'].items():
-        base_cmd = f'ssh -t {hostvars["ansible_user"]}@{hostname} '
-        if "ansible_ssh_common_args" in hostvars:
-            base_cmd += f'{hostvars["ansible_ssh_common_args"]} '
-        if "ansible_ssh_private_key_file" in hostvars:
-            base_cmd += f'-i {hostvars["ansible_ssh_private_key_file"]} '
-
-        run = True
-        while run:
-            print(bold('\nRunning WMLA Enterprise license script on '
-                       f'{hostname}'))
-            cmd = base_cmd + accept_cmd
-            rc = sub_proc_display(cmd, env=ENVIRONMENT_VARS)
-            if rc == 0:
-                print(f'\nLicense accepted on {hostname}.')
-                run = False
-            else:
-                print(f'\nWARNING: License not accepted on {hostname}!')
-                choice, item = get_selection(['Retry', 'Continue', 'Exit'])
-                if choice == "1":
-                    pass
-                elif choice == "2":
-                    run = False
-                elif choice == "3":
-                    log.debug('User chooses to exit.')
-                    sys.exit('Exiting')
+    # If install directory already exists assume license has been accepted
+    if rc == 0:
+        print(f'WMLA Enterprise license already accepted on {hostname}')
+    else:
+        print(bold('Acceptance of the WMLA Enterprise license is required on '
+                   'at least one node in the cluster.'))
+        rlinput(f'Press Enter to run interactively on {hostname}')
+        accept_cmd = (f'{base_cmd} sudo env {remote_dir}/ibm-wmla/1.2.1/bin/'
+                      'accept-ibm-wmla-license.sh')
+        rc = sub_proc_display(accept_cmd, env=ENVIRONMENT_VARS)
+        if rc == 0:
+            print('\nLicense accepted. Acceptance script will be run quietly '
+                  'on remaining servers.')
+        else:
+            log.error("WMLA Enterprise license acceptance required to "
+                      "continue!")
+            sys.exit('Exiting')
+    return rc
 
 
 def _set_spectrum_conductor_install_env(ansible_inventory, package, ana_ver=None):

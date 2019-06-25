@@ -61,9 +61,3 @@
   environment:
     EGO_TOP: "{{ remote_spectrum_computing_install_dir }}"
 
-- name: Accept the wmla license
-  shell: "$EGO_TOP/ibm-wmla/1.2.1/bin/accept-ibm-wmla-license.sh"
-  become: yes
-  environment:
-    EGO_TOP: "{{ remote_spectrum_computing_install_dir }}"
-    IBM_WMLA_LICENSE_ACCEPT: "yes"

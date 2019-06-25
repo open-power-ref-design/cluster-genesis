@@ -1,32 +1,35 @@
 ---
+- name: Accept the wmla license
+  shell: "$EGO_TOP/ibm-wmla/1.2.1/bin/accept-ibm-wmla-license.sh"
+  become: yes
+  environment:
+    EGO_TOP: "{{ remote_spectrum_computing_install_dir }}"
+    IBM_WMLA_LICENSE_ACCEPT: "yes"
+  args:
+    executable: /bin/bash
+
 - name: Check that the status.dat file exists
   stat:
-    path: "/root/.powerai/ibm-wmla-license/1.2.0/license/status.dat"
+    path: "$EGO_TOP/ibm-wmla/1.2.1/license/status.dat"
   register: stat_result
   become: yes
+  environment:
+    EGO_TOP: "{{ remote_spectrum_computing_install_dir }}"
 
 - name: Check that the status.dat file exists for eval version
   stat:
-    path: "/root/.powerai/ibm-wmla-license-eval/1.2.0/license/status.dat"
+    path: "$EGO_TOP/ibm-wmla/1.2.1/license-eval/status.dat"  # TODO: eval path?
   register: stat_result_eval
   become: yes
+  environment:
+    EGO_TOP: "{{ remote_spectrum_computing_install_dir }}"
 
 - name: Fail if license not accepted
   fail:
     msg: "The WMLA license has not been accepted"
-  when: (not stat_result.stat.exists) and not eval_ver and not public
+  when: (not stat_result.stat.exists) and not eval_ver
 
 - name: Fail if eval license not accepted
   fail:
     msg: "The WMLA evaluation license has not been accepted"
-  when: (not stat_result_eval.stat.exists) and eval_ver and not public
-
-- name: Install License to root
-  shell: "{{ remote_spectrum_computing_install_dir }}/ibm-wmla/1.2.1/bin/accept-ibm-wmla-license.sh"
-  register: ibmai_status
-  become: yes
-  args:
-    executable: /bin/bash
-  environment:
-    IBM_POWERAI_LICENSE_ACCEPT: "yes"
-  when: public
+  when: (not stat_result_eval.stat.exists) and eval_ver
