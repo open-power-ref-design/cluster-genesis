@@ -2131,7 +2131,8 @@ class software(object):
             if task['description'] == "Install Anaconda installer" and not self.sw_vars["public"]:
                 _interactive_anaconda_license_accept(
                     self.sw_vars['ansible_inventory'],
-                    self.sw_vars['content_files']['anaconda'])
+                    self.sw_vars['content_files']['anaconda'],
+                    self.sw_vars['ansible_remote_dir'])
             elif (task['description'] ==
                     "Check WMLA License acceptance and install to root") and not self.sw_vars["public"]:
                 _interactive_wmla_license_accept(
@@ -2218,7 +2219,8 @@ class software(object):
         return rc
 
 
-def _interactive_anaconda_license_accept(ansible_inventory, ana_path):
+def _interactive_anaconda_license_accept(ansible_inventory, ana_path,
+                                         remote_dir='~'):
     log = logger.getlogger()
     cmd = (f'ansible-inventory --inventory {ansible_inventory} --list')
     resp, err, rc = sub_proc_exec(cmd, shell=True)
@@ -2243,7 +2245,7 @@ def _interactive_anaconda_license_accept(ansible_inventory, ana_path):
                    'one client!'))
         rlinput(f'Press Enter to run interactively on {hostname}')
         fn = os.path.basename(ana_path)
-        cmd = f'{base_cmd} sudo ~/{fn} -p {ip}'
+        cmd = f'{base_cmd} sudo {remote_dir}/{fn} -p {ip}'
         rc = sub_proc_display(cmd, env=ENVIRONMENT_VARS)
         if rc == 0:
             print('\nLicense accepted. Acceptance script will be run quietly '
