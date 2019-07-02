@@ -2128,7 +2128,9 @@ class software(object):
                     print(f"    {cmd}")
                     break
             heading1(f"Client Node Action: {task['description']}")
-            if task['description'] == "Install Anaconda installer" and not self.sw_vars["public"]:
+            if task['description'] == "Install CUDA":
+                _check_clients_needs_restarting()
+            elif task['description'] == "Install Anaconda installer" and not self.sw_vars["public"]:
                 _interactive_anaconda_license_accept(
                     self.sw_vars['ansible_inventory'],
                     self.sw_vars['content_files']['anaconda'],
@@ -2355,6 +2357,48 @@ def _set_spectrum_conductor_install_env(ansible_inventory, package, ana_ver=None
 
     print(f'Spectrum Conductor {package} configuration variables successfully '
           'loaded\n')
+
+
+def _check_clients_needs_restarting(ansible_inventory):
+    log = logger.getlogger()
+    cmd = (f'ansible-inventory --inventory {ansible_inventory} --list')
+    resp, err, rc = sub_proc_exec(cmd, shell=True)
+    inv = json.loads(resp)
+
+    needs_restarting_list = list()
+
+    for hostname, hostvars in inv['_meta']['hostvars'].items():
+        base_cmd = f'ssh -t {hostvars["ansible_user"]}@{hostname} '
+        if "ansible_ssh_private_key_file" in hostvars:
+            base_cmd += f'-i {hostvars["ansible_ssh_private_key_file"]} '
+        if "ansible_ssh_common_args" in hostvars:
+            base_cmd += f'{hostvars["ansible_ssh_common_args"]} '
+
+        cmd = f'{base_cmd} needs-restarting -r'
+        resp, err, rc = sub_proc_exec(cmd, env=ENVIRONMENT_VARS)
+
+        if rc == 1:
+            log.debug(f"client '{hostname}' reporting restart needed")
+            needs_restarting_list.append(hostname)
+
+    if len(needs_restarting_list) > 0:
+        print(bold('The following client nodes are reporting that they '
+                   'require a system reboot:'))
+        for hostname in needs_restarting_list:
+            print(f'  - {hostname}')
+        print("\nPlease manually reboot these systems and then re-run "
+              "'pup software wmla121 --install' to continue the installation\n"
+              "warning: CUDA drivers may fail to install if kernel updates "
+              "         not been applied!")
+        ch, item = get_selection('Press \'Enter\' exit and perform manual '
+                                 'reboot(s)\nSelect \'C\' to continue without '
+                                 'reboot(s)',
+                                 '\nC', 'Selection? ')
+        if ch == '':
+            log.info("User selects to exit and perform manual reboot(s)")
+            sys.exit('Exiting')
+        elif ch == 'C':
+            log.info("User selects to continue without manual reboot(s)")
 
 
 if __name__ == '__main__':
