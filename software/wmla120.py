@@ -187,8 +187,9 @@ class software(object):
             if get_yesno('Would you like to copy or move your existing '
                          'repositories? '):
 
-                import create_base_dir_wmla120
-                create_base_dir_wmla120.create_base_dir(self.root_dir_nginx)
+                import create_base_dir_wmla
+                create_base_dir_wmla.create_base_dir(self.root_dir_nginx,
+                                                     self.root_dir)
 
         if 'ansible_inventory' not in self.sw_vars:
             self.sw_vars['ansible_inventory'] = None

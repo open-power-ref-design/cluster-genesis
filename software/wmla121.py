@@ -199,8 +199,9 @@ class software(object):
             if get_yesno('Would you like to copy or move your existing '
                          'repositories? '):
 
-                import create_base_dir_wmla120
-                create_base_dir_wmla120.create_base_dir(self.root_dir_nginx)
+                import create_base_dir_wmla
+                create_base_dir_wmla.create_base_dir(self.root_dir_nginx,
+                                                     self.root_dir)
 
         if 'ansible_inventory' not in self.sw_vars:
             self.sw_vars['ansible_inventory'] = None
@@ -1461,6 +1462,19 @@ class software(object):
                         self.log.info('Repository setup complete')
                         self.prep_post()
 
+    def chcon_srv(self):
+        # Set SELinux context on all repo files
+        cmd = f'chcon -Rv --type=httpd_sys_content_t {self.root_dir}'
+        resp, err, rc = sub_proc_exec(cmd)
+        if rc != 0:
+            self.log.error('An error occurred while setting access \n'
+                           f'permissions for directory '
+                           f'{self.root_dir_nginx}.\n'
+                           'This may cause http access problems if SELinux '
+                           'is running')
+            if not get_yesno('Continue ?'):
+                sys.exit('Exit at user request')
+
     def prep_init(self, eval_ver=False, non_int=False):
         # Invoked with --prep flag
         # Basic check of the state of yum repos
@@ -1514,6 +1528,8 @@ class software(object):
         self.create_epel_repo()
 
         self.create_custom_repo()
+
+        self.chcon_srv()
 
         # Display status
         self.status()

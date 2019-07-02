@@ -25,7 +25,7 @@ import lib.logger as logger
 from lib.utilities import sub_proc_exec, get_selection, get_yesno
 
 
-def create_base_dir(base_dir):
+def create_base_dir(base_dir, content_dir):
     log = logger.getlogger()
     print('\nMove or Copy the existing software server directories?')
     ch, action = get_selection('move\ncopy', ('m', 'c'))
@@ -49,13 +49,13 @@ def create_base_dir(base_dir):
     if not arch:
         log.error('\nUnable to determine architecture. Unable to perform move.\n')
         sys.exit()
-    if os.path.exists(f'{base_dir}/wmla120-{arch}'):
-        print(f'Destination path {base_dir}/wmla120-{arch} already exists.')
+    if os.path.exists(f'{content_dir}'):
+        print(f'Destination path {content_dir} already exists.')
         if action == 'copy':
             if not get_yesno('Okay to proceed with force copy? '):
                 sys.exit('Exit at user request')
     else:
-        os.mkdir(f'{base_dir}/wmla120-{arch}/')
+        os.mkdir(content_dir)
     for _dir in (('repos', 'anaconda', 'spectrum-conductor', 'spectrum-dli',
                   'wmla-license',)):
         path = os.path.join('/srv/', _dir, '')
@@ -64,7 +64,7 @@ def create_base_dir(base_dir):
             print(f'Found dir: {path}')
             if action == 'move':
                 try:
-                    _dir = f'{base_dir}/wmla120-{arch}/'
+                    _dir = content_dir
                     move(path, _dir)
                     cmd = f'sudo chcon -Rv --type=httpd_sys_content_t {_dir}'
                     _, err, rc = sub_proc_exec(cmd)
@@ -73,7 +73,7 @@ def create_base_dir(base_dir):
                 except shutil_Error as exc:
                     print(exc)
             elif action == 'copy':
-                cmd = f'cp -rf {path} {base_dir}/wmla120-{arch}/'
+                cmd = f'cp -rf {path} {content_dir}/'
                 try:
                     _, err, rc = sub_proc_exec(cmd)
                 except:
