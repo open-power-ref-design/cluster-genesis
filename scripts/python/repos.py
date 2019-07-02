@@ -1026,8 +1026,9 @@ class PowerupPypiRepoFromRepo(PowerupRepo):
             print(pkg)
             resp, err, rc = sub_proc_exec(eval(cmd), shell=True)
             if rc != 0:
-                err_str = '"{PYTHON} setup.py egg_info" failed with error code 1 in'
-                if 'functools32' in resp or 'weave' in resp and err_str in err:
+                err_str = 'setup.py egg_info" failed with error code 1 in'
+                if ('functools32' in resp or 'weave' in resp or
+                        'gensim' in resp and err_str in err):
                     pass
                 else:
                     self.log.error('Error occured while downloading python packages: '
