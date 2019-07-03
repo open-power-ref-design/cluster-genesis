@@ -2145,7 +2145,8 @@ class software(object):
                     break
             heading1(f"Client Node Action: {task['description']}")
             if task['description'] == "Install CUDA":
-                _check_clients_needs_restarting()
+                _check_clients_needs_restarting(
+                    self.sw_vars['ansible_inventory'])
             elif task['description'] == "Install Anaconda installer" and not self.sw_vars["public"]:
                 _interactive_anaconda_license_accept(
                     self.sw_vars['ansible_inventory'],
