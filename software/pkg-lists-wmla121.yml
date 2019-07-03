@@ -106,6 +106,7 @@ anaconda_free_noarch:
     reject_list: all
 anaconda_main_linux_ppc64le:
     accept_list:
+        - _libgcc_mutex-0.1-main.tar.bz2
         - absl-py-0.7.1-py27_0.tar.bz2
         - absl-py-0.7.1-py36_0.tar.bz2
         - alembic-1.0.5-py27_0.tar.bz2
@@ -362,10 +363,12 @@ anaconda_main_noarch:
 #python3_specific_pkgs:
 pypi_3:
     - appdirs==1.4.3
+    - certifi==2019.6.16
     - deprecation==2.0.5
     - docutils==0.14
     - enum34==1.1.6
     - futures==3.1.1
+    - wheel==0.33.4
 #python_pkgs:
 pypi:
     - appdirs==1.4.3
@@ -440,6 +443,7 @@ pypi:
     - warlock==1.3.0
     - wcwidth==0.1.7
     - weave==0.16.0
+    - wheel==0.33.4
     - wrapt==1.11.2
 epel:
 - dkms-2.7.1-1.el7.noarch
