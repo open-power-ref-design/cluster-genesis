@@ -475,7 +475,6 @@ epel:
 - nfs-utils
 - wget
 epel-ppc64le:
-- dkms-2.6.1-1.el7.noarch
 - gflags-2.1.1-6.el7.ppc64le
 - gflags-devel-2.1.1-6.el7.ppc64le
 - glog-0.3.3-8.el7.ppc64le
@@ -486,8 +485,6 @@ epel-ppc64le:
 - leveldb-devel-1.12.0-11.el7.ppc64le
 - libaec-1.0.4-1.el7.ppc64le
 - libaec-devel-1.0.4-1.el7.ppc64le
-- libsodium-1.0.17-1.el7.ppc64le
-- libsodium-devel-1.0.17-1.el7.ppc64le
 - lmdb-0.9.22-2.el7.ppc64le
 - lmdb-devel-0.9.22-2.el7.ppc64le
 - lmdb-libs-0.9.22-2.el7.ppc64le
