@@ -2406,8 +2406,8 @@ def _check_clients_needs_restarting(ansible_inventory):
         print("\nPlease manually reboot these systems and then re-run "
               "'pup software wmla121 --install' to continue the installation\n"
               "warning: CUDA drivers may fail to install if kernel updates "
-              "         not been applied!")
-        ch, item = get_selection('Press \'Enter\' exit and perform manual '
+              "not been applied!")
+        ch, item = get_selection('Press \'Enter\' to exit and perform manual '
                                  'reboot(s)\nSelect \'C\' to continue without '
                                  'reboot(s)',
                                  '\nC', 'Selection? ')
