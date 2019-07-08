@@ -265,8 +265,8 @@ class software(object):
         rc = True
         self._update_software_vars()
         if which == 'all':
-            rc = rc and self.status_prep(which='Firewall')
-            rc = rc and self.status_prep(which='Nginx Web Server')
+            rc = self.status_prep(which='Firewall') and rc
+            rc = self.status_prep(which='Nginx Web Server') and rc
             for _item in self.content:
                 _rc = self.status_prep(_item)
                 rc = rc and _rc
@@ -1641,7 +1641,7 @@ class software(object):
                     dep_list = dep_list + _file + ' '
 
         if dep_list:
-            rc = rc and yum_download(repo_dir, dep_list)
+            rc = yum_download(repo_dir, dep_list) and rc
 
         cmd = 'yum clean packages expire-cache'
         resp, err, _rc = sub_proc_exec(cmd)
