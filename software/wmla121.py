@@ -1934,7 +1934,7 @@ class software(object):
                 elif len(paths) == 1:
                     path = paths[0]
                 else:
-                    self.log.error(f'No {_glob} found in software server.')
+                    self.log.debug(f'No {_glob} found in software server.')
                     path = ''
                 self.sw_vars['content_files'][_item.replace('_', '-')] = path
             elif item.type == 'conda':
@@ -1950,7 +1950,7 @@ class software(object):
                     print(msg)
                     ch, _dir = get_selection(dirs)
                 else:
-                    self.log.error(f'No {repo_name} found in software server.')
+                    self.log.debug(f'No {repo_name} found in software server.')
                     _dir = ''
                 _dir = _dir[len(self.root_dir_nginx):]
                 # form .condarc channel entry. Note that conda adds
@@ -1983,7 +1983,7 @@ class software(object):
                     print(msg)
                     ch, _dir = get_selection(dirs)
                 else:
-                    self.log.error(f'No {repo_id} repo found in software server.')
+                    self.log.debug(f'No {repo_id} repo found in software server.')
                     _dir = ''
                 _dir = _dir.rstrip('/')
 
