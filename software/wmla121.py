@@ -2357,8 +2357,7 @@ def _set_spectrum_conductor_install_env(ansible_inventory, package, ana_ver=None
             print(f'Failed to load Spectrum Conductor {package} configuration')
 
         if not env_validated:
-            print(f'\nSpectrum Conductor {package} configuration variables '
-                  'incomplete!')
+            print(f'\nSpectrum Conductor {package} configuration required.')
             input(f'Press enter to edit {package} configuration file')
             click.edit(filename=envs_path)
         elif init and get_yesno(f'Edit Spectrum Conductor {package} '
