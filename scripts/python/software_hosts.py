@@ -335,13 +335,24 @@ def _check_known_hosts(host_list):
     Args:
         host_list (list): List of hostnames or IP addresses
     """
-    known_hosts_files = [os.path.join(Path.home(), ".ssh", "known_hosts")]
+    log = logger.getlogger()
+    known_hosts_files = list()
+
+    user_known_hosts = os.path.join(Path.home(), ".ssh", "known_hosts")
+    if os.path.isfile(user_known_hosts):
+        known_hosts_files.append(user_known_hosts)
+    else:
+        log.debug(f"User known_hosts does not exist: '{user_known_hosts}'")
     user_name, user_home_dir = get_user_and_home()
     if os.environ['USER'] == 'root' and user_name != 'root':
         known_hosts_files.append('/root/.ssh/known_hosts')
         if not os.path.isdir('/root/.ssh'):
+            log.debug("Creating root '/root/.ssh' dir")
             os.mkdir('/root/.ssh')
             os.chmod('/root/.ssh', 0o700)
+        if not os.path.isfile('/root/.ssh/known_hosts'):
+            log.debug("Creating root '/root/.ssh/known_hosts' file")
+            Path('/root/.ssh/known_hosts').touch(mode=0x600)
 
     for host in host_list:
         for known_hosts in known_hosts_files:
