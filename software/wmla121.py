@@ -1229,7 +1229,8 @@ class software(object):
             pkg_list = ' '.join(self.pkgs[name])
             pkg3_list = ' '.join(self.pkgs[f'{name}_3'])
             url = repo.get_repo_url(baseurl, alt_url, name=repo_name,
-                                    contains=repo_id, filelist=['Flask-*'])
+                                    contains=repo_id, filelist=['defusedxml*'],
+                                    excludes=['wmla120'])
             if url == baseurl:
                 repo.sync(pkg_list)
                 repo.sync(pkg3_list, py_ver=36)
