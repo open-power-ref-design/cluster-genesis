@@ -445,7 +445,7 @@ pypi:
     - weave==0.16.0
     - wheel==0.33.4
     - wrapt==1.11.2
-epel:
+epel-ppc64le:
 - dkms-2.7.1-1.el7.noarch
 - gflags-2.1.1-6.el7.ppc64le
 - gflags-devel-2.1.1-6.el7.ppc64le
@@ -478,35 +478,6 @@ epel:
 - ntp
 - nfs-utils
 - wget
-epel-ppc64le:
-- gflags-2.1.1-6.el7.ppc64le
-- gflags-devel-2.1.1-6.el7.ppc64le
-- glog-0.3.3-8.el7.ppc64le
-- glog-devel-0.3.3-8.el7.ppc64le
-- hdf5-1.8.12-10.el7.ppc64le
-- hdf5-devel-1.8.12-10.el7.ppc64le
-- leveldb-1.12.0-11.el7.ppc64le
-- leveldb-devel-1.12.0-11.el7.ppc64le
-- libaec-1.0.4-1.el7.ppc64le
-- libaec-devel-1.0.4-1.el7.ppc64le
-- libsodium-1.0.18-1.el7.ppc64le
-- libsodium-devel-1.0.18-1.el7.ppc64le
-- lmdb-0.9.22-2.el7.ppc64le
-- lmdb-devel-0.9.22-2.el7.ppc64le
-- lmdb-libs-0.9.22-2.el7.ppc64le
-- ocl-icd-2.2.12-1.el7.ppc64le
-- openblas-0.3.3-2.el7.ppc64le
-- openblas-devel-0.3.3-2.el7.ppc64le
-- openblas-openmp-0.3.3-2.el7.ppc64le
-- openblas-openmp64-0.3.3-2.el7.ppc64le
-- openblas-openmp64_-0.3.3-2.el7.ppc64le
-- openblas-serial-0.3.3-2.el7.ppc64le
-- openblas-serial64-0.3.3-2.el7.ppc64le
-- openblas-serial64_-0.3.3-2.el7.ppc64le
-- openblas-threads-0.3.3-2.el7.ppc64le
-- openblas-threads64-0.3.3-2.el7.ppc64le
-- openblas-threads64_-0.3.3-2.el7.ppc64le
-- opencl-filesystem-1.0-5.el7.noarch
 dependencies_p8:
 - adwaita-cursor-theme-3.28.0-1.el7.noarch
 - adwaita-icon-theme-3.28.0-1.el7.noarch
@@ -791,6 +762,7 @@ cuda:
 - cuda-tools-10-1-10.1.168-1.ppc64le
 - cuda-visual-tools-10-1-10.1.168-1.ppc64le
 - dkms-nvidia-3:418.67-1.el7.ppc64le
+- dkms-nvidia-418.67-1.el7.ppc64le
 - libcublas-devel-10.2.0.168-1.ppc64le
 - libcublas10-10.2.0.168-1.ppc64le
 - nvidia-driver-3:418.67-4.el7.ppc64le
