@@ -336,23 +336,32 @@ def _check_known_hosts(host_list):
         host_list (list): List of hostnames or IP addresses
     """
     log = logger.getlogger()
-    known_hosts_files = list()
+    known_hosts_files = set()
+
+    user_name, user_home_dir = get_user_and_home()
+    user_uid = pwd.getpwnam(user_name).pw_uid
+    user_gid = grp.getgrnam(user_name).gr_gid
 
     user_known_hosts = os.path.join(Path.home(), ".ssh", "known_hosts")
-    if os.path.isfile(user_known_hosts):
-        known_hosts_files.append(user_known_hosts)
-    else:
-        log.debug(f"User known_hosts does not exist: '{user_known_hosts}'")
-    user_name, user_home_dir = get_user_and_home()
+    known_hosts_files.add(user_known_hosts)
+    if not os.path.isdir(os.path.join(Path.home(), ".ssh")):
+        log.debug(f"Creating user ~/.ssh dir")
+        os.mkdir(os.path.join(Path.home(), ".ssh"))
+        os.chmod(os.path.join(Path.home(), ".ssh"), 0o700)
+        os.chown(os.path.join(Path.home(), ".ssh"), user_uid, user_gid)
+    if not os.path.isfile(user_known_hosts):
+        log.debug(f"Creating user known hosts '{user_known_hosts}' file")
+        Path(user_known_hosts).touch(mode=0o600)
+        os.chown(user_known_hosts, user_uid, user_gid)
     if os.environ['USER'] == 'root' and user_name != 'root':
-        known_hosts_files.append('/root/.ssh/known_hosts')
+        known_hosts_files.add('/root/.ssh/known_hosts')
         if not os.path.isdir('/root/.ssh'):
             log.debug("Creating root '/root/.ssh' dir")
             os.mkdir('/root/.ssh')
             os.chmod('/root/.ssh', 0o700)
         if not os.path.isfile('/root/.ssh/known_hosts'):
             log.debug("Creating root '/root/.ssh/known_hosts' file")
-            Path('/root/.ssh/known_hosts').touch(mode=0x600)
+            Path('/root/.ssh/known_hosts').touch(mode=0o600)
 
     for host in host_list:
         for known_hosts in known_hosts_files:
