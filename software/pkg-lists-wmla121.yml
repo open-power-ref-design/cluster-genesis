@@ -489,6 +489,8 @@ epel-ppc64le:
 - leveldb-devel-1.12.0-11.el7.ppc64le
 - libaec-1.0.4-1.el7.ppc64le
 - libaec-devel-1.0.4-1.el7.ppc64le
+- libsodium-1.0.18-1.el7.ppc64le
+- libsodium-devel-1.0.18-1.el7.ppc64le
 - lmdb-0.9.22-2.el7.ppc64le
 - lmdb-devel-0.9.22-2.el7.ppc64le
 - lmdb-libs-0.9.22-2.el7.ppc64le
