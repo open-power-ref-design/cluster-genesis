@@ -708,6 +708,7 @@ dependencies_p9:
 - xorg-x11-server-common-1.20.1-5.2.el7_6.ppc64le
 - xorg-x11-xkb-utils-7.7-14.el7.ppc64le
 - yum-utils-1.1.31-50.el7.noarch
+- zip-3.0-11.el7.ppc64le
 - zlib-devel-1.2.7-18.el7.ppc64le
 - wget
 - ntp
