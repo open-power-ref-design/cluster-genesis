@@ -493,6 +493,7 @@ class software(object):
                     pass
 
             else:
+                self.state[which] = Color.yellow + "Not running" + Color.endc
                 rc = False
 
             return rc
