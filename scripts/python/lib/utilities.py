@@ -426,6 +426,8 @@ def sub_proc_exec(cmd, stdout=PIPE, stderr=PIPE, shell=False, env=None):
         stderr = stderr.decode('utf-8')
     except AttributeError:
         pass
+    log.debug(f"results: stdout='{stdout}' stderr='{stderr}' "
+              f"rc='{proc.returncode}'")
     return stdout, stderr, proc.returncode
 
 
@@ -441,6 +443,7 @@ def sub_proc_display(cmd, stdout=None, stderr=None, shell=False, env=None):
     proc = Popen(cmd, stdout=stdout, stderr=stderr, shell=shell, env=env)
     proc.wait()
     rc = proc.returncode
+    log.debug(f"results: rc='{rc}'")
     return rc
 
 
@@ -450,6 +453,7 @@ def sub_proc_wait(proc):
     dramatically reduces performace of the subprocess. It would appear the
     subprocess does not get it's own thread.
     """
+    log = logger.getlogger()
     cnt = 0
     rc = None
     while rc is None:
@@ -460,6 +464,7 @@ def sub_proc_wait(proc):
         cnt += 1
     print('\n')
     resp, err = proc.communicate()
+    log.debug(f"results: resp='{resp}' err='{err}' rc='{rc}'")
     print(resp)
     return rc
 
@@ -500,9 +505,13 @@ def bold(text):
 
 
 def rlinput(prompt, prefill=''):
+    log = logger.getlogger()
+    log.debug(f"prompt='{repr(prompt)}' prefill='{prefill}'")
     readline.set_startup_hook(lambda: readline.insert_text(prefill))
     try:
-        return input(prompt)
+        user_input = input(prompt)
+        log.debug(f"user_input='{user_input}'")
+        return user_input
     finally:
         readline.set_startup_hook()
 
@@ -737,6 +746,8 @@ def get_yesno(prompt='', yesno='[y]/n', default=''):
             part of the yesno in brackets you instruct get_yesno to accept
             an empty response (nothing or only spaces) as that.
     """
+    log = logger.getlogger()
+    log.debug(f"prompt='{repr(prompt)}' yesno='{yesno}' default='{default}'")
     try:
         def_resp = yesno[1 + yesno.index('['):yesno.index(']')]
     except ValueError:
@@ -861,6 +872,10 @@ def get_selection(items, choices=None, prompt='Enter a selection: ', sep='\n',
        ch (str): One of the elements in choices
        item (str): mathing item from items
     """
+    log = logger.getlogger()
+    log.debug(f"items='{repr(items)}' choices='{repr(choices)}' "
+              f"prompt='{repr(prompt)}' sep='{repr(sep)}' "
+              f"allow_none='{allow_none}' allow_retry='{allow_retry}'")
     if not items:
         return None, None
     if not isinstance(items, (list, tuple)):
@@ -900,6 +915,7 @@ def get_selection(items, choices=None, prompt='Enter a selection: ', sep='\n',
     if item == 'Return without making a selection.':
         item = None
     print()
+    log.debug(f"results: ch='{ch}' item='{item}'")
     return ch, item
 
 
@@ -1092,7 +1108,7 @@ def get_col_pos(tbl, hdrs, row_char='-'):
             if idx:
                 hdr_span[hdr] = idx.span()
 
-    log.debug(f'Seperator row: {row}')
+    log.debug(f'Seperator row: {repr(row)}')
     for hdr in hdr_span:
         for col in col_span:
             col_idx[hdr] = (0, 0)
