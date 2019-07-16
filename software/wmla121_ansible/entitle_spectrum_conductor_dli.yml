@@ -17,6 +17,7 @@
     mode: 0744
     url: "http://{{ host_ip.stdout }}/{{ file }}"
     dest: "{{ ansible_remote_dir }}"
+    timeout: 60
 
 - name: Get enterprise license filename from software-vars.yml
   set_fact:

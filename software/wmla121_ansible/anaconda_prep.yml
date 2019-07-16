@@ -28,6 +28,7 @@
     checksum: md5:510c8d6f10f2ffad0b185adbbdddf7f9
     url: "http://{{ host_ip.stdout }}/{{ file }}"
     dest: "{{ ansible_remote_dir }}"
+    timeout: 60
   become: yes
   when: not public
 
@@ -36,5 +37,6 @@
     mode: 0777
     url: "https://repo.continuum.io/archive/{{ file }}"
     dest: "{{ ansible_remote_dir }}"
+    timeout: 60
   become: yes
   when:  public

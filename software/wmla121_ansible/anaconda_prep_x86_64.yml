@@ -18,3 +18,4 @@
     checksum: md5:c9af603d89656bc89680889ef1f92623.
     url: "http://{{ host_ip.stdout }}/{{ file }}"
     dest: "{{ ansible_remote_dir }}"
+    timeout: 60
