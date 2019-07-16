@@ -239,7 +239,7 @@ class software(object):
                 'Before beginning, the following files should be extracted from the\n'
                 'Watson MLA Enterprise binary file and present on this node;\n'
                 f'- ibm-wmla-1.2.1_{self.arch}.bin\n'
-                f'- ibm-wmla-license-1.2.1-*.tar.bz2\n'
+                f'- ibm-wmla-license-1.2.1_*_{self.arch}.tar.bz2\n'
                 f'- conductor2.3.0.0_{self.arch}.bin\n'
                 '- conductor_entitlement.dat\n'
                 f'- dli-1.2.3.0_{self.arch}.bin\n'
