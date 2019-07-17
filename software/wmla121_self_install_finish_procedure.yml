@@ -1,0 +1,6 @@
+---
+- description: Add all hosts to cluster
+  tasks: add_hosts_to_cluster.yml
+
+- description: PowerAI tuning recommendations
+  tasks: powerai_tuning.yml
