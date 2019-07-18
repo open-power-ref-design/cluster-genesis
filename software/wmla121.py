@@ -1592,6 +1592,7 @@ class software(object):
         """
         def yum_download(repo_dir, dep_list):
             rc = True
+            resp, err, _rc = sub_proc_exec('yum makecache')
             cmd = (f'yumdownloader --noplugins --archlist={self.arch} --destdir '
                    f'{repo_dir} {dep_list}')
             resp, err, _rc = sub_proc_exec(cmd)
