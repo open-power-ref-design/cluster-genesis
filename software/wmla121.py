@@ -1590,9 +1590,28 @@ class software(object):
         Returns True if all packages downloaded succesfully and no yum errors
             occurred.
         """
+        def refresh_yum_cache():
+            rc = True
+
+            cmd = 'yum clean packages expire-cache'
+            resp, err, _rc = sub_proc_exec(cmd)
+            if _rc != 0:
+                rc = False
+                self.log.error('An error occurred while cleaning the yum cache'
+                               f'\nrc: {_rc} err: {err}')
+
+            cmd = 'yum makecache fast'
+            resp, err, _rc = sub_proc_exec(cmd)
+            if _rc != 0:
+                rc = False
+                self.log.error('An error occurred while making the yum cache\n'
+                               f'rc: {_rc} err: {err}')
+
+            return rc
+
         def yum_download(repo_dir, dep_list):
             rc = True
-            resp, err, _rc = sub_proc_exec('yum makecache')
+            rc = refresh_yum_cache() and rc
             cmd = (f'yumdownloader --noplugins --archlist={self.arch} --destdir '
                    f'{repo_dir} {dep_list}')
             resp, err, _rc = sub_proc_exec(cmd)
@@ -1646,19 +1665,8 @@ class software(object):
         if dep_list:
             rc = yum_download(repo_dir, dep_list) and rc
 
-        cmd = 'yum clean packages expire-cache'
-        resp, err, _rc = sub_proc_exec(cmd)
-        if _rc != 0:
-            rc = False
-            self.log.error('An error occurred while cleaning the yum cache\n'
-                           f'rc: {_rc} err: {err}')
+        rc = refresh_yum_cache() and rc
 
-        cmd = 'yum makecache fast'
-        resp, err, _rc = sub_proc_exec(cmd)
-        if _rc != 0:
-            rc = False
-            self.log.error('An error occurred while making the yum cache\n'
-                           f'rc: {_rc} err: {err}')
         return rc
 
     def init_clients(self):
