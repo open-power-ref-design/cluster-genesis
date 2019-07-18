@@ -41,6 +41,8 @@ def ip_route_get_to(host):
     if netaddr.valid_ipv4(host, flags=0):
         host_ip = host
     else:
+        if host == socket.gethostname():
+            host = 'localhost'
         try:
             host_ip = socket.gethostbyname(host)
         except socket.gaierror as exc:
