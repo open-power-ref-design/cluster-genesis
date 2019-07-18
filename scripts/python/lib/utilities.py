@@ -519,6 +519,7 @@ def rlinput(prompt, prefill=''):
 def files_present(url, fileglobs, _all=True):
     """Return true if any/all of the fileglobs are present in the url.
     """
+    log = logger.getlogger()
     any_present = False
     all_present = True
     fileglobsstr = ','.join(fileglobs)
@@ -530,8 +531,12 @@ def files_present(url, fileglobs, _all=True):
             for fileglob in fileglobs:
                 regx = fileglob_to_regx(fileglob)
                 res = re.findall(regx, err)
-                any_present = any_present or res != []
-                all_present = all_present and res != []
+                log.debug(f"fileglob='{fileglob}' regx='{regx}' res='{res}'")
+                if len(res) == 0:
+                    all_present = False
+                    log.warning(f"File not found in repo: {fileglob}")
+                else:
+                    any_present = True
     if not fileglobs:
         return True
     if _all:
