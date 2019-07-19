@@ -806,10 +806,14 @@ class software(object):
         name = 'wmla_license'
         heading1(f'Set up {name.title()} \n')
         item = self.content[name]
-        lic_src = item.fileglob
         lic_dir = item.path
         exists = self.status_prep(name)
         lic_url = ''
+        
+        if self.eval_ver:
+            lic_src = item.fileglob_eval
+        else:
+            lic_src = item.fileglob
 
         if f'{name}_alt_url' in self.sw_vars:
             alt_url = self.sw_vars[f'{name}_alt_url']
@@ -838,11 +842,16 @@ class software(object):
         name = 'spectrum_conductor'
         heading1(f'Set up {name.title()} \n')
         item = self.content[name]
-        spc_src = item.fileglob.format(arch=self.arch)
         spc_dir = item.path
-        entitlement = self.content[item.license_file].fileglob
         exists = self.status_prep(name)
         spc_url = ''
+        
+        if self.eval_ver:
+            spc_src = item.fileglob_eval.format(arch=self.arch)
+            entitlement = self.content[item.license_file].fileglob_eval
+        else:
+            spc_src = item.fileglob.format(arch=self.arch)
+            entitlement = self.content[item.license_file].fileglob
 
         if f'{name}_alt_url' in self.sw_vars:
             alt_url = self.sw_vars[f'{name}_alt_url']
@@ -876,11 +885,16 @@ class software(object):
         name = 'spectrum_dli'
         heading1(f'Set up {name.title()} \n')
         item = self.content[name]
-        spdli_src = item.fileglob.format(arch=self.arch)
         spdli_dir = item.path
-        entitlement = self.content[item.license_file].fileglob
         exists = self.status_prep(name)
         spdli_url = ''
+        
+        if self.eval_ver:
+            spdli_src = item.fileglob_eval.format(arch=self.arch)
+            entitlement = self.content[item.license_file].fileglob_eval
+        else:
+            spdli_src = item.fileglob.format(arch=self.arch)
+            entitlement = self.content[item.license_file].fileglob
 
         if f'{name}_alt_url' in self.sw_vars:
             alt_url = self.sw_vars[f'{name}_alt_url']
