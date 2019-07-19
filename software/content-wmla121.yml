@@ -98,7 +98,7 @@ wmla_license:
     filename: ibm-wmla-license_g812996f.162_{arch}.tar.gz
     fileglob: ibm-wmla-license_*.tar.gz
     filename_eval: ibm-wmla-license-eval_g812996f.162_{arch}.tar.gz
-    fileglob_eval: ibm-wmla-license-eval_*.tar.bz2
+    fileglob_eval: ibm-wmla-license-eval_*.tar.gz
     ftype: file
     help: WMLA license installation file. Anaconda or Miniconda must be
           installed for extraction.
