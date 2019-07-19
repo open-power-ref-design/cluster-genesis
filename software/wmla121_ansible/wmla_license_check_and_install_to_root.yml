@@ -18,7 +18,7 @@
 
 - name: Check that the status.dat file exists for eval version
   stat:
-    path: "$EGO_TOP/ibm-wmla/1.2.1/license-eval/status.dat"  # TODO: eval path?
+    path: "$EGO_TOP/ibm-wmla/1.2.1/license/status.dat"
   register: stat_result_eval
   become: yes
   environment:
