@@ -10,7 +10,7 @@
   delegate_to: localhost
   register: host_ip
 
-- name: Download installer binary
+- name: Download installer binary to remote hosts
   get_url:
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
@@ -18,6 +18,7 @@
     url: "http://{{ host_ip.stdout }}/{{ file }}"
     dest: "{{ ansible_remote_dir }}"
     timeout: 300
+  when: hostvars['localhost']['ansible_fqdn'] != ansible_host
   become: yes
 
 - name: Include configuration environment variables
@@ -28,6 +29,11 @@
 - name: Get enterprise license filename from software-vars.yml
   set_fact:
     filename: "{{ content_files['spectrum-conductor'].split('/')[-1] }}"
+
+- name: Set local path if installer is part of cluster
+  set_fact:
+    ansible_remote_dir: "/srv/pup/wmla121-ppc64le/spectrum-conductor"
+  when: hostvars['localhost']['ansible_fqdn'] == ansible_host
 
 - name: Install IBM Spectrum Conductor
   shell: "{{ ansible_remote_dir }}/{{ filename }} --quiet"
