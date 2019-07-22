@@ -809,7 +809,7 @@ class software(object):
         lic_dir = item.path
         exists = self.status_prep(name)
         lic_url = ''
-        
+
         if self.eval_ver:
             lic_src = item.fileglob_eval
         else:
@@ -845,7 +845,7 @@ class software(object):
         spc_dir = item.path
         exists = self.status_prep(name)
         spc_url = ''
-        
+
         if self.eval_ver:
             spc_src = item.fileglob_eval.format(arch=self.arch)
             entitlement = self.content[item.license_file].fileglob_eval
@@ -888,7 +888,7 @@ class software(object):
         spdli_dir = item.path
         exists = self.status_prep(name)
         spdli_url = ''
-        
+
         if self.eval_ver:
             spdli_src = item.fileglob_eval.format(arch=self.arch)
             entitlement = self.content[item.license_file].fileglob_eval
