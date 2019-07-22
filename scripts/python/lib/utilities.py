@@ -1594,6 +1594,22 @@ def sha1sum(file_path):
     return sha1sum.hexdigest()
 
 
+def md5sum(file_path):
+    """ Calculate md5 checksum of single file
+
+    Args:
+        file_path (str): Path to file
+
+    Returns:
+        str: md5 checksum
+    """
+    md5sum = hashlib.md5()
+    with open(file_path, 'rb') as file_object:
+        for block in iter(lambda: file_object.read(md5sum.block_size), b''):
+            md5sum.update(block)
+    return md5sum.hexdigest()
+
+
 def clear_curses():
     """ Curses cleanup
 

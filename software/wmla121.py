@@ -44,7 +44,7 @@ from software_hosts import get_ansible_inventory, \
     validate_software_inventory, get_host_list_no_reboot
 from lib.utilities import sub_proc_display, sub_proc_exec, heading1, Color, \
     get_selection, get_yesno, rlinput, bold, ansible_pprint, replace_regex, \
-    lscpu, parse_rpm_filenames
+    lscpu, parse_rpm_filenames, md5sum
 from lib.genesis import GEN_SOFTWARE_PATH, get_ansible_playbook_path, \
     get_playbooks_path, get_nginx_root_dir, get_venv_path, get_python_path, get_scripts_path, PYTHON_EXE
 from nginx_setup import nginx_setup
@@ -1092,6 +1092,7 @@ class software(object):
         ana_src = item.fileglob.format(arch=self.arch)
         ana_url = item.source.url
         ana_dir = item.path
+        ana_md5sum = item.md5sum
         if f'{ana_name}_alt_url' in self.sw_vars:
             alt_url = self.sw_vars[f'{ana_name}_alt_url']
         else:
@@ -1110,12 +1111,24 @@ class software(object):
         if not exists or get_yesno(f'Recopy {ana_name} ', yesno=yesno):
 
             src_path, dest_path, state = setup_source_file(ana_name, ana_src,
-                                                           ana_dir, self.root_dir,
-                                                           ana_url, alt_url=alt_url)
+                                                           ana_dir,
+                                                           self.root_dir,
+                                                           ana_url,
+                                                           alt_url=alt_url)
             if dest_path:
-                self.sw_vars['content_files'][get_name_dir(ana_name)] = dest_path
+                calculated_md5sum = md5sum(dest_path)
+                if calculated_md5sum != ana_md5sum:
+                    self.log.error('Anaconda installer md5sum check failed! '
+                                   f'expected md5sum: {ana_md5sum} '
+                                   f'calculated md5sum: {calculated_md5sum} '
+                                   f'file path: {dest_path}')
+                    return False
+                self.sw_vars['content_files'][get_name_dir(ana_name)] = (
+                    dest_path)
+
             if src_path and 'http' in src_path:
-                self.sw_vars[f'{ana_name}_alt_url'] = os.path.dirname(src_path) + '/'
+                self.sw_vars[f'{ana_name}_alt_url'] = (
+                    os.path.dirname(src_path) + '/')
             self.prep_post()
 
     def create_conda_free_repo(self, eval_ver=False, non_int=False):
@@ -1962,6 +1975,18 @@ class software(object):
                 else:
                     self.log.debug(f'No {_glob} found in software server.')
                     path = ''
+                if 'md5sum' in item:
+                    calculated_md5sum = md5sum(path)
+                    if calculated_md5sum != item.md5sum:
+                        self.log.error("Anaconda installer md5sum check "
+                                       "failed!\n"
+                                       f"file path: {path}\n"
+                                       f"expected md5sum: {item.md5sum}\n"
+                                       "calculated md5sum: "
+                                       f"{calculated_md5sum}\n")
+                    if not get_yesno('Use this file anyway? ', yesno='y/[n]'):
+                        path = ''
+
                 self.sw_vars['content_files'][_item.replace('_', '-')] = path
             elif item.type == 'conda':
                 repo_id = item.repo_id

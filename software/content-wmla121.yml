@@ -5,6 +5,7 @@ anaconda:
     dtype: file-.sh
     filename: Anaconda3-2019.03-Linux-{arch}.sh
     fileglob: Anaconda3-2019.03-Linux-{arch}.sh
+    md5sum: 510c8d6f10f2ffad0b185adbbdddf7f9
     ftype: file
     help: Anaconda installer file. Contains the Anaconda3 install
     license_file:
