@@ -30,13 +30,26 @@
   set_fact:
     filename: "{{ content_files['spectrum-conductor'].split('/')[-1] }}"
 
-- name: Set local path if installer is part of cluster
+- name: Set local conductor path if installer is part of cluster
   set_fact:
-    ansible_remote_dir: "{{ root_dir }}spectrum-conductor"
+    conductor_dir: "{{ root_dir }}spectrum-conductor"
   when: hostvars['localhost']['ansible_fqdn'] == ansible_host
 
+- name: Add execute permission to local conductor path
+  file:
+    path: "{{ conductor_dir }}/{{ filename }}"
+    state: touch
+    mode: u+x
+  when: hostvars['localhost']['ansible_fqdn'] == ansible_host
+  become: yes
+
+- name: Set conductor path for non-local clients
+  set_fact:
+    conductor_dir: "{{ ansible_remote_dir }}"
+  when: hostvars['localhost']['ansible_fqdn'] != ansible_host
+
 - name: Install IBM Spectrum Conductor
-  shell: "{{ ansible_remote_dir }}/{{ filename }} --quiet"
+  shell: "{{ conductor_dir }}/{{ filename }} --quiet"
   environment: "{{ envs }}"
   args:
     executable: /bin/bash
