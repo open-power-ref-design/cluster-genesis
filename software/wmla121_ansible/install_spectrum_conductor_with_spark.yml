@@ -32,7 +32,7 @@
 
 - name: Set local path if installer is part of cluster
   set_fact:
-    ansible_remote_dir: "/srv/pup/wmla121-ppc64le/spectrum-conductor"
+    ansible_remote_dir: "{{ root_dir }}spectrum-conductor"
   when: hostvars['localhost']['ansible_fqdn'] == ansible_host
 
 - name: Install IBM Spectrum Conductor

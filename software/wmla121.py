@@ -168,6 +168,7 @@ class software(object):
         else:
             self.root_dir = f'{self.root_dir_nginx}/{self.my_name}-{arch}/'
 
+        self.sw_vars['root_dir'] = self.root_dir
         self.sw_vars['python_executable_local'] = get_venv_path() + "/" + PYTHON_EXE
         self.sw_vars['scripts_path_local'] = get_scripts_path()
         self.sw_vars['python_path_local'] = get_python_path()
