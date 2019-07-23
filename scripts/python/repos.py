@@ -90,8 +90,8 @@ def setup_source_file(name, src_glob, dest_dir, base_dir, url='', alt_url='http:
                 _url = get_url(_url, fileglob=src_glob)
                 if _url:
                     abs_dest_dir = f'{base_dir}{dest_dir}'
-                    if not os.path.exists(dest_dir):
-                        os.mkdir(dest_dir)
+                    if not os.path.exists(abs_dest_dir):
+                        os.makedirs(abs_dest_dir)
                     cmd = f'wget -P {abs_dest_dir} {_url}'
                     rc = sub_proc_display(cmd)
                     if rc != 0:
@@ -118,7 +118,7 @@ def setup_source_file(name, src_glob, dest_dir, base_dir, url='', alt_url='http:
             if src_path:
                 abs_dest_dir = f'{base_dir}{dest_dir}'
                 if not os.path.exists(abs_dest_dir):
-                    os.mkdir(abs_dest_dir)
+                    os.makedirs(abs_dest_dir)
                 try:
                     copy(src_path, abs_dest_dir)
                 except Error as err:
