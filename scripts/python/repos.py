@@ -24,7 +24,6 @@ import glob
 import os
 import re
 from shutil import copy, copytree, rmtree, Error
-import time
 from sys import executable
 
 import lib.logger as logger
@@ -773,8 +772,7 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
             self.log.info('This can take several minutes\n')
             # Get the repodata.json files and html index files
             # -S = preserve time stamp.  -N = only if Newer or missing -P = download path
-            for file in ('repodata.json', 'repodata2.json', 'repodata.json.bz2',
-                         'index.html'):
+            for file in ('repodata.json', 'repodata2.json', 'repodata.json.bz2'):
                 cmd = (f'wget -N -S -P {dest_dir} {url}{file}')
                 res, err, rc = sub_proc_exec(cmd, shell=True)
                 if rc != 0 and file == 'repodata.json':
@@ -837,55 +835,16 @@ class PowerupAnaRepoFromRepo(PowerupRepo):
 
         self._update_repodata(dest_dir)
 
-        # Filter content of index.html
-        if '/pkgs' in dest_dir or '/ibmai' in dest_dir:
-            filelist = os.listdir(dest_dir)
-            filecnt = 0
-            dest = os.path.join(dest_dir, 'index.html')
-            src = os.path.join(dest_dir, 'index-src.html')
-            os.rename(dest, src)
-            line = ''
-            with open(src, 'r') as s, open(dest, 'w') as d:
-                # copy Table header info over to new index.html
-                while '<tr>' not in line:
-                    line = s.readline()
-                    if '<table>' in line:
-                        table_indent = line.find('<table>')
-                    d.write(line)
-                row = ''
-                # Copy table rows till end of table found
-                while '</table>' not in row:
-                    row, filename = _get_table_row(s)
-                    if filename in filelist or 'Filename' in row:
-                        d.write(row)
-                        if filename in filelist:
-                            filecnt += 1
-                    elif '</table>' in row:
-                        row = '          '[0:table_indent] + '</table>\n'
-                        d.write(row)
-                while True:
-                    line = s.readline()
-                    if not line:
-                        break
-                    ts = re.search(r'Updated: (.+) - Files:', line)
-                    if ts:
-                        ts = ts.group(1).replace('+', '\\+')
-                        line = re.sub(ts, time.asctime(), line)
-                        dec = 1  # Assume repodata.json always present
-                        dec = dec + 1 if 'repodata2.json' in filelist else dec
-                        dec = dec + 1 if 'repodata.json.bz2' in filelist else dec
-                        line = re.sub(r'Files:\s+\d+', f'Files: {filecnt-dec}', line)
-                    d.write(line)
-        else:
-            # Remove index.html files retrieved from conda-forge so they don't
-            # interfere with web browser viewing
-            idx_path = os.path.join(dest_dir, 'index.html')
-            if os.path.isfile(idx_path):
-                os.remove(idx_path)
-            idx_path = os.path.join(dest_dir[:dest_dir.find('conda-forge')],
-                                    'index.html')
-            if os.path.isfile(idx_path):
-                os.remove(idx_path)
+        # Remove index.html files
+        # interfere with web browser viewing
+        idx_path = os.path.join(dest_dir, 'index.html')
+        if os.path.isfile(idx_path):
+            os.remove(idx_path)
+        idx_path = os.path.join(dest_dir[:dest_dir.find('conda-forge')],
+                                'index.html')
+        if os.path.isfile(idx_path):
+            os.remove(idx_path)
+
         return dest_dir
 
 
