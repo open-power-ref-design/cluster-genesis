@@ -88,7 +88,7 @@ environment. For additional information see :ref:`installing`::
 
     $ sudo yum install git
 
-    $ git clone https://github.com/open-power-ref-design-toolkit/power-up -b wmla121-1.0.0
+    $ git clone https://github.com/ibm/power-up -b wmla121-1.0.0
 
     $ cd power-up
 
@@ -103,7 +103,7 @@ environment. For additional information see :ref:`installing`::
   Generally, you should use a release level specified in the table above unless
   you are experiencing problems.::
 
-    git clone https://github.com/open-power-ref-design-toolkit/power-up
+    git clone https://github.com/ibm/power-up
 
 - Multiple users can install and use the WMLA installer software, however there
   is only one software server created and there are no safeguards built in to

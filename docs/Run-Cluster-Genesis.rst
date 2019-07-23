@@ -23,7 +23,7 @@ Installing and Running the POWER-Up code. Step by Step Instructions
 
 #.  From your home directory, clone POWER-Up::
 
-      $ git clone https://github.com/open-power-ref-design-toolkit/power-up
+      $ git clone https://github.com/ibm/power-up
 
 #.  Install the remaining software packages used by Power-Up and
     setup the environment::

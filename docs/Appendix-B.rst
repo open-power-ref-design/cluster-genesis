@@ -19,7 +19,7 @@ This abbreviated instruction list is for advanced users already familiar with th
 
     sudo yum install git
 
-    git clone https://github.com/open-power-ref-design-toolkit/power-up -b wmla120-1.0.1
+    git clone https://github.com/ibm/power-up -b wmla120-1.0.1
 
     cd power-up
 
