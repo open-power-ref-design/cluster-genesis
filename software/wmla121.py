@@ -1975,7 +1975,7 @@ class software(object):
                 else:
                     self.log.debug(f'No {_glob} found in software server.')
                     path = ''
-                if 'md5sum' in item:
+                if path and 'md5sum' in item:
                     calculated_md5sum = md5sum(path)
                     if calculated_md5sum != item.md5sum:
                         self.log.error("Anaconda installer md5sum check "
@@ -1984,8 +1984,8 @@ class software(object):
                                        f"expected md5sum: {item.md5sum}\n"
                                        "calculated md5sum: "
                                        f"{calculated_md5sum}\n")
-                    if not get_yesno('Use this file anyway? ', yesno='y/[n]'):
-                        path = ''
+                        if not get_yesno('Use this file anyway? ', yesno='y/[n]'):
+                            path = ''
 
                 self.sw_vars['content_files'][_item.replace('_', '-')] = path
             elif item.type == 'conda':
