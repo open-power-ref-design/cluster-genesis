@@ -100,7 +100,7 @@ def setup_source_file(name, src_glob, dest_dir, base_dir, url='', alt_url='http:
                         copied = False
                     else:
                         src_path = _url
-                        dest_path = os.path.join(dest_dir, os.path.basename(_url))
+                        dest_path = os.path.join(abs_dest_dir, os.path.basename(_url))
                         copied = True
                     if src2:
                         _url2 = os.path.join(os.path.dirname(_url), src2)
