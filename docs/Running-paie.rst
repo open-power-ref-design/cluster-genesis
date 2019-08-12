@@ -160,33 +160,10 @@ or the /root directory.
 
 -  WML Accelerator binary file. (ibm-wmla-\*_\*.bin)
 
-Miniconda or Anaconda must be installed on the installer node in order to
-extract the WMLA content.
-
-On a Power node::
-
-    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-ppc64le.sh
-
-Install Minconda (installs to minconda3/ under the current user directory)::
-
-    bash Miniconda3-latest-Linux-ppc64le.sh
-
-Accept the license and respond *no* to the prompt to modify your .bashrc file.
-
-Activate conda::
-
-    . miniconda2/etc/profile.d/conda.sh
-    conda activate base
-
 Extract WMLA. Assuming the WMLA binary is in /home/user/wmla121bin::
 
     cd /home/user/wmla121bin
     bash ibm-wmla-1.2.1_ppc64le.bin
-
-Deactivate Conda.  (The PowerUp installer software will not run until conda is
-deactivated)::
-
-    conda deactivate
 
 In addition to the Red Hat and EPEL repositories, the POWER-Up software server
 needs access to the following repositories during the preparation phase;
