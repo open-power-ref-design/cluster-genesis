@@ -29,7 +29,7 @@ DEPLOYER_NETWORKS_HELP = ('Deletes {} created interfaces and bridges. \nRemoves 
                           'added addresses from external interfaces.'.format(
                               PROJECT, PROJECT))
 CFG_FILE_HELP = 'Specify relative to the power-up directory or provide full path.'
-GITHUB = 'https://github.com/open-power-ref-design-toolkit/power-up'
+GITHUB = 'https://github.com/ibm/power-up'
 EPILOG = 'home page:\n  %s' % GITHUB
 LOG_LEVEL_CHOICES = ['nolog', 'debug', 'info', 'warning', 'error', 'critical']
 LOG_LEVEL_FILE = ['debug']
