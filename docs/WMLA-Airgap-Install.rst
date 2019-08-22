@@ -31,7 +31,7 @@ Collect and bundle dependencies
 
 #. Run --status to verify all dependencies are present::
 
-    $ pup software wmla121 --download-install-deps
+    $ pup software wmla121 --status
 
 #. Run --bundle-to to archive dependencies in single file::
 
