@@ -1053,7 +1053,7 @@ def ansible_pprint(ansible_output):
                 indentation = indentation[len(indent_str):]
 
             if element != '':
-                pretty_out += indentation + element + "\n"
+                pretty_out += indentation[80:] + element + "\n"
 
             if element.count("\"") == 3:
                 index_indent = True
