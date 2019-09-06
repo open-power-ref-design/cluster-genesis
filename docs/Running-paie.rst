@@ -28,6 +28,18 @@ completion of the preparation phase, the installation requires no further
 access to the open source repositories and can thus enable installation to
 servers which do not have internet access.
 
+Running POWER-Up software on one of the cluster nodes is supported. This will
+"self-install" WML Accelerator on to the install along with the rest of the
+cluster nodes at the same time. This eliminates the need for a dedicated
+installer node but requires some additional controls to handle system reboots.
+Rebooting is controlled via an Ansible variable, 'pup_reboot', that is set
+automatically in the inventory. A global 'pup_reboot=True' is added to default
+to original reboot behavior. If the installer node is included in the
+inventory, a 'pup_reboot=True' host variable is automatically added to the
+inventory (and anytime validation is called it will ensure this value is set,
+preventing an override). Additional client nodes could also set
+'pup_reboot=True' to prevent them from rebooting.
+
 Support
 -------
 Questions regarding the WML Accelerator installation software, installation, or
