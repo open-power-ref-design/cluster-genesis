@@ -371,13 +371,14 @@ the instructions below;
     $ sudo rm /etc/yum.repos.d/cuda.repo
     $ sudo rm /etc/yum.repos.d/nginx.repo
 
-#. Remove the software server content and repositories::
+#. Remove the software server content and repositories (replace
+   'wmla121-ppc63le' with current software module and architecture)::
 
-    $ sudo rm -rf /srv/anaconda
-    $ sudo rm -rf /srv/wmla-license
-    $ sudo rm -rf /srv/spectrum-dli
-    $ sudo rm -rf /srv/spectrum-conductor
-    $ sudo rm -rf /srv/repos
+    $ sudo rm -rf /srv/pup/wmla121-ppc64le/anaconda
+    $ sudo rm -rf /srv/pup/wmla121-ppc64le/wmla-license
+    $ sudo rm -rf /srv/pup/wmla121-ppc64le/spectrum-dli
+    $ sudo rm -rf /srv/pup/wmla121-ppc64le/spectrum-conductor
+    $ sudo rm -rf /srv/pup/wmla121-ppc64le/repos
 
 #. Remove the yum cache data depending on Computer Architecture::
 
